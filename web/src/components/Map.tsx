@@ -120,7 +120,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
       attributionControl: { compact: true },
     })
     const basemapTimeout = window.setTimeout(() => setBasemap((state) => state === 'loading' ? 'unavailable' : state), 15000)
-    map.on('style.load', () => {
+    map.on('load', () => {
       window.clearTimeout(basemapTimeout)
       setBasemap('ready')
     })
