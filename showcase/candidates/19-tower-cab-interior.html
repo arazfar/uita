@@ -330,7 +330,7 @@ async function startTiles() {
     // origin at SFO tower base; ellipsoid height ~ MSL 4 m + geoid -32 m
     tiles.registerPlugin(new ReorientationPlugin({ lat: LAT0 * D2R, lon: LON0 * D2R, height: -28, recenter: true }));
     // performance: coarse error target, small queues and cache so the machine stays responsive
-    tiles.errorTarget = 20;
+    tiles.errorTarget = 22;
     tiles.downloadQueue.maxJobs = 6;
     tiles.parseQueue.maxJobs = 2;
     tiles.lruCache.maxSize = 400;
@@ -341,10 +341,10 @@ async function startTiles() {
     tiles.addEventListener('load-model', ({ scene: s }) => {
       loaded++;
       s.traverse((o) => { if (o.material) { o.material.color?.setRGB(0.21, 0.24, 0.34); o.material.fog = true; } });
-      if (loaded > 140 && !tilesOK) { tilesOK = true; enableFallback(false); }
+      if (loaded > 60 && !tilesOK) { tilesOK = true; enableFallback(false); }
     });
     tiles.addEventListener('load-error', () => { errors++; });
-    setTimeout(() => { if (!tilesOK && loaded > 40) { tilesOK = true; enableFallback(false); } }, 25000);
+    setTimeout(() => { if (!tilesOK && loaded > 20) { tilesOK = true; enableFallback(false); } }, 8000);
     setTimeout(() => { if (!tilesOK && loaded < 5) { errBox(`Photoreal tiles did not load (${errors} errors). Showing the OSM airport fallback.`); enableFallback(true); } }, 15000);
   } catch (e) { console.warn(e); errBox('3D Tiles renderer failed to load. Showing the OSM airport fallback.'); enableFallback(true); }
 }
