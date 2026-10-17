@@ -1,0 +1,16 @@
+.venv/
+node_modules/
+frontend/dist/
+__pycache__/
+.pytest_cache/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.env
+output/
+*.log
+.playwright-cli/
+*.tsbuildinfo

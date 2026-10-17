@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T19:21:38.149038+00:00",
+  "title": "Design System: Uita",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "tonalRamp": [
+          "oklch(15% 0.0297 241.48)",
+          "oklch(26% 0.0297 241.48)",
+          "oklch(38% 0.0297 241.48)",
+          "oklch(49% 0.0297 241.48)",
+          "oklch(61% 0.0297 241.48)",
+          "oklch(72% 0.0297 241.48)",
+          "oklch(84% 0.0297 241.48)",
+          "oklch(95% 0.0297 241.48)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Background",
+        "tonalRamp": [
+          "oklch(15% 0.0289 243.14)",
+          "oklch(26% 0.0289 243.14)",
+          "oklch(38% 0.0289 243.14)",
+          "oklch(49% 0.0289 243.14)",
+          "oklch(61% 0.0289 243.14)",
+          "oklch(72% 0.0289 243.14)",
+          "oklch(84% 0.0289 243.14)",
+          "oklch(95% 0.0289 243.14)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "tonalRamp": [
+          "oklch(15% 0.0308 243.59)",
+          "oklch(26% 0.0308 243.59)",
+          "oklch(38% 0.0308 243.59)",
+          "oklch(49% 0.0308 243.59)",
+          "oklch(61% 0.0308 243.59)",
+          "oklch(72% 0.0308 243.59)",
+          "oklch(84% 0.0308 243.59)",
+          "oklch(95% 0.0308 243.59)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.0155 222.69)",
+          "oklch(26% 0.0155 222.69)",
+          "oklch(38% 0.0155 222.69)",
+          "oklch(49% 0.0155 222.69)",
+          "oklch(61% 0.0155 222.69)",
+          "oklch(72% 0.0155 222.69)",
+          "oklch(84% 0.0155 222.69)",
+          "oklch(95% 0.0155 222.69)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15% 0.0337 233.53)",
+          "oklch(26% 0.0337 233.53)",
+          "oklch(38% 0.0337 233.53)",
+          "oklch(49% 0.0337 233.53)",
+          "oklch(61% 0.0337 233.53)",
+          "oklch(72% 0.0337 233.53)",
+          "oklch(84% 0.0337 233.53)",
+          "oklch(95% 0.0337 233.53)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15% 0.0318 241.75)",
+          "oklch(26% 0.0318 241.75)",
+          "oklch(38% 0.0318 241.75)",
+          "oklch(49% 0.0318 241.75)",
+          "oklch(61% 0.0318 241.75)",
+          "oklch(72% 0.0318 241.75)",
+          "oklch(84% 0.0318 241.75)",
+          "oklch(95% 0.0318 241.75)"
+        ]
+      },
+      "cyan": {
+        "role": "primary",
+        "displayName": "Cyan",
+        "tonalRamp": [
+          "oklch(15% 0.0786 198.81)",
+          "oklch(26% 0.0786 198.81)",
+          "oklch(38% 0.0786 198.81)",
+          "oklch(49% 0.0786 198.81)",
+          "oklch(61% 0.0786 198.81)",
+          "oklch(72% 0.0786 198.81)",
+          "oklch(84% 0.0786 198.81)",
+          "oklch(95% 0.0786 198.81)"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Amber",
+        "tonalRamp": [
+          "oklch(15% 0.0986 70.13)",
+          "oklch(26% 0.0986 70.13)",
+          "oklch(38% 0.0986 70.13)",
+          "oklch(49% 0.0986 70.13)",
+          "oklch(61% 0.0986 70.13)",
+          "oklch(72% 0.0986 70.13)",
+          "oklch(84% 0.0986 70.13)",
+          "oklch(95% 0.0986 70.13)"
+        ]
+      },
+      "action": {
+        "role": "primary",
+        "displayName": "Action",
+        "tonalRamp": [
+          "oklch(15% 0.0708 193.69)",
+          "oklch(26% 0.0708 193.69)",
+          "oklch(38% 0.0708 193.69)",
+          "oklch(49% 0.0708 193.69)",
+          "oklch(61% 0.0708 193.69)",
+          "oklch(72% 0.0708 193.69)",
+          "oklch(84% 0.0708 193.69)",
+          "oklch(95% 0.0708 193.69)"
+        ]
+      },
+      "action-ink": {
+        "role": "neutral",
+        "displayName": "Action Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0375 225.03)",
+          "oklch(26% 0.0375 225.03)",
+          "oklch(38% 0.0375 225.03)",
+          "oklch(49% 0.0375 225.03)",
+          "oklch(61% 0.0375 225.03)",
+          "oklch(72% 0.0375 225.03)",
+          "oklch(84% 0.0375 225.03)",
+          "oklch(95% 0.0375 225.03)"
+        ]
+      },
+      "action-hover": {
+        "role": "primary",
+        "displayName": "Action Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0588 192.20)",
+          "oklch(26% 0.0588 192.20)",
+          "oklch(38% 0.0588 192.20)",
+          "oklch(49% 0.0588 192.20)",
+          "oklch(61% 0.0588 192.20)",
+          "oklch(72% 0.0588 192.20)",
+          "oklch(84% 0.0588 192.20)",
+          "oklch(95% 0.0588 192.20)"
+        ]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "Secondary",
+        "tonalRamp": [
+          "oklch(15% 0.0335 235.62)",
+          "oklch(26% 0.0335 235.62)",
+          "oklch(38% 0.0335 235.62)",
+          "oklch(49% 0.0335 235.62)",
+          "oklch(61% 0.0335 235.62)",
+          "oklch(72% 0.0335 235.62)",
+          "oklch(84% 0.0335 235.62)",
+          "oklch(95% 0.0335 235.62)"
+        ]
+      },
+      "secondary-ink": {
+        "role": "neutral",
+        "displayName": "Secondary Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0257 229.18)",
+          "oklch(26% 0.0257 229.18)",
+          "oklch(38% 0.0257 229.18)",
+          "oklch(49% 0.0257 229.18)",
+          "oklch(61% 0.0257 229.18)",
+          "oklch(72% 0.0257 229.18)",
+          "oklch(84% 0.0257 229.18)",
+          "oklch(95% 0.0257 229.18)"
+        ]
+      },
+      "secondary-hover": {
+        "role": "neutral",
+        "displayName": "Secondary Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0409 234.66)",
+          "oklch(26% 0.0409 234.66)",
+          "oklch(38% 0.0409 234.66)",
+          "oklch(49% 0.0409 234.66)",
+          "oklch(61% 0.0409 234.66)",
+          "oklch(72% 0.0409 234.66)",
+          "oklch(84% 0.0409 234.66)",
+          "oklch(95% 0.0409 234.66)"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field",
+        "tonalRamp": [
+          "oklch(15% 0.0423 238.18)",
+          "oklch(26% 0.0423 238.18)",
+          "oklch(38% 0.0423 238.18)",
+          "oklch(49% 0.0423 238.18)",
+          "oklch(61% 0.0423 238.18)",
+          "oklch(72% 0.0423 238.18)",
+          "oklch(84% 0.0423 238.18)",
+          "oklch(95% 0.0423 238.18)"
+        ]
+      },
+      "field-ink": {
+        "role": "neutral",
+        "displayName": "Field Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0234 220.74)",
+          "oklch(26% 0.0234 220.74)",
+          "oklch(38% 0.0234 220.74)",
+          "oklch(49% 0.0234 220.74)",
+          "oklch(61% 0.0234 220.74)",
+          "oklch(72% 0.0234 220.74)",
+          "oklch(84% 0.0234 220.74)",
+          "oklch(95% 0.0234 220.74)"
+        ]
+      },
+      "scene": {
+        "role": "neutral",
+        "displayName": "Scene",
+        "tonalRamp": [
+          "oklch(15% 0.0416 226.29)",
+          "oklch(26% 0.0416 226.29)",
+          "oklch(38% 0.0416 226.29)",
+          "oklch(49% 0.0416 226.29)",
+          "oklch(61% 0.0416 226.29)",
+          "oklch(72% 0.0416 226.29)",
+          "oklch(84% 0.0416 226.29)",
+          "oklch(95% 0.0416 226.29)"
+        ]
+      },
+      "drawer": {
+        "role": "neutral",
+        "displayName": "Drawer",
+        "tonalRamp": [
+          "oklch(15% 0.0368 235.99)",
+          "oklch(26% 0.0368 235.99)",
+          "oklch(38% 0.0368 235.99)",
+          "oklch(49% 0.0368 235.99)",
+          "oklch(61% 0.0368 235.99)",
+          "oklch(72% 0.0368 235.99)",
+          "oklch(84% 0.0368 235.99)",
+          "oklch(95% 0.0368 235.99)"
+        ]
+      },
+      "pass": {
+        "role": "secondary",
+        "displayName": "Pass",
+        "tonalRamp": [
+          "oklch(15% 0.0759 171.84)",
+          "oklch(26% 0.0759 171.84)",
+          "oklch(38% 0.0759 171.84)",
+          "oklch(49% 0.0759 171.84)",
+          "oklch(61% 0.0759 171.84)",
+          "oklch(72% 0.0759 171.84)",
+          "oklch(84% 0.0759 171.84)",
+          "oklch(95% 0.0759 171.84)"
+        ]
+      },
+      "pass-bg": {
+        "role": "neutral",
+        "displayName": "Pass Bg",
+        "tonalRamp": [
+          "oklch(15% 0.0490 177.46)",
+          "oklch(26% 0.0490 177.46)",
+          "oklch(38% 0.0490 177.46)",
+          "oklch(49% 0.0490 177.46)",
+          "oklch(61% 0.0490 177.46)",
+          "oklch(72% 0.0490 177.46)",
+          "oklch(84% 0.0490 177.46)",
+          "oklch(95% 0.0490 177.46)"
+        ]
+      },
+      "fail": {
+        "role": "secondary",
+        "displayName": "Fail",
+        "tonalRamp": [
+          "oklch(15% 0.0723 52.74)",
+          "oklch(26% 0.0723 52.74)",
+          "oklch(38% 0.0723 52.74)",
+          "oklch(49% 0.0723 52.74)",
+          "oklch(61% 0.0723 52.74)",
+          "oklch(72% 0.0723 52.74)",
+          "oklch(84% 0.0723 52.74)",
+          "oklch(95% 0.0723 52.74)"
+        ]
+      },
+      "fail-bg": {
+        "role": "neutral",
+        "displayName": "Fail Bg",
+        "tonalRamp": [
+          "oklch(15% 0.0394 37.81)",
+          "oklch(26% 0.0394 37.81)",
+          "oklch(38% 0.0394 37.81)",
+          "oklch(49% 0.0394 37.81)",
+          "oklch(61% 0.0394 37.81)",
+          "oklch(72% 0.0394 37.81)",
+          "oklch(84% 0.0394 37.81)",
+          "oklch(95% 0.0394 37.81)"
+        ]
+      },
+      "unresolved": {
+        "role": "secondary",
+        "displayName": "Unresolved",
+        "tonalRamp": [
+          "oklch(15% 0.0790 76.49)",
+          "oklch(26% 0.0790 76.49)",
+          "oklch(38% 0.0790 76.49)",
+          "oklch(49% 0.0790 76.49)",
+          "oklch(61% 0.0790 76.49)",
+          "oklch(72% 0.0790 76.49)",
+          "oklch(84% 0.0790 76.49)",
+          "oklch(95% 0.0790 76.49)"
+        ]
+      },
+      "unresolved-bg": {
+        "role": "neutral",
+        "displayName": "Unresolved Bg",
+        "tonalRamp": [
+          "oklch(15% 0.0214 84.53)",
+          "oklch(26% 0.0214 84.53)",
+          "oklch(38% 0.0214 84.53)",
+          "oklch(49% 0.0214 84.53)",
+          "oklch(61% 0.0214 84.53)",
+          "oklch(72% 0.0214 84.53)",
+          "oklch(84% 0.0214 84.53)",
+          "oklch(95% 0.0214 84.53)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Scene title",
+        "purpose": "Spatial overview title; responsive sizes in DESIGN.md."
+      },
+      "data": {
+        "displayName": "Operational data",
+        "purpose": "Coordinates and backend measurements."
+      }
+    },
+    "shadows": [
+      {
+        "name": "camera-controls",
+        "value": "0 8px 24px #091d2738",
+        "purpose": "Lift compact camera navigation over the scene."
+      },
+      {
+        "name": "drawer",
+        "value": "0 18px 50px #06192588",
+        "purpose": "Temporary inspection tools."
+      },
+      {
+        "name": "comparison",
+        "value": "0 25px 90px #00121bcc",
+        "purpose": "Paired comparison overlay."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "background .18s, color .18s, border-color .18s",
+        "purpose": "Control feedback; disabled by reduced motion."
+      },
+      {
+        "name": "loading-spin",
+        "value": "spin 1.3s linear infinite",
+        "purpose": "Pending requests; disabled by reduced motion."
+      },
+      {
+        "name": "aircraft-interpolation",
+        "value": "1 - exp(-dt * 7)",
+        "purpose": "Server position smoothing; bypassed for reduced motion."
+      },
+      {
+        "name": "camera-reduced-motion",
+        "value": "direct position and target copy; enableDamping=false",
+        "purpose": "Bypass follow interpolation and orbit damping when the reduced-motion preference is active; responds to preference changes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stacked",
+        "value": "700px"
+      },
+      {
+        "name": "compact",
+        "value": "900px"
+      },
+      {
+        "name": "medium",
+        "value": "1200px"
+      },
+      {
+        "name": "wide",
+        "value": "1600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Compact operational action.",
+      "html": "<button class=\"ds-button-primary\">Inspect plan</button>",
+      "css": ".ds-button-primary{font-family:'DM Sans Variable',sans-serif;font-size:11px;font-weight:550;min-height:36px;padding:10px 12px;border-radius:5px;cursor:pointer;transition:background .18s,color .18s,border-color .18s;background:#9ae1df;color:#102b35;border:0;}.ds-button-primary:hover{background:#b5efec;}.ds-button-primary:focus-visible{outline:2px solid #b1edef;outline-offset:4px}.ds-button-primary:disabled{opacity:.38;cursor:not-allowed}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Compact operational action.",
+      "html": "<button class=\"ds-button-secondary\">Inspect plan</button>",
+      "css": ".ds-button-secondary{font-family:'DM Sans Variable',sans-serif;font-size:11px;font-weight:550;min-height:36px;padding:10px 12px;border-radius:5px;cursor:pointer;transition:background .18s,color .18s,border-color .18s;background:#213541;color:#bdd1db;border:1px solid #3c5361;}.ds-button-secondary:hover{background:#2c4655;}.ds-button-secondary:focus-visible{outline:2px solid #b1edef;outline-offset:4px}.ds-button-secondary:disabled{opacity:.38;cursor:not-allowed}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Scenario field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Labeled native input.",
+      "html": "<label class=\"ds-field\">Deterministic seed<input type=\"number\" value=\"42\" /></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:7px;font:10px 'DM Sans Variable',sans-serif;color:#a8c1cf}.ds-field input{background:#1c3545;border:1px solid #405c6c;border-radius:5px;padding:9px 10px;font:11px 'DM Sans Variable',sans-serif;color:#d1e5ec}.ds-field input:focus-visible{outline:2px solid #b1edef;outline-offset:4px}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Inspector navigation",
+      "kind": "nav",
+      "description": "Flush navigation with selected underline.",
+      "html": "<nav class=\"ds-tabs\"><button class=\"ds-selected\" aria-current=\"page\">Traffic</button><button>Decisions</button><button>Learning</button></nav>",
+      "css": ".ds-tabs{display:flex;background:var(--panel,#14232f);border-bottom:1px solid var(--line,#2a3b48);height:52px;padding:0 13px}.ds-tabs button{position:relative;flex:1;background:none;border:0;font:12px 'DM Sans Variable',sans-serif;color:#8ea7b6;cursor:pointer}.ds-tabs button:hover{color:#fff}.ds-tabs button.ds-selected{color:#c0eff0}.ds-selected:after{content:'';position:absolute;bottom:-1px;left:18px;right:18px;height:2px;background:var(--cyan,#8adadd)}.ds-tabs button:focus-visible{outline:2px solid #b1edef;outline-offset:4px}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Verification status",
+      "kind": "chip",
+      "refersTo": "status-pass",
+      "description": "Named independent verification result.",
+      "html": "<span class=\"ds-pass\">PASS</span>",
+      "css": ".ds-pass{display:inline-block;font:8px 'IBM Plex Mono',monospace;color:#acf1da;background:#244d44;padding:5px 6px;border-radius:3px;white-space:nowrap}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Evidence drawer",
+      "kind": "custom",
+      "refersTo": "evidence-drawer",
+      "description": "Temporary raised inspection surface.",
+      "html": "<aside class=\"ds-drawer\"><h2>Change the conditions</h2><p>Inspect the modeled disruption before continuing.</p></aside>",
+      "css": ".ds-drawer{width:352px;max-width:100%;background:#172d3a;padding:23px;border:1px solid #48616d;border-radius:10px;box-shadow:0 18px 50px #06192588;color:#dbe8ed;font-family:'DM Sans Variable',sans-serif}.ds-drawer h2{font-size:19px;font-weight:560;letter-spacing:-.025em;margin:0}.ds-drawer p{font-size:11px;line-height:1.75;color:#a2b9c7;margin:14px 0 0}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Precise aviation instrument",
+    "overview": "Uita uses the user-pinned precise aviation instrument direction: navy surfaces, restrained cyan actions, and amber attention. The recognizable SFO scene gives spatial context; compact controls and evidence support deliberate inspection. Density serves the simulation, with tables and explicit state text carrying information beyond the 3D view.",
+    "keyCharacteristics": [
+      "A large spatial scene with compact instrument chrome.",
+      "Locally served proportional interface type and monospaced operational values.",
+      "Tonal panels, fine dividers, and diffuse overlay shadows."
+    ],
+    "rules": [
+      {
+        "name": "The Explicit State Rule",
+        "body": "Color accompanies a named state; it never substitutes for verification or connection text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Evidence Boundary Rule",
+        "body": "Scene depth and motion communicate location; backend state and evidence supply measurements and verification.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve the navy, cyan, and amber hierarchy.",
+      "Do pair state colors with readable status text and provide the traffic table alongside 3D inspection.",
+      "Do show unavailable metrics as an em dash and keep simulation, replay, and provider states explicit.",
+      "Do reuse local fonts, cached scene assets, and instanced repeated geometry."
+    ],
+    "donts": [
+      "Don't turn the operational workspace into a wall of metric cards.",
+      "Don't imply that schematic geometry, exaggerated altitude, or camera physics measures flight separation.",
+      "Don't promote tiny incidental map or timeline text into a general interface typography standard."
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "fresh_virtualenv": true,
+  "lockfile": "requirements.lock",
+  "python": "3.9.25",
+  "platform": "darwin",
+  "dependency_versions": "0.115.14 2.0.55 9.11.4210 2.13.5",
+  "elapsed_seconds": 22.98,
+  "container_postgres_tested": false
+}

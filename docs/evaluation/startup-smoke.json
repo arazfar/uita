@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "port": 8002,
+  "isolated_database": true,
+  "fresh_demo_time": 580.084,
+  "verified_commit": "pass",
+  "diverted_aircraft": 1,
+  "replay_preserves_preclosure": true,
+  "restart_restored_revision": 3,
+  "python": "3.9.25"
+}

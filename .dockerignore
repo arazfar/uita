@@ -1,0 +1,10 @@
+.git
+.venv
+node_modules
+frontend/node_modules
+frontend/dist
+*.db
+*.sqlite3
+.env
+output
+tests
