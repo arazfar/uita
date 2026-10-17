@@ -10,9 +10,14 @@ Open [the replay](http://localhost:5174). `predev` and `prebuild` regenerate
 Those generated JSON files stay ignored. `bun run data` regenerates them manually.
 
 Select a day, scrub the week, change speed, then play. Select aircraft or feed rows
-for details. Space controls playback when focus is outside another control. Cyan
-marks arrivals; amber marks departures. Operations without a path remain in the
+for details. Space controls playback when focus is outside another control. Pale green
+marks arrivals; cyan marks departures. Operations without a path remain in the
 feed and throughput. Long observation gaps stay empty.
+
+The interface follows [DESIGN.md](../DESIGN.md): warm equipment faces, dark inset
+displays, locally served IBM Plex fonts, and a paper-style selected flight strip.
+Amber identifies playback controls and attention states. The map, legend, and
+roster share the same category colors. The visual layer leaves replay calculations and source data intact.
 
 The KPI panel uses complete roster counts for throughput, runway split, and
 same-runway arrival gaps. Arrival schedule offsets use tracked, scheduled arrivals
@@ -31,15 +36,17 @@ npx e2e run
 ```
 
 The browser suite drives the actual app and source bundles. It checks playback,
-all seven days, selection, timeline limits, KPI totals, narrow-screen layout, and
-missing-data recovery. It needs no model credentials. Reports and screenshots
+all seven days, selection, timeline limits, KPI totals, 320px reflow, keyboard focus,
+reduced motion, and missing-data recovery. Use `npx e2e run --headed` if software
+WebGL rendering stalls in headless Chromium. It needs no model credentials. Reports and screenshots
 are written under `.e2e/` and stay ignored.
 
 Basemap tiles need internet access. A status message identifies slow or missing
 tiles; aircraft paths, range rings, controls, and KPIs continue to work.
 
 See the [verification record](../docs/SFO_REPLAY_VERIFICATION.md) for observed
-results, coverage, and remaining limits.
+results, coverage, and remaining limits. The [design verification](../docs/SFO_REPLAY_DESIGN_VERIFICATION.md)
+records the Tempelhof migration and browser checks.
 
 The optional [ADSB.lol candidate importer](../pipeline/ADSB_LOL.md) supports a later
 backfill. It does not change the replay or claim complete coverage.

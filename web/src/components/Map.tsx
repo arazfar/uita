@@ -11,7 +11,6 @@ import type { RunwayCollection } from '../data/loaders'
 import type { CompiledTrack, Kind } from '../data/types'
 
 const STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-const COLOR: Record<Kind, [number, number, number]> = { arr: [34, 211, 238], dep: [251, 191, 36] }
 const TRAIL_SEC = 240
 const RING_NM = [10, 40, 80]
 
@@ -112,6 +111,19 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
   selectRef.current = onSelect
 
   useEffect(() => {
+    // Share the DOM palette with the canvas; read it once, outside the replay loop.
+    const theme = getComputedStyle(el.current!)
+    const color = (role: string): [number, number, number] => {
+      const hex = theme.getPropertyValue(`--atc-${role}`).trim()
+      if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new Error(`Missing map color token: ${role}`)
+      return [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16)) as [number, number, number]
+    }
+    const colors: Record<Kind, [number, number, number]> = { arr: color('green'), dep: color('cyan') }
+    const text = color('text')
+    const vector = color('vector')
+    const screen = color('screen')
+    const secondary = color('text-secondary')
+    const font = theme.getPropertyValue('--atc-font-data').trim()
     const map = new maplibregl.Map({
       container: el.current!,
       style: STYLE,
@@ -122,6 +134,17 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
     const basemapTimeout = window.setTimeout(() => setBasemap((state) => state === 'loading' ? 'unavailable' : state), 15000)
     map.on('load', () => {
       window.clearTimeout(basemapTimeout)
+      // Preserve geographic sources and labels while bringing the base into the display palette.
+      for (const layer of map.getStyle().layers) {
+        const token = (role: string) => theme.getPropertyValue(`--atc-${role}`).trim()
+        if (layer.type === 'background') map.setPaintProperty(layer.id, 'background-color', token('screen-raised'))
+        if (layer.type === 'fill') map.setPaintProperty(layer.id, 'fill-color', token(layer['source-layer'] === 'water' ? 'screen' : 'screen-hover'))
+        if (layer.type === 'line') map.setPaintProperty(layer.id, 'line-color', token('rule'))
+        if (layer.type === 'symbol') {
+          map.setPaintProperty(layer.id, 'text-color', token('text-secondary'))
+          map.setPaintProperty(layer.id, 'text-halo-color', token('screen'))
+        }
+      }
       setBasemap('ready')
     })
     map.on('error', () => setBasemap('unavailable'))
@@ -129,6 +152,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
 
     const overlay = new MapboxOverlay({
       interleaved: false,
+      pickingRadius: 12,
       onClick: (info) => {
         if (!info.layer) selectRef.current(null)
       },
@@ -149,7 +173,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
         id: 'rings',
         data: rings,
         getPath: (d) => d.path,
-        getColor: (d) => (d.nm === 80 ? [148, 163, 184, 150] : [148, 163, 184, 70]),
+        getColor: (d) => [...vector, d.nm === 80 ? 150 : 85],
         getWidth: (d) => (d.nm === 80 ? 1.5 : 1),
         widthUnits: 'pixels',
       }),
@@ -158,17 +182,17 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
         data: ringLabels,
         getPosition: (d) => d.position,
         getText: (d) => d.text,
-        getSize: 11,
-        getColor: [148, 163, 184, 200],
+        getSize: 12,
+        getColor: secondary,
         getPixelOffset: [0, -8],
-        fontFamily: 'ui-monospace, monospace',
+        fontFamily: font,
       }),
       new PolygonLayer({
         id: 'runways',
         data: polys,
         getPolygon: (d) => d,
-        getFillColor: [226, 232, 240, 230],
-        getLineColor: [226, 232, 240, 255],
+        getFillColor: [...vector, 80],
+        getLineColor: vector,
         lineWidthMinPixels: 1,
       }),
     ]
@@ -213,7 +237,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
             id: 'trips-arr',
             data: arrTrips,
             _pathType: 'open',
-            getColor: COLOR.arr,
+            getColor: colors.arr,
             currentTime: rel,
             trailLength: TRAIL_SEC,
             fadeTrail: true,
@@ -223,7 +247,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
             id: 'trips-dep',
             data: depTrips,
             _pathType: 'open',
-            getColor: COLOR.dep,
+            getColor: colors.dep,
             currentTime: rel,
             trailLength: TRAIL_SEC,
             fadeTrail: true,
@@ -233,7 +257,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
             id: 'selected-path',
             data: selectedPaths,
             getPath: (path) => path,
-            getColor: [255, 255, 255, 230],
+            getColor: [...text, 230],
             getWidth: 2,
             widthUnits: 'pixels',
           }),
@@ -247,7 +271,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
             getPosition: (d) => d.position,
             getAngle: (d) => -d.heading,
             getSize: (d) => (d.id === sel ? 30 : 20),
-            getColor: (d) => (d.id === sel ? [255, 255, 255] : COLOR[d.kind]),
+            getColor: (d) => (d.id === sel ? text : colors[d.kind]),
             sizeUnits: 'pixels',
             billboard: false,
             onClick: (info) => {
@@ -257,18 +281,31 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
             updateTriggers: { getSize: sel, getColor: sel },
           }),
           new TextLayer<Active>({
+            id: 'selection-bracket',
+            data: active.filter((d) => d.id === sel),
+            getPosition: (d) => d.position,
+            getText: () => '[  ]',
+            getSize: 24,
+            getColor: text,
+            fontFamily: font,
+            fontSettings: { sdf: true },
+            outlineWidth: 2,
+            outlineColor: screen,
+          }),
+          new TextLayer<Active>({
             id: 'labels',
             data: active,
             getPosition: (d) => d.position,
             getText: (d) => d.label,
-            getSize: 11,
-            getColor: (d) => [...COLOR[d.kind], 255],
+            getSize: 12,
+            getColor: (d) => d.id === sel ? text : colors[d.kind],
+            updateTriggers: { getColor: sel, getPixelOffset: sel },
             getTextAnchor: 'start',
-            getPixelOffset: [14, 0],
-            fontFamily: 'ui-monospace, monospace',
+            getPixelOffset: (d) => [d.id === sel ? 36 : 14, 0],
+            fontFamily: font,
             fontSettings: { sdf: true },
             outlineWidth: 3,
-            outlineColor: [8, 12, 18, 230],
+            outlineColor: [...screen, 230],
           }),
         ],
       })
@@ -283,10 +320,16 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
   }, [ds, clock, runways])
 
   return (
-    <div className="map-shell">
-      <div ref={el} className="map" role="region" aria-label="SFO tracked flight map" />
-      {basemap !== 'ready' && <div className="map-status" role="status">{basemap === 'loading' ? 'Loading basemap…' : 'Basemap is slow or unavailable. Aircraft paths remain available.'}</div>}
-      <div className="map-legend"><span className="legend-arr">● Arrivals</span><span className="legend-dep">● Departures</span><span>Available paths</span></div>
-    </div>
+    <section className="map-instrument" aria-labelledby="airspace-heading">
+      <div className="instrument-heading">
+        <div><span className="instrument-label">01 / Airspace</span><h2 id="airspace-heading">SFO airspace</h2></div>
+        <span className="display-label">Recorded positions</span>
+      </div>
+      <div className="map-shell">
+        <div ref={el} className="map" role="region" aria-label="SFO tracked flight map" />
+        {basemap !== 'ready' && <div className="map-status" role="status">{basemap === 'loading' ? 'Loading basemap…' : 'Basemap is slow or unavailable. Aircraft paths remain available.'}</div>}
+        <div className="map-legend"><span className="legend-arr">● Arrivals</span><span className="legend-dep">● Departures</span><span>Available paths</span></div>
+      </div>
+    </section>
   )
 }

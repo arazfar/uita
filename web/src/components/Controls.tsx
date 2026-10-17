@@ -20,8 +20,13 @@ export default function Controls({ week, fmt, t, playing, speed, act }: Props) {
   const currentDay = fmt.dayStart(Math.min(t, week.end - 1))
   return (
     <div className="controls" role="group" aria-label="Replay controls">
+      <div className="transport-top">
+        <div><span className="instrument-label">03 / Playback</span><span className="transport-state"><span className={`status-lamp ${playing ? 'running' : ''}`} aria-hidden="true" />{playing ? 'Playing' : 'Paused'}<span className="keyboard-hint">Space to play / pause</span></span></div>
+        <div className="clock" aria-label="Replay time"><span>{fmt.day(t)}</span>{' '}<b>{fmt.hms(t)}</b>{' '}<span>{fmt.tzName(t)}</span></div>
+      </div>
       <div className="row">
         <button className="play" onClick={() => act((clock) => clock.toggle())} title="Play or pause (Space)" aria-label={playing ? 'Pause replay' : 'Play replay'}>
+          <span aria-hidden="true">{playing ? 'Ⅱ' : '▶'}</span>
           {playing ? 'Pause' : 'Play'}
         </button>
         <div className="speeds" role="group" aria-label="Playback speed">
@@ -31,7 +36,6 @@ export default function Controls({ week, fmt, t, playing, speed, act }: Props) {
             </button>
           ))}
         </div>
-        <div className="clock" aria-label="Replay time">{fmt.day(t)} <b>{fmt.hms(t)}</b> {fmt.tzName(t)}</div>
         <div className="days" role="group" aria-label="Jump to a day at 07:00">
           {days.map((day) => (
             <button key={day} className={day === currentDay ? 'current-day' : ''} aria-pressed={day === currentDay} onClick={() => act((clock) => clock.seek(day + 7 * 3600))} title={`Jump to ${fmt.day(day + 43200)} at 07:00`}>

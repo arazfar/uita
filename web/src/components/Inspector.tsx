@@ -39,6 +39,7 @@ export default function Inspector({ ds, id, t, fmt, onClose }: Props) {
   }
   return (
     <section ref={panel} tabIndex={-1} className="inspector" aria-label={`Flight details for ${name}`}>
+      <span className="instrument-label">Selected operation / Flight strip</span>
       <div className="ih">
         <b>{name} <span className={`badge ${flight.kind}`}>{flight.kind === 'arr' ? 'ARR' : 'DEP'}</span></b>
         <button onClick={onClose} aria-label="Close flight details">Close</button>
