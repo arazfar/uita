@@ -1,5 +1,5 @@
 /**
- * Adapted from Vercel AI Elements' MIT-licensed ChainOfThought component.
+ * Adapted from Vercel AI Elements' Apache-2.0-licensed ChainOfThought component.
  * https://github.com/vercel/ai-elements/blob/main/packages/elements/src/chain-of-thought.tsx
  * Requested catalog: https://www.shadcn.io/ai/chain-of-thought
  * Uita uses its own theme and one shared Radix root for trigger/content linkage.
