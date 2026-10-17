@@ -104,6 +104,7 @@
         "load",
         () => {
           clearLoading();
+
         },
         { once: true },
       );
@@ -114,11 +115,11 @@
       function show(next) {
         if (next === view) return;
         const prev = frames[view];
-        prev.contentWindow?.postMessage({ skyflow: "pause" }, "*");
+        prev.contentWindow?.postMessage({ uita: "pause" }, "*");
         prev.hidden = true;
         const f = frames[next];
         if (!f.src) f.src = src[next]; // lazy: the cab loads on first toggle
-        else f.contentWindow?.postMessage({ skyflow: "resume" }, "*");
+        else f.contentWindow?.postMessage({ uita: "resume" }, "*");
         f.hidden = false;
         f.focus();
         view = next;
@@ -130,7 +131,7 @@
       const toggle = () => show(view === "dash" ? "cab" : "dash");
       addEventListener("keydown", (e) => e.key.toLowerCase() === "t" && !e.repeat && toggle());
       // Iframes forward their T presses here so the shortcut works wherever focus is.
-      addEventListener("message", (e) => e.data?.skyflow === "toggle" && toggle());
+      addEventListener("message", (e) => e.data?.uita === "toggle" && toggle());
     </script>
   </body>
 </html>

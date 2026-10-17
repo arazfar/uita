@@ -195,7 +195,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#b9c6cf;color:var(--in
 <button id="resume">▶ RESUME CINEMATIC</button>
 <div id="credit">Diorama modelled in Blender, exported as Draco GLB · Map data © OpenStreetMap contributors (ODbL), US Census coastline · Airliners: "Airplane" by Poly by Google, "Boeing 747" by Miha Lunar (CC BY 3.0, poly.pizza) · Simulated traffic</div>
 
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -253,9 +253,9 @@ scene.add(sun,sun.target);
 const draco=new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/');
 const loader=new GLTFLoader().setDRACOLoader(draco);
 const [dio,evt,meta]=await Promise.all([
-  loader.loadAsync('assets/skyflow-diorama.glb'),
+  loader.loadAsync('assets/uita-diorama.glb'),
   loader.loadAsync('assets/evtol.glb'),
-  fetch('assets/skyflow-diorama.json').then(r=>r.json())
+  fetch('assets/uita-diorama.json').then(r=>r.json())
 ]);
 document.getElementById('loading').remove();
 let airlinerSrc=null;
@@ -338,7 +338,7 @@ function makeEv(){const g=evProto.clone(true); g.scale.setScalar(22); const roto
   rotors.forEach(r=>{const d=disc.clone();d.rotation.x=-Math.PI/2;r.add(d);}); g.userData.rotors=rotors; return g;}
 for(let i=0;i<28;i++){
   const [o,d]=PAIRS[i%PAIRS.length];
-  flights.push({i,cs:'SkyFlow '+(101+i),id:'SKF'+(101+i),o,d,rel:i*2.5,obj:null,lab:null});
+  flights.push({i,cs:'UITA '+(101+i),id:'UTA'+(101+i),o,d,rel:i*2.5,obj:null,lab:null});
 }
 // the readback flight
 const F112=flights[11]; F112.o='SF'; F112.d='OAK'; F112.rel=11.5;
@@ -413,7 +413,7 @@ function radio(who,text){
 }
 // ---------- radio voice (shared SkyRadio module: /api/tts clips, VHF filter, one line at a time) ----------
 const plain=h=>h.replace(/<[^>]+>/g,'').replace(/–/g,' ').replace(/\s+/g,' ').trim();
-const csKey=txt=>{const m=plain(txt).match(/SkyFlow ((?:zero|one|two|three|four|five|six|seven|eight|niner) (?:zero|one|two|three|four|five|six|seven|eight|niner) (?:zero|one|two|three|four|five|six|seven|eight|niner))/);return m?'SKF-'+m[1]:'SKF';};
+const csKey=txt=>{const m=plain(txt).match(/UITA ((?:zero|one|two|three|four|five|six|seven|eight|niner) (?:zero|one|two|three|four|five|six|seven|eight|niner) (?:zero|one|two|three|four|five|six|seven|eight|niner))/);return m?'UTA-'+m[1]:'UTA';};
 let airBusy=0, quiet=false; const collected=[]; let collecting=false;
 function speak(who,html,el){
   const speaker=who==='CTL'?'atc':'pilot', text=plain(html), key=speaker==='pilot'?csKey(html):undefined;
@@ -436,7 +436,7 @@ function setClr(txt,fields,commit){
 }
 function routine(f,alt,sq){ // a clean clearance + readback exchange
   const r=f.path.filter(n=>n.length===1).map(n=>({W:'Whiskey',C:'Charlie',E:'Echo'})[n]).join(', ')||'direct';
-  const cs=`SkyFlow ${say(f.id.slice(3))}`;
+  const cs=`UITA ${say(f.id.slice(3))}`;
   const dn={SF:'San Francisco',OAK:'Oakland',SFO:'International',BER:'Berkeley',MAR:'Marin'}[f.d];
   return [
     ()=>{radio('CTL',`${cs}, Bay Control, cleared to ${dn} via ${r}, climb and maintain ${alt}, squawk ${say(sq)}.`);
@@ -454,38 +454,38 @@ function buildScript(){
     [0.3,()=>{spawn('COORD');prop('sys','COORDINATOR','Shift start: 28 trips filed, 9 corridors, 5 pads.','SPAWN','spawning sector agents north · central · south');}],
     [1.4,()=>{spawn('SEC-N');spawn('SEC-C');spawn('SEC-S');}],
     [2.4,()=>{['SF','OAK','SFO','BER','MAR'].forEach(p=>spawn('PAD-'+p));prop('sys','SECTOR CENTRAL','Pad agents online for SF, OAK, SFO, BER, MAR.','SPAWN','');}],
-    [4.0,()=>prop('acc','PAD · SF','Sequence SKF103 ahead of SKF104 at SF pad, 90 s spacing.','ACCEPT','kernel: separation ≥ 60 s, pad slot free')],
+    [4.0,()=>prop('acc','PAD · SF','Sequence UTA103 ahead of UTA104 at SF pad, 90 s spacing.','ACCEPT','kernel: separation ≥ 60 s, pad slot free')],
     [4.5,R1[0]],[5.6,R1[1]],[6.5,R1[2]],
-    [7.2,()=>prop('acc','SECTOR SOUTH','Reserve W–SFO 1,500 ft block for SKF106.','ACCEPT','kernel: no overlap in 4D reservation table')],
+    [7.2,()=>prop('acc','SECTOR SOUTH','Reserve W–SFO 1,500 ft block for UTA106.','ACCEPT','kernel: no overlap in 4D reservation table')],
     [8.0,R2[0]],[9.0,R2[1]],[9.8,R2[2]],
-    [tS(STORM[0]),()=>{S.phase='storm';prop('rej','KERNEL · WX','Convective cell over Bay, not in TAF. Corridor C–E closed.','NOTAM','kernel commits closure min 08–24 · all C–E reservations void');radio('CTL','All SkyFlow aircraft, Bay Control, corridor Charlie Echo closed for weather. Expect reroute.');}],
-    [10.2,()=>{S.phase='replan';prop('acc','SECTOR CENTRAL','Reroute SKF109, SKF110 C–E → W–E. +4.3 km each.','ACCEPT','kernel: W–E capacity 6/8, no conflicts in 4D check');}],
-    [11.2,()=>prop('acc','PAD · OAK','Priority landing SKF108, battery reserve 19%.','ACCEPT','kernel: reserve below 20% → priority allowed')],
-    [12.0,()=>prop('rej','SECTOR CENTRAL','Hold SKF110 at junction E, 1,500 ft, 3 turns.','REJECT','VETO · hold fix E lies 0.8 nm inside the cell buffer (min 2.0 nm)')],
-    [12.8,()=>prop('acc','SECTOR CENTRAL','Hold SKF110 at W instead, 2 turns.','ACCEPT','kernel: W clear of buffer, slot at OAK 22:10 kept')],
+    [tS(STORM[0]),()=>{S.phase='storm';prop('rej','KERNEL · WX','Convective cell over Bay, not in TAF. Corridor C–E closed.','NOTAM','kernel commits closure min 08–24 · all C–E reservations void');radio('CTL','All UITA aircraft, Bay Control, corridor Charlie Echo closed for weather. Expect reroute.');}],
+    [10.2,()=>{S.phase='replan';prop('acc','SECTOR CENTRAL','Reroute UTA109, UTA110 C–E → W–E. +4.3 km each.','ACCEPT','kernel: W–E capacity 6/8, no conflicts in 4D check');}],
+    [11.2,()=>prop('acc','PAD · OAK','Priority landing UTA108, battery reserve 19%.','ACCEPT','kernel: reserve below 20% → priority allowed')],
+    [12.0,()=>prop('rej','SECTOR CENTRAL','Hold UTA110 at junction E, 1,500 ft, 3 turns.','REJECT','VETO · hold fix E lies 0.8 nm inside the cell buffer (min 2.0 nm)')],
+    [12.8,()=>prop('acc','SECTOR CENTRAL','Hold UTA110 at W instead, 2 turns.','ACCEPT','kernel: W clear of buffer, slot at OAK 22:10 kept')],
     [13.4,()=>{F112.lab.element.classList.add('hl');
-      radio('CTL','SkyFlow one one two, Bay Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one two.');
-      setClr('SkyFlow one one two, cleared to Oakland via <em>Whiskey, Echo</em>. Climb and maintain one thousand five hundred. Squawk four two one two.',[['CALLSIGN','SKF112'],['ROUTE','SF›W›E›OAK'],['ALT','1,500'],['SQUAWK','4212'],['DEST','OAK']],['AWAITING READBACK',''])}],
-    [15.0,()=>radio('PLT','Cleared to Oakland via <em>Charlie, Echo</em>, one thousand five hundred, squawk four two one two, SkyFlow one one two.')],
+      radio('CTL','UITA one one two, Bay Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one two.');
+      setClr('UITA one one two, cleared to Oakland via <em>Whiskey, Echo</em>. Climb and maintain one thousand five hundred. Squawk four two one two.',[['CALLSIGN','UTA112'],['ROUTE','SF›W›E›OAK'],['ALT','1,500'],['SQUAWK','4212'],['DEST','OAK']],['AWAITING READBACK',''])}],
+    [15.0,()=>radio('PLT','Cleared to Oakland via <em>Charlie, Echo</em>, one thousand five hundred, squawk four two one two, UITA one one two.')],
     [16.4,()=>{radio('HBK bad','ROUTE mismatch · heard C–E (closed), cleared W–E · not committed');
-      setClr(document.getElementById('clrTxt').innerHTML,[['CALLSIGN','SKF112','SKF112','ok'],['ROUTE','SF›W›E›OAK','SF›C›E›OAK','bad'],['ALT','1,500','1,500','ok'],['SQUAWK','4212','4212','ok'],['DEST','OAK','OAK','ok']],['MISMATCH · ROUTE','bad']);
-      prop('rej','HEARBACK','SKF112 readback route C–E ≠ cleared W–E.','HOLD','reservation withheld until a correct readback')}],
-    [17.4,()=>radio('CTL','SkyFlow one one two, <em>negative</em>. Charlie Echo is closed. Cleared via <strong>Whiskey, Echo</strong>. Read back.')],
-    [19.0,()=>radio('PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one two, SkyFlow one one two.')],
-    [20.0,()=>{radio('HBK ok','SKF112 5/5 fields match · W–E reservation committed');
-      setClr('SkyFlow one one two, cleared to Oakland via <strong>Whiskey, Echo</strong>. Readback correct.',[['CALLSIGN','SKF112','SKF112','ok'],['ROUTE','SF›W›E›OAK','SF›W›E›OAK','ok'],['ALT','1,500','1,500','ok'],['SQUAWK','4212','4212','ok'],['DEST','OAK','OAK','ok']],['COMMITTED','ok']);
-      prop('acc','KERNEL','Commit SKF112 SF›W›E›OAK, T+11:30 to T+20:10.','COMMIT','hearback passed · 4D slot written');F112.lab.element.classList.remove('hl');}],
+      setClr(document.getElementById('clrTxt').innerHTML,[['CALLSIGN','UTA112','UTA112','ok'],['ROUTE','SF›W›E›OAK','SF›C›E›OAK','bad'],['ALT','1,500','1,500','ok'],['SQUAWK','4212','4212','ok'],['DEST','OAK','OAK','ok']],['MISMATCH · ROUTE','bad']);
+      prop('rej','HEARBACK','UTA112 readback route C–E ≠ cleared W–E.','HOLD','reservation withheld until a correct readback')}],
+    [17.4,()=>radio('CTL','UITA one one two, <em>negative</em>. Charlie Echo is closed. Cleared via <strong>Whiskey, Echo</strong>. Read back.')],
+    [19.0,()=>radio('PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one two, UITA one one two.')],
+    [20.0,()=>{radio('HBK ok','UTA112 5/5 fields match · W–E reservation committed');
+      setClr('UITA one one two, cleared to Oakland via <strong>Whiskey, Echo</strong>. Readback correct.',[['CALLSIGN','UTA112','UTA112','ok'],['ROUTE','SF›W›E›OAK','SF›W›E›OAK','ok'],['ALT','1,500','1,500','ok'],['SQUAWK','4212','4212','ok'],['DEST','OAK','OAK','ok']],['COMMITTED','ok']);
+      prop('acc','KERNEL','Commit UTA112 SF›W›E›OAK, T+11:30 to T+20:10.','COMMIT','hearback passed · 4D slot written');F112.lab.element.classList.remove('hl');}],
     [21.6,()=>{spawn('E-METER');prop('sys','SECTOR CENTRAL','W–E at 7/8 capacity. Spawning junction-E metering agent.','SPAWN','recursive spawn: depth 3');}],
     [23.0,()=>prop('acc','E METER','Meter W–E entries to one every 75 s.','ACCEPT','kernel: keeps W–E ≤ 8, max delay 4.1 min')],
-    [24.5,()=>prop('rej','PAD · BER','Skip charge turn for SKF117, launch now.','REJECT','VETO · reserve after trip would be 14% (min 20%)')],
-    [tS(STORM[1]),()=>{S.phase='recovery';prop('sys','KERNEL · WX','Cell moved east. C–E reopened after clean sweep.','REOPEN','closure lifted min 24 · reservations accepted again');radio('CTL','All SkyFlow aircraft, corridor Charlie Echo is open. Expect direct routings.');}],
-    [29.0,()=>prop('acc','SECTOR CENTRAL','Restore C–E for SKF121 onward; release W–E meter.','ACCEPT','kernel: no conflicts, saves 4.3 km per trip')],
+    [24.5,()=>prop('rej','PAD · BER','Skip charge turn for UTA117, launch now.','REJECT','VETO · reserve after trip would be 14% (min 20%)')],
+    [tS(STORM[1]),()=>{S.phase='recovery';prop('sys','KERNEL · WX','Cell moved east. C–E reopened after clean sweep.','REOPEN','closure lifted min 24 · reservations accepted again');radio('CTL','All UITA aircraft, corridor Charlie Echo is open. Expect direct routings.');}],
+    [29.0,()=>prop('acc','SECTOR CENTRAL','Restore C–E for UTA121 onward; release W–E meter.','ACCEPT','kernel: no conflicts, saves 4.3 km per trip')],
     [30.5,R3[0]],[31.6,R3[1]],[32.5,R3[2]],
-    [36.0,()=>prop('acc','PAD · SFO','Swap slots SKF123 / SKF124 to match winds 030 at 6.','ACCEPT','kernel: both slots inside ETA window')],
+    [36.0,()=>prop('acc','PAD · SFO','Swap slots UTA123 / UTA124 to match winds 030 at 6.','ACCEPT','kernel: both slots inside ETA window')],
     [44.0,R4[0]],[45.2,R4[1]],[46.0,R4[2]],
     [52.0,()=>prop('acc','COORDINATOR','Retire junction-E meter agent. Traffic nominal.','ACCEPT','')],
-    [62.0,()=>prop('sys','COORDINATOR','Last release SKF128 airborne. Tracking 28/28 on time.','STATUS','static plan would be 10/28 with C–E closed')],
-    [84.0,()=>{prop('acc','KERNEL','Shift closed: 28/28 on time, 0 conflicts, 0 human interventions.','DONE','+14.3% distance vs filed plan');setClr('Shift complete. All 28 SkyFlow trips arrived on time. Zero conflicts, zero human interventions.',null,['28/28 COMMITTED','ok']);}],
+    [62.0,()=>prop('sys','COORDINATOR','Last release UTA128 airborne. Tracking 28/28 on time.','STATUS','static plan would be 10/28 with C–E closed')],
+    [84.0,()=>{prop('acc','KERNEL','Shift closed: 28/28 on time, 0 conflicts, 0 human interventions.','DONE','+14.3% distance vs filed plan');setClr('Shift complete. All 28 UITA trips arrived on time. Zero conflicts, zero human interventions.',null,['28/28 COMMITTED','ok']);}],
   ].sort((a,b)=>a[0]-b[0]);
 }
 
@@ -576,13 +576,13 @@ function preset(n,user=true){ if(user) setCine(false); const sh=SHOTS[n]; sh.fn(
 function zoomBy(f){ setCine(false); const off=cam.position.clone().sub(controls.target);
   const d=THREE.MathUtils.clamp(off.length()*f,controls.minDistance,controls.maxDistance); const tgt=controls.target.clone(), pos=tgt.clone().add(off.setLength(d)), fov=cam.fov;
   goTo(()=>({pos,tgt,fov}),0.6); }
-// Director: scenario beats in loop seconds (sim min 8 = 9.1 s storm, 13.4 s SKF112 clearance, 27.4 s reopen, 84 s shift close)
+// Director: scenario beats in loop seconds (sim min 8 = 9.1 s storm, 13.4 s UTA112 clearance, 27.4 s reopen, 84 s shift close)
 const orbit=(dist,speed,h=1)=>()=>{const a=Math.atan2(OVER.x,OVER.z)+(t-0)*speed;const r=Math.hypot(OVER.x,OVER.z)*dist;return {pos:target.clone().add(new THREE.Vector3(Math.sin(a)*r,OVER.y*dist*h,Math.cos(a)*r)),tgt:target.clone(),fov:BASE_FOV};};
 const BEATS=[
   [0,   'ESTABLISHING ORBIT', orbit(1.0,0.012),2.0],
   [9.1, 'STORM CELL · C–E CLOSING', ()=>{const c=storm.position.clone().add(new THREE.Vector3(0,70,0));const k=Math.min(1,(t-9.1)/3.5);return {pos:c.clone().add(new THREE.Vector3(620,520,980).multiplyScalar(1.5-0.5*k)),tgt:c,fov:30};},2.2],
   [11.2,'FOLLOW · REROUTED FLIGHT', ()=>{const f=flights.find(f=>live(f)&&f.rr&&f!==F112)||pickChase();return chaseShot(f,300,32);},1.8],
-  [13.4,'READBACK · SKF112', ()=>live(F112)?chaseShot(F112,210,30):{pos:v3(meta.pads.SF.x+120,meta.pads.SF.y-160,110),tgt:v3(meta.pads.SF.x,meta.pads.SF.y,20),fov:28},1.6],
+  [13.4,'READBACK · UTA112', ()=>live(F112)?chaseShot(F112,210,30):{pos:v3(meta.pads.SF.x+120,meta.pads.SF.y-160,110),tgt:v3(meta.pads.SF.x,meta.pads.SF.y,20),fov:28},1.6],
   [21.0,'STORM · AGENTS METERING W–E', ()=>{const c=storm.position.clone();return {pos:c.clone().add(new THREE.Vector3(-700,1500,2100)),tgt:c.clone().add(new THREE.Vector3(-150,0,0)),fov:26};},2.4],
   [27.4,'RECOVERY · PULL BACK', orbit(1.08,0.01,1.05),2.6],
   [36,  'CHASE · TRAFFIC', ()=>chaseShot(flights.find(live)||selected,280,32),2.0],

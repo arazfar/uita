@@ -1,4 +1,4 @@
-#skyflow-demo {
+#uita-demo {
   --sf-ink: #203c49;
   --sf-muted: #647b85;
   --sf-line: #e2e9e9;
@@ -23,35 +23,35 @@
   width: 100%;
   isolation: isolate;
 }
-#skyflow-demo * {
+#uita-demo * {
   box-sizing: border-box;
 }
-#skyflow-demo button,
-#skyflow-demo select,
-#skyflow-demo input {
+#uita-demo button,
+#uita-demo select,
+#uita-demo input {
   font: inherit;
 }
-#skyflow-demo button {
+#uita-demo button {
   cursor: pointer;
 }
-#skyflow-demo button:focus-visible,
-#skyflow-demo select:focus-visible,
-#skyflow-demo input:focus-visible,
-#skyflow-demo summary:focus-visible {
+#uita-demo button:focus-visible,
+#uita-demo select:focus-visible,
+#uita-demo input:focus-visible,
+#uita-demo summary:focus-visible {
   outline: 3px solid #1899d6;
   outline-offset: 3px;
 }
-#skyflow-demo button {
+#uita-demo button {
   border: 1px solid var(--sf-line);
   background: white;
   color: var(--sf-ink);
   border-radius: 7px;
   padding: 9px 12px;
 }
-#skyflow-demo button:hover {
+#uita-demo button:hover {
   background: #eef7fa;
 }
-#skyflow-demo .sf-header {
+#uita-demo .sf-header {
   padding: 16px 100px 16px 24px;
   min-height: 65px;
   display: flex;
@@ -60,12 +60,12 @@
   gap: 16px;
   border-bottom: 1px solid var(--sf-line);
 }
-#skyflow-demo .sf-brand {
+#uita-demo .sf-brand {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-#skyflow-demo .sf-brandmark {
+#uita-demo .sf-brandmark {
   display: grid;
   place-items: center;
   background: #167cb9;
@@ -74,21 +74,21 @@
   width: 31px;
   height: 31px;
 }
-#skyflow-demo .sf-brand strong {
+#uita-demo .sf-brand strong {
   font-size: 23px;
   font-weight: 650;
   letter-spacing: -1.1px;
 }
-#skyflow-demo .sf-brand strong span {
+#uita-demo .sf-brand strong span {
   font-weight: 350;
   color: #b8c9ce;
   margin: 0 9px;
 }
-#skyflow-demo .sf-subtitle {
+#uita-demo .sf-subtitle {
   font-size: 12px;
   color: var(--sf-muted);
 }
-#skyflow-demo .sf-sim {
+#uita-demo .sf-sim {
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 1.2px;
@@ -97,64 +97,64 @@
   border-radius: 5px;
   color: #52747e;
 }
-#skyflow-demo .sf-toolbar {
+#uita-demo .sf-toolbar {
   padding: 21px 24px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 14px;
 }
-#skyflow-demo .sf-eyebrow {
+#uita-demo .sf-eyebrow {
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 1.5px;
   color: var(--sf-muted);
 }
-#skyflow-demo h2 {
+#uita-demo h2 {
   font-size: 23px;
   line-height: 1.2;
   letter-spacing: -0.65px;
   margin: 5px 0 0;
   font-weight: 550;
 }
-#skyflow-demo .sf-modes {
+#uita-demo .sf-modes {
   display: flex;
   padding: 4px;
   background: #edf2f3;
   border-radius: 9px;
   gap: 3px;
 }
-#skyflow-demo .sf-modes button {
+#uita-demo .sf-modes button {
   border: none;
   background: transparent;
   font-size: 12px;
   font-weight: 600;
   padding: 8px 12px;
 }
-#skyflow-demo .sf-modes button[aria-pressed="true"] {
+#uita-demo .sf-modes button[aria-pressed="true"] {
   background: #fff;
   color: #166c9b;
   box-shadow: 0 1px 4px #233f4a15;
 }
-#skyflow-demo .sf-scoreboard {
+#uita-demo .sf-scoreboard {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   padding: 0 24px 19px;
   gap: 20px;
 }
-#skyflow-demo .sf-stat {
+#uita-demo .sf-stat {
   border-left: 1px solid var(--sf-line);
   padding-left: 20px;
 }
-#skyflow-demo .sf-stat:first-child {
+#uita-demo .sf-stat:first-child {
   border: 0;
   padding-left: 0;
 }
-#skyflow-demo .sf-stat > span {
+#uita-demo .sf-stat > span {
   font-size: 12px;
   color: var(--sf-muted);
 }
-#skyflow-demo .sf-stat small {
+#uita-demo .sf-stat small {
   font-size: 8px;
   letter-spacing: 0.8px;
   margin-left: 6px;
@@ -162,54 +162,54 @@
   padding: 3px 5px;
   border-radius: 3px;
 }
-#skyflow-demo .sf-stat strong {
+#uita-demo .sf-stat strong {
   font-size: 31px;
   letter-spacing: -1px;
   font-weight: 550;
   line-height: 1.4;
   font-variant-numeric: tabular-nums;
 }
-#skyflow-demo .sf-unit {
+#uita-demo .sf-unit {
   font-size: 12px;
   margin-left: 7px;
   color: var(--sf-muted);
 }
-#skyflow-demo .sf-stat p {
+#uita-demo .sf-stat p {
   margin: 0;
   color: #397b65;
   font-size: 11px;
 }
-#skyflow-demo .sf-stat:last-child p {
+#uita-demo .sf-stat:last-child p {
   color: #95733d;
 }
-#skyflow-demo .sf-workspace {
+#uita-demo .sf-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 246px 320px;
   border-top: 1px solid var(--sf-line);
   border-bottom: 1px solid var(--sf-line);
 }
-#skyflow-demo .sf-map {
+#uita-demo .sf-map {
   position: relative;
   height: 535px;
   min-width: 0;
   background: #e8f2f2;
   overflow: hidden;
 }
-#skyflow-demo #sf-scene {
+#uita-demo #sf-scene {
   position: absolute;
   inset: 0;
 }
-#skyflow-demo #sf-scene canvas {
+#uita-demo #sf-scene canvas {
   display: block;
   width: 100%;
   height: 100%;
 }
-#skyflow-demo #sf-labels {
+#uita-demo #sf-labels {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-#skyflow-demo .sf-pad-label {
+#uita-demo .sf-pad-label {
   position: absolute;
   transform: translate(-50%, -100%);
   white-space: nowrap;
@@ -221,7 +221,7 @@
   align-items: center;
   gap: 5px;
 }
-#skyflow-demo .sf-pad-label b {
+#uita-demo .sf-pad-label b {
   background: #fff;
   border: 1px solid #c9dfe4;
   border-radius: 3px;
@@ -229,7 +229,7 @@
   color: #1d6d98;
   box-shadow: 0 2px 5px #31525d10;
 }
-#skyflow-demo .sf-aircraft-label {
+#uita-demo .sf-aircraft-label {
   position: absolute;
   transform: translate(9px, -15px);
   background: #234754;
@@ -240,7 +240,7 @@
   white-space: nowrap;
   box-shadow: 0 2px 8px #29444c20;
 }
-#skyflow-demo .sf-map-title {
+#uita-demo .sf-map-title {
   position: absolute;
   left: 18px;
   top: 18px;
@@ -252,20 +252,20 @@
   gap: 6px;
   color: #45626b;
 }
-#skyflow-demo .sf-map-title > span:last-child {
+#uita-demo .sf-map-title > span:last-child {
   font-weight: 400;
   color: #7b959c;
   font-size: 9px;
   padding-left: 7px;
   border-left: 1px solid #b7ced1;
 }
-#skyflow-demo .sf-dot {
+#uita-demo .sf-dot {
   width: 6px;
   height: 6px;
   background: #6a9a91;
   border-radius: 50%;
 }
-#skyflow-demo .sf-weather {
+#uita-demo .sf-weather {
   position: absolute;
   bottom: 45px;
   left: 17px;
@@ -275,34 +275,34 @@
   border-radius: 8px;
   box-shadow: 0 3px 14px #28495209;
 }
-#skyflow-demo .sf-weather label {
+#uita-demo .sf-weather label {
   display: flex;
   gap: 7px;
   align-items: center;
   font-size: 11px;
   font-weight: 600;
 }
-#skyflow-demo .sf-weather label span {
+#uita-demo .sf-weather label span {
   display: flex;
   gap: 6px;
   align-items: center;
 }
-#skyflow-demo .sf-weather input {
+#uita-demo .sf-weather input {
   accent-color: #197cb1;
   width: 14px;
   height: 14px;
 }
-#skyflow-demo .sf-weather svg {
+#uita-demo .sf-weather svg {
   width: 15px;
   height: 15px;
 }
-#skyflow-demo .sf-weather small {
+#uita-demo .sf-weather small {
   font-size: 10px;
   display: block;
   margin: 3px 0 0 24px;
   color: #8d7456;
 }
-#skyflow-demo .sf-map-legend {
+#uita-demo .sf-map-legend {
   position: absolute;
   bottom: 15px;
   left: 18px;
@@ -314,25 +314,25 @@
   color: #647c83;
   flex-wrap: wrap;
 }
-#skyflow-demo .sf-map-legend span {
+#uita-demo .sf-map-legend span {
   display: flex;
   gap: 5px;
   align-items: center;
 }
-#skyflow-demo .sf-route-key {
+#uita-demo .sf-route-key {
   width: 13px;
   height: 2px;
   background: #8ab9ca;
 }
-#skyflow-demo .sf-selected-key {
+#uita-demo .sf-selected-key {
   width: 13px;
   height: 3px;
   background: #177ab2;
 }
-#skyflow-demo .sf-map-legend span:last-child {
+#uita-demo .sf-map-legend span:last-child {
   margin-left: auto;
 }
-#skyflow-demo #sf-loading {
+#uita-demo #sf-loading {
   position: absolute;
   top: 45%;
   width: 100%;
@@ -341,117 +341,117 @@
   background: #eaf4f2;
   padding: 15px;
 }
-#skyflow-demo .sf-inspector {
+#uita-demo .sf-inspector {
   padding: 19px 18px;
   background: #fbfcfb;
   border-left: 1px solid var(--sf-line);
 }
-#skyflow-demo .sf-inspector-heading {
+#uita-demo .sf-inspector-heading {
   display: flex;
   justify-content: space-between;
   gap: 8px;
   align-items: center;
 }
-#skyflow-demo .sf-live-count {
+#uita-demo .sf-live-count {
   font-size: 10px;
   color: #377d66;
   background: #e6f2eb;
   padding: 3px 6px;
   border-radius: 4px;
 }
-#skyflow-demo .sf-flight-label {
+#uita-demo .sf-flight-label {
   display: block;
   font-size: 10px;
   color: var(--sf-muted);
   margin: 18px 0 5px;
 }
-#skyflow-demo select {
+#uita-demo select {
   background: #fff;
   border: 1px solid #d9e3e5;
   border-radius: 6px;
   color: var(--sf-ink);
   padding: 7px 8px;
 }
-#skyflow-demo #sf-flight {
+#uita-demo #sf-flight {
   width: 100%;
   font-weight: 600;
   font-size: 12px;
 }
-#skyflow-demo .sf-trip {
+#uita-demo .sf-trip {
   display: flex;
   gap: 12px;
   align-items: center;
   margin-top: 17px;
 }
-#skyflow-demo .sf-trip strong {
+#uita-demo .sf-trip strong {
   font-size: 23px;
   letter-spacing: -0.5px;
   font-weight: 550;
 }
-#skyflow-demo .sf-trip > span {
+#uita-demo .sf-trip > span {
   color: #aac0c5;
   font-size: 19px;
 }
-#skyflow-demo .sf-trip-names {
+#uita-demo .sf-trip-names {
   font-size: 11px;
   color: var(--sf-muted);
   margin-top: 2px;
 }
-#skyflow-demo .sf-flight-status {
+#uita-demo .sf-flight-status {
   font-size: 10px;
   margin: 8px 0 14px;
   color: #177aa4;
 }
-#skyflow-demo .sf-facts {
+#uita-demo .sf-facts {
   margin: 0;
   padding: 12px 0;
   border-top: 1px solid var(--sf-line);
   border-bottom: 1px solid var(--sf-line);
   font-size: 11px;
 }
-#skyflow-demo .sf-facts > div {
+#uita-demo .sf-facts > div {
   display: flex;
   justify-content: space-between;
   gap: 8px;
   margin: 5px 0;
 }
-#skyflow-demo dt {
+#uita-demo dt {
   color: var(--sf-muted);
 }
-#skyflow-demo dd {
+#uita-demo dd {
   margin: 0;
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 550;
 }
-#skyflow-demo .sf-trace-title {
+#uita-demo .sf-trace-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 4px;
   margin: 18px 0 12px;
 }
-#skyflow-demo .sf-trace-title .sf-eyebrow {
+#uita-demo .sf-trace-title .sf-eyebrow {
   font-size: 9px;
   letter-spacing: 1px;
 }
-#skyflow-demo .sf-trace-title > span:last-child {
+#uita-demo .sf-trace-title > span:last-child {
   font-size: 8px;
   color: #8b999e;
 }
-#skyflow-demo .sf-trace {
+#uita-demo .sf-trace {
   padding: 0 0 0 14px;
   margin: 0;
   list-style: none;
   border-left: 1px solid #cedfe1;
 }
-#skyflow-demo .sf-trace li {
+#uita-demo .sf-trace li {
   position: relative;
   margin: 0 0 11px;
   font-size: 10px;
   color: var(--sf-muted);
 }
-#skyflow-demo .sf-trace li::before {
+#uita-demo .sf-trace li::before {
   content: "";
   position: absolute;
   left: -18px;
@@ -463,42 +463,42 @@
   background: #6a9f92;
   box-shadow: 0 0 0 1px #b7d4ce;
 }
-#skyflow-demo .sf-trace strong {
+#uita-demo .sf-trace strong {
   display: block;
   color: #47646c;
   font-size: 11px;
   font-weight: 550;
 }
-#skyflow-demo .sf-guard {
+#uita-demo .sf-guard {
   display: flex;
   gap: 8px;
   align-items: center;
   margin-top: 17px;
   color: #397760;
 }
-#skyflow-demo .sf-guard svg {
+#uita-demo .sf-guard svg {
   width: 19px;
   height: 19px;
 }
-#skyflow-demo .sf-guard strong {
+#uita-demo .sf-guard strong {
   display: block;
   font-size: 10px;
   font-weight: 600;
 }
-#skyflow-demo .sf-guard small {
+#uita-demo .sf-guard small {
   display: block;
   font-size: 9px;
   color: var(--sf-muted);
   margin-top: 1px;
 }
-#skyflow-demo .sf-playback {
+#uita-demo .sf-playback {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 16px 24px;
   background: #fff;
 }
-#skyflow-demo #sf-play {
+#uita-demo #sf-play {
   background: #227dab;
   color: #fff;
   border: 0;
@@ -506,14 +506,14 @@
   font-size: 12px;
   font-weight: 550;
 }
-#skyflow-demo #sf-end {
+#uita-demo #sf-end {
   font-size: 11px;
 }
-#skyflow-demo .sf-scrub {
+#uita-demo .sf-scrub {
   flex: 1;
   min-width: 70px;
 }
-#skyflow-demo .sf-scrub > div {
+#uita-demo .sf-scrub > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -521,30 +521,30 @@
   color: var(--sf-muted);
   margin-bottom: 4px;
 }
-#skyflow-demo #sf-clock {
+#uita-demo #sf-clock {
   font-variant-numeric: tabular-nums;
   color: #305565;
   font-weight: 600;
 }
-#skyflow-demo #sf-time {
+#uita-demo #sf-time {
   display: block;
   width: 100%;
   accent-color: #227dab;
   height: 12px;
   margin: 0;
 }
-#skyflow-demo .sf-speed {
+#uita-demo .sf-speed {
   font-size: 9px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   color: var(--sf-muted);
 }
-#skyflow-demo #sf-speed {
+#uita-demo #sf-speed {
   font-size: 11px;
   padding: 4px;
 }
-#skyflow-demo .sf-footer {
+#uita-demo .sf-footer {
   border-top: 1px solid #edf1f1;
   font-size: 11px;
   color: #71858c;
@@ -555,67 +555,67 @@
   align-items: start;
   flex-wrap: wrap;
 }
-#skyflow-demo .sf-footer details {
+#uita-demo .sf-footer details {
   margin-left: auto;
 }
-#skyflow-demo summary {
+#uita-demo summary {
   cursor: pointer;
   color: #627b85;
 }
-#skyflow-demo .sf-provenance {
+#uita-demo .sf-provenance {
   max-width: 680px;
   font-size: 11px;
   color: #5c737c;
   line-height: 1.6;
 }
-#skyflow-demo a {
+#uita-demo a {
   color: #167cab;
 }
-#skyflow-demo #sf-error {
+#uita-demo #sf-error {
   padding: 20px;
   background: #fff0dc;
   color: #82501c;
 }
-#skyflow-demo [hidden] {
+#uita-demo [hidden] {
   display: none !important;
 }
 @media (max-width: 760px) {
-  #skyflow-demo .sf-subtitle {
+  #uita-demo .sf-subtitle {
     display: none;
   }
-  #skyflow-demo .sf-header {
+  #uita-demo .sf-header {
     padding-left: 16px;
   }
-  #skyflow-demo .sf-toolbar {
+  #uita-demo .sf-toolbar {
     padding: 17px 16px;
     flex-wrap: wrap;
   }
-  #skyflow-demo h2 {
+  #uita-demo h2 {
     font-size: 21px;
   }
-  #skyflow-demo .sf-scoreboard {
+  #uita-demo .sf-scoreboard {
     padding: 0 16px 16px;
     gap: 12px;
   }
-  #skyflow-demo .sf-stat {
+  #uita-demo .sf-stat {
     padding-left: 12px;
   }
-  #skyflow-demo .sf-stat strong {
+  #uita-demo .sf-stat strong {
     font-size: 26px;
   }
-  #skyflow-demo .sf-stat small {
+  #uita-demo .sf-stat small {
     display: none;
   }
-  #skyflow-demo .sf-stat > span {
+  #uita-demo .sf-stat > span {
     font-size: 10px;
   }
-  #skyflow-demo .sf-workspace {
+  #uita-demo .sf-workspace {
     grid-template-columns: 1fr;
   }
-  #skyflow-demo .sf-map {
+  #uita-demo .sf-map {
     height: 470px;
   }
-  #skyflow-demo .sf-inspector {
+  #uita-demo .sf-inspector {
     border-left: 0;
     border-top: 1px solid var(--sf-line);
     display: grid;
@@ -623,163 +623,163 @@
     column-gap: 25px;
     padding: 16px;
   }
-  #skyflow-demo .sf-inspector-heading {
+  #uita-demo .sf-inspector-heading {
     grid-column: 1/-1;
   }
-  #skyflow-demo .sf-flight-label {
+  #uita-demo .sf-flight-label {
     margin: 12px 0 4px;
   }
-  #skyflow-demo #sf-flight {
+  #uita-demo #sf-flight {
     grid-column: 1;
     grid-row: 3;
   }
-  #skyflow-demo .sf-trip {
+  #uita-demo .sf-trip {
     grid-column: 1;
     grid-row: 4;
     margin-top: 10px;
   }
-  #skyflow-demo .sf-trip-names {
+  #uita-demo .sf-trip-names {
     grid-column: 1;
     grid-row: 5;
   }
-  #skyflow-demo .sf-flight-status {
+  #uita-demo .sf-flight-status {
     grid-column: 1;
     grid-row: 6;
   }
-  #skyflow-demo .sf-facts {
+  #uita-demo .sf-facts {
     grid-column: 2;
     grid-row: 2/7;
     align-self: center;
   }
-  #skyflow-demo .sf-trace-title {
+  #uita-demo .sf-trace-title {
     grid-column: 1/-1;
     margin-top: 8px;
   }
-  #skyflow-demo .sf-trace {
+  #uita-demo .sf-trace {
     grid-column: 1/-1;
     display: flex;
     gap: 20px;
     border: none;
     padding-left: 4px;
   }
-  #skyflow-demo .sf-trace li {
+  #uita-demo .sf-trace li {
     flex: 1;
     padding-left: 8px;
     margin: 0;
   }
-  #skyflow-demo .sf-trace li::before {
+  #uita-demo .sf-trace li::before {
     left: -4px;
   }
-  #skyflow-demo .sf-guard {
+  #uita-demo .sf-guard {
     grid-column: 1/-1;
     margin-top: 13px;
   }
-  #skyflow-demo .sf-playback {
+  #uita-demo .sf-playback {
     padding: 14px 16px;
     gap: 10px;
   }
-  #skyflow-demo .sf-footer {
+  #uita-demo .sf-footer {
     padding: 10px 16px;
   }
-  #skyflow-demo .sf-stat p {
+  #uita-demo .sf-stat p {
     font-size: 10px;
   }
-  #skyflow-demo .sf-unit {
+  #uita-demo .sf-unit {
     font-size: 10px;
     margin-left: 4px;
   }
 }
 @media (max-width: 420px) {
-  #skyflow-demo .sf-header {
+  #uita-demo .sf-header {
     padding-right: 95px;
     gap: 8px;
   }
-  #skyflow-demo .sf-brand strong {
+  #uita-demo .sf-brand strong {
     font-size: 21px;
   }
-  #skyflow-demo .sf-brand strong span {
+  #uita-demo .sf-brand strong span {
     display: none;
   }
-  #skyflow-demo .sf-sim {
+  #uita-demo .sf-sim {
     font-size: 8px;
     letter-spacing: 0.5px;
   }
-  #skyflow-demo .sf-toolbar {
+  #uita-demo .sf-toolbar {
     gap: 12px;
   }
-  #skyflow-demo .sf-modes {
+  #uita-demo .sf-modes {
     width: 100%;
   }
-  #skyflow-demo .sf-modes button {
+  #uita-demo .sf-modes button {
     flex: 1;
     min-height: 40px;
   }
-  #skyflow-demo .sf-stat strong {
+  #uita-demo .sf-stat strong {
     font-size: 23px;
   }
-  #skyflow-demo .sf-stat > span {
+  #uita-demo .sf-stat > span {
     font-size: 10px;
   }
-  #skyflow-demo .sf-unit {
+  #uita-demo .sf-unit {
     display: block;
     margin: -3px 0 4px;
   }
-  #skyflow-demo .sf-map {
+  #uita-demo .sf-map {
     height: 405px;
   }
-  #skyflow-demo .sf-map-title > span:last-child {
+  #uita-demo .sf-map-title > span:last-child {
     display: none;
   }
-  #skyflow-demo .sf-map-legend {
+  #uita-demo .sf-map-legend {
     font-size: 9px;
     gap: 9px;
   }
-  #skyflow-demo .sf-map-legend span:last-child {
+  #uita-demo .sf-map-legend span:last-child {
     margin-left: 0;
   }
-  #skyflow-demo .sf-inspector {
+  #uita-demo .sf-inspector {
     column-gap: 15px;
   }
-  #skyflow-demo .sf-trace {
+  #uita-demo .sf-trace {
     gap: 10px;
   }
-  #skyflow-demo .sf-trip strong {
+  #uita-demo .sf-trip strong {
     font-size: 21px;
   }
-  #skyflow-demo .sf-playback {
+  #uita-demo .sf-playback {
     flex-wrap: wrap;
   }
-  #skyflow-demo .sf-scrub {
+  #uita-demo .sf-scrub {
     flex-basis: calc(100% - 125px);
   }
-  #skyflow-demo .sf-speed {
+  #uita-demo .sf-speed {
     flex-direction: row;
     align-items: center;
     gap: 8px;
   }
-  #skyflow-demo #sf-end {
+  #uita-demo #sf-end {
     margin-left: auto;
   }
-  #skyflow-demo .sf-facts {
+  #uita-demo .sf-facts {
     font-size: 9px;
   }
-  #skyflow-demo .sf-pad-label {
+  #uita-demo .sf-pad-label {
     font-size: 9px;
   }
-  #skyflow-demo .sf-pad-label span {
+  #uita-demo .sf-pad-label span {
     display: none;
   }
-  #skyflow-demo .sf-stat p {
+  #uita-demo .sf-stat p {
     line-height: 1.3;
   }
-  #skyflow-demo button,
-  #skyflow-demo select {
+  #uita-demo button,
+  #uita-demo select {
     min-height: 40px;
   }
-  #skyflow-demo input[type="range"] {
+  #uita-demo input[type="range"] {
     min-height: 24px;
   }
-  #skyflow-demo .sf-weather label {
+  #uita-demo .sf-weather label {
     min-height: 30px;
   }
 }
@@ -790,7 +790,7 @@ body {
   background: #edf2f3;
   font-family: system-ui, sans-serif;
 }
-#skyflow-demo {
+#uita-demo {
   max-width: 1400px;
   margin: auto;
 }
@@ -803,18 +803,18 @@ svg {
     padding: 8px;
   }
 }
-#skyflow-demo .sf-outcome-caption {
+#uita-demo .sf-outcome-caption {
   grid-column: 1/-1;
   font-size: 10px;
   letter-spacing: 0.5px;
   color: #71858c;
 }
-#skyflow-demo .sf-scoreboard {
+#uita-demo .sf-scoreboard {
   row-gap: 7px;
 }
 
 /* Sector radio */
-#skyflow-demo .sf-radio {
+#uita-demo .sf-radio {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -822,15 +822,15 @@ svg {
   border-left: 1px solid var(--sf-line);
   background: #f7faf9;
 }
-#skyflow-demo .sf-radio-head,
-#skyflow-demo .sf-radio-controls {
+#uita-demo .sf-radio-head,
+#uita-demo .sf-radio-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   padding: 12px 14px 0;
 }
-#skyflow-demo .sf-radio-state {
+#uita-demo .sf-radio-state {
   font-size: 9px;
   font-weight: 650;
   letter-spacing: 0.6px;
@@ -839,27 +839,27 @@ svg {
   background: #e8efee;
   color: #5d747b;
 }
-#skyflow-demo .sf-radio-state[data-live="atc"] {
+#uita-demo .sf-radio-state[data-live="atc"] {
   background: #147cbe;
   color: #fff;
 }
-#skyflow-demo .sf-radio-state[data-live="pilot"] {
+#uita-demo .sf-radio-state[data-live="pilot"] {
   background: #2f8a63;
   color: #fff;
 }
-#skyflow-demo .sf-toggle {
+#uita-demo .sf-toggle {
   display: flex;
   gap: 6px;
   align-items: center;
   font-size: 11px;
   font-weight: 550;
 }
-#skyflow-demo .sf-engine {
+#uita-demo .sf-engine {
   font-size: 9.5px;
   color: var(--sf-muted);
   text-align: right;
 }
-#skyflow-demo .sf-radio-log {
+#uita-demo .sf-radio-log {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -870,36 +870,36 @@ svg {
   flex-direction: column;
   gap: 6px;
 }
-#skyflow-demo .sf-tx {
+#uita-demo .sf-tx {
   border: 1px solid var(--sf-line);
   border-radius: 8px;
   background: #fff;
   padding: 7px 9px;
   transition: box-shadow 0.15s;
 }
-#skyflow-demo .sf-tx.is-live {
+#uita-demo .sf-tx.is-live {
   box-shadow: 0 0 0 2px #147cbe55;
 }
-#skyflow-demo .sf-tx p {
+#uita-demo .sf-tx p {
   margin: 3px 0 0;
   font-size: 11.5px;
   line-height: 1.38;
 }
-#skyflow-demo .sf-tx-meta {
+#uita-demo .sf-tx-meta {
   display: flex;
   gap: 6px;
   align-items: center;
   font-size: 9.5px;
   color: var(--sf-muted);
 }
-#skyflow-demo .sf-tx-meta b {
+#uita-demo .sf-tx-meta b {
   color: var(--sf-ink);
   font-weight: 650;
 }
-#skyflow-demo .sf-tx-meta time {
+#uita-demo .sf-tx-meta time {
   font-variant-numeric: tabular-nums;
 }
-#skyflow-demo .sf-ch {
+#uita-demo .sf-ch {
   margin-left: auto;
   font-size: 8.5px;
   letter-spacing: 0.5px;
@@ -912,73 +912,73 @@ svg {
   text-overflow: ellipsis;
   max-width: 150px;
 }
-#skyflow-demo .sf-ch-warn {
+#uita-demo .sf-ch-warn {
   background: #fbe9dc;
   color: #a2531c;
 }
-#skyflow-demo .sf-ch-ok {
+#uita-demo .sf-ch-ok {
   background: #e3f2ea;
   color: #2f7a55;
 }
-#skyflow-demo .sf-ch-agent {
+#uita-demo .sf-ch-agent {
   background: #ece8fb;
   color: #5a47a8;
 }
-#skyflow-demo .sf-tx-atc {
+#uita-demo .sf-tx-atc {
   border-left: 3px solid #147cbe;
 }
-#skyflow-demo .sf-tx-pilot {
+#uita-demo .sf-tx-pilot {
   border-left: 3px solid #2f8a63;
 }
-#skyflow-demo .sf-tx-agent {
+#uita-demo .sf-tx-agent {
   border-left: 3px solid #6b56c9;
   background: #fbfaff;
 }
-#skyflow-demo .sf-tx-check {
+#uita-demo .sf-tx-check {
   border-left: 3px solid #c4823f;
   background: #fffaf5;
 }
-#skyflow-demo .sf-tx-datalink {
+#uita-demo .sf-tx-datalink {
   opacity: 0.78;
 }
-#skyflow-demo .sf-tx-datalink p {
+#uita-demo .sf-tx-datalink p {
   font-size: 10.5px;
   color: #4f666d;
 }
-#skyflow-demo .sf-tx-system p {
+#uita-demo .sf-tx-system p {
   font-size: 10.5px;
   color: var(--sf-muted);
 }
-#skyflow-demo .sf-chips {
+#uita-demo .sf-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 5px;
 }
-#skyflow-demo .sf-chip {
+#uita-demo .sf-chip {
   font-size: 8.5px;
   padding: 1px 5px;
   border-radius: 10px;
   background: #e9f1f6;
   color: #3c6f8d;
 }
-#skyflow-demo .sf-chip-mismatch,
-#skyflow-demo .sf-chip-not {
+#uita-demo .sf-chip-mismatch,
+#uita-demo .sf-chip-not {
   background: #fbe2d2;
   color: #a2531c;
 }
-#skyflow-demo .sf-chip-committed {
+#uita-demo .sf-chip-committed {
   background: #ddf0e5;
   color: #2f7a55;
 }
-#skyflow-demo .sf-pilot {
+#uita-demo .sf-pilot {
   display: grid;
   gap: 7px;
   padding: 10px;
   border-top: 1px solid var(--sf-line);
   background: #fff;
 }
-#skyflow-demo .sf-ptt {
+#uita-demo .sf-ptt {
   border: 0;
   border-radius: 8px;
   padding: 10px;
@@ -988,17 +988,17 @@ svg {
   touch-action: none;
   user-select: none;
 }
-#skyflow-demo .sf-ptt[data-state="hearing"] {
+#uita-demo .sf-ptt[data-state="hearing"] {
   background: #c0392b;
 }
-#skyflow-demo .sf-ptt[data-state="transcribing"] {
+#uita-demo .sf-ptt[data-state="transcribing"] {
   background: #6b56c9;
 }
-#skyflow-demo .sf-quick {
+#uita-demo .sf-quick {
   display: flex;
   gap: 5px;
 }
-#skyflow-demo .sf-quick button {
+#uita-demo .sf-quick button {
   flex: 1;
   font-size: 10px;
   padding: 5px 4px;
@@ -1006,11 +1006,11 @@ svg {
   border: 1px solid var(--sf-line);
   background: var(--sf-soft);
 }
-#skyflow-demo .sf-pilot-text {
+#uita-demo .sf-pilot-text {
   display: flex;
   gap: 5px;
 }
-#skyflow-demo .sf-pilot-text input {
+#uita-demo .sf-pilot-text input {
   flex: 1;
   min-width: 0;
   font-size: 11px;
@@ -1018,7 +1018,7 @@ svg {
   border: 1px solid var(--sf-line);
   border-radius: 6px;
 }
-#skyflow-demo .sf-pilot-text button {
+#uita-demo .sf-pilot-text button {
   font-size: 11px;
   padding: 0 10px;
   border-radius: 6px;
@@ -1027,10 +1027,10 @@ svg {
   color: #fff;
 }
 @media (max-width: 1180px) {
-  #skyflow-demo .sf-workspace {
+  #uita-demo .sf-workspace {
     grid-template-columns: minmax(0, 1fr) 246px;
   }
-  #skyflow-demo .sf-radio {
+  #uita-demo .sf-radio {
     grid-column: 1 / -1;
     height: 460px;
     border-left: 0;
@@ -1038,10 +1038,10 @@ svg {
   }
 }
 @media (max-width: 760px) {
-  #skyflow-demo .sf-workspace {
+  #uita-demo .sf-workspace {
     grid-template-columns: 1fr;
   }
-  #skyflow-demo .sf-radio {
+  #uita-demo .sf-radio {
     height: 520px;
   }
 }

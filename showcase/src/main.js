@@ -18,7 +18,7 @@ import {
 import { createATC } from "./atc.mjs";
 import geo from "./bay-geometry.json";
 createIcons({ icons: { Route, Cloud, ShieldCheck } });
-const root = document.getElementById("skyflow-demo");
+const root = document.getElementById("uita-demo");
 const $ = (s) => root.querySelector(s),
   all = (s) => [...root.querySelectorAll(s)];
 try {

@@ -1,6 +1,6 @@
 # SFO offline map pack
 
-Fully offline replacement for streamed Google Photorealistic 3D Tiles in the SkyFlow demo. No Google data is used, cached or derived here.
+Fully offline replacement for streamed Google Photorealistic 3D Tiles in the UITA demo. No Google data is used, cached or derived here.
 
 | File | What | Size |
 |---|---|---|

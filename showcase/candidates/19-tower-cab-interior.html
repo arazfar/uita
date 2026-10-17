@@ -154,7 +154,7 @@
   <rect width="100" height="100" fill="#000" mask="url(#bm)"/></svg></div>
 <div id="attrib"></div>
 
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 <script type="importmap">
 { "imports": {
   "three": "/vendor/three/build/three.module.js",
@@ -195,7 +195,7 @@ const LAT0 = 37.6164, LON0 = -122.3826;
 const KX = 88288.08474587766, KY = 110989.20390546018;
 const P = (lon, lat) => [(lon - LON0) * KX, -(lat - LAT0) * KY];
 
-// ---------- SkyFlow network ----------
+// ---------- UITA network ----------
 const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
   W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
 const EDGES = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
@@ -566,7 +566,7 @@ for (const [, p] of Object.entries(PAD)) {
   const ring = []; for (let a = 0; a < 24; a++) ring.push(p[0] + Math.cos(a / 24 * Math.PI * 2) * 14, 1.0, p[1] + Math.sin(a / 24 * Math.PI * 2) * 14);
   lightPoints(ring, 0x5fd4ff, 3);
 }
-// SkyFlow corridors (faint, at 1,500 ft)
+// UITA corridors (faint, at 1,500 ft)
 const corrLines = {};
 for (const e of EDGES) {
   const [a, b] = e.split('-'), pa = P(...NODES[a]), pb = P(...NODES[b]);
@@ -659,17 +659,17 @@ function liftoff(pad, hdg) { return (t, a) => {
   const climb = 90 * smooth(0, 10, T), fwd = T > 9 ? 0.5 * 2.2 * (T - 9) ** 2 : 0, y = climb + Math.max(0, T - 9) * 7;
   return { x: p[0] + dx * fwd, y, z: p[1] + dz * fwd, dx, dy: 0, dz, vis: T < 70 };
 }; }
-mkActor('SKF105', 'evtol', liftoff(1, -40 * D2R), 'SKF105/L');
-mkActor('SKF384', 'evtol', liftoff(2, -35 * D2R), 'SKF384/L');
-mkActor('SKF122', 'evtol', (t, a) => { // landing pad 1, approach from NNE
+mkActor('UTA105', 'evtol', liftoff(1, -40 * D2R), 'UTA105/L');
+mkActor('UTA384', 'evtol', liftoff(2, -35 * D2R), 'UTA384/L');
+mkActor('UTA122', 'evtol', (t, a) => { // landing pad 1, approach from NNE
   const st = evState[a.cs], p = PAD[1], hd = 200 * D2R, dx = Math.sin(hd), dz = -Math.cos(hd);
   if (st == null) return { vis: false };
   const T = t - st, D = 2600;
   if (T < 24) { const k = ease(T / 24), d = D * (1 - k); return { x: p[0] - dx * d, y: 70 + 260 * (1 - k), z: p[1] - dz * d, dx, dy: 0, dz, vis: true }; }
   const y = 70 * (1 - smooth(24, 34, T)); return { x: p[0], y, z: p[1], dx, dy: 0, dz, vis: true };
-}, 'SKF122/L');
+}, 'UTA122/L');
 const pW = P(...NODES.W), pS = P(...NODES.SFO);
-for (const [cs, off, dir] of [['SKF119', 0, 1], ['SKF127', 22, -1]]) mkActor(cs, 'evtol', (t) => {
+for (const [cs, off, dir] of [['UTA119', 0, 1], ['UTA127', 22, -1]]) mkActor(cs, 'evtol', (t) => {
   const L = Math.hypot(pW[0] - pS[0], pW[1] - pS[1]), q = ((t * 55 + off * 55) % L) / L, k = dir > 0 ? q : 1 - q;
   const dx = (pW[0] - pS[0]) / L * dir, dz = (pW[1] - pS[1]) / L * dir;
   return { x: lerp(pS[0], pW[0], k), y: 457, z: lerp(pS[1], pW[1], k), dx, dy: 0, dz, vis: true };
@@ -703,16 +703,16 @@ const clockStr = (addMin = 0) => { const s = Math.floor(18 * 3600 + 40 * 60 + (s
 
 // strips
 const STRIP0 = [
-  { cs: 'SKF122', type: 'EV4', rt: 'OAK E W SFO', alt: '010', bay: 'PEND', kind: 'arr' },
-  { cs: 'SKF412', type: 'EV4', rt: 'SF C E OAK', alt: '012', bay: 'PEND', kind: 'arr' },
-  { cs: 'SKF421', type: 'EV4', rt: 'MAR SF C E OAK', alt: '010', bay: 'PEND', kind: 'arr' },
-  { cs: 'SKF117', type: 'EV4', rt: 'OAK BER', alt: '010', bay: 'PEND', kind: 'arr' },
-  { cs: 'SKF109', type: 'EV4', rt: 'BER C SF', alt: '012', bay: 'PEND', kind: 'arr' },
-  { cs: 'SKF384', type: 'EV4', rt: 'SFO W SF', alt: '012', bay: 'GDEP', kind: 'dep' },
-  { cs: 'SKF105', type: 'EV4', rt: 'SFO W SF', alt: '012', bay: 'GDEP', kind: 'dep' },
+  { cs: 'UTA122', type: 'EV4', rt: 'OAK E W SFO', alt: '010', bay: 'PEND', kind: 'arr' },
+  { cs: 'UTA412', type: 'EV4', rt: 'SF C E OAK', alt: '012', bay: 'PEND', kind: 'arr' },
+  { cs: 'UTA421', type: 'EV4', rt: 'MAR SF C E OAK', alt: '010', bay: 'PEND', kind: 'arr' },
+  { cs: 'UTA117', type: 'EV4', rt: 'OAK BER', alt: '010', bay: 'PEND', kind: 'arr' },
+  { cs: 'UTA109', type: 'EV4', rt: 'BER C SF', alt: '012', bay: 'PEND', kind: 'arr' },
+  { cs: 'UTA384', type: 'EV4', rt: 'SFO W SF', alt: '012', bay: 'GDEP', kind: 'dep' },
+  { cs: 'UTA105', type: 'EV4', rt: 'SFO W SF', alt: '012', bay: 'GDEP', kind: 'dep' },
   { cs: 'UAL900', type: 'B744', rt: '28R TRUKN2', alt: '050', bay: 'DEPI', kind: 'dep' },
   { cs: 'AAL173', type: 'A321', rt: '28L ILS', alt: '030', bay: 'ARRC', kind: 'arr' },
-  { cs: 'SKF126', type: 'EV4', rt: 'SFO W E OAK', alt: '012', bay: 'GDEP', kind: 'dep' },
+  { cs: 'UTA126', type: 'EV4', rt: 'SFO W E OAK', alt: '012', bay: 'GDEP', kind: 'dep' },
   { cs: 'UAL1210', type: 'B738', rt: '01R TAXI C', alt: '050', bay: 'GND', kind: 'dep' },
 ];
 function resetState() {
@@ -725,23 +725,23 @@ function resetState() {
 }
 const strip = (cs) => S.strips.find((s) => s.cs === cs);
 const lastClr = {}; // callsign → latest clearance shown on the banner
-function setBanner(text, sub, cls) { S.banner = { text, sub, cls }; { const m = text.match(/^(SKF\d+) /); if (m) lastClr[m[1]] = text; } const b = $('banner'); b.className = cls || ''; $('cmd').innerHTML = `<small>${sub}</small>${text}`; }
+function setBanner(text, sub, cls) { S.banner = { text, sub, cls }; { const m = text.match(/^(UTA\d+) /); if (m) lastClr[m[1]] = text; } const b = $('banner'); b.className = cls || ''; $('cmd').innerHTML = `<small>${sub}</small>${text}`; }
 function logLine(who, text, cls = '') { S.log.unshift({ t: clockStr(), who, text, cls }); if (S.log.length > 30) S.log.pop(); }
 
 // ---- radio lines (voice text spells numbers as words) ----
 const L = {
-  t384: ['atc', null, 'SkyFlow three eight four, taxi to pad two via Alpha, hold short two eight left.', 'SKF384 TAXI TO PAD 2 VIA A, HOLD SHORT 28L'],
-  t384r: ['pilot', 'SKF384', 'Taxi to pad two via Alpha, hold short two eight left, SkyFlow three eight four.'],
-  d105: ['atc', null, 'SkyFlow one zero five, pad one, cleared for takeoff, via Whiskey, maintain one thousand two hundred.', 'SKF105 PAD 1 CLEARED FOR TAKEOFF, VIA W, MAINTAIN 1200'],
-  d105r: ['pilot', 'SKF105', 'Cleared for takeoff, via Whiskey, one thousand two hundred, SkyFlow one zero five.'],
-  wx: ['atc', null, 'All SkyFlow, corridor Charlie Echo closed, storm cell over the bay.', 'ALL STATIONS: CORRIDOR C–E CLOSED, CELL OVER BAY'],
-  r412: ['atc', null, 'SkyFlow four one two, Charlie Echo closed, proceed via Whiskey then Echo, maintain one thousand two hundred.', 'SKF412 C–E CLOSED, VIA W THEN E, MAINTAIN 1200'],
-  r412bad: ['pilot', 'SKF421', 'Via Whiskey then Echo, one thousand two hundred, SkyFlow four two one.'],
-  neg: ['atc', null, 'SkyFlow four two one, negative, that was for four one two. Four one two, read back.', 'NEGATIVE SKF421 · SKF412 READ BACK'],
-  r412r: ['pilot', 'SKF412', 'Via Whiskey then Echo, maintain one thousand two hundred, SkyFlow four one two.'],
-  open: ['atc', null, 'All SkyFlow, corridor Charlie Echo open, resume normal routing.', 'ALL STATIONS: CORRIDOR C–E OPEN, RESUME NORMAL ROUTING'],
-  l122: ['atc', null, 'SkyFlow one two two, wind zero three zero at six, pad one, cleared to land.', 'SKF122 PAD 1 CLEARED TO LAND, WIND 030/06'],
-  l122r: ['pilot', 'SKF122', 'Cleared to land pad one, SkyFlow one two two.'],
+  t384: ['atc', null, 'UITA three eight four, taxi to pad two via Alpha, hold short two eight left.', 'UTA384 TAXI TO PAD 2 VIA A, HOLD SHORT 28L'],
+  t384r: ['pilot', 'UTA384', 'Taxi to pad two via Alpha, hold short two eight left, UITA three eight four.'],
+  d105: ['atc', null, 'UITA one zero five, pad one, cleared for takeoff, via Whiskey, maintain one thousand two hundred.', 'UTA105 PAD 1 CLEARED FOR TAKEOFF, VIA W, MAINTAIN 1200'],
+  d105r: ['pilot', 'UTA105', 'Cleared for takeoff, via Whiskey, one thousand two hundred, UITA one zero five.'],
+  wx: ['atc', null, 'All UITA, corridor Charlie Echo closed, storm cell over the bay.', 'ALL STATIONS: CORRIDOR C–E CLOSED, CELL OVER BAY'],
+  r412: ['atc', null, 'UITA four one two, Charlie Echo closed, proceed via Whiskey then Echo, maintain one thousand two hundred.', 'UTA412 C–E CLOSED, VIA W THEN E, MAINTAIN 1200'],
+  r412bad: ['pilot', 'UTA421', 'Via Whiskey then Echo, one thousand two hundred, UITA four two one.'],
+  neg: ['atc', null, 'UITA four two one, negative, that was for four one two. Four one two, read back.', 'NEGATIVE UTA421 · UTA412 READ BACK'],
+  r412r: ['pilot', 'UTA412', 'Via Whiskey then Echo, maintain one thousand two hundred, UITA four one two.'],
+  open: ['atc', null, 'All UITA, corridor Charlie Echo open, resume normal routing.', 'ALL STATIONS: CORRIDOR C–E OPEN, RESUME NORMAL ROUTING'],
+  l122: ['atc', null, 'UITA one two two, wind zero three zero at six, pad one, cleared to land.', 'UTA122 PAD 1 CLEARED TO LAND, WIND 030/06'],
+  l122r: ['pilot', 'UTA122', 'Cleared to land pad one, UITA one two two.'],
 };
 setTimeout(() => SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined }))), 2500);
 const txEl = $('tx');
@@ -756,7 +756,7 @@ async function radio(id, g) {
   const [sp, k, text, ban] = L[id];
   if (g !== S.gen) throw new Abort();
   S.tx++; S.busy++;
-  if (sp === 'atc' && ban) setBanner(ban, 'TWR → ' + ((ban.match(/SKF\d+/) || ['ALL'])[0]), ban.startsWith('NEGATIVE') ? 'bad' : ban.startsWith('ALL') ? 'alert' : '');
+  if (sp === 'atc' && ban) setBanner(ban, 'TWR → ' + ((ban.match(/UTA\d+/) || ['ALL'])[0]), ban.startsWith('NEGATIVE') ? 'bad' : ban.startsWith('ALL') ? 'alert' : '');
   logLine(sp === 'atc' ? 'TWR' : k, text, sp);
   const minDur = 0.6 + text.split(' ').length * 0.27;
   try { await Promise.all([SkyRadio.say(text, sp, k || undefined), hold(minDur, g)]); }
@@ -772,17 +772,17 @@ async function scenario(g) {
   resetState();
   shot('desk');
   await at(1.2, g);
-  strip('SKF384').hb = 'wait';
+  strip('UTA384').hb = 'wait';
   await radio('t384', g); await radio('t384r', g);
-  hearback('SKF384', true); move('SKF384', 'GND');
+  hearback('UTA384', true); move('UTA384', 'GND');
   await at(5.6, g);
   shot('runway');
-  strip('SKF105').hb = 'wait'; move('SKF105', 'DEPI');
+  strip('UTA105').hb = 'wait'; move('UTA105', 'DEPI');
   await radio('d105', g); await radio('d105r', g);
-  hearback('SKF105', true); move('SKF105', 'DEPC'); evState.SKF105 = visT + 1;
+  hearback('UTA105', true); move('UTA105', 'DEPC'); evState.UTA105 = visT + 1;
   await at(10.4, g); shot('tablet');
   move('UAL900', 'DEPC');
-  await at(12.4, g); move('SKF105', 'DEP'); move('AAL173', 'GND');
+  await at(12.4, g); move('UTA105', 'DEP'); move('AAL173', 'GND');
   await at(13.6, g); shot('air'); setBanner('WX CELL BUILDING OVER C–E · RADAR RETURNS 45 dBZ', 'COORDINATOR AGENT', 'alert');
   logLine('WX', 'Unforecast cell building over C–E', 'bad');
   await at(16.0, g);
@@ -790,50 +790,50 @@ async function scenario(g) {
   await at(17.2, g); shot('side');
   propose('COORD', 'spawn', 'Spawn SECTOR-C, SECTOR-E, PAD-OAK agents', 'ACCEPT', ''); await hold(0.9, g); decide();
   await hold(0.6, g);
-  propose('SEC-C', '412', 'REROUTE SKF412 SF–C–E → SF–W–E (+2.1 km)', 'ACCEPT', ''); await hold(1.3, g); decide();
-  move('SKF412', 'DEPI'); strip('SKF412').rt = 'SF W E OAK';
-  propose('SEC-E', '421', 'KEEP SKF421 ON C–E, cell drifting east', 'REJECT', 'C–E closed 08–24, storm polygon intersects leg'); await hold(1.5, g); decide();
-  propose('PAD-OAK', '117', 'HOLD SKF117 at OAK pad 3 min · SKF122 first (batt 18%)', 'ACCEPT', ''); await hold(1.3, g); decide();
-  propose('SEC-E', '421', 'HOLD SKF421 over SF, then SF–W–E', 'ACCEPT', ''); await hold(1.3, g); decide();
-  strip('SKF421').rt = 'HOLD SF · W E OAK';
+  propose('SEC-C', '412', 'REROUTE UTA412 SF–C–E → SF–W–E (+2.1 km)', 'ACCEPT', ''); await hold(1.3, g); decide();
+  move('UTA412', 'DEPI'); strip('UTA412').rt = 'SF W E OAK';
+  propose('SEC-E', '421', 'KEEP UTA421 ON C–E, cell drifting east', 'REJECT', 'C–E closed 08–24, storm polygon intersects leg'); await hold(1.5, g); decide();
+  propose('PAD-OAK', '117', 'HOLD UTA117 at OAK pad 3 min · UTA122 first (batt 18%)', 'ACCEPT', ''); await hold(1.3, g); decide();
+  propose('SEC-E', '421', 'HOLD UTA421 over SF, then SF–W–E', 'ACCEPT', ''); await hold(1.3, g); decide();
+  strip('UTA421').rt = 'HOLD SF · W E OAK';
   await at(24.0, g); shot('air');
-  strip('SKF412').hb = 'wait';
+  strip('UTA412').hb = 'wait';
   await radio('r412', g);
   await radio('r412bad', g);
-  S.flags.mismatch = true; hearback('SKF412', false, 'CALLSIGN 421≠412');
-  setBanner('HEARBACK MISMATCH · READBACK FROM SKF421, CLEARANCE WAS SKF412', 'HEARBACK CHECK', 'bad');
+  S.flags.mismatch = true; hearback('UTA412', false, 'CALLSIGN 421≠412');
+  setBanner('HEARBACK MISMATCH · READBACK FROM UTA421, CLEARANCE WAS UTA412', 'HEARBACK CHECK', 'bad');
   shot('tablet');
   await hold(1.4, g);
   await radio('neg', g);
   shot('air');
   await radio('r412r', g);
-  S.flags.mismatch = false; hearback('SKF412', true); S.flags.committed412 = true;
-  logLine('KERNEL', `COMMIT SKF412 W–E ${clockStr(1)}–${clockStr(6)} reserved`, 'ok');
-  S.good = performance.now(); logLine('TWR', 'SKF412 readback correct, pad 2 cleared for takeoff (datalink)', 'ok');
-  move('SKF412', 'DEPC'); S.dep412 = simMin();
+  S.flags.mismatch = false; hearback('UTA412', true); S.flags.committed412 = true;
+  logLine('KERNEL', `COMMIT UTA412 W–E ${clockStr(1)}–${clockStr(6)} reserved`, 'ok');
+  S.good = performance.now(); logLine('TWR', 'UTA412 readback correct, pad 2 cleared for takeoff (datalink)', 'ok');
+  move('UTA412', 'DEPC'); S.dep412 = simMin();
   await at(32.8, g); shot('ground');
   // routine departures and the agent-approved 421 release go by datalink to keep the frequency clear
-  move('SKF384', 'DEPC'); strip('SKF384').hb = 'ok'; evState.SKF384 = visT + 1; S.dep384 = simMin(); move('SKF412', 'DEP');
-  setBanner('SKF384 PAD 2 CLEARED FOR TAKEOFF, VIA W TO SF', 'DATALINK → SKF384 · WILCO', '');
-  logLine('CPDLC', 'SKF384 cleared for takeoff pad 2 via W · WILCO', 'ok');
+  move('UTA384', 'DEPC'); strip('UTA384').hb = 'ok'; evState.UTA384 = visT + 1; S.dep384 = simMin(); move('UTA412', 'DEP');
+  setBanner('UTA384 PAD 2 CLEARED FOR TAKEOFF, VIA W TO SF', 'DATALINK → UTA384 · WILCO', '');
+  logLine('CPDLC', 'UTA384 cleared for takeoff pad 2 via W · WILCO', 'ok');
   await at(38.4, g); shot('air');
-  move('SKF421', 'ARRI'); strip('SKF421').hb = 'ok'; S.hold421 = false; S.rel421 = simMin();
-  setBanner('SKF421 LEAVE HOLD, VIA W THEN E TO OAK, MAINTAIN 1000', 'DATALINK → SKF421 · WILCO', '');
-  logLine('CPDLC', 'SKF421 leave hold via W–E, 1000 · WILCO', 'ok');
+  move('UTA421', 'ARRI'); strip('UTA421').hb = 'ok'; S.hold421 = false; S.rel421 = simMin();
+  setBanner('UTA421 LEAVE HOLD, VIA W THEN E TO OAK, MAINTAIN 1000', 'DATALINK → UTA421 · WILCO', '');
+  logLine('CPDLC', 'UTA421 leave hold via W–E, 1000 · WILCO', 'ok');
   await at(44.8, g); shot('side'); setBanner('CELL DECAYING · C–E RE-OPEN AT 19:04', 'COORDINATOR AGENT', 'alert');
   propose('COORD', 'all', 'REOPEN C–E at min 24 · restore static routes', 'ACCEPT', ''); await hold(1.2, g); decide();
   await at(48.4, g); shot('air');
   await radio('open', g);
   await at(51.2, g); shot('binoc');
-  strip('SKF122').hb = 'wait'; move('SKF122', 'ARRI');
-  evState.SKF122 = visT;
+  strip('UTA122').hb = 'wait'; move('UTA122', 'ARRI');
+  evState.UTA122 = visT;
   await radio('l122', g); await radio('l122r', g);
-  hearback('SKF122', true); move('SKF122', 'ARRC');
+  hearback('UTA122', true); move('UTA122', 'ARRC');
   await at(59.2, g); shot('desk');
   S.scoreReveal = true; $('score').classList.add('reveal');
   setBanner('AGENT TEAM 28/28 ON TIME · STATIC PLAN 10/28 · 0 CONFLICTS', 'SIMULATION RESULT', '');
   logLine('SCORE', 'Agents 28/28 on time vs static 10/28', 'ok');
-  move('SKF122', 'GND');
+  move('UTA122', 'GND');
   await at(70.4, g);
 }
 async function runLoop() {
@@ -851,7 +851,7 @@ for (let i = 0, n = 101; i < 28; i++, n++) {
   if (SCRIPTED.has(n)) continue;
   const rel = -12 + i * 2.5; let r = ROUTES[i % ROUTES.length].slice();
   const usesCE = r.some((v, j) => j && ((r[j - 1] === 'C' && v === 'E') || (r[j - 1] === 'E' && v === 'C')));
-  TRIPS.push({ cs: 'SKF' + n, rel, r, alt: 10 + (i % 3), usesCE });
+  TRIPS.push({ cs: 'UTA' + n, rel, r, alt: 10 + (i % 3), usesCE });
 }
 const KMPM = 3.1; // 100 kt in km per sim minute
 function routeFor(tr, m) {
@@ -870,18 +870,18 @@ function airTraffic() {
   for (const tr of TRIPS) { const r = routeFor(tr, m), p = posOnRoute(r, (m - tr.rel) * KMPM); if (m >= tr.rel && p) out.push({ cs: tr.cs, ...p, alt: tr.alt, gs: 10, r }); }
   // scripted
   const fly = (cs, r, t0, alt) => { if (t0 == null || m < t0) return; const p = posOnRoute(r, (m - t0) * KMPM); if (p) out.push({ cs, ...p, alt, gs: 10, r, special: true }); };
-  fly('SKF105', ['SFO', 'W', 'SF'], 3.4, 12);
-  fly('SKF384', ['SFO', 'W', 'SF'], S.dep384, 12);
-  fly('SKF412', ['SF', 'W', 'E', 'OAK'], S.dep412, 12);
-  if (S.dep412 == null) { const p = nodeKm('SF'); out.push({ cs: 'SKF412', x: p[0] + 0.25, y: p[1] - 0.2, hx: 0, hy: 1, alt: 0, gs: 0, r: S.flags.committed412 || simMin() > 9 ? ['SF', 'W', 'E', 'OAK'] : ['SF', 'C', 'E', 'OAK'], special: true }); }
+  fly('UTA105', ['SFO', 'W', 'SF'], 3.4, 12);
+  fly('UTA384', ['SFO', 'W', 'SF'], S.dep384, 12);
+  fly('UTA412', ['SF', 'W', 'E', 'OAK'], S.dep412, 12);
+  if (S.dep412 == null) { const p = nodeKm('SF'); out.push({ cs: 'UTA412', x: p[0] + 0.25, y: p[1] - 0.2, hx: 0, hy: 1, alt: 0, gs: 0, r: S.flags.committed412 || simMin() > 9 ? ['SF', 'W', 'E', 'OAK'] : ['SF', 'C', 'E', 'OAK'], special: true }); }
   // 421: MAR→SF, then hold over SF, then SF–W–E–OAK
   { const t0 = 6.5, r1 = ['MAR', 'HLD'], L1 = distKm('MAR', 'HLD'), d = (m - t0) * KMPM;
-    if (d < L1) { const p = posOnRoute(r1, Math.max(0, d)); out.push({ cs: 'SKF421', ...p, alt: 10, gs: 10, r: ['MAR', 'SF', 'C', 'E', 'OAK'], special: true }); }
-    else if (S.hold421 || S.rel421 == null) { const c = nodeKm('HLD'), ang = (m - t0 - L1 / KMPM) * 2.2; out.push({ cs: 'SKF421', x: c[0] + 0.8 - Math.cos(ang) * 0.8, y: c[1] - Math.sin(ang) * 0.8, hx: -Math.sin(ang), hy: Math.cos(ang), alt: 10, gs: 9, r: ['HLD', 'SF', 'W', 'E', 'OAK'], special: true, holding: true }); }
-    else fly('SKF421', ['HLD', 'SF', 'W', 'E', 'OAK'], S.rel421, 10); }
+    if (d < L1) { const p = posOnRoute(r1, Math.max(0, d)); out.push({ cs: 'UTA421', ...p, alt: 10, gs: 10, r: ['MAR', 'SF', 'C', 'E', 'OAK'], special: true }); }
+    else if (S.hold421 || S.rel421 == null) { const c = nodeKm('HLD'), ang = (m - t0 - L1 / KMPM) * 2.2; out.push({ cs: 'UTA421', x: c[0] + 0.8 - Math.cos(ang) * 0.8, y: c[1] - Math.sin(ang) * 0.8, hx: -Math.sin(ang), hy: Math.cos(ang), alt: 10, gs: 9, r: ['HLD', 'SF', 'W', 'E', 'OAK'], special: true, holding: true }); }
+    else fly('UTA421', ['HLD', 'SF', 'W', 'E', 'OAK'], S.rel421, 10); }
   // 122 inbound OAK–E–W–SFO, timed to reach SFO ~ min 27
-  { const r = ['OAK', 'E', 'W', 'SFO'], L = distKm('OAK', 'E') + distKm('E', 'W') + distKm('W', 'SFO'); const t0 = 26.5 - L / KMPM; fly('SKF122', r, t0, 10); }
-  { const p = nodeKm('OAK'); out.push({ cs: 'SKF117', x: p[0] + 0.2, y: p[1] + 0.15, hx: 0, hy: 1, alt: 0, gs: 0, r: null, special: true, holding: simMin() > 9 && simMin() < 18 }); }
+  { const r = ['OAK', 'E', 'W', 'SFO'], L = distKm('OAK', 'E') + distKm('E', 'W') + distKm('W', 'SFO'); const t0 = 26.5 - L / KMPM; fly('UTA122', r, t0, 10); }
+  { const p = nodeKm('OAK'); out.push({ cs: 'UTA117', x: p[0] + 0.2, y: p[1] + 0.15, hx: 0, hy: 1, alt: 0, gs: 0, r: null, special: true, holding: simMin() > 9 && simMin() < 18 }); }
   return out;
 }
 
@@ -961,7 +961,7 @@ function drawGround() {
     const ang = Math.atan2(a.dir.x, -a.dir.z);
     if (a.kind === 'evtol') evGlyph(g, x, y, 6, '#7fd8ff'); else planeGlyph(g, x, y, ang, a.kind === '747' ? 17 : 13, '#55b0f0');
     const air = a.pos.y - groundY > 3;
-    g.fillStyle = a.cs === 'SKF412' && S.flags.mismatch ? '#ff5b4f' : air ? '#c9bfff' : '#9a8cf2'; g.font = FONT(700, 24);
+    g.fillStyle = a.cs === 'UTA412' && S.flags.mismatch ? '#ff5b4f' : air ? '#c9bfff' : '#9a8cf2'; g.font = FONT(700, 24);
     g.fillText(a.tag, x + 14, y - 12);
     screens.ground.hits.push({ cs: a.cs, x: x - 20, y: y - 38, w: 180, h: 60 });
     if (a.cs === picked) { g.strokeStyle = '#5fd4ff'; g.lineWidth = 3; g.strokeRect(x - 18, y - 18, 36, 36); }
@@ -975,7 +975,7 @@ const AR = { lon: -122.345, lat: 37.758, pxkm: 23.5 };
 const arC = P(AR.lon, AR.lat);
 const arXY = (kx, ky, W, H) => [W / 2 + (kx - arC[0] / 1000) * AR.pxkm, 88 + (H - 88) / 2 - (ky + arC[1] / 1000) * AR.pxkm];
 const hist = new Map();
-const BLOCK_OFF = { SKF412: [-190, 46], SKF421: [30, -64], SKF117: [30, 44], SKF122: [-170, 10] };
+const BLOCK_OFF = { UTA412: [-190, 46], UTA421: [30, -64], UTA117: [30, 44], UTA122: [-170, 10] };
 let lastHist = -1, lastAir = [];
 function drawAir(now) {
   const { ctx: g, w: W, h: H } = screens.air;
@@ -1015,18 +1015,18 @@ function drawAir(now) {
   if (now - lastHist > 0.8) { lastHist = now; for (const f of tr) { const h = hist.get(f.cs) || []; h.push([f.x, f.y]); if (h.length > 6) h.shift(); hist.set(f.cs, h); } }
   for (const f of tr) {
     const [x, y] = arXY(f.x, f.y, W, H);
-    const mism = S.flags.mismatch && (f.cs === 'SKF412' || f.cs === 'SKF421');
+    const mism = S.flags.mismatch && (f.cs === 'UTA412' || f.cs === 'UTA421');
     const sel = f.special;
     const col = mism ? (Math.sin(now * 10) > 0 ? '#ff5b4f' : '#ffd0cc') : sel ? '#f2e94e' : '#f4f6f8';
     (hist.get(f.cs) || []).forEach(([hx, hy], i) => { const [px, py] = arXY(hx, hy, W, H); g.fillStyle = `rgba(200,220,235,${0.12 + i * 0.06})`; g.fillRect(px - 2, py - 2, 4, 4); });
-    if (f.cs === 'SKF412' && f.r) { g.strokeStyle = S.flags.committed412 ? 'rgba(84,208,138,.8)' : 'rgba(242,233,78,.5)'; g.setLineDash([6, 6]); g.lineWidth = 2; g.beginPath(); f.r.forEach((n, i) => { const [px, py] = arXY(...nodeKm(n), W, H); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); g.setLineDash([]); }
+    if (f.cs === 'UTA412' && f.r) { g.strokeStyle = S.flags.committed412 ? 'rgba(84,208,138,.8)' : 'rgba(242,233,78,.5)'; g.setLineDash([6, 6]); g.lineWidth = 2; g.beginPath(); f.r.forEach((n, i) => { const [px, py] = arXY(...nodeKm(n), W, H); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); g.setLineDash([]); }
     g.fillStyle = col; g.font = FONT(700, 22); g.textAlign = 'center'; g.fillText('T', x, y + 8); g.textAlign = 'left';
     if (f.gs) { g.strokeStyle = col; g.lineWidth = 1.5; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(x, y); g.lineTo(x + f.hx * 46, y - f.hy * 46); g.stroke(); g.setLineDash([]); }
     // data block + leader
     const [ox, oy] = BLOCK_OFF[f.cs] || [26, -52], bx = x + ox, by = y + oy; g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x + (ox < 0 ? -6 : 6), y - 8); g.lineTo(ox < 0 ? bx + 150 : bx - 2, by + 10); g.stroke();
     g.fillStyle = col; g.font = FONT(700, 22, 'JetBrains Mono'); g.fillText(f.cs + (f.holding ? ' H' : ''), bx, by);
     g.font = FONT(500, 20, 'JetBrains Mono'); g.fillText(`${String(f.alt).padStart(3, '0')} ${String(f.gs * 9 + 6).padStart(3, '0')}`, bx, by + 22);
-    if (mism) { g.fillStyle = '#ff5b4f'; g.font = FONT(700, 17); g.fillText(f.cs === 'SKF421' ? 'READBACK ≠ ADDRESSEE' : 'NO VALID READBACK', bx, by + 44); }
+    if (mism) { g.fillStyle = '#ff5b4f'; g.font = FONT(700, 17); g.fillText(f.cs === 'UTA421' ? 'READBACK ≠ ADDRESSEE' : 'NO VALID READBACK', bx, by + 44); }
     screens.air.hits.push({ cs: f.cs, x: bx - 6, y: by - 24, w: 172, h: 52 }, { cs: f.cs, x: x - 16, y: y - 16, w: 32, h: 32 });
     if (f.cs === picked) { g.strokeStyle = '#5fd4ff'; g.lineWidth = 3; g.strokeRect(bx - 6, by - 24, 172, 52); g.strokeRect(x - 14, y - 14, 28, 28); }
   }
@@ -1140,7 +1140,7 @@ function drawLog(now) {
   g.fillStyle = '#0d0f12'; g.fillRect(0, 0, W, H);
   g.fillStyle = '#e9eaec'; g.fillRect(0, 0, W, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 17); g.fillText('LAST MSG', 12, 21);
   g.fillStyle = '#c3c6ca'; g.fillRect(10, 38, 90, 30); g.fillRect(108, 38, W - 118, 30);
-  g.fillStyle = '#25282c'; g.font = FONT(700, 16); g.fillText('CLEAR', 30, 59); g.fillText(S.log.find((l) => /^SKF/.test(l.who))?.who || 'SKF384', 120, 59);
+  g.fillStyle = '#25282c'; g.font = FONT(700, 16); g.fillText('CLEAR', 30, 59); g.fillText(S.log.find((l) => /^UTA/.test(l.who))?.who || 'UTA384', 120, 59);
   let y = 92;
   const goodAge = (performance.now() - S.good) / 1000;
   if (S.good && goodAge < 6) { g.fillStyle = `rgba(255,255,255,${1 - smooth(4.5, 6, goodAge)})`; g.font = FONT(700, 46); g.fillText('Good job.', 12, y + 18); y += 50; }
@@ -1229,7 +1229,7 @@ function toggleBino() {
 }
 let prevShot = 'desk';
 addEventListener('keydown', (e) => {
-  if ((e.key === 't' || e.key === 'T') && !e.repeat) { if (window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); return; }
+  if ((e.key === 't' || e.key === 'T') && !e.repeat) { if (window.parent !== window) parent.postMessage({ uita: 'toggle' }, '*'); return; }
   if (keyMap[e.key]) { userTook(); goTo(keyMap[e.key]); }
   else if (e.key === 'b' || e.key === 'B') toggleBino();
   else if (e.key === 'c' || e.key === 'C') setCine(!cine);
@@ -1264,14 +1264,14 @@ const INFO = {
 };
 const LIFE = { arr: ['Descend', 'Hold', 'Approach', 'Land', 'Vacate'], dep: ['Pushback', 'Taxi', 'Takeoff', 'Climb', 'Handoff'], evtol: ['Request', 'Hold', 'Cleared', 'Airborne', 'Land'] };
 const STATUS = { arr: ['Descending', 'In the hold', 'On approach', 'Landing roll', 'Vacating'], dep: ['Pushback', 'Taxiing', 'Takeoff roll', 'Climbing', 'Handed off'], evtol: ['Requesting', 'Holding', 'Cleared', 'Airborne', 'Landing'] };
-const DELAY = { SKF412: 1.8, SKF421: 3.1, SKF117: 2.4, SKF122: 0.6 };
+const DELAY = { UTA412: 1.8, UTA421: 3.1, UTA117: 2.4, UTA122: 0.6 };
 let picked = null, binoTrack = null;
-const infoFor = (cs) => INFO[cs] || { type: 'EV4', op: 'UITA SkyFlow', route: strip(cs)?.rt || (cs === 'SKF119' || cs === 'SKF127' ? 'W–SFO corridor' : '—'), life: 'evtol' };
+const infoFor = (cs) => INFO[cs] || { type: 'EV4', op: 'UITA UITA', route: strip(cs)?.rt || (cs === 'UTA119' || cs === 'UTA127' ? 'W–SFO corridor' : '—'), life: 'evtol' };
 function lifeStep(a, f, info) {
   if (a) {
     const agl = a.pos.y - groundY, spd = a.spd || 0;
     if (info.life === 'evtol') {
-      if (a.cs === 'SKF122') return agl > 75 ? 3 : 4;
+      if (a.cs === 'UTA122') return agl > 75 ? 3 : 4;
       if (evState[a.cs] == null && agl < 2) return strip(a.cs)?.hb === 'wait' ? 0 : strip(a.cs)?.hb === 'ok' ? 2 : 1;
       return agl < 2 ? 2 : 3;
     }
@@ -1376,7 +1376,7 @@ function loop() {
   renderer.render(scene, camera);
   if (!halted) requestAnimationFrame(loop);
 }
-// pause rendering when hidden or when the iframe host asks (postMessage {skyflow:'pause'|'resume'})
+// pause rendering when hidden or when the iframe host asks (postMessage {uita:'pause'|'resume'})
 function setHalted() {
   const h = document.hidden || extPause;
   if (h === halted) return;
@@ -1385,8 +1385,8 @@ function setHalted() {
 }
 document.addEventListener('visibilitychange', setHalted);
 addEventListener('message', (e) => {
-  if (e.data?.skyflow === 'pause') { extPause = true; setHalted(); }
-  else if (e.data?.skyflow === 'resume') { extPause = false; setHalted(); }
+  if (e.data?.uita === 'pause') { extPause = true; setHalted(); }
+  else if (e.data?.uita === 'resume') { extPause = false; setHalted(); }
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 window.__sky = { S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors };

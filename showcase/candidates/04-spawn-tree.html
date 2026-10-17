@@ -124,7 +124,7 @@ svg text{font-family:var(--mono)}
 .tl .ttl{display:flex;justify-content:space-between;font:600 10px var(--mono);color:var(--ink3);letter-spacing:.6px;text-transform:uppercase}
 @media (max-width:1360px){.node{width:190px;font-size:11px}.ctr{padding:8px 11px}.ctr .v{font-size:19px}main{grid-template-columns:480px 1fr}.score{gap:8px}}
 </style>
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 </head>
 <body>
 <header class="top">
@@ -143,7 +143,7 @@ svg text{font-family:var(--mono)}
       <div class="hd"><span>Bay sector · UAM corridors</span><span class="r" id="map-sub">28 trips · 1 released every 2.5 min</span></div>
       <svg id="map" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="credit">Coastline: US Census cb_2023 · scripted traffic</div>
-      <div class="leg"><span><i style="background:#3a9e91"></i>open</span><span><i style="background:var(--red)"></i>closed</span><span><i style="background:var(--amber)"></i>SKF112</span></div>
+      <div class="leg"><span><i style="background:#3a9e91"></i>open</span><span><i style="background:var(--red)"></i>closed</span><span><i style="background:var(--amber)"></i>UTA112</span></div>
     </section>
     <section class="card score">
       <div class="ot">
@@ -158,7 +158,7 @@ svg text{font-family:var(--mono)}
       <div><div class="l">Distance</div><div class="n" id="sc-dist">+0.0%</div></div>
     </section>
     <section class="card radio">
-      <div class="hd"><span>Voice loop · SkyFlow 112</span><span class="txp" id="txp">TX</span><span class="r">SkyFlow Control 122.850</span></div>
+      <div class="hd"><span>Voice loop · UITA 112</span><span class="txp" id="txp">TX</span><span class="r">UITA Control 122.850</span></div>
       <div class="tx-list" id="tx"></div>
       <div class="hbrow" id="hb"></div>
     </section>
@@ -256,7 +256,7 @@ for(const n of PORTS){const[x,y]=pxN(n);portEl[n]=el('circle',{cx:x,cy:y,r:8,fil
 const acLayer=el('g',{},root);
 const acEl=FLIGHTS.map(f=>{const g=el('g',{opacity:0},acLayer);
   el('path',{d:'M7,0L-5,-4.5L-2.5,0L-5,4.5Z',fill:f.i===SEL?'#c27610':'#2b67a8',stroke:'#fff','stroke-width':1},g);
-  const t=el('text',{x:8,y:-6,class:'cs'+(f.i===SEL?' sel':'')},acLayer);t.textContent='SKF'+f.cs;return{g,t};});
+  const t=el('text',{x:8,y:-6,class:'cs'+(f.i===SEL?' sel':'')},acLayer);t.textContent='UTA'+f.cs;return{g,t};});
 
 /* ---------------- tree ---------------- */
 const NODES={
@@ -355,13 +355,13 @@ function hopPoint(a,b,f){ // edge a->b (either direction)
 /* voice */
 /* ---------------- radio voice (shared SkyRadio module) ---------------- */
 const RL={
- c0:['CTL','SkyFlow one zero one, San Francisco Control, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred.'],
- p0:['PLT','Cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred, SkyFlow one zero one.','SKF101'],
+ c0:['CTL','UITA one zero one, San Francisco Control, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred.'],
+ p0:['PLT','Cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred, UITA one zero one.','UTA101'],
  wx:['CTL','All stations, San Francisco Control. Corridor Charlie Echo is <em>closed</em> for weather until one four two four. Expect reroute via Whiskey.'],
- c1:['CTL','SkyFlow one one two, San Francisco Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one five.'],
- p1:['PLT','Cleared to Oakland via <em>Charlie, Echo</em>, climb and maintain one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
- c2:['CTL','SkyFlow one one two, <em>negative</em>. Charlie Echo is closed for weather. Cleared via <strong>Whiskey, Echo</strong>. Read back.'],
- p2:['PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
+ c1:['CTL','UITA one one two, San Francisco Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one five.'],
+ p1:['PLT','Cleared to Oakland via <em>Charlie, Echo</em>, climb and maintain one thousand five hundred, squawk four two one five, UITA one one two.','UTA112'],
+ c2:['CTL','UITA one one two, <em>negative</em>. Charlie Echo is closed for weather. Cleared via <strong>Whiskey, Echo</strong>. Read back.'],
+ p2:['PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one five, UITA one one two.','UTA112'],
 };
 const plainText=h=>h.replace(/<[^>]+>/g,'');
 let voiceBusy=0;
@@ -381,7 +381,7 @@ function radio(sp,html,key){
   const d=document.createElement('div');d.className='tx';d.innerHTML=`<span class="sp ${sp==='CTL'?'c':sp==='PLT'?'p':'h'}">${sp}</span><span>${html}</span>`;
   box.append(d);while(box.children.length>5)box.firstChild.remove();
 }
-const HBF=[['CALLSIGN','SKF112'],['ROUTE','W–E'],['ALT','1,500'],['SQUAWK','4215'],['DEST','OAK']];
+const HBF=[['CALLSIGN','UTA112'],['ROUTE','W–E'],['ALT','1,500'],['SQUAWK','4215'],['DEST','OAK']];
 function renderHB(){
   $('hb').innerHTML='<span class="lb">HEARBACK</span>'+HBF.map(([k,exp],i)=>{const g=T.hb?T.hb[i]:null;const ok=g===null?null:g===exp;return `<span class="fld ${ok===null?'':ok?'ok':'bad'}">${k} ${g===null?exp:ok?g:g+'≠'+exp}</span>`;}).join('')+`<span class="commit ${T.cc}">${T.commit}</span>`;
 }
@@ -394,19 +394,19 @@ const EV=[
  [7.9,()=>{T.phase='Storm';T.pc='storm';setNode('coord',{st:'work',task:'Unforecast CB over C–E. Kernel closed C–E 08–24. 6 trips affected.',used:8});T.tok+=4;$('watch').textContent='Storm hit. The coordinator splits the problem by sector.';}],
  [8.4,()=>{T.phase='Replan';T.pc='replan';setNode('secC',{on:true,st:'work',task:'Replanning SF and Marin flows off C–E.',used:2});setNode('secE',{on:true,st:'work',task:'Replanning OAK and BER flows.',used:2});T.tok+=4;}],
  [9.0,()=>{setNode('padSF',{on:true,st:'work',task:'Sequencing SF departures onto W–E.',used:1});setNode('padOAK',{on:true,st:'work',task:'Sequencing OAK arrivals.',used:1});setNode('padBER',{on:true,st:'work',task:'Checking BER departures under outflow.',used:1});T.tok+=3;$('watch').textContent='Sector agents spawned pad agents. Depth 2 reached; nothing spawns below the cap.';}],
- [9.5,()=>propose('padOAK','Hold SKF105 at SF +1.5 min, then W–E','ACCEPT')],
- [10.4,()=>propose('secC','Reroute SKF103, 104, 112 via W–E (+14% dist)','ACCEPT','',()=>{T.sel=ROUTES['SF-OAK'].a;})],
- [11.4,()=>propose('secE','Keep SKF109 on C–E at 800 ft, under the cell','REJECT','R-7 corridor closed',()=>{setNode('secE',{task:'Rejected by R-7. Replanning SKF109 via E–W.'});})],
+ [9.5,()=>propose('padOAK','Hold UTA105 at SF +1.5 min, then W–E','ACCEPT')],
+ [10.4,()=>propose('secC','Reroute UTA103, 104, 112 via W–E (+14% dist)','ACCEPT','',()=>{T.sel=ROUTES['SF-OAK'].a;})],
+ [11.4,()=>propose('secE','Keep UTA109 on C–E at 800 ft, under the cell','REJECT','R-7 corridor closed',()=>{setNode('secE',{task:'Rejected by R-7. Replanning UTA109 via E–W.'});})],
  [12.2,()=>{setNode('padOAK',{task:'Asked to spawn Gate OAK-2 for slot sequencing.'});$('ghost').classList.add('on');$('k-last').textContent='REFUSED · depth cap 2';$('k-last').className='last rej';setTimeout(()=>$('ghost').classList.remove('on'),3500);setNode('padOAK',{task:'Spawn refused at depth cap. Sequencing slots itself.'});}],
- [12.9,()=>propose('padSF','Hold SKF112 on pad SF until W–E slot 14:17','ACCEPT')],
+ [12.9,()=>propose('padSF','Hold UTA112 on pad SF until W–E slot 14:17','ACCEPT')],
  [13.4,()=>{radio(...RL.c1);}],
- [13.9,()=>propose('secE','Revised: SKF109 via E–W–SF (+1.8 min)','ACCEPT','',()=>setNode('secE',{task:'SKF109 rerouted via E–W–SF.'}))],
+ [13.9,()=>propose('secE','Revised: UTA109 via E–W–SF (+1.8 min)','ACCEPT','',()=>setNode('secE',{task:'UTA109 rerouted via E–W–SF.'}))],
  [14.7,()=>{radio(...RL.p1);}],
- [15.6,()=>{T.hb=['SKF112','C–E','1,500','4215','OAK'];T.commit='MISMATCH · not committed';T.cc='bad';renderHB();radio('HBK','Route mismatch: heard <em>C–E</em>, cleared W–E. Reservation held.');}],
+ [15.6,()=>{T.hb=['UTA112','C–E','1,500','4215','OAK'];T.commit='MISMATCH · not committed';T.cc='bad';renderHB();radio('HBK','Route mismatch: heard <em>C–E</em>, cleared W–E. Reservation held.');}],
  [16.3,()=>{radio(...RL.c2);}],
  [16.4,()=>propose('padBER','Meter BER departures 1 per 5 min for 8 min','ACCEPT')],
  [17.3,()=>{radio(...RL.p2);}],
- [18.1,()=>{T.hb=['SKF112','W–E','1,500','4215','OAK'];T.commit='COMMITTED · RSV-0112';T.cc='ok';renderHB();radio('HBK','All five fields match. Reservation <strong>RSV-0112</strong> committed by the kernel.');}],
+ [18.1,()=>{T.hb=['UTA112','W–E','1,500','4215','OAK'];T.commit='COMMITTED · RSV-0112';T.cc='ok';renderHB();radio('HBK','All five fields match. Reservation <strong>RSV-0112</strong> committed by the kernel.');}],
  [24.0,()=>{T.phase='Recovery';T.pc='recover';setNode('coord',{task:'C–E reopened 14:24L. Retiring sub-agents.'});$('watch').textContent='Storm cleared. Agents retire bottom-up and hand their state to the parent.';}],
  [25.2,()=>{['padSF','padOAK','padBER'].forEach(id=>setNode(id,{st:'ret',task:'Retired. State handed to parent.'}));}],
  [26.6,()=>{['secC','secE'].forEach(id=>setNode(id,{st:'ret',task:'Retired. Flows restored.'}));setNode('coord',{st:'watch',task:'Back to single-agent watch. 0 conflicts.'});}],
@@ -455,9 +455,9 @@ function frame(now){
   selPath.setAttribute('points',T.sel.map(n=>pxN(n).join(',')).join(' '));selPath.setAttribute('opacity',m<FLIGHTS[SEL].arr+1?.5:0);
   FLIGHTS.forEach((f,i)=>{const o=acEl[i],p=posOf(f,m);
     if(p){const[x,y]=px(p.x/COS-122.35,p.y+37.76);o.g.setAttribute('transform',`translate(${x},${y}) rotate(${-p.hd*180/Math.PI})`);o.g.setAttribute('opacity',1);o.t.setAttribute('x',x+8);o.t.setAttribute('y',y-7);o.t.setAttribute('opacity',1);}
-    else if(m>=f.sched&&m<f.dep){const[x,y]=pxN(f.from);o.g.setAttribute('transform',`translate(${x+10},${y+10})`);o.g.setAttribute('opacity',.9);o.t.setAttribute('x',x+18);o.t.setAttribute('y',y+22);o.t.setAttribute('opacity',1);o.t.textContent='SKF'+f.cs+' HOLD';}
+    else if(m>=f.sched&&m<f.dep){const[x,y]=pxN(f.from);o.g.setAttribute('transform',`translate(${x+10},${y+10})`);o.g.setAttribute('opacity',.9);o.t.setAttribute('x',x+18);o.t.setAttribute('y',y+22);o.t.setAttribute('opacity',1);o.t.textContent='UTA'+f.cs+' HOLD';}
     else{o.g.setAttribute('opacity',0);o.t.setAttribute('opacity',0);}
-    if(p)o.t.textContent='SKF'+f.cs;});
+    if(p)o.t.textContent='UTA'+f.cs;});
   if(now-lastUI>150){lastUI=now;ui(m);}
   requestAnimationFrame(frame);
 }

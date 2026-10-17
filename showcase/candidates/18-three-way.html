@@ -102,11 +102,11 @@ main{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 188px;gap:1px;backgro
 .vt td.ag{background:#0c1d19}
 .vfoot{margin-top:14px;font:500 12px/1.5 var(--sans);color:var(--dim)}
 </style>
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 </head>
 <body>
 <header>
-  <div class="brand"><b>SKYFLOW</b><span>THREE-WAY · SAME STORM</span></div>
+  <div class="brand"><b>UITA</b><span>THREE-WAY · SAME STORM</span></div>
   <div class="headline">28 trips, one released every 2.5 min. An unforecast storm closes <em>C–E</em> from T+08 to T+24. Three ways to run the same sky.</div>
   <span class="simtag">SIMULATION</span>
   <div class="clock"><small>T+</small><span id="clock">00:00</span></div>
@@ -129,7 +129,7 @@ main{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 188px;gap:1px;backgro
   <section class="col agent" data-p="agent">
     <div class="col-h"><div><div class="tag">AGENT TEAM</div><div class="sub">Sector agents propose locally; the kernel validates and commits.</div></div><span class="rank" id="rk-agent">—</span></div>
     <div class="mapwrap"><canvas id="map-agent"></canvas>
-      <div class="hbpop" id="hbpop"><div class="h"><span>KERNEL HEARBACK · SKF104</span><span id="hbst">COMPARING</span></div><div class="chips" id="hbchips"></div><div class="v" id="hbv"></div></div>
+      <div class="hbpop" id="hbpop"><div class="h"><span>KERNEL HEARBACK · UTA104</span><span id="hbst">COMPARING</span></div><div class="chips" id="hbchips"></div><div class="v" id="hbv"></div></div>
     </div>
     <div class="counters" id="ct-agent"></div>
     <div class="logwrap"><h4><span>FREQUENCY + KERNEL · VOICE</span><i class="tx-dot" id="txdot"></i></h4><div class="log" id="log-agent"></div></div>
@@ -157,9 +157,9 @@ function path(s,t,avoid){const d={},p={},q=new Set(Object.keys(N));for(const k o
   const r=[t];while(r[0]!=s)r.unshift(p[r[0]]);return r}
 const plen=r=>r.slice(1).reduce((s,v,i)=>s+km(N[r[i]],N[v]),0);
 const OD=[["SF","OAK"],["SFO","BER"],["OAK","SF"],["OAK","SF"],["SF","OAK"],["MAR","OAK"],["SF","OAK"],["OAK","MAR"],["SF","OAK"],["OAK","SF"],["SFO","SF"],["SF","OAK"],["OAK","SF"],["MAR","OAK"],["SF","OAK"],["OAK","BER"],["OAK","SF"],["SF","OAK"],["SF","SFO"],["OAK","SF"],["SF","OAK"],["BER","SF"],["OAK","SF"],["SF","OAK"],["MAR","SF"],["OAK","SF"],["SF","OAK"],["OAK","SF"]];
-const CS=i=>"SKF"+(101+i);
+const CS=i=>"UTA"+(101+i);
 const mm=t=>{const m=Math.floor(t),s=Math.floor((t-m)*60);return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")};
-const RB_FLIGHT=3; // SKF104, rerouted mid-air: the readback catch
+const RB_FLIGHT=3; // UTA104, rerouted mid-air: the readback catch
 
 function simulate(policy){
   const res={},flights=[],ev=[];
@@ -191,7 +191,7 @@ function simulate(policy){
       const te=Math.max(t,last+sp);
       if(te>t+1e-6){if(te-t>1.5)note(t,"hold",`${CS(i)} ${k==0?"ground hold":"holding"} at ${u} · ${isCE(u,v)?"C–E queue":"slot"} +${(te-t).toFixed(1)} min`,"hold");legs.push({t0:t,t1:te,a:u,b:u,hold:1,gnd:k==0});t=te}
       res[key]=te;const t1=te+km(N[u],N[v])/SPEED;legs.push({t0:te,t1,a:u,b:v});legStart=te;t=t1;k++}
-    // the agent column's readback catch costs SKF104 one extra exchange (~0.4 min)
+    // the agent column's readback catch costs UTA104 one extra exchange (~0.4 min)
     if(policy=="agent"&&i==RB_FLIGHT){const x=0.4;legs.forEach(l=>{if(l.t0>8.7){l.t0+=x;l.t1+=x}else if(l.t1>8.7)l.t1+=x});t+=x}
     note(t-0.6,"tx",null);note(t-0.55,"tx",null);
     const delay=t-rel-nominal;
@@ -221,16 +221,16 @@ function finals(p){const f=SIM[p].flights,ev=SIM[p].ev;
 // ================= agent-team voice (spoken) =================
 const lastF=SIM.agent.flights[27];
 const VOICE=[
-  {t:0.4, who:"atc", text:"SkyFlow one zero one, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred."},
-  {t:0.5, who:"pilot",cs:"SKF101", text:"Cleared to Oakland via Charlie, Echo, one thousand five hundred, SkyFlow one zero one."},
-  {t:8.5, who:"atc", text:"All stations, SkyFlow Bay. Corridor Charlie Echo closed, convective cell. Expect reroute via Whiskey, Echo.", beat:"storm"},
-  {t:8.6, who:"atc", text:"SkyFlow one zero four, reroute. After Echo, proceed via Whiskey, then San Francisco. Maintain one thousand five hundred.", fx:"hb0"},
-  {t:8.7, who:"pilot",cs:"SKF104", text:"After Echo, via Charlie, then San Francisco, one thousand five hundred, SkyFlow one zero four.", fx:"hbBad", bad:true},
-  {t:8.8, who:"atc", text:"SkyFlow one zero four, negative. Charlie Echo is closed. After Echo, proceed via Whiskey.", bad:true},
-  {t:8.9, who:"pilot",cs:"SKF104", text:"Negative Charlie, via Whiskey, then San Francisco, SkyFlow one zero four.", fx:"hbOk"},
-  {t:24.0,who:"atc", text:"All stations, SkyFlow Bay. Corridor Charlie Echo open. Resume normal routing."},
-  {t:+(lastF.arr-0.8).toFixed(2), who:"atc", text:"SkyFlow one two eight, San Francisco pad one, cleared to land."},
-  {t:+(lastF.arr-0.7).toFixed(2), who:"pilot",cs:"SKF128", text:"Cleared to land, pad one, SkyFlow one two eight."},
+  {t:0.4, who:"atc", text:"UITA one zero one, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred."},
+  {t:0.5, who:"pilot",cs:"UTA101", text:"Cleared to Oakland via Charlie, Echo, one thousand five hundred, UITA one zero one."},
+  {t:8.5, who:"atc", text:"All stations, UITA Bay. Corridor Charlie Echo closed, convective cell. Expect reroute via Whiskey, Echo.", beat:"storm"},
+  {t:8.6, who:"atc", text:"UITA one zero four, reroute. After Echo, proceed via Whiskey, then San Francisco. Maintain one thousand five hundred.", fx:"hb0"},
+  {t:8.7, who:"pilot",cs:"UTA104", text:"After Echo, via Charlie, then San Francisco, one thousand five hundred, UITA one zero four.", fx:"hbBad", bad:true},
+  {t:8.8, who:"atc", text:"UITA one zero four, negative. Charlie Echo is closed. After Echo, proceed via Whiskey.", bad:true},
+  {t:8.9, who:"pilot",cs:"UTA104", text:"Negative Charlie, via Whiskey, then San Francisco, UITA one zero four.", fx:"hbOk"},
+  {t:24.0,who:"atc", text:"All stations, UITA Bay. Corridor Charlie Echo open. Resume normal routing."},
+  {t:+(lastF.arr-0.8).toFixed(2), who:"atc", text:"UITA one two eight, San Francisco pad one, cleared to land."},
+  {t:+(lastF.arr-0.7).toFixed(2), who:"pilot",cs:"UTA128", text:"Cleared to land, pad one, UITA one two eight."},
 ];
 const VOICE_TX_EXTRA=4; // two broadcasts + the corrective exchange
 SkyRadio.prefetch(VOICE.map(v=>({text:v.text,speaker:v.who,key:v.cs})));
@@ -354,9 +354,9 @@ function flushLogs(t){for(const p of ["fcfs","opt","agent"]){const ev=SIM[p].ev;
 // ================= hearback popup =================
 function hb(state){const pop=document.getElementById("hbpop"),ch=document.getElementById("hbchips"),v=document.getElementById("hbv"),st=document.getElementById("hbst");
   const F=(a,b,ok)=>`<span class="chip ${ok===undefined?"":ok?"ok":"bad"}">${a} ${b}</span>`;
-  if(state=="hb0"){pop.classList.add("on");st.textContent="CLEARANCE SENT";ch.innerHTML=F("CALLSIGN","SKF104")+F("ROUTE","E–W–SF")+F("ALT","1500");v.textContent="";v.style.color=""}
-  if(state=="hbBad"){st.textContent="MISMATCH";ch.innerHTML=F("CALLSIGN","SKF104",true)+F("ROUTE","heard E–C–SF · C–E CLOSED",false)+F("ALT","1500",true);v.textContent="REJECTED · NOT COMMITTED · CONTROLLER CORRECTS";v.style.color="#ff9d95"}
-  if(state=="hbOk"){st.textContent="MATCH";ch.innerHTML=F("CALLSIGN","SKF104",true)+F("ROUTE","E–W–SF",true)+F("ALT","1500",true);v.textContent="ALL FIELDS MATCH · E–W SLOT COMMITTED";v.style.color="var(--teal)";setTimeout(()=>pop.classList.remove("on"),5200)}
+  if(state=="hb0"){pop.classList.add("on");st.textContent="CLEARANCE SENT";ch.innerHTML=F("CALLSIGN","UTA104")+F("ROUTE","E–W–SF")+F("ALT","1500");v.textContent="";v.style.color=""}
+  if(state=="hbBad"){st.textContent="MISMATCH";ch.innerHTML=F("CALLSIGN","UTA104",true)+F("ROUTE","heard E–C–SF · C–E CLOSED",false)+F("ALT","1500",true);v.textContent="REJECTED · NOT COMMITTED · CONTROLLER CORRECTS";v.style.color="#ff9d95"}
+  if(state=="hbOk"){st.textContent="MATCH";ch.innerHTML=F("CALLSIGN","UTA104",true)+F("ROUTE","E–W–SF",true)+F("ALT","1500",true);v.textContent="ALL FIELDS MATCH · E–W SLOT COMMITTED";v.style.color="var(--teal)";setTimeout(()=>pop.classList.remove("on"),5200)}
 }
 
 // ================= ribbon =================

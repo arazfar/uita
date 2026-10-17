@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="sfo-history.css">
 <script>window.CESIUM_BASE_URL = '/vendor/cesium/';</script>
 <link rel="stylesheet" href="/vendor/cesium/Widgets/widgets.css">
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 <script src="uita-live.js"></script>
 <style>
 :root{
@@ -38,9 +38,9 @@ html,body{margin:0;height:100%;background:#0b0f13;color:var(--ink);font-family:v
 #banner.alert{box-shadow:inset 0 0 0 1px rgba(255,90,79,.55)}
 #banner.alert #stormflag{display:inline}
 /* merged radio + agent feed */
-#feedp{right:14px;top:14px;width:340px;max-height:calc(100% - 140px)}
+#feedp{right:14px;top:14px;width:310px;max-height:calc(100% - 140px)}
 .feed{padding:4px 10px 10px;display:flex;flex-direction:column;gap:8px}
-.it{font:13px/1.4 var(--sans);animation:in .35s ease;padding-left:9px;border-left:2px solid var(--line)}
+.it{font:12px/1.38 var(--sans);animation:in .35s ease;padding-left:9px;border-left:2px solid var(--line)}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .it .who{font:600 10px/1.3 var(--mono);color:var(--mute);letter-spacing:.04em}
 .it .who .tag{margin-left:6px}
@@ -61,21 +61,27 @@ html,body{margin:0;height:100%;background:#0b0f13;color:var(--ink);font-family:v
 /* scoreboard: four numbers */
 #score{left:14px;top:14px;display:flex;padding:10px 6px}
 #score .c{padding:0 9px;width:88px}
-#score .v{font:600 30px/1 var(--mono)}
+#score .v{font:600 26px/1 var(--mono)}
 #score .v small{font-size:13px;color:var(--mute);font-weight:500}
 #score .v.good{color:var(--green)}
 #score .v.dim{color:var(--mute)}
 #score .k{font:600 9.5px/1.3 var(--sans);color:var(--mute);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
 /* camera bar */
-#cambar{left:14px;bottom:36px;width:max-content;display:flex;gap:4px;padding:5px;align-items:center;white-space:nowrap}
-#cambar .sep{width:1px;height:18px;background:var(--line);margin:0 3px}
-#cambar #bZout,#cambar #bZin{width:28px;font-size:14px;padding:4px 0}
-#camlabel{font:600 10px/1 var(--mono);color:var(--mute);letter-spacing:.06em;padding:0 6px}
+#cambar{position:absolute;z-index:10;left:14px;bottom:36px;display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(14,18,22,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 18px rgba(0,0,0,.25)}
+#cambar .ib{position:relative;width:34px;height:34px;padding:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:#d9dee2}
+#cambar .ib:hover{background:rgba(255,255,255,.12)}
+#cambar .ib.on{background:var(--accent);color:#1b1408}
+#cambar .ib[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:42px;left:50%;transform:translateX(-50%);white-space:nowrap;font:500 11px/1 var(--sans);color:#fff;background:rgba(14,18,22,.9);padding:5px 8px;border-radius:6px;pointer-events:none}
+#more{display:none;position:absolute;left:150px;bottom:44px;min-width:180px;padding:6px;border-radius:12px;background:rgba(255,255,255,.97);box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#more.open{display:block}
+#more button{display:flex;justify-content:space-between;width:100%;background:none;color:#1d2733;font:500 12.5px/1 var(--sans);padding:8px 10px;border-radius:7px;text-align:left}
+#more button:hover{background:#eef1f4}
+#more button.on{background:#e9efff;color:#2b5cff}
+#more kbd{font:500 10.5px/1 var(--mono);color:#8a949c}
+#more hr{border:0;border-top:1px solid #e6e9ec;margin:4px 2px}
 button{font:600 11px/1 var(--sans);color:var(--ink);background:rgba(255,255,255,.06);border:0;border-radius:5px;padding:7px 9px;cursor:pointer}
 button:hover{background:rgba(255,255,255,.14)}
 button.on{background:var(--accent);color:#1b1408}
-.dx{display:none}
-body.details .dx{display:inline-block}
 .lb{position:absolute;left:0;right:0;height:9vh;background:#000;z-index:4;transform:scaleY(0);transition:transform .6s ease;pointer-events:none}
 .lb.top{top:0;transform-origin:top}.lb.bot{bottom:0;transform-origin:bottom}
 body.letterbox .lb{transform:scaleY(1)}
@@ -139,7 +145,6 @@ body.details .details{display:block}
   <div class="c"><div class="v good"><span id="sAgent">0</span><small id="sAgentDen">/28</small></div><div class="k" id="k1">On time · agents</div></div>
   <div class="c"><div class="v dim"><span id="sStatic">0</span><small id="sStaticDen">/28</small></div><div class="k" id="k2">Static plan</div></div>
   <div class="c"><div class="v" id="sConf">0</div><div class="k">Conflicts</div></div>
-  <div class="c"><div class="v" id="sHuman">0</div><div class="k">Human interv.</div></div>
 </div>
 
 <div class="details">
@@ -147,12 +152,27 @@ body.details .details{display:block}
 <div id="radar" class="panel"><div class="ph"><span>Approach radar</span><b>20 NM</b></div><canvas id="rc" width="300" height="224"></canvas></div>
 </div>
 
-<div id="cambar" class="panel">
-  <button data-preset="1" title="Key 1">Overview</button><button data-preset="2" title="Key 2">Tower</button><button data-preset="3" title="Key 3: chase the selected flight (click one to select)">Chase</button><button data-preset="4" title="Key 4">Storm</button>
-  <span class="sep"></span><button id="bZout" title="Zoom out (−)" aria-label="Zoom out">−</button><button id="bZin" title="Zoom in (+)" aria-label="Zoom in">+</button>
-  <span class="sep"></span><button id="bCine" class="on" title="Key C">Cinematic</button><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bDet" title="Key D: strips, radar, labels, more controls">Details</button>
-  <span class="sep dx"></span><button class="dx" id="bPlay" title="Space">Pause</button><button class="dx" id="bRestart">Restart</button><button class="dx" data-preset="5" title="Key 5">OAK pad</button><button class="dx" id="bBox" title="Key L">Letterbox</button><button class="dx" id="bPhoto" title="Key G: Google Photorealistic 3D Tiles (needs network)">Photoreal</button>
-  <span id="camlabel"></span>
+<div id="cambar" role="toolbar" aria-label="Camera">
+  <button class="ib" data-preset="1" data-tip="Overview · 1" aria-label="Overview"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></button>
+  <button class="ib" data-preset="2" data-tip="Tower · 2" aria-label="Tower view"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg></button>
+  <button class="ib" data-preset="3" data-tip="Follow selected · 3" aria-label="Follow selected aircraft"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/></svg></button>
+  <button class="ib on" id="bCine" data-tip="Cinematic · C" aria-label="Cinematic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></svg></button>
+  <button class="ib" id="bSnd" data-tip="Sound" aria-label="Sound"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
+  <button class="ib" id="bMore" data-tip="More" aria-label="More" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+  <div id="more" role="menu">
+    <button role="menuitem" data-preset="4">Storm view<kbd>4</kbd></button>
+    <button role="menuitem" data-preset="5">OAK vertiport<kbd>5</kbd></button>
+    <button role="menuitem" id="bZin">Zoom in<kbd>+</kbd></button>
+    <button role="menuitem" id="bZout">Zoom out<kbd>−</kbd></button>
+    <hr>
+    <button role="menuitem" id="bDet">Details<kbd>D</kbd></button>
+    <button role="menuitem" id="bPhoto">Photoreal<kbd>G</kbd></button>
+    <button role="menuitem" id="bBox">Letterbox<kbd>L</kbd></button>
+    <hr>
+    <button role="menuitem" id="bPlay">Pause<kbd>Space</kbd></button>
+    <button role="menuitem" id="bRestart">Restart</button>
+  </div>
+  <span id="camlabel" hidden></span>
 </div>
 <div id="fcTag"></div>
 <div id="fcard" role="dialog" aria-label="Flight card">
@@ -393,7 +413,7 @@ for (const a of airliners) {
 yawFix['assets/boeing747-mihalunar/model.glb'] = 180;
 yawFix['assets/airplane-google/model.glb'] = 0;
 
-// ---------- UITA eVTOL network (fleet callsign "SkyFlow") ----------
+// ---------- UITA eVTOL network (fleet callsign "UITA") ----------
 const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
   W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
 const EDGES = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
@@ -469,7 +489,7 @@ for (let i = 0; i < 28; i++) {
   let rerouted = false;
   if (usesCE(route) && dep >= STORM[0] - 0.5 && dep < STORM[1]) { route = opts[1]; rerouted = true; }
   const cs = 101 + i;
-  flights.push({ cs, callsign: `SKF${cs}`, o, d, route, rerouted, dep, dur: routeLen(route) / KMPM, normal: opts[0] });
+  flights.push({ cs, callsign: `UTA${cs}`, o, d, route, rerouted, dep, dur: routeLen(route) / KMPM, normal: opts[0] });
 }
 function routePoint(f, m) {
   let dist = Math.max(0, m - f.dep) * KMPM;
@@ -523,36 +543,36 @@ for (const b of bg.slice(0, 40)) {
 const RADIO = [
   { t: 1.0, who: 'TWR', f: '120.500', txt: 'United eight five two heavy, wind zero three zero at six, runway two eight right, cleared to land.' },
   { t: 3.5, who: 'UAL852', plt: 1, txt: 'Cleared to land two eight right, United eight five two heavy.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
-  { t: 6.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one zero two, cleared Oakland to San Francisco via Echo, Charlie, maintain one thousand five hundred.' },
-  { t: 8.5, who: 'SKF102', plt: 1, txt: 'Echo, Charlie, one thousand five hundred, SkyFlow one zero two.', hb: [['CALLSIGN'], ['ROUTE E–C'], ['ALT 1500']], commit: 'SKF102 OAK→E→C→SF' },
-  { t: 14.5, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, corridor Charlie Echo closed, reroute via Whiskey, Echo, maintain one thousand five hundred.' },
-  { t: 18.0, who: 'SKF108', plt: 1, txt: 'Reroute via Charlie, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE C–E ≠ W–E', 1], ['ALT 1500']] },
-  { t: 21.0, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, negative. Charlie Echo is closed. Reroute via Whiskey, Echo.' },
-  { t: 24.0, who: 'SKF108', plt: 1, txt: 'Whiskey, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE W–E'], ['ALT 1500']], commit: 'SKF108 SF→W→E→OAK' },
+  { t: 6.0, who: 'UITA CTL', f: '123.025', txt: 'UITA one zero two, cleared Oakland to San Francisco via Echo, Charlie, maintain one thousand five hundred.' },
+  { t: 8.5, who: 'UTA102', plt: 1, txt: 'Echo, Charlie, one thousand five hundred, UITA one zero two.', hb: [['CALLSIGN'], ['ROUTE E–C'], ['ALT 1500']], commit: 'UTA102 OAK→E→C→SF' },
+  { t: 14.5, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'UITA one zero eight, corridor Charlie Echo closed, reroute via Whiskey, Echo, maintain one thousand five hundred.' },
+  { t: 18.0, who: 'UTA108', plt: 1, txt: 'Reroute via Charlie, Echo, one thousand five hundred, UITA one zero eight.', hb: [['CALLSIGN'], ['ROUTE C–E ≠ W–E', 1], ['ALT 1500']] },
+  { t: 21.0, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'UITA one zero eight, negative. Charlie Echo is closed. Reroute via Whiskey, Echo.' },
+  { t: 24.0, who: 'UTA108', plt: 1, txt: 'Whiskey, Echo, one thousand five hundred, UITA one zero eight.', hb: [['CALLSIGN'], ['ROUTE W–E'], ['ALT 1500']], commit: 'UTA108 SF→W→E→OAK' },
   { t: 27.5, who: 'TWR', f: '120.500', txt: 'Southwest twelve fifty-five, runway two eight left, wind zero three zero at six, cleared for takeoff.' },
   { t: 30.0, who: 'SWA1255', plt: 1, txt: 'Cleared for takeoff two eight left, Southwest twelve fifty-five.', hb: [['CALLSIGN'], ['RWY 28L'], ['CLRD T/O']] },
   { t: 38.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, runway two eight right, continue, traffic departing two eight left.' },
   { t: 40.5, who: 'ASA331', plt: 1, txt: 'Continue two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R']] },
-  { t: 50.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one two two, Charlie Echo open, cleared direct Oakland via Charlie, Echo, maintain one thousand five hundred.' },
-  { t: 52.5, who: 'SKF122', plt: 1, txt: 'Direct Oakland via Charlie, Echo, one thousand five hundred, SkyFlow one two two.', hb: [['CALLSIGN'], ['ROUTE C–E'], ['ALT 1500']], commit: 'SKF122 SF→C→E→OAK' },
+  { t: 50.0, who: 'UITA CTL', f: '123.025', txt: 'UITA one two two, Charlie Echo open, cleared direct Oakland via Charlie, Echo, maintain one thousand five hundred.' },
+  { t: 52.5, who: 'UTA122', plt: 1, txt: 'Direct Oakland via Charlie, Echo, one thousand five hundred, UITA one two two.', hb: [['CALLSIGN'], ['ROUTE C–E'], ['ALT 1500']], commit: 'UTA122 SF→C→E→OAK' },
   { t: 62.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, wind zero three zero at six, runway two eight right, cleared to land.' },
   { t: 64.5, who: 'ASA331', plt: 1, txt: 'Cleared to land two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
-  { t: 71.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one two five, cleared Marin to San Francisco International via Sierra Fox, Whiskey, maintain one thousand five hundred.' },
-  { t: 73.5, who: 'SKF125', plt: 1, txt: 'Via Sierra Fox, Whiskey, one thousand five hundred, SkyFlow one two five.', hb: [['CALLSIGN'], ['ROUTE SF–W'], ['ALT 1500']], commit: 'SKF125 MAR→SF→W→SFO' },
+  { t: 71.0, who: 'UITA CTL', f: '123.025', txt: 'UITA one two five, cleared Marin to San Francisco International via Sierra Fox, Whiskey, maintain one thousand five hundred.' },
+  { t: 73.5, who: 'UTA125', plt: 1, txt: 'Via Sierra Fox, Whiskey, one thousand five hundred, UITA one two five.', hb: [['CALLSIGN'], ['ROUTE SF–W'], ['ALT 1500']], commit: 'UTA125 MAR→SF→W→SFO' },
 ];
 const AGENTS = [
   { t: 0.5, cls: 'spawn', who: 'COORDINATOR', tag: 'SPAWN', txt: 'Spawned sector agents CENTRAL, EAST, WEST for 28-trip bank.' },
   { t: 2.5, cls: 'spawn', who: 'SECTOR-WEST', tag: 'SPAWN', txt: 'Spawned pad agents PAD-SFO, PAD-SF.' },
   { t: 4.0, cls: 'spawn', who: 'SECTOR-EAST', tag: 'SPAWN', txt: 'Spawned pad agents PAD-OAK, PAD-BER.' },
   { t: 9.4, cls: 'sys', who: 'KERNEL · WX', tag: 'CLOSED', txt: 'Unforecast convective cell. Segment C–E closed T+08 → T+24.' },
-  { t: 10.5, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Reroute SKF108 SF→W→E→OAK (+2.4 km). Separation ok at W.' },
-  { t: 12.0, cls: 'rej', who: 'SECTOR-EAST → KERNEL', tag: 'VETO', txt: 'Keep SKF109 on E–C at 800 ft beneath the cell.', why: 'R2: reservation intersects closed segment C–E (T+08→T+24). Altitude does not reopen a closed volume.' },
-  { t: 13.6, cls: 'acc', who: 'SECTOR-EAST → KERNEL', tag: 'ACCEPT', txt: 'Revised: SKF109 OAK→E→W→SF (+2.6 km), departs on time.' },
+  { t: 10.5, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Reroute UTA108 SF→W→E→OAK (+2.4 km). Separation ok at W.' },
+  { t: 12.0, cls: 'rej', who: 'SECTOR-EAST → KERNEL', tag: 'VETO', txt: 'Keep UTA109 on E–C at 800 ft beneath the cell.', why: 'R2: reservation intersects closed segment C–E (T+08→T+24). Altitude does not reopen a closed volume.' },
+  { t: 13.6, cls: 'acc', who: 'SECTOR-EAST → KERNEL', tag: 'ACCEPT', txt: 'Revised: UTA109 OAK→E→W→SF (+2.6 km), departs on time.' },
   { t: 16.0, cls: 'acc', who: 'PAD-OAK → KERNEL', tag: 'ACCEPT', txt: 'Resequence OAK arrivals 108 / 110 / 115, 90 s spacing.' },
-  { t: 25.0, cls: 'acc', who: 'KERNEL', tag: 'COMMIT', txt: 'Reservation SKF108 SF→W→E→OAK committed after hearback.' },
+  { t: 25.0, cls: 'acc', who: 'KERNEL', tag: 'COMMIT', txt: 'Reservation UTA108 SF→W→E→OAK committed after hearback.' },
   { t: 28.3, cls: 'sys', who: 'KERNEL · WX', tag: 'OPEN', txt: 'Cell cleared. Segment C–E reopened.' },
-  { t: 31.0, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Restore direct C–E routing for SKF116 onward.' },
-  { t: 36.0, cls: 'acc', who: 'PAD-SFO → KERNEL', tag: 'ACCEPT', txt: 'Priority to SKF118 (medical) at SFO pad 2.' },
+  { t: 31.0, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Restore direct C–E routing for UTA116 onward.' },
+  { t: 36.0, cls: 'acc', who: 'PAD-SFO → KERNEL', tag: 'ACCEPT', txt: 'Priority to UTA118 (medical) at SFO pad 2.' },
   { t: 58.0, cls: 'acc', who: 'COORDINATOR', tag: 'RECOVER', txt: 'Backlog cleared. All 28 slots on time; conflicts 0.' },
 ];
 const STATIC_ON_TIME = new Set([0, 1, 2, 7, 8, 9, 10, 11, 12, 13].map(i => 101 + i)); // static plan: 10/28
@@ -573,8 +593,8 @@ function agentItem(a) {
 }
 function renderFeed(nR, nA) {
   const items = [...RADIO.slice(0, nR).map(r => [r.t, radioItem(r)]), ...AGENTS.slice(0, nA).map(a => [a.t, agentItem(a)])].sort((x, y) => x[0] - y[0]);
-  const lv = liveOn ? liveItems.slice(-3) : [];
-  feedEl.innerHTML = items.slice(-(5 - lv.length)).map(i => i[1]).join('') + (lv.length ? '<div class="live-sep">LIVE · UITA</div>' + lv.join('') : '');
+  const lv = liveOn ? liveItems.slice(-2) : [];
+  feedEl.innerHTML = items.slice(-(4 - lv.length)).map(i => i[1]).join('') + (lv.length ? '<div class="live-sep">LIVE · UITA</div>' + lv.join('') : '');
   $('feedcount').textContent = `${nR} tx · ${nA} decisions`;
 }
 
@@ -672,7 +692,8 @@ const cam = scene.camera, ssc = scene.screenSpaceCameraController;
 ssc.minimumZoomDistance = 25; ssc.maximumZoomDistance = 90000;
 const ZMIN = 30, ZMAX = 85000;
 let camMode = 'cine', shot = null, blend = null, towerTgt = null, letterbox = false;
-const TOWER = C.Cartesian3.fromDegrees(-122.3838, 37.6159, GROUND + 74);
+// Tower eye ~100 m above the local ground (photoreal ground is ellipsoidal, the pack's is 0), clear of the cab roof mesh
+const towerEye = () => C.Cartesian3.fromDegrees(-122.3838, 37.6159, GROUND + 100);
 const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; // cubic in-out
 function enu(from, to) {
   const tr = C.Transforms.eastNorthUpToFixedFrame(from); const inv = C.Matrix4.inverseTransformation(tr, new C.Matrix4());
@@ -695,7 +716,7 @@ const at3 = (lonlat, h) => C.Cartesian3.fromDegrees(lonlat[0], lonlat[1], h);
 const STORM_C = at3(mid, cAlt), OAK_PAD = at3(NODES.OAK, GROUND + 10), BAY_C = at3([-122.34, 37.735], 0);
 const PRESETS = {
   1: { name: 'OVERVIEW · SFO', pose: () => orbitPose(SFO_C, 330, -32, 5500) },
-  2: { name: 'TOWER CAB · 74 M AGL', pose: () => ({ eye: TOWER, hdg: 58, pitch: -8 }) },
+  2: { name: 'TOWER CAB · SFO', pose: () => ({ eye: towerEye(), hdg: 94, pitch: -4.5 }) }, // down 28L/R toward the thresholds
   3: { name: 'CHASE', chase: true },
   4: { name: 'STORM · C–E', pose: () => orbitPose(STORM_C, 25, -24, 9000) },
   5: { name: 'VERTIPORT · OAK', pose: () => orbitPose(OAK_PAD, 300, -28, 1700) },
@@ -708,20 +729,21 @@ function followPose(posProp, t, range, pitch, side, dt) {
   return orbitPose(r.p, (followHdg ?? 0) + side, pitch, range);
 }
 const evtPos = f => new C.CallbackProperty(time => { const m = C.JulianDate.secondsDifference(time, T0) * SIMRATE; const p = routePoint(f, m); return C.Cartesian3.fromDegrees(p[0], p[1], cAlt + 25); }, false);
-const SKF108 = flightBy('SKF108'), skf108Pos = evtPos(SKF108);
+const UTA108 = flightBy('UTA108'), skf108Pos = evtPos(UTA108);
 // Cinematic shot list, synced to the scenario beats (wall seconds within the 90 s loop)
 const SHOTS = [
   { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 2.4, -30 + t * 0.3, 4200 + t * 250) },
   { t0: 9.4, name: 'C–E CLOSES · STORM', fov: 50, pose: (t) => { const k = ease(Math.min(1, (t - 9.4) / 5)); return orbitPose(STORM_C, 10 + (t - 9.4) * 3, -30 + 8 * k, 15000 - 8500 * k); } },
-  { t0: 14.5, cut: true, name: 'READBACK · SKF108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
-  { t0: 24.5, name: 'REROUTE · SKF108 VIA W–E', fov: 55, pose: (t, dt) => followPose(skf108Pos, t, 900, -18, 25, dt) },
+  { t0: 14.5, cut: true, name: 'READBACK · UTA108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
+  { t0: 24.5, name: 'REROUTE · UTA108 VIA W–E', fov: 55, pose: (t, dt) => followPose(skf108Pos, t, 900, -18, 25, dt) },
   { t0: 40, name: 'TOWER CAB · 28L DEPARTURE', fov: 50, tower: airliners[1] },
   { t0: 58, name: 'CHASE · SWA1255 CLIMB-OUT', fov: 58, pose: (t, dt) => followPose(airliners[1].pos, t, 160, -9, 20, dt) },
   { t0: 70, name: 'CHASE · ASA331 FINAL 28R', fov: 58, pose: (t, dt) => followPose(airliners[2].pos, t, 150, -8, -25, dt) },
   { t0: 81, name: 'RECOVERY · 28/28 ON TIME', fov: 60, pose: (t) => { const k = ease(Math.min(1, (t - 81) / 7)); return orbitPose(at3([-122.36, 37.69], 0), 330 + (t - 81) * 2, -14 - 24 * k, 2500 + 9000 * k); } },
 ];
 function towerPose(a, dt) {
-  const p = a.pos.getValue(clock.currentTime); if (!p) return { eye: TOWER, hdg: 62, pitch: -5 };
+  const p = a.pos.getValue(clock.currentTime); const TOWER = towerEye();
+  if (!p) return { eye: TOWER, hdg: 94, pitch: -4.5 };
   const v = enu(TOWER, p), hd = Math.atan2(v.x, v.y) / D2R, pt = Math.max(-12, Math.min(8, Math.atan2(v.z, Math.hypot(v.x, v.y)) / D2R)) - 1;
   if (!towerTgt) towerTgt = { hdg: hd, pitch: pt };
   towerTgt.hdg += ((((hd - towerTgt.hdg) + 540) % 360) - 180) * Math.min(1, dt * 1.5); towerTgt.pitch += (pt - towerTgt.pitch) * Math.min(1, dt * 1.5);
@@ -756,7 +778,7 @@ function selectedFlight() {
   const e = viewer.selectedEntity, now = clock.currentTime;
   const fl = flights.find(f => f.entity === e);
   if (e && e.position && e.position.getValue(now) && (!fl || fl.visible.getValue(now))) return e;
-  if (SKF108.visible.getValue(now)) return SKF108.entity;
+  if (UTA108.visible.getValue(now)) return UTA108.entity;
   const t = tNow(); return t < 63 ? airliners[1].entity : airliners[2].entity;
 }
 function fly(p) {
@@ -804,6 +826,10 @@ $('bZin').onclick = () => zoom(1); $('bZout').onclick = () => zoom(-1);
 $('bCine').onclick = () => camMode === 'cine' ? pauseCine() : resumeCine();
 $('bDet').onclick = () => { details = !details; document.body.classList.toggle('details', details); $('bDet').classList.toggle('on', details); lastStripKey = ''; };
 $('bPhoto').onclick = () => setPhotoreal(!photoreal);
+const moreEl = $('more');
+$('bMore').onclick = e => { e.stopPropagation(); const o = moreEl.classList.toggle('open'); $('bMore').setAttribute('aria-expanded', o); $('bMore').classList.toggle('on', o); };
+moreEl.addEventListener('click', e => { if (e.target.closest('button')) { moreEl.classList.remove('open'); $('bMore').classList.remove('on'); $('bMore').setAttribute('aria-expanded', false); } });
+document.addEventListener('click', e => { if (!e.target.closest('#cambar')) { moreEl.classList.remove('open'); $('bMore').classList.remove('on'); } });
 $('bBox').onclick = () => { letterbox = !letterbox; document.body.classList.toggle('letterbox', letterbox); $('bBox').classList.toggle('on', letterbox); };
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
@@ -813,7 +839,7 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'l' || e.key === 'L') $('bBox').onclick();
   else if (e.key === 'g' || e.key === 'G') $('bPhoto').onclick();
   else if (e.key === 'd' || e.key === 'D') $('bDet').onclick();
-  else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); // app.html view switch
+  else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ uita: 'toggle' }, '*'); // app.html view switch
   else if (e.key === '+' || e.key === '=') zoom(1);
   else if (e.key === '-' || e.key === '_') zoom(-1);
   else if (e.key === ' ') { e.preventDefault(); $('bPlay').onclick(); }
@@ -839,10 +865,11 @@ SkyRadio.onTransmit(({ speaker, key, live }) => {
   const last = feedEl.querySelectorAll('.tx'); last.forEach(x => x.classList.remove('live'));
   if (live && last.length) last[last.length - 1].classList.add('live');
 });
-const syncSnd = () => { $('bSnd').textContent = SkyRadio.enabled ? 'Sound on' : 'Sound off'; $('bSnd').classList.toggle('on', SkyRadio.enabled); };
+const ICON_VON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>', ICON_VOFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>';
+const syncSnd = () => { const on = SkyRadio.enabled; $('bSnd').innerHTML = on ? ICON_VON : ICON_VOFF; $('bSnd').dataset.tip = on ? 'Sound on' : 'Sound off'; $('bSnd').classList.toggle('on', on); };
 $('bSnd').onclick = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSnd(); };
 document.addEventListener('skyradio:enabled', syncSnd);
-// Pause everything when hidden or when the host page asks (iframe toggle): {skyflow:'pause'|'resume'}
+// Pause everything when hidden or when the host page asks (iframe toggle): {uita:'pause'|'resume'}
 function setPaused(p) {
   if (p === extPaused) return;
   extPaused = p;
@@ -852,7 +879,7 @@ function setPaused(p) {
   requestAnimationFrame(() => requestAnimationFrame(() => { if (!extPaused) clock.shouldAnimate = wasAnim && !userPaused && !holding; }));
 }
 document.addEventListener('visibilitychange', () => setPaused(document.hidden));
-window.addEventListener('message', e => { const m = e.data && e.data.skyflow; if (m === 'pause') setPaused(true); else if (m === 'resume') setPaused(false); });
+window.addEventListener('message', e => { const m = e.data && e.data.uita; if (m === 'pause') setPaused(true); else if (m === 'resume') setPaused(false); });
 if (document.hidden) setPaused(true);
 $('bPlay').onclick = () => { userPaused = !userPaused; clock.shouldAnimate = !userPaused && !holding; $('bPlay').textContent = userPaused ? 'Play' : 'Pause'; };
 $('bRestart').onclick = () => { userPaused = false; clock.currentTime = T0.clone(); clock.shouldAnimate = true; $('bPlay').textContent = 'Pause'; };
@@ -927,7 +954,7 @@ UitaLive.on('online', () => { liveOn = true; $('live').style.display = 'inline';
     $('sConf').textContent = m.conflicts ?? 0;
   });
 function setScoreMode(on) {
-  $('k1').textContent = on ? 'Completed · live' : 'On time · agents';
+  $('k1').textContent = on ? 'Completed' : 'On time · agents';
   $('k2').textContent = on ? 'Mean delay' : 'Static plan';
   $('sStaticDen').textContent = on ? 'm' : '/28';
   if (!on) { $('sAgentDen').textContent = '/28'; $('sConf').textContent = 0; }
@@ -966,7 +993,7 @@ for (const f of flights) PICK.set(f.entity, { kind: 'evtol', ref: f });
 let cineEndedAt = -1e9;
 const DIG = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 const SPOKEN = { UAL852: 'United eight five two', SWA1255: 'Southwest twelve fifty-five', ASA331: 'Alaska three thirty-one' };
-const spokenOf = cs => SPOKEN[cs] || (cs.startsWith('SKF') ? 'SkyFlow ' + [...cs.slice(3)].map(d => DIG[d]).join(' ') : cs);
+const spokenOf = cs => SPOKEN[cs] || (cs.startsWith('UTA') ? 'UITA ' + [...cs.slice(3)].map(d => DIG[d]).join(' ') : cs);
 const fmt = n => Math.round(n).toLocaleString('en-US');
 // latest revealed controller call to this aircraft and the readback that followed it
 function clearanceOf(cs) {

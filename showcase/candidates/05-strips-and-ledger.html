@@ -161,7 +161,7 @@ table.hbt{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:
 <body>
 <div class="app">
 <header>
-  <div class="brand"><b>SKYFLOW</b><span>Bay Area UAM · Ops Desk</span></div>
+  <div class="brand"><b>UITA</b><span>Bay Area UAM · Ops Desk</span></div>
   <span class="simtag">SIMULATION</span>
   <div class="clock" id="clock">T+00:00</div>
   <div class="phase" id="phase">NOMINAL</div>
@@ -213,9 +213,9 @@ table.hbt{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:
   </section>
 </main>
 </div>
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 <script>
-// ---- SkyFlow scripted scenario (Simulation) ----
+// ---- UITA scripted scenario (Simulation) ----
 const SIM = (() => {
   const LOOP = 90, RATE = 0.95;               // seconds per loop, sim-minutes per second
   const STORM = [8, 24];                       // C–E closed, sim minutes
@@ -276,7 +276,7 @@ const SIM = (() => {
   const ev = [];
   const fixed = [];   // occupied radio intervals
   const altSp = a => a === 1200 ? 'one thousand two hundred' : a === 1500 ? 'one thousand five hundred' : 'one thousand eight hundred';
-  const fieldsOf = (f, route) => ({ callsign: 'SkyFlow ' + f.cs, route: viaShort(route), dest: f.to, alt: f.alt });
+  const fieldsOf = (f, route) => ({ callsign: 'UITA ' + f.cs, route: viaShort(route), dest: f.to, alt: f.alt });
   const FREQ = { BAY: '128.35', EAST: '124.90' };
   const freqOf = f => (f.from === 'OAK' || f.from === 'BER') ? 'EAST' : 'BAY';
   function radio(t, who, f, text, dur, freq) {
@@ -287,11 +287,11 @@ const SIM = (() => {
   function exchange(desired, f, route, kind, fq = freqOf(f)) {
     const v = viaText(route), via = v === 'direct' ? 'direct' : 'via ' + v;
     const c = kind === 'reroute'
-      ? `SkyFlow ${f.csSp}, reroute ${via}, ${PADNAME[f.to]}. Charlie-Echo closed.`
-      : `SkyFlow ${f.csSp}, cleared ${PADNAME[f.to]} ${via}, maintain ${altSp(f.alt)}.`;
+      ? `UITA ${f.csSp}, reroute ${via}, ${PADNAME[f.to]}. Charlie-Echo closed.`
+      : `UITA ${f.csSp}, cleared ${PADNAME[f.to]} ${via}, maintain ${altSp(f.alt)}.`;
     const r = kind === 'reroute'
-      ? `Reroute ${via}, ${PADNAME[f.to]}, SkyFlow ${f.csSp}.`
-      : `Cleared ${PADNAME[f.to]} ${via}, ${altSp(f.alt)}, SkyFlow ${f.csSp}.`;
+      ? `Reroute ${via}, ${PADNAME[f.to]}, UITA ${f.csSp}.`
+      : `Cleared ${PADNAME[f.to]} ${via}, ${altSp(f.alt)}, UITA ${f.csSp}.`;
     const d1 = Math.min(1.9, Math.max(1.1, c.length * 0.017)), d2 = Math.min(1.6, Math.max(1.0, r.length * 0.017));
     const t1 = slot(desired, d1 + d2 + 0.25, fq);
     radio(t1, 'CTL', f, c, d1, fq);
@@ -303,17 +303,17 @@ const SIM = (() => {
   const T = toT;
   ev.push({ t: 0.2, type: 'spawn', agent: 'coordinator', parent: null, text: 'Coordinator online · 28 trips filed' });
 
-  // scripted voice loop for SkyFlow 108 (index 7)
+  // scripted voice loop for UITA 108 (index 7)
   const f8 = flights[7];
   const v0 = 10.5;
-  const c108 = `SkyFlow one zero eight, cleared Oakland via Whiskey, Whiskey-Echo, maintain one thousand two hundred.`;
-  const r108bad = `Cleared Oakland via Charlie-Echo, one thousand two hundred, SkyFlow one zero eight.`;
-  const n108 = `SkyFlow one zero eight, negative. Charlie-Echo is closed. Cleared via Whiskey, Whiskey-Echo. Read back.`;
-  const r108 = `Via Whiskey, Whiskey-Echo, Oakland, one thousand two hundred, SkyFlow one zero eight.`;
+  const c108 = `UITA one zero eight, cleared Oakland via Whiskey, Whiskey-Echo, maintain one thousand two hundred.`;
+  const r108bad = `Cleared Oakland via Charlie-Echo, one thousand two hundred, UITA one zero eight.`;
+  const n108 = `UITA one zero eight, negative. Charlie-Echo is closed. Cleared via Whiskey, Whiskey-Echo. Read back.`;
+  const r108 = `Via Whiskey, Whiskey-Echo, Oakland, one thousand two hundred, UITA one zero eight.`;
   radio(v0, 'CTL', f8, c108, 1.9, 'BAY');
   radio(v0 + 2.1, 'PLT', f8, r108bad, 1.6, 'BAY');
   ev.push({ t: v0 + 3.8, type: 'hearback', cs: 108, cleared: fieldsOf(f8, f8.route), readback: { ...fieldsOf(f8, f8.route), route: 'C–E' }, ok: false, why: 'Route: read back C–E (closed) vs cleared W–E' });
-  ev.push({ t: v0 + 3.9, type: 'propose', agent: 'hearback', target: 'C-E', f: 7, text: 'Commit SkyFlow 108 as read back (C–E)', verdict: 'REJECT', reason: 'Readback C–E ≠ cleared W–E · C–E closed', ghost: { key: 'C-E', m0: f8.segsA.find(s => s.key === 'C-E').m0, m1: f8.segsA.find(s => s.key === 'C-E').m1 } });
+  ev.push({ t: v0 + 3.9, type: 'propose', agent: 'hearback', target: 'C-E', f: 7, text: 'Commit UITA 108 as read back (C–E)', verdict: 'REJECT', reason: 'Readback C–E ≠ cleared W–E · C–E closed', ghost: { key: 'C-E', m0: f8.segsA.find(s => s.key === 'C-E').m0, m1: f8.segsA.find(s => s.key === 'C-E').m1 } });
   radio(v0 + 4.2, 'CTL', f8, n108, 1.9, 'BAY');
   radio(v0 + 6.3, 'PLT', f8, r108, 1.5, 'BAY');
   ev.push({ t: v0 + 7.9, type: 'hearback', cs: 108, cleared: fieldsOf(f8, f8.route), readback: fieldsOf(f8, f8.route), ok: true, corrected: true });
@@ -329,7 +329,7 @@ const SIM = (() => {
   ev.push({ t: tS + 1.2, type: 'spawn', agent: 'pad.SF', parent: 'sector.central', text: 'sector.central spawned pad.SF' });
   const f5 = flights[4];
   const ce5 = f5.segsA.find(s => s.key === 'C-E');
-  ev.push({ t: tS + 1.5, type: 'propose', agent: 'sector.central', f: 4, text: `Keep SkyFlow 105 on C–E, cross at T+${ce5.m0.toFixed(0)}`, verdict: 'REJECT', reason: 'C–E closed T+08–T+24', ghost: { key: 'C-E', m0: ce5.m0, m1: ce5.m1 } });
+  ev.push({ t: tS + 1.5, type: 'propose', agent: 'sector.central', f: 4, text: `Keep UITA 105 on C–E, cross at T+${ce5.m0.toFixed(0)}`, verdict: 'REJECT', reason: 'C–E closed T+08–T+24', ghost: { key: 'C-E', m0: ce5.m0, m1: ce5.m1 } });
   ev.push({ t: tR, type: 'reopen', text: 'C–E REOPENED T+24 · metering 1 per 3 min' });
 
   // commits: initial plans, re-plans
@@ -338,37 +338,37 @@ const SIM = (() => {
   const voice = f => ((f.i === 12) || (f.affected && desiredOf(f) < tS)) && desiredOf(f) > 0.3;
   function initial(f, desired, route, segs) {
     if (voice(f)) { const t0 = exchange(desired, f, route, 'clear'); ev.push({ t: t0, type: 'commit', f: f.i, route, segs }); return t0; }
-    ev.push({ t: desired, type: 'datalink', cs: f.cs, text: `SkyFlow ${f.cs} ${f.from}→${f.to} ${viaShort(route)} · datalink clearance WILCO` });
+    ev.push({ t: desired, type: 'datalink', cs: f.cs, text: `UITA ${f.cs} ${f.from}→${f.to} ${viaShort(route)} · datalink clearance WILCO` });
     ev.push({ t: desired + 0.3, type: 'commit', f: f.i, route, segs, datalink: true }); return desired + 0.3;
   }
   const pre = flights.filter(f => f.i !== 7 && desiredOf(f) < tS), post = flights.filter(f => f.i !== 7 && desiredOf(f) >= tS);
   pre.forEach(f => { f.commitT = initial(f, desiredOf(f), f.affected ? f.A : f.route, f.affected ? f.segsA : f.segs); });
   pre.filter(f => f.affected).forEach((f, k) => {
     const tp = tS + 1.0 + k * 1.2;
-    ev.push({ t: tp, type: 'propose', agent: agentOf(f), f: f.i, text: `Reroute SkyFlow ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'no conflicts · pads within capacity' });
+    ev.push({ t: tp, type: 'propose', agent: agentOf(f), f: f.i, text: `Reroute UITA ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'no conflicts · pads within capacity' });
     const t1 = exchange(tp + 0.2, f, f.route, 'reroute', 'EAST');
     ev.push({ t: t1, type: 'commit', f: f.i, route: f.route, segs: f.segs, supersede: true });
     f.recommitT = t1;
   });
   { const f = flights[7];
-    ev.push({ t: v0 - 0.4, type: 'propose', agent: 'sector.central', f: 7, text: `Plan SkyFlow 108 SF→OAK via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'pending readback' });
+    ev.push({ t: v0 - 0.4, type: 'propose', agent: 'sector.central', f: 7, text: `Plan UITA 108 SF→OAK via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'pending readback' });
     ev.push({ t: f.commitT, type: 'commit', f: 7, route: f.route, segs: f.segs, note: 'after corrected readback' }); }
   post.forEach(f => {
     const desired = desiredOf(f);
-    if (f.affected) ev.push({ t: desired - 0.3, type: 'propose', agent: agentOf(f), f: f.i, text: `Plan SkyFlow ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'C–E avoided · 0 conflicts' });
-    if (HOLD[f.i]) ev.push({ t: desired - 0.5, type: 'propose', agent: 'pad.OAK', f: f.i, text: `Ground hold SkyFlow ${f.cs} at ${f.from}, ${HOLD[f.i]} min`, verdict: 'ACCEPT', reason: f.i === 6 ? 'absorbs OAK pad peak' : 'medical priority to OAK pad 1' });
+    if (f.affected) ev.push({ t: desired - 0.3, type: 'propose', agent: agentOf(f), f: f.i, text: `Plan UITA ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'C–E avoided · 0 conflicts' });
+    if (HOLD[f.i]) ev.push({ t: desired - 0.5, type: 'propose', agent: 'pad.OAK', f: f.i, text: `Ground hold UITA ${f.cs} at ${f.from}, ${HOLD[f.i]} min`, verdict: 'ACCEPT', reason: f.i === 6 ? 'absorbs OAK pad peak' : 'medical priority to OAK pad 1' });
     f.commitT = initial(f, desired, f.route, f.segs);
   });
   // rejected proposals with ghost bars
   const f7 = flights[6], arr7 = f7.segsA[f7.segsA.length - 1];
-  ev.push({ t: flights[6].commitT - 1.4, type: 'propose', agent: 'pad.OAK', f: 6, text: `Land SkyFlow 107 OAK at T+${arr7.m0.toFixed(0)} as filed`, verdict: 'REJECT', reason: 'OAK pads 2/2 occupied in window', ghost: { key: 'OAK', m0: arr7.m0, m1: arr7.m1 } });
+  ev.push({ t: flights[6].commitT - 1.4, type: 'propose', agent: 'pad.OAK', f: 6, text: `Land UITA 107 OAK at T+${arr7.m0.toFixed(0)} as filed`, verdict: 'REJECT', reason: 'OAK pads 2/2 occupied in window', ghost: { key: 'OAK', m0: arr7.m0, m1: arr7.m1 } });
   const f9 = flights[8], we9 = f9.segs.find(s => s.key === 'W-E');
-  ev.push({ t: flights[8].commitT + 1.2, type: 'propose', agent: 'sector.east', f: 8, text: 'Advance SkyFlow 109 two minutes on E–W', verdict: 'REJECT', reason: 'separation 50 s < 90 s behind SkyFlow 108', ghost: { key: 'W-E', m0: we9.m0 - 2, m1: we9.m1 - 2 } });
+  ev.push({ t: flights[8].commitT + 1.2, type: 'propose', agent: 'sector.east', f: 8, text: 'Advance UITA 109 two minutes on E–W', verdict: 'REJECT', reason: 'separation 50 s < 90 s behind UITA 108', ghost: { key: 'W-E', m0: we9.m0 - 2, m1: we9.m1 - 2 } });
 
   // human approvals (consequential / permissive actions)
   const APPROVALS = [
     { id: 'H-1', open: tR - 2.6, decide: tR - 0.6, title: 'Reopen corridor C–E', by: 'sector.central', why: 'Cell cleared corridor buffer 6 min ago · 2 PIREPs smooth', impact: 'Permissive action · metered 1 per 3 min for 15 min', },
-    { id: 'H-2', open: T(flights[15].release - 6.5), decide: T(flights[15].release - 6.5) + 2.2, title: 'Medical priority · SkyFlow 116', by: 'pad.OAK', why: 'Patient transfer MAR → OAK, requested by operator', impact: 'SkyFlow 117 ground-holds 2 min at OAK' },
+    { id: 'H-2', open: T(flights[15].release - 6.5), decide: T(flights[15].release - 6.5) + 2.2, title: 'Medical priority · UITA 116', by: 'pad.OAK', why: 'Patient transfer MAR → OAK, requested by operator', impact: 'UITA 117 ground-holds 2 min at OAK' },
     { id: 'H-3', open: T(46), decide: T(46) + 2.4, title: 'Return C–E to full capacity', by: 'coordinator', why: '10 min nominal after reopen · no deviations', impact: 'Ends metering · restores filed routes' },
   ];
   APPROVALS.forEach(a => { ev.push({ t: a.open, type: 'approval-open', a }); ev.push({ t: a.decide, type: 'approval-decide', a }); });
@@ -435,7 +435,7 @@ const PLAY = (() => {
 const VOICE = (() => {
   const radioEv = SIM.events.filter(e => e.type === 'radio');
   const spk = e => e.who === 'CTL' ? 'atc' : 'pilot';
-  const key = e => 'SKF' + e.cs;
+  const key = e => 'UTA' + e.cs;
   function fire(e) {
     if (!window.SkyRadio || !SkyRadio.enabled) return;
     if (PLAY.t - e.t > 0.6) return;                      // fast-forward after a seek: stay silent
@@ -463,7 +463,7 @@ F.forEach(f => {
   const el = document.createElement('div');
   el.className = 'strip' + (isArr(f) ? ' arr' : '');
   el.innerHTML = `<div class="tab"></div>
-    <div class="c"><div class="cs">SKF${f.cs}</div><div class="sub">EVTL/L · A${String(f.alt).padStart(4,'0')}</div></div>
+    <div class="c"><div class="cs">UTA${f.cs}</div><div class="sub">EVTL/L · A${String(f.alt).padStart(4,'0')}</div></div>
     <div class="c"><div class="rt">${f.from} → ${f.to}</div><div class="sub via">via ${SIM.viaShort(f.affected ? f.A : f.route)}</div></div>
     <div class="c"><div class="tm">${fmtM(f.dep).slice(2)}</div><div class="sub rid">R-${f.cs}·—</div></div>
     <div class="c st"><div class="dot"></div><span class="sl">FILED</span></div>
@@ -647,7 +647,7 @@ function addLine(e) {
 }
 function hearback(e) {
   const rows = [['Callsign', 'callsign'], ['Route', 'route'], ['Destination', 'dest'], ['Altitude', 'alt']];
-  $('hbCs').textContent = 'SkyFlow ' + e.cs;
+  $('hbCs').textContent = 'UITA ' + e.cs;
   $('hbBody').innerHTML = rows.map(([l, k]) => { const ok = String(e.cleared[k]) === String(e.readback[k]); return `<tr class="${ok ? '' : 'badrow'}"><td>${l}</td><td>${e.cleared[k]}</td><td>${e.readback[k]}</td><td class="${ok ? 'ok' : 'x'}">${ok ? '✓' : '✕'}</td></tr>`; }).join('');
   const r = $('hbRes');
   if (e.ok) { r.className = 'hbres ok'; r.textContent = e.corrected ? '✓ CORRECTED READBACK MATCHES · reservation committed' : '✓ READBACK MATCHES · reservation committed'; $('hbSt').textContent = 'match'; $('hbSt').style.color = 'var(--green)'; }
@@ -656,15 +656,15 @@ function hearback(e) {
 const cards = {};
 function apply(e, t) {
   switch (e.type) {
-    case 'radio': VOICE.fire(e); addLine(e); $('hbCs').textContent = 'SkyFlow ' + e.cs; $('hbSt').textContent = e.who === 'CTL' ? 'clearance issued' : 'comparing readback…'; $('hbSt').style.color = 'var(--amber)'; if (e.who === 'CTL') { $('hbBody').innerHTML = ''; $('hbRes').className = 'hbres'; $('hbRes').textContent = 'Awaiting pilot readback…'; } break;
+    case 'radio': VOICE.fire(e); addLine(e); $('hbCs').textContent = 'UITA ' + e.cs; $('hbSt').textContent = e.who === 'CTL' ? 'clearance issued' : 'comparing readback…'; $('hbSt').style.color = 'var(--amber)'; if (e.who === 'CTL') { $('hbBody').innerHTML = ''; $('hbRes').className = 'hbres'; $('hbRes').textContent = 'Awaiting pilot readback…'; } break;
     case 'datalink': addLine(e); break;
-    case 'hearback': hearback(e); if (!e.ok) { audit(e.t, 'MISMATCH', 'hearback', `SkyFlow ${e.cs} readback route C–E`, 'controller to correct'); ping('hearback'); } break;
+    case 'hearback': hearback(e); if (!e.ok) { audit(e.t, 'MISMATCH', 'hearback', `UITA ${e.cs} readback route C–E`, 'controller to correct'); ping('hearback'); } break;
     case 'commit': {
       const f = F[e.f];
       bars.forEach(b => { if (b.f === e.f && !b.tSup) b.tSup = e.t; });
       e.segs.forEach(s => bars.push({ f: e.f, key: s.key, m0: s.m0, m1: s.m1, tC: e.t }));
       stripRev(e);
-      audit(e.t, 'COMMIT', 'kernel', `R-${f.cs}·${strips[f.cs].rev} SkyFlow ${f.cs} ${f.from}→${f.to} via ${SIM.viaShort(e.route)}`, e.supersede ? 'supersedes prior reservation' : e.note || (e.datalink ? 'datalink' : 'readback verified'));
+      audit(e.t, 'COMMIT', 'kernel', `R-${f.cs}·${strips[f.cs].rev} UITA ${f.cs} ${f.from}→${f.to} via ${SIM.viaShort(e.route)}`, e.supersede ? 'supersedes prior reservation' : e.note || (e.datalink ? 'datalink' : 'readback verified'));
       break; }
     case 'propose':
       ping(e.agent);

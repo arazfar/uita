@@ -160,7 +160,7 @@ header{min-width:0;overflow:hidden}
 </footer>
 </div>
 
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 <script>
 // stop() cuts the line on air; older cached copies of the module only have flush()
 const radioStop=()=>window.SkyRadio&&(SkyRadio.stop?SkyRadio.stop():SkyRadio.flush());
@@ -173,55 +173,55 @@ const fmt = m => { const s=Math.floor(m*60); const h=14+Math.floor(s/3600); cons
 const FIELDS = ['cs','route','band','pad','slot'];
 const LABEL = {cs:'CALLSIGN',route:'ROUTE',band:'BAND FT',pad:'PAD',slot:'SLOT'};
 const clr = {
-  c403:{cs:'SKF403',route:'SF·C·E·OAK',band:'1500',pad:'OAK-2',slot:'14:06'},
-  c412:{cs:'SKF412',route:'SF·W·E·OAK',band:'1500',pad:'OAK-3',slot:'14:18'},
-  c421:{cs:'SKF421',route:'BER·C·SF·MAR',band:'2000',pad:'MAR-1',slot:'14:26'},
-  c418:{cs:'SKF418',route:'SF·C·E·OAK',band:'1500',pad:'OAK-2',slot:'14:34'},
+  c403:{cs:'UTA403',route:'SF·C·E·OAK',band:'1500',pad:'OAK-2',slot:'14:06'},
+  c412:{cs:'UTA412',route:'SF·W·E·OAK',band:'1500',pad:'OAK-3',slot:'14:18'},
+  c421:{cs:'UTA421',route:'BER·C·SF·MAR',band:'2000',pad:'MAR-1',slot:'14:26'},
+  c418:{cs:'UTA418',route:'SF·C·E·OAK',band:'1500',pad:'OAK-2',slot:'14:34'},
 };
 // spoken order: route, band, pad, slot, callsign last
 const ORDER = ['route','band','pad','slot','cs'];
 
 // transmissions
 const LINES = [
- {t:1.0,d:6.0,who:'APP',to:'SKF403',kind:'clr',card:'c403',text:'SkyFlow four zero three, cleared San Francisco to Oakland via Charlie Echo, band one thousand five hundred, pad two, slot one four zero six.'},
- {t:7.4,d:5.2,who:'SKF403',kind:'rb',card:'c403',fields:{...clr.c403},text:'Cleared San Francisco to Oakland via Charlie Echo, one thousand five hundred, pad two, slot one four zero six, SkyFlow four zero three.'},
- {t:14.6,d:7.6,who:'APP',to:'SKF412',kind:'clr',card:'c412',text:'SkyFlow four one two, reroute, Charlie Echo closed. Cleared San Francisco to Oakland via Whiskey Echo, band one thousand five hundred, pad three, slot one four one eight.'},
- {t:22.8,d:6.4,who:'SKF421',kind:'rb',card:'c412',fields:{...clr.c412,cs:'SKF421'},text:'Rerouting, cleared San Francisco to Oakland via Whiskey Echo, one thousand five hundred, pad three, slot one four one eight, SkyFlow four two one.'},
- {t:30.0,d:5.4,who:'APP',to:'SKF421',kind:'neg',card:'c412',text:'SkyFlow four two one, negative, that clearance was for four one two, caution similar callsign.'},
- {t:35.8,d:2.0,who:'SKF421',kind:'ack',card:'c412',text:'Wilco, SkyFlow four two one.'},
- {t:38.4,d:6.2,who:'SKF412',kind:'rb',card:'c412',fields:{...clr.c412},text:'Cleared San Francisco to Oakland via Whiskey Echo, one thousand five hundred, pad three, slot one four one eight, SkyFlow four one two.'},
- {t:46.6,d:6.4,who:'APP',to:'SKF421',kind:'clr',card:'c421',text:'SkyFlow four two one, cleared Berkeley to Marin via Charlie, band two thousand, pad one, slot one four two six.'},
- {t:53.4,d:5.2,who:'SKF421',kind:'rb',card:'c421',fields:{...clr.c421},text:'Cleared Berkeley to Marin via Charlie, two thousand, pad one, slot one four two six, SkyFlow four two one.'},
- {t:62.0,d:7.0,who:'APP',to:'SKF418',kind:'clr',card:'c418',text:'SkyFlow four one eight, Charlie Echo now open. Cleared San Francisco to Oakland via Charlie Echo, band one thousand five hundred, pad two, slot one four three four.'},
- {t:69.4,d:5.4,who:'SKF418',kind:'rb',card:'c418',fields:{...clr.c418},text:'Cleared San Francisco to Oakland via Charlie Echo, one thousand five hundred, pad two, slot one four three four, SkyFlow four one eight.'},
+ {t:1.0,d:6.0,who:'APP',to:'UTA403',kind:'clr',card:'c403',text:'UITA four zero three, cleared San Francisco to Oakland via Charlie Echo, band one thousand five hundred, pad two, slot one four zero six.'},
+ {t:7.4,d:5.2,who:'UTA403',kind:'rb',card:'c403',fields:{...clr.c403},text:'Cleared San Francisco to Oakland via Charlie Echo, one thousand five hundred, pad two, slot one four zero six, UITA four zero three.'},
+ {t:14.6,d:7.6,who:'APP',to:'UTA412',kind:'clr',card:'c412',text:'UITA four one two, reroute, Charlie Echo closed. Cleared San Francisco to Oakland via Whiskey Echo, band one thousand five hundred, pad three, slot one four one eight.'},
+ {t:22.8,d:6.4,who:'UTA421',kind:'rb',card:'c412',fields:{...clr.c412,cs:'UTA421'},text:'Rerouting, cleared San Francisco to Oakland via Whiskey Echo, one thousand five hundred, pad three, slot one four one eight, UITA four two one.'},
+ {t:30.0,d:5.4,who:'APP',to:'UTA421',kind:'neg',card:'c412',text:'UITA four two one, negative, that clearance was for four one two, caution similar callsign.'},
+ {t:35.8,d:2.0,who:'UTA421',kind:'ack',card:'c412',text:'Wilco, UITA four two one.'},
+ {t:38.4,d:6.2,who:'UTA412',kind:'rb',card:'c412',fields:{...clr.c412},text:'Cleared San Francisco to Oakland via Whiskey Echo, one thousand five hundred, pad three, slot one four one eight, UITA four one two.'},
+ {t:46.6,d:6.4,who:'APP',to:'UTA421',kind:'clr',card:'c421',text:'UITA four two one, cleared Berkeley to Marin via Charlie, band two thousand, pad one, slot one four two six.'},
+ {t:53.4,d:5.2,who:'UTA421',kind:'rb',card:'c421',fields:{...clr.c421},text:'Cleared Berkeley to Marin via Charlie, two thousand, pad one, slot one four two six, UITA four two one.'},
+ {t:62.0,d:7.0,who:'APP',to:'UTA418',kind:'clr',card:'c418',text:'UITA four one eight, Charlie Echo now open. Cleared San Francisco to Oakland via Charlie Echo, band one thousand five hundred, pad two, slot one four three four.'},
+ {t:69.4,d:5.4,who:'UTA418',kind:'rb',card:'c418',fields:{...clr.c418},text:'Cleared San Francisco to Oakland via Charlie Echo, one thousand five hundred, pad two, slot one four three four, UITA four one eight.'},
 ];
 const KLOG = [
- {t:4.0,ag:'PAD-OAK',v:'acc',p:'Reserve OAK-2 at 14:06 for SKF403',why:'pending hearback'},
+ {t:4.0,ag:'PAD-OAK',v:'acc',p:'Reserve OAK-2 at 14:06 for UTA403',why:'pending hearback'},
  {t:8.0,ag:'KERNEL',v:'sys',p:'Unforecast cell over Central–East. Close corridor C–E, 14:08 to 14:24',why:'weather input'},
  {t:9.2,ag:'COORDINATOR',v:'acc',p:'Spawn SECTOR-EAST and SECTOR-CENTRAL; spawn PAD-OAK replanner',why:'3 agents live'},
- {t:10.4,ag:'SECTOR-CENTRAL',v:'rej',p:'Keep SKF408 on C–E, climb to 2000',why:'corridor C–E closed 14:08–14:24 at all bands'},
- {t:11.6,ag:'SECTOR-EAST',v:'acc',p:'Reroute SKF408, 410, 412 via W–E',why:'+14.3% distance, separation holds'},
- {t:12.8,ag:'PAD-OAK',v:'rej',p:'SKF412 to OAK-3 at 14:16',why:'OAK-3 occupied by SKF409 until 14:17'},
- {t:13.8,ag:'PAD-OAK',v:'acc',p:'SKF412 to OAK-3 at 14:18',why:'held until hearback'},
- {t:29.4,ag:'HEARBACK',v:'rej',p:'Readback from SKF421 on SKF412 clearance',why:'callsign 421 ≠ 412. Reservation not committed'},
- {t:44.8,ag:'KERNEL',v:'com',p:'COMMIT SKF412 · W–E · OAK-3 · 14:18',why:'5/5 fields match'},
- {t:59.0,ag:'KERNEL',v:'com',p:'COMMIT SKF421 · BER–MAR · MAR-1 · 14:26',why:'5/5 fields match'},
+ {t:10.4,ag:'SECTOR-CENTRAL',v:'rej',p:'Keep UTA408 on C–E, climb to 2000',why:'corridor C–E closed 14:08–14:24 at all bands'},
+ {t:11.6,ag:'SECTOR-EAST',v:'acc',p:'Reroute UTA408, 410, 412 via W–E',why:'+14.3% distance, separation holds'},
+ {t:12.8,ag:'PAD-OAK',v:'rej',p:'UTA412 to OAK-3 at 14:16',why:'OAK-3 occupied by UTA409 until 14:17'},
+ {t:13.8,ag:'PAD-OAK',v:'acc',p:'UTA412 to OAK-3 at 14:18',why:'held until hearback'},
+ {t:29.4,ag:'HEARBACK',v:'rej',p:'Readback from UTA421 on UTA412 clearance',why:'callsign 421 ≠ 412. Reservation not committed'},
+ {t:44.8,ag:'KERNEL',v:'com',p:'COMMIT UTA412 · W–E · OAK-3 · 14:18',why:'5/5 fields match'},
+ {t:59.0,ag:'KERNEL',v:'com',p:'COMMIT UTA421 · BER–MAR · MAR-1 · 14:26',why:'5/5 fields match'},
  {t:60.0,ag:'KERNEL',v:'sys',p:'Cell has cleared. Reopen corridor C–E',why:'weather input'},
- {t:61.0,ag:'COORDINATOR',v:'acc',p:'Restore C–E routing for SKF414 and later',why:'saves 6.1 km per trip'},
- {t:75.2,ag:'KERNEL',v:'com',p:'COMMIT SKF418 · C–E · OAK-2 · 14:34',why:'5/5 fields match'},
+ {t:61.0,ag:'COORDINATOR',v:'acc',p:'Restore C–E routing for UTA414 and later',why:'saves 6.1 km per trip'},
+ {t:75.2,ag:'KERNEL',v:'com',p:'COMMIT UTA418 · C–E · OAK-2 · 14:34',why:'5/5 fields match'},
  {t:80.0,ag:'COORDINATOR',v:'acc',p:'Despawn SECTOR-EAST and PAD-OAK replanner',why:'recovered, 28/28 on time'},
 ];
 // reservation state timeline
 const RES = [
- {t:4.0,id:'SKF403',d:'OAK-2 · C–E',slot:'14:06',s:'pending'},
- {t:12.6,id:'SKF403',s:'committed'},
- {t:14.0,id:'SKF412',d:'OAK-3 · W–E',slot:'14:18',s:'pending'},
- {t:29.4,id:'SKF412',s:'held'},
- {t:44.8,id:'SKF412',s:'committed'},
- {t:46.8,id:'SKF421',d:'MAR-1 · C',slot:'14:26',s:'pending'},
- {t:59.0,id:'SKF421',s:'committed'},
- {t:62.2,id:'SKF418',d:'OAK-2 · C–E',slot:'14:34',s:'pending'},
- {t:75.2,id:'SKF418',s:'committed'},
+ {t:4.0,id:'UTA403',d:'OAK-2 · C–E',slot:'14:06',s:'pending'},
+ {t:12.6,id:'UTA403',s:'committed'},
+ {t:14.0,id:'UTA412',d:'OAK-3 · W–E',slot:'14:18',s:'pending'},
+ {t:29.4,id:'UTA412',s:'held'},
+ {t:44.8,id:'UTA412',s:'committed'},
+ {t:46.8,id:'UTA421',d:'MAR-1 · C',slot:'14:26',s:'pending'},
+ {t:59.0,id:'UTA421',s:'committed'},
+ {t:62.2,id:'UTA418',d:'OAK-2 · C–E',slot:'14:34',s:'pending'},
+ {t:75.2,id:'UTA418',s:'committed'},
 ];
 
 // ---------- state ----------
@@ -322,7 +322,7 @@ const N=520; const wave=new Float32Array(N), waveCol=new Uint8Array(N); let mark
 const COLORS=['#2a3943','#3fd0bd','#f2b54a','#ff5a52'];
 // with the radio on, the real transmission drives TX state; muted, the script timing does
 function activeLine(){ if(window.SkyRadio&&SkyRadio.enabled) return radio.live; return LINES.find(l=>t>=l.t && t<l.t+l.d); }
-function speakerColor(l){ if(!l) return 0; if(l.who==='APP') return 1; if(l.who==='SKF421' && l.card==='c412') return 3; return 2; }
+function speakerColor(l){ if(!l) return 0; if(l.who==='APP') return 1; if(l.who==='UTA421' && l.card==='c412') return 3; return 2; }
 let phaseAcc=0, lastPush=0;
 function pushWave(){
   const l=activeLine();
@@ -381,7 +381,7 @@ function drawWave(){
   }
   cx.stroke(); cx.lineWidth=1;
   cx.fillStyle='#4a5a64'; cx.fillText('SCOPE',scopeX+4,mid-amp+12);
-  if(l){ cx.fillStyle=c; cx.font='600 12px IBM Plex Mono, monospace'; cx.fillText(l.who==='APP'?'APP (controller agent)':l.who.replace('SKF','SkyFlow ')+' (pilot)',scopeX+4,mid+amp-6); }
+  if(l){ cx.fillStyle=c; cx.font='600 12px IBM Plex Mono, monospace'; cx.fillText(l.who==='APP'?'APP (controller agent)':l.who.replace('UTA','UITA ')+' (pilot)',scopeX+4,mid+amp-6); }
 }
 
 // ---------- map ----------
@@ -471,8 +471,8 @@ function updateHeader(){
   $('head').style.left=(t/LOOP*100)+'%';
   const l=activeLine();
   const tx=$('tx');
-  if(l){tx.classList.add('live');$('txWho').textContent='TX  '+(l.who==='APP'?'APP · controller agent':l.who.replace('SKF','SkyFlow '));
-    $('txWho').style.color=COLORS[speakerColor(l)];$('txTo').textContent=l.to?'→ '+l.to.replace('SKF','SkyFlow '):(l.card==='c412'&&l.who==='SKF421'?'answering a clearance for SkyFlow 412':'');}
+  if(l){tx.classList.add('live');$('txWho').textContent='TX  '+(l.who==='APP'?'APP · controller agent':l.who.replace('UTA','UITA '));
+    $('txWho').style.color=COLORS[speakerColor(l)];$('txTo').textContent=l.to?'→ '+l.to.replace('UTA','UITA '):(l.card==='c412'&&l.who==='UTA421'?'answering a clearance for UITA 412':'');}
   else{tx.classList.remove('live');$('txWho').textContent='carrier idle';$('txWho').style.color='';$('txTo').textContent='';}
   // scoreboard
   const arrived=Math.max(0,Math.min(28,Math.floor((m-9)/2.2)+1));
@@ -490,7 +490,7 @@ function updateHeader(){
 // ---------- tick ----------
 function step(){
   LINES.forEach((l,i)=>{ if(t>=l.t && !fired.lines.has(i)){ fired.lines.add(i); txCount++; radioSay(l);
-      marks.push({x:N-1,c:speakerColor(l),label:l.who==='APP'?'APP':l.who.replace('SKF','')});
+      marks.push({x:N-1,c:speakerColor(l),label:l.who==='APP'?'APP':l.who.replace('UTA','')});
       if(l.kind==='clr') makeCard(l.card,l); else if(l.kind==='rb') addReadback(l); else addNote(l);} });
   KLOG.forEach((k,i)=>{ if(t>=k.t && !fired.klog.has(i)){fired.klog.add(i);addLog(k);} });
   RES.forEach((r,i)=>{ if(t>=r.t && !fired.res.has(i)){fired.res.add(i);applyRes(r);} });

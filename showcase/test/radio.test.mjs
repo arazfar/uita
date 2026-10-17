@@ -48,16 +48,16 @@ test("a wrong destination, band or slot is caught", () => {
 });
 
 test("written digits and spoken digits both parse", () => {
-  assert.equal(parse("SkyFlow 106 band 2").id, "SF-106");
-  assert.equal(parse("skyflow one zero six band two").band, 2);
+  assert.equal(parse("UITA 106 band 2").id, "SF-106");
+  assert.equal(parse("uita one zero six band two").band, 2);
 });
 
 test("pilot requests classify without an LLM", () => {
   assert.equal(
-    intentOf("SkyFlow one one two, low battery, request priority landing")
+    intentOf("UITA one one two, low battery, request priority landing")
       .intent,
     "priority",
   );
-  assert.equal(intentOf("SkyFlow 107 unable, storm ahead").intent, "reroute");
-  assert.equal(intentOf("SkyFlow 107 unable, storm ahead").id, "SF-107");
+  assert.equal(intentOf("UITA 107 unable, storm ahead").intent, "reroute");
+  assert.equal(intentOf("UITA 107 unable, storm ahead").id, "SF-107");
 });

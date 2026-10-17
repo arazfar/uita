@@ -483,8 +483,8 @@ export function mountHistory({
   );
   window.addEventListener("message", (e) => {
     if (e.origin !== location.origin) return;
-    if (e.data?.skyflow === "pause") pauseVisibility(true);
-    if (e.data?.skyflow === "resume") pauseVisibility(false);
+    if (e.data?.uita === "pause") pauseVisibility(true);
+    if (e.data?.uita === "resume") pauseVisibility(false);
   });
   window.addEventListener("keydown", (e) => {
     if (
@@ -500,7 +500,7 @@ export function mountHistory({
       if (!$("play").disabled) $("play").click();
     }
     if (e.key.toLowerCase() === "t" && parent !== window)
-      parent.postMessage({ skyflow: "toggle" }, location.origin);
+      parent.postMessage({ uita: "toggle" }, location.origin);
   });
   function tick(now) {
     const dt = Math.min(0.5, (now - lastTick) / 1000);

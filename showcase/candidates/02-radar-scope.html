@@ -95,7 +95,7 @@ footer{grid-column:1/3;display:grid;grid-template-columns:repeat(7,1fr);border-t
 <body>
 <div id="app">
   <header>
-    <div class="brand">SKYFLOW<small>Bay TRACON · Recursive ATC scope</small></div>
+    <div class="brand">UITA<small>Bay TRACON · Recursive ATC scope</small></div>
     <div class="sim">SIMULATION</div>
     <div class="phase" id="phase">CALM</div>
     <div class="spacer"></div>
@@ -128,7 +128,7 @@ footer{grid-column:1/3;display:grid;grid-template-columns:repeat(7,1fr);border-t
     <div class="k"><div class="l">DISTANCE VS STATIC</div><div class="v" id="kDist">+0.0<small>%</small></div></div>
   </footer>
 </div>
-<script src="radio-audio.js?v=3"></script>
+<script src="radio-audio.js?v=4"></script>
 <script>
 "use strict";
 // ---------- geography (lon, lat) -> NM ----------
@@ -252,58 +252,58 @@ const HB=[];
 const hb=(t,cs,rows,ok)=>HB.push({t,cs,rows,ok});
 
 // calm
-prop(0.15,"PAD-SF","SEQ DEP SKF101 SF→OAK via C–E",true,"slot 2300–2305 free, sep ≥ 1.5 NM");
-say(0.35,"CTL",101,"SkyFlow one zero one, San Francisco pad, cleared to Oakland via Charlie, Charlie-Echo, climb and maintain one thousand two hundred.",0.9);
-say(1.35,"PLT",101,"Cleared Oakland via Charlie-Echo, climb and maintain one thousand two hundred, SkyFlow one zero one.",0.8);
-hb(2.2,"SKF101",[["CALLSIGN","SKF101","SKF101"],["ROUTE","C–E","C–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
+prop(0.15,"PAD-SF","SEQ DEP UTA101 SF→OAK via C–E",true,"slot 2300–2305 free, sep ≥ 1.5 NM");
+say(0.35,"CTL",101,"UITA one zero one, San Francisco pad, cleared to Oakland via Charlie, Charlie-Echo, climb and maintain one thousand two hundred.",0.9);
+say(1.35,"PLT",101,"Cleared Oakland via Charlie-Echo, climb and maintain one thousand two hundred, UITA one zero one.",0.8);
+hb(2.2,"UTA101",[["CALLSIGN","UTA101","UTA101"],["ROUTE","C–E","C–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
 sys(2.25,"COMMIT RES-101 SF·C·E·OAK","hearback 4/4 match","COMMIT");
-prop(1.9,"PAD-SFO","SEQ DEP SKF102 SFO→BER via W–E",true,"slot 2302–2310 free");
-prop(4.4,"PAD-MAR","SEQ DEP SKF103 MAR→OAK via C–E",true,"slot 2305–2313 free");
+prop(1.9,"PAD-SFO","SEQ DEP UTA102 SFO→BER via W–E",true,"slot 2302–2310 free");
+prop(4.4,"PAD-MAR","SEQ DEP UTA103 MAR→OAK via C–E",true,"slot 2305–2313 free");
 note(6.1,"SEC-C","WX returns near C–E, level 2 building","not in forecast");
 adv(6.1,1.9,{node:"CE"},"SEC-C ▸ WX LVL2 BUILDING NEAR C–E","cyan");
-prop(7.0,"PAD-OAK","SEQ DEP SKF104 OAK→SF via E–C",true,"slot 2307–2312 free");
+prop(7.0,"PAD-OAK","SEQ DEP UTA104 OAK→SF via E–C",true,"slot 2307–2312 free");
 // disruption
 sys(8.0,"CLOSE CORRIDOR C–E 2308–2324","WX level 4 on centerline","CLOSED");
 say(8.12,"CTL",0,"All stations, Bay Approach, corridor Charlie-Echo is closed, weather. Expect reroutes.",0.45);
-prop(8.3,"REPLAN-CE","REROUTE SKF103 at C → BER → OAK (+7.7 NM)",true,"C–BER free, ETA +3.9 min");
-adv(8.3,1.6,{f:103},"REPLAN-CE ▸ P-06 SKF103 VIA BER · ACCEPT","green");
-say(8.6,"CTL",103,"SkyFlow one zero three, reroute, at Charlie proceed Charlie-Berkeley, then Oakland.",0.5);
-say(9.1,"PLT",103,"At Charlie, Charlie-Berkeley then Oakland, SkyFlow one zero three.",0.4);
-hb(9.55,"SKF103",[["CALLSIGN","SKF103","SKF103"],["ROUTE","C–BER","C–BER"],["DEST","OAK","OAK"]],true);
+prop(8.3,"REPLAN-CE","REROUTE UTA103 at C → BER → OAK (+7.7 NM)",true,"C–BER free, ETA +3.9 min");
+adv(8.3,1.6,{f:103},"REPLAN-CE ▸ P-06 UTA103 VIA BER · ACCEPT","green");
+say(8.6,"CTL",103,"UITA one zero three, reroute, at Charlie proceed Charlie-Berkeley, then Oakland.",0.5);
+say(9.1,"PLT",103,"At Charlie, Charlie-Berkeley then Oakland, UITA one zero three.",0.4);
+hb(9.55,"UTA103",[["CALLSIGN","UTA103","UTA103"],["ROUTE","C–BER","C–BER"],["DEST","OAK","OAK"]],true);
 sys(9.6,"COMMIT RES-103 C·BER·OAK","hearback 3/3 match","COMMIT");
-prop(8.9,"SEC-S","HOLD SKF104 at E 1.0 min, then E–W–SF",true,"W–E slot 2310 after SKF102");
-adv(8.9,1.6,{node:"E"},"SEC-S ▸ P-07 HOLD SKF104 AT E · ACCEPT","green");
-prop(9.35,"REPLAN-CE","DEP SKF105 SF→OAK via C–E · cell exiting east by 2312",false,"C–E closed 2308–2324 · no partial release");
-adv(9.35,2.6,{node:"CE"},"VALIDATOR ✕ REJECT P-08|SKF105 VIA C–E|C–E CLOSED 2308–2324 · NO PARTIAL RELEASE","red",true);
-prop(9.75,"REPLAN-CE","DEP SKF105 SF→OAK via W–E (+2.7 NM), hold on pad",true,"W–E slot 2313–2318 free · readback required");
-adv(9.9,3.5,{node:"SF",dy:-1.6},"SKF105 ON PAD · AWAITING READBACK","amber");
+prop(8.9,"SEC-S","HOLD UTA104 at E 1.0 min, then E–W–SF",true,"W–E slot 2310 after UTA102");
+adv(8.9,1.6,{node:"E"},"SEC-S ▸ P-07 HOLD UTA104 AT E · ACCEPT","green");
+prop(9.35,"REPLAN-CE","DEP UTA105 SF→OAK via C–E · cell exiting east by 2312",false,"C–E closed 2308–2324 · no partial release");
+adv(9.35,2.6,{node:"CE"},"VALIDATOR ✕ REJECT P-08|UTA105 VIA C–E|C–E CLOSED 2308–2324 · NO PARTIAL RELEASE","red",true);
+prop(9.75,"REPLAN-CE","DEP UTA105 SF→OAK via W–E (+2.7 NM), hold on pad",true,"W–E slot 2313–2318 free · readback required");
+adv(9.9,3.5,{node:"SF",dy:-1.6},"UTA105 ON PAD · AWAITING READBACK","amber");
 // voice loop with mismatch
-say(10.0,"CTL",105,"SkyFlow one zero five, San Francisco pad, cleared to Oakland via Whiskey, Whiskey-Echo, climb and maintain one thousand two hundred.",0.85);
-say(10.95,"PLT",105,"Cleared Oakland via Charlie-Echo, one thousand two hundred, SkyFlow one zero five.",0.65);
-hb(11.65,"SKF105",[["CALLSIGN","SKF105","SKF105"],["ROUTE","W–E","C–E ✕ closed"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],false);
+say(10.0,"CTL",105,"UITA one zero five, San Francisco pad, cleared to Oakland via Whiskey, Whiskey-Echo, climb and maintain one thousand two hundred.",0.85);
+say(10.95,"PLT",105,"Cleared Oakland via Charlie-Echo, one thousand two hundred, UITA one zero five.",0.65);
+hb(11.65,"UTA105",[["CALLSIGN","UTA105","UTA105"],["ROUTE","W–E","C–E ✕ closed"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],false);
 sys(11.7,"HOLD RES-105 · hearback ROUTE mismatch","read back closed corridor C–E","BLOCK");
-adv(11.7,1.6,{node:"SF",dy:1.6},"HEARBACK ✕ SKF105 ROUTE C–E ≠ W–E","red");
-say(11.85,"CTL",105,"SkyFlow one zero five, negative. Charlie-Echo is closed. Cleared to Oakland via Whiskey-Echo.",0.75);
-say(12.65,"PLT",105,"Negative Charlie-Echo, via Whiskey-Echo to Oakland, one thousand two hundred, SkyFlow one zero five.",0.65);
-hb(13.35,"SKF105",[["CALLSIGN","SKF105","SKF105"],["ROUTE","W–E","W–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
+adv(11.7,1.6,{node:"SF",dy:1.6},"HEARBACK ✕ UTA105 ROUTE C–E ≠ W–E","red");
+say(11.85,"CTL",105,"UITA one zero five, negative. Charlie-Echo is closed. Cleared to Oakland via Whiskey-Echo.",0.75);
+say(12.65,"PLT",105,"Negative Charlie-Echo, via Whiskey-Echo to Oakland, one thousand two hundred, UITA one zero five.",0.65);
+hb(13.35,"UTA105",[["CALLSIGN","UTA105","UTA105"],["ROUTE","W–E","W–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
 sys(13.4,"COMMIT RES-105 SF·W·E·OAK 2313–2318","hearback 4/4 match after correction","COMMIT");
 adv(13.4,1.4,{node:"SF",dy:1.6},"RES-105 COMMITTED · SF–W–E–OAK","green");
-prop(14.3,"REPLAN-CE","REROUTE SKF107 OAK→E→W→SF→MAR (+3.1 NM)",true,"W–E slot 2317 free");
-prop(15.4,"OAK-SEQ","SEQ OAK ARR: SKF103 #1, SKF105 #2",true,"spacing 1.6 min ≥ 1.0");
-prop(17.0,"SEC-S","METER SKF108 DEP +0.5 min (W–E load 4/6)",true,"keeps W–E ≤ capacity");
-prop(19.2,"REPLAN-CE","REROUTE SKF109 SF→W→E→OAK (+2.7 NM)",true,"W–E slot 2322 free");
+prop(14.3,"REPLAN-CE","REROUTE UTA107 OAK→E→W→SF→MAR (+3.1 NM)",true,"W–E slot 2317 free");
+prop(15.4,"OAK-SEQ","SEQ OAK ARR: UTA103 #1, UTA105 #2",true,"spacing 1.6 min ≥ 1.0");
+prop(17.0,"SEC-S","METER UTA108 DEP +0.5 min (W–E load 4/6)",true,"keeps W–E ≤ capacity");
+prop(19.2,"REPLAN-CE","REROUTE UTA109 SF→W→E→OAK (+2.7 NM)",true,"W–E slot 2322 free");
 note(21.0,"SEC-C","WX decaying to level 1, cell east of E","");
-prop(23.55,"COORD","REOPEN C–E 2324 · restore static routing from SKF111",true,"WX clear ≥ 2 NM for 3 min");
+prop(23.55,"COORD","REOPEN C–E 2324 · restore static routing from UTA111",true,"WX clear ≥ 2 NM for 3 min");
 adv(23.55,1.3,{node:"CE"},"COORD ▸ P-13 REOPEN C–E 2324 · ACCEPT","green");
 sys(24.0,"OPEN CORRIDOR C–E","closure 16 min · 0 conflicts","OPEN");
 say(24.05,"CTL",0,"All stations, Bay Approach, corridor Charlie-Echo is open.",0.3);
-say(24.4,"CTL",111,"SkyFlow one one one, Marin pad, cleared to Oakland via San Francisco, Charlie-Echo, climb and maintain one thousand two hundred.",0.4);
-say(24.8,"PLT",111,"Cleared Oakland via San Francisco, Charlie-Echo, one thousand two hundred, SkyFlow one one one.",0.35);
-hb(25.15,"SKF111",[["CALLSIGN","SKF111","SKF111"],["ROUTE","SF–C–E","SF–C–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
+say(24.4,"CTL",111,"UITA one one one, Marin pad, cleared to Oakland via San Francisco, Charlie-Echo, climb and maintain one thousand two hundred.",0.4);
+say(24.8,"PLT",111,"Cleared Oakland via San Francisco, Charlie-Echo, one thousand two hundred, UITA one one one.",0.35);
+hb(25.15,"UTA111",[["CALLSIGN","UTA111","UTA111"],["ROUTE","SF–C–E","SF–C–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
 sys(25.2,"COMMIT RES-111 MAR·SF·C·E·OAK","hearback 4/4 match","COMMIT");
 // routine departures after recovery
 for(const f of F){ if(f.cs>=112){ const pad="PAD-"+f.od.o;
-  prop(f.release-0.6,pad,`SEQ DEP SKF${f.cs} ${f.od.o}→${f.od.d} via ${f.path.slice(1,-1).join("–")}`,true,"slot free, sep ≥ 1.5 NM");
+  prop(f.release-0.6,pad,`SEQ DEP UTA${f.cs} ${f.od.o}→${f.od.d} via ${f.path.slice(1,-1).join("–")}`,true,"slot free, sep ≥ 1.5 NM");
 }}
 LOG.sort((a,b)=>a.t-b.t);
 const AGLOG={}; for(const l of LOG){(AGLOG[l.ag]=AGLOG[l.ag]||[]).push(l);}
@@ -396,10 +396,10 @@ function drawScope(t){
     const alt=String(Math.round(altAt(f,t))).padStart(3,"0"), gs=q.hold?"060":"120";
     const share=Math.floor(t*0.9)%2===0? (f.od.d) : (q.hold?"HLD":q.leg.a+"-"+q.leg.b);
     const tx=d[0]>0?lx+3:lx-62, ty=d[1]>0?ly+11:ly-20;
-    cx.fillStyle=col; cx.font=`500 11.5px ${FONT}`; cx.fillText("SKF"+f.cs,tx,ty);
+    cx.fillStyle=col; cx.font=`500 11.5px ${FONT}`; cx.fillText("UTA"+f.cs,tx,ty);
     cx.fillText(alt+" "+gs.slice(0,2)+" "+share,tx,ty+13);
   }
-  // pads on ground with queued flights (SKF105)
+  // pads on ground with queued flights (UTA105)
   // advisories
   for(const a of ADV){ if(t<a.t||t>a.t+a.dur) continue; drawAdv(a,t); }
   // SSA (system status area)
@@ -441,7 +441,7 @@ function drawSSA(t,closed){
   L.forEach((l,i)=>{ cx.fillStyle=l[1]; cx.fillText(l[0],x,y+i*16); });
   // legend bottom-left
   const ly=H-58; cx.font=`10.5px ${FONT}`;
-  [["C/N/S","target · owning sector",C.green],["• • •","history trail",C.cyan],["SKF1xx","amber = rerouted / held",C.amber]].forEach((r,i)=>{
+  [["C/N/S","target · owning sector",C.green],["• • •","history trail",C.cyan],["UTA1xx","amber = rerouted / held",C.amber]].forEach((r,i)=>{
     cx.fillStyle=r[2]; cx.fillText(r[0],x,ly+i*14); cx.fillStyle=C.dim; cx.fillText(r[1],x+62,ly+i*14); });
   // end card
   if(t>=SIM_END-0.01){ const w=520,h=120,bx=W/2-w/2,by=H/2-h/2-20; cx.fillStyle="rgba(4,10,12,.92)"; cx.fillRect(bx,by,w,h);
@@ -476,7 +476,7 @@ function updatePanels(t){
   $("log").innerHTML=logV.slice(-9).reverse().map(l=>`<div class="ln ${l.kind}"><span class="id">${l.id}</span><span class="tx">${l.ag==="KERNEL"?"":`<b style="color:var(--dim);font-weight:500">${l.ag}</b> `}${esc(l.txt)}<i>${esc(l.why)}</i></span><span class="vd">${l.vd}</span></div>`).join("");
   // radio
   $("radio").innerHTML=voV.slice(-3).map((v,i,arr)=>{ const u=Math.min(1,(t-v.t)/v.dur), txt=v.text.slice(0,Math.ceil(v.text.length*u));
-    return `<div class="rl ${v.who==="CTL"?"ctl":"plt"} ${v.bad?"bad":""} ${i<arr.length-1?"old":""}"><span class="who">${v.who==="CTL"?"BAY APP":"SKF"+v.cs}</span><span class="t">${esc(txt)}</span></div>`;}).join("");
+    return `<div class="rl ${v.who==="CTL"?"ctl":"plt"} ${v.bad?"bad":""} ${i<arr.length-1?"old":""}"><span class="who">${v.who==="CTL"?"BAY APP":"UTA"+v.cs}</span><span class="t">${esc(txt)}</span></div>`;}).join("");
   $("txCount").textContent=voV.length+" tx";
   // hearback
   const h=hbV[hbV.length-1];
@@ -506,7 +506,7 @@ function updatePanels(t){
 let real=0, playing=true, lastNow=performance.now(), spoken=0;
 // radio voice via shared SkyRadio; the scripted clock holds while the frequency is busy
 const R=window.SkyRadio; let radioBusy=0, radioGen=0;
-const spk=v=>v.who==="CTL"?"atc":"pilot", key=v=>v.who==="CTL"?undefined:"SKF"+v.cs;
+const spk=v=>v.who==="CTL"?"atc":"pilot", key=v=>v.who==="CTL"?undefined:"UTA"+v.cs;
 function speak(v){ if(!R) return; const g=radioGen; radioBusy++; R.say(v.text,spk(v),key(v)).finally(()=>{ if(g===radioGen) radioBusy=Math.max(0,radioBusy-1); }); }
 function radioCut(){ radioGen++; radioBusy=0; $("txLed").classList.remove("on"); try{ R&&R.stop(); }catch(e){} }
 function markSound(){ const on=!!(R&&R.enabled), b=$("bAudio"); b.textContent=on?"SOUND ON":"SOUND OFF"; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); }

@@ -104,7 +104,7 @@ export function createATC({ root, getPlan, getTime, replan, focus }) {
       const li = row(
         "datalink",
         callsign(f.id),
-        phrase(c).replace(/^SkyFlow [a-z ]+, /, ""),
+        phrase(c).replace(/^UITA [a-z ]+, /, ""),
         `<span class="sf-ch">DATALINK</span>`,
       );
       chips(li, [
@@ -124,7 +124,7 @@ export function createATC({ root, getPlan, getTime, replan, focus }) {
       const atcText = prefix + phrase(c);
       const a = row(
         "atc",
-        "SkyFlow Tower",
+        "UITA Tower",
         atcText,
         `<span class="sf-ch">VOICE</span>`,
       );
@@ -176,7 +176,7 @@ export function createATC({ root, getPlan, getTime, replan, focus }) {
         const fix = correction(c, r.mismatches);
         const a2 = row(
           "atc",
-          "SkyFlow Tower",
+          "UITA Tower",
           fix,
           `<span class="sf-ch">VOICE</span>`,
         );
@@ -283,10 +283,10 @@ export function createATC({ root, getPlan, getTime, replan, focus }) {
       );
       if (d.action === "say_again" || !f) {
         const t =
-          "Station calling SkyFlow Tower, say again callsign and request.";
+          "Station calling UITA Tower, say again callsign and request.";
         const li = row(
           "atc",
-          "SkyFlow Tower",
+          "UITA Tower",
           t,
           `<span class="sf-ch">VOICE</span>`,
         );
@@ -297,7 +297,7 @@ export function createATC({ root, getPlan, getTime, replan, focus }) {
         const t = `${spokenCallsign(id)}, you are airborne on a committed route, unable to amend. Continue as cleared, landing slot confirmed.`;
         const li = row(
           "atc",
-          "SkyFlow Tower",
+          "UITA Tower",
           t,
           `<span class="sf-ch">VOICE</span>`,
         );
@@ -360,7 +360,7 @@ export function createATC({ root, getPlan, getTime, replan, focus }) {
       } else {
         const li = row(
           "atc",
-          "SkyFlow Tower",
+          "UITA Tower",
           prefix.trim(),
           `<span class="sf-ch">VOICE</span>`,
         );
@@ -403,7 +403,7 @@ export function createATC({ root, getPlan, getTime, replan, focus }) {
     log.innerHTML = "";
     row(
       "system",
-      "SkyFlow Tower",
+      "UITA Tower",
       `Monitoring sector 01 from ${stamp(time)}. Departures within ${LEAD} min get a clearance; voice for the selected flight, priority traffic and the storm reroute.`,
     );
   }
