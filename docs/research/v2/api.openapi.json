@@ -905,6 +905,286 @@
         }
       }
     },
+    "/api/v2/runs/{run_id}/presentation": {
+      "get": {
+        "summary": "Live Frame",
+        "operationId": "live_frame_api_v2_runs__run_id__presentation_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresentationFrame"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/recordings": {
+      "get": {
+        "summary": "Recordings",
+        "operationId": "recordings_api_v2_recordings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecordingManifest"
+                  },
+                  "type": "array",
+                  "title": "Response Recordings Api V2 Recordings Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/recordings/{recording_id}/window": {
+      "get": {
+        "summary": "Window",
+        "operationId": "window_api_v2_recordings__recording_id__window_get",
+        "parameters": [
+          {
+            "name": "recording_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Recording Id"
+            }
+          },
+          {
+            "name": "clock",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "Clock"
+            }
+          },
+          {
+            "name": "seconds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 120,
+              "minimum": 1,
+              "default": 30,
+              "title": "Seconds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingWindow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/recordings/{recording_id}/export": {
+      "get": {
+        "summary": "Export",
+        "operationId": "export_api_v2_recordings__recording_id__export_get",
+        "parameters": [
+          {
+            "name": "recording_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Recording Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/recordings/{recording_id}/comparison": {
+      "get": {
+        "summary": "Comparison",
+        "operationId": "comparison_api_v2_recordings__recording_id__comparison_get",
+        "parameters": [
+          {
+            "name": "recording_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Recording Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/published-benchmark": {
+      "get": {
+        "summary": "Benchmark",
+        "operationId": "benchmark_api_v2_published_benchmark_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/maps-key": {
+      "get": {
+        "summary": "Maps Key",
+        "operationId": "maps_key_api_maps_key_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uita/api/history/{endpoint}": {
+      "get": {
+        "summary": "History",
+        "operationId": "history_uita_api_history__endpoint__get",
+        "parameters": [
+          {
+            "name": "endpoint",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Endpoint"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/favicon.svg": {
       "get": {
         "summary": "Favicon",
@@ -921,10 +1201,10 @@
         }
       }
     },
-    "/": {
+    "/workbench": {
       "get": {
         "summary": "Index",
-        "operationId": "index__get",
+        "operationId": "index_workbench_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -941,6 +1221,22 @@
       "get": {
         "summary": "Index",
         "operationId": "index_login_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index__get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1348,6 +1644,208 @@
         ],
         "title": "Login"
       },
+      "PresentationAircraft": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "callsign": {
+            "type": "string",
+            "title": "Callsign"
+          },
+          "longitude": {
+            "type": "number",
+            "title": "Longitude"
+          },
+          "latitude": {
+            "type": "number",
+            "title": "Latitude"
+          },
+          "altitude_ft": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Altitude Ft"
+          },
+          "altitude_reference": {
+            "type": "string",
+            "title": "Altitude Reference",
+            "default": "research_altitude"
+          },
+          "track_deg_true": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Deg True"
+          },
+          "groundspeed_kt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groundspeed Kt"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "aircraft_type": {
+            "type": "string",
+            "title": "Aircraft Type",
+            "default": "UNKNOWN"
+          },
+          "runway": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runway"
+          },
+          "source_time": {
+            "type": "number",
+            "title": "Source Time"
+          },
+          "age_seconds": {
+            "type": "number",
+            "title": "Age Seconds",
+            "default": 0
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Provenance"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "callsign",
+          "longitude",
+          "latitude",
+          "altitude_ft",
+          "status",
+          "source_time",
+          "provenance"
+        ],
+        "title": "PresentationAircraft"
+      },
+      "PresentationFrame": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "simulation",
+              "recording",
+              "historical"
+            ],
+            "title": "Mode"
+          },
+          "clock": {
+            "type": "number",
+            "title": "Clock"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "event_cursor": {
+            "type": "integer",
+            "title": "Event Cursor"
+          },
+          "aircraft": {
+            "items": {
+              "$ref": "#/components/schemas/PresentationAircraft"
+            },
+            "type": "array",
+            "title": "Aircraft"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metrics"
+          },
+          "closed_runways": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Closed Runways"
+          },
+          "controller": {
+            "type": "string",
+            "title": "Controller"
+          },
+          "simulator_version": {
+            "type": "string",
+            "title": "Simulator Version"
+          },
+          "rule_version": {
+            "type": "string",
+            "title": "Rule Version"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Provenance"
+          },
+          "spend": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Spend"
+          },
+          "runtime": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Runtime"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "mode",
+          "clock",
+          "revision",
+          "status",
+          "event_cursor",
+          "aircraft",
+          "metrics",
+          "closed_runways",
+          "controller",
+          "simulator_version",
+          "rule_version",
+          "provenance"
+        ],
+        "title": "PresentationFrame"
+      },
       "Propose": {
         "properties": {
           "expected_revision": {
@@ -1373,6 +1871,143 @@
           "proposal"
         ],
         "title": "Propose"
+      },
+      "RecordingManifest": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id"
+          },
+          "scenario_checksum": {
+            "type": "string",
+            "title": "Scenario Checksum"
+          },
+          "simulator_version": {
+            "type": "string",
+            "title": "Simulator Version"
+          },
+          "rule_version": {
+            "type": "string",
+            "title": "Rule Version"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "start": {
+            "type": "number",
+            "title": "Start"
+          },
+          "end": {
+            "type": "number",
+            "title": "End"
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed"
+          },
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "model_responses": {
+            "type": "integer",
+            "title": "Model Responses"
+          },
+          "fallback_count": {
+            "type": "integer",
+            "title": "Fallback Count"
+          },
+          "event_tape": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Event Tape"
+          },
+          "checksums": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Checksums"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "scenario_id",
+          "scenario_checksum",
+          "simulator_version",
+          "rule_version",
+          "policy_version",
+          "model",
+          "start",
+          "end",
+          "seed",
+          "outcome",
+          "model_responses",
+          "fallback_count",
+          "event_tape",
+          "checksums",
+          "limitations"
+        ],
+        "title": "RecordingManifest"
+      },
+      "RecordingWindow": {
+        "properties": {
+          "frames": {
+            "items": {
+              "$ref": "#/components/schemas/PresentationFrame"
+            },
+            "type": "array",
+            "title": "Frames"
+          },
+          "baseline_frames": {
+            "items": {
+              "$ref": "#/components/schemas/PresentationFrame"
+            },
+            "type": "array",
+            "title": "Baseline Frames"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/RunEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "frames",
+          "baseline_frames",
+          "events"
+        ],
+        "title": "RecordingWindow"
       },
       "RunCreate": {
         "properties": {

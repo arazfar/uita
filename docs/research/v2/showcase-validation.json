@@ -1,0 +1,55 @@
+{
+  "backend_tests": 277,
+  "showcase_tests": 16,
+  "historical_operations_audited": 8439,
+  "historical_paths_audited": 4128,
+  "recording": {
+    "id": "nemotron-aug06-closure-v1",
+    "known_cost_usd": 0.000797,
+    "reserved_usd": 0.001867,
+    "model_responses": 1,
+    "model_issued_flight_clearances": 0,
+    "fallbacks": 1,
+    "completed_each_arm": 3,
+    "backlog_each_arm": 29,
+    "modeled_violations_each_arm": 0,
+    "improvement_demonstrated": false
+  },
+  "worker_recovery": {
+    "recovered": true,
+    "before_fence": 1,
+    "after_fence": 2,
+    "before_clock": 1786053627.0,
+    "after_clock": 1786053649.0
+  },
+  "browser_checks": [
+    "historical_context",
+    "shared_tower_dashboard_state",
+    "recorded_comparison_sync",
+    "export",
+    "model_failure_fixture",
+    "budget_exhaustion_fixture",
+    "reload",
+    "offline_reconnect",
+    "scenario_failure_at_151_seconds",
+    "session_expiry",
+    "renderer_failure_table_fallback",
+    "390px_no_overflow",
+    "keyboard_navigation",
+    "unsafe_proposal_rejection_visible"
+  ],
+  "deployment": {
+    "production_changed": false,
+    "staging_deployed": false,
+    "docker_image_built": false
+  },
+  "limitations": [
+    "Nemotron returned a no-aircraft proposal, then an invalid response; deterministic fallback handled the closure.",
+    "No efficiency improvement over deterministic baseline.",
+    "Docker daemon unavailable.",
+    "Late-August source service and photoreal API key were not configured for this local check.",
+    "Live comparisons export final evidence; synchronized controller animation is available for recordings."
+  ],
+  "browser_acceptance_script": "showcase/scripts/browser-acceptance.js",
+  "browser_acceptance_passed": true
+}

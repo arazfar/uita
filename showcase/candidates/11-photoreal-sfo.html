@@ -191,6 +191,7 @@ body.details .details{display:block}
 
 <!-- Local Cesium via /vendor (raw, compressed, cached): no CDN on venue wifi. -->
 <script src="/vendor/cesium/Cesium.js"></script>
+<script>if(new URLSearchParams(location.search).get("mode")==="connected"){addEventListener("error",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));addEventListener("unhandledrejection",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));}</script>
 <script type="module">
 const Cesium = window.Cesium;
 (async () => {
@@ -409,6 +410,11 @@ yawFix['assets/airplane-google/model.glb'] = 0;
 
 // Historical replay owns its clock, traffic and UI. Return before creating any
 // scripted aircraft, radio, weather, scores, or shared simulation connection.
+if (new URLSearchParams(location.search).get('mode') === 'connected') {
+  const { mountDashboard } = await import('./research-renderer.js');
+  mountDashboard({C, viewer, altitudeOffset: () => VOFF, setPhotoreal});
+  hideLoading(); return;
+}
 if (RECORDED) {
   const { mountHistory } = await import('./sfo-history.js');
   mountHistory({ C, viewer, altitudeOffset: () => VOFF, ground: () => GROUND,

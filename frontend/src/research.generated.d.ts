@@ -430,6 +430,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/runs/{run_id}/presentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live Frame */
+        get: operations["live_frame_api_v2_runs__run_id__presentation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recordings */
+        get: operations["recordings_api_v2_recordings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/recordings/{recording_id}/window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Window */
+        get: operations["window_api_v2_recordings__recording_id__window_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/recordings/{recording_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_v2_recordings__recording_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/recordings/{recording_id}/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comparison */
+        get: operations["comparison_api_v2_recordings__recording_id__comparison_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/published-benchmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Benchmark */
+        get: operations["benchmark_api_v2_published_benchmark_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maps-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Maps Key */
+        get: operations["maps_key_api_maps_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/uita/api/history/{endpoint}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History */
+        get: operations["history_uita_api_history__endpoint__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/favicon.svg": {
         parameters: {
             query?: never;
@@ -447,7 +583,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/": {
+    "/workbench": {
         parameters: {
             query?: never;
             header?: never;
@@ -455,7 +591,7 @@ export interface paths {
             cookie?: never;
         };
         /** Index */
-        get: operations["index__get"];
+        get: operations["index_workbench_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -473,6 +609,23 @@ export interface paths {
         };
         /** Index */
         get: operations["index_login_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Index */
+        get: operations["index__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -629,6 +782,92 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** PresentationAircraft */
+        PresentationAircraft: {
+            /** Id */
+            id: string;
+            /** Callsign */
+            callsign: string;
+            /** Longitude */
+            longitude: number;
+            /** Latitude */
+            latitude: number;
+            /** Altitude Ft */
+            altitude_ft: number | null;
+            /**
+             * Altitude Reference
+             * @default research_altitude
+             */
+            altitude_reference: string;
+            /** Track Deg True */
+            track_deg_true?: number | null;
+            /** Groundspeed Kt */
+            groundspeed_kt?: number | null;
+            /** Status */
+            status: string;
+            /**
+             * Aircraft Type
+             * @default UNKNOWN
+             */
+            aircraft_type: string;
+            /** Runway */
+            runway?: string | null;
+            /** Source Time */
+            source_time: number;
+            /**
+             * Age Seconds
+             * @default 0
+             */
+            age_seconds: number;
+            /** Provenance */
+            provenance: {
+                [key: string]: unknown;
+            };
+        };
+        /** PresentationFrame */
+        PresentationFrame: {
+            /** Source Id */
+            source_id: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "simulation" | "recording" | "historical";
+            /** Clock */
+            clock: number;
+            /** Revision */
+            revision: number;
+            /** Status */
+            status: string;
+            /** Event Cursor */
+            event_cursor: number;
+            /** Aircraft */
+            aircraft: components["schemas"]["PresentationAircraft"][];
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Closed Runways */
+            closed_runways: string[];
+            /** Controller */
+            controller: string;
+            /** Simulator Version */
+            simulator_version: string;
+            /** Rule Version */
+            rule_version: string;
+            /** Provenance */
+            provenance: {
+                [key: string]: unknown;
+            };
+            /** Spend */
+            spend?: {
+                [key: string]: unknown;
+            };
+            /** Runtime */
+            runtime?: {
+                [key: string]: unknown;
+            };
+        };
         /** Propose */
         Propose: {
             /** Expected Revision */
@@ -636,6 +875,56 @@ export interface components {
             /** Idempotency Key */
             idempotency_key: string;
             proposal: components["schemas"]["ControllerProposal"];
+        };
+        /** RecordingManifest */
+        RecordingManifest: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Scenario Id */
+            scenario_id: string;
+            /** Scenario Checksum */
+            scenario_checksum: string;
+            /** Simulator Version */
+            simulator_version: string;
+            /** Rule Version */
+            rule_version: string;
+            /** Policy Version */
+            policy_version: string;
+            /** Model */
+            model: string;
+            /** Start */
+            start: number;
+            /** End */
+            end: number;
+            /** Seed */
+            seed: number;
+            /** Outcome */
+            outcome: string;
+            /** Model Responses */
+            model_responses: number;
+            /** Fallback Count */
+            fallback_count: number;
+            /** Event Tape */
+            event_tape: {
+                [key: string]: unknown;
+            }[];
+            /** Checksums */
+            checksums: {
+                [key: string]: string;
+            };
+            /** Limitations */
+            limitations: string[];
+        };
+        /** RecordingWindow */
+        RecordingWindow: {
+            /** Frames */
+            frames: components["schemas"]["PresentationFrame"][];
+            /** Baseline Frames */
+            baseline_frames: components["schemas"]["PresentationFrame"][];
+            /** Events */
+            events: components["schemas"]["RunEvent"][];
         };
         /** RunCreate */
         RunCreate: {
@@ -1454,6 +1743,226 @@ export interface operations {
             };
         };
     };
+    live_frame_api_v2_runs__run_id__presentation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresentationFrame"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recordings_api_v2_recordings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingManifest"][];
+                };
+            };
+        };
+    };
+    window_api_v2_recordings__recording_id__window_get: {
+        parameters: {
+            query: {
+                clock: number;
+                seconds?: number;
+            };
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingWindow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_api_v2_recordings__recording_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    comparison_api_v2_recordings__recording_id__comparison_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    benchmark_api_v2_published_benchmark_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    maps_key_api_maps_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    history_uita_api_history__endpoint__get: {
+        parameters: {
+            query?: {
+                start?: number | null;
+            };
+            header?: never;
+            path: {
+                endpoint: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     favicon_favicon_svg_get: {
         parameters: {
             query?: never;
@@ -1474,7 +1983,7 @@ export interface operations {
             };
         };
     };
-    index__get: {
+    index_workbench_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1495,6 +2004,26 @@ export interface operations {
         };
     };
     index_login_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    index__get: {
         parameters: {
             query?: never;
             header?: never;

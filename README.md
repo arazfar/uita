@@ -12,6 +12,20 @@ Uita replays recorded traffic for **August 3–9, 2026, in SFO local time**, wit
 
 [Historical replay](web/README.md) · [Control workbench](docs/DEMO.md) · [Voice showcase](showcase/README.md) · [Model comparison](benchmark/reports/2026-10-17/comparison.md) · [Data pipeline](pipeline/README.md)
 
+## Connected hackathon showcase
+
+The SFO dashboard and tower cab can now run against the durable research API.
+The default is an immutable early-August Nemotron recording with historical
+context, closure evidence, a matched deterministic comparison and export.
+[Startup, staging configuration and actual results](docs/research/v2/SHOWCASE.md).
+
+The recorded model returned no flight clearance before an invalid response
+triggered deterministic fallback. Both arms completed 3 arrivals with 29
+unfinished and zero modeled violations; no efficiency improvement is claimed.
+Live inference is explicit and budgeted; free fixtures are labeled. This
+integration is prepared for isolated staging, not deployed to production.
+The prototype descriptions below retain their separate boundaries.
+
 ## What exists today
 
 The repository contains separate prototypes, with these implemented capabilities and boundaries:

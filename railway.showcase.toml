@@ -1,0 +1,8 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.showcase"
+[deploy]
+preDeployCommand = "sh -c 'alembic upgrade head && python -m uita.research.cli bootstrap'"
+healthcheckPath = "/health/ready"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"

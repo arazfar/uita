@@ -7,13 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- start every heavy asset at once; the module script picks them up from cache -->
-<link rel="modulepreload" href="/vendor/three/build/three.module.js">
-<link rel="modulepreload" href="/vendor/three/build/three.core.js">
-<link rel="modulepreload" href="/vendor/three/examples/jsm/loaders/GLTFLoader.js">
-<link rel="modulepreload" href="/vendor/three/examples/jsm/loaders/DRACOLoader.js">
-<link rel="modulepreload" href="/vendor/three/examples/jsm/utils/BufferGeometryUtils.js">
-<link rel="modulepreload" href="/vendor/three/examples/jsm/utils/SkeletonUtils.js">
-<link rel="modulepreload" href="/vendor/three/examples/jsm/geometries/RoundedBoxGeometry.js">
 <link rel="preload" as="image" href="sfo-pack/sfo-ortho.jpg" crossorigin="anonymous">
 <link rel="preload" as="image" href="sfo-pack/bay-ortho.jpg" crossorigin="anonymous">
 <link rel="preload" as="fetch" href="sfo-pack/sfo-buildings.glb" crossorigin="anonymous">
@@ -161,7 +154,20 @@
   "three/addons/": "/vendor/three/examples/jsm/"
 } }
 </script>
+<script>if(new URLSearchParams(location.search).get("mode")==="connected"){addEventListener("error",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));addEventListener("unhandledrejection",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));}</script>
+<link rel="modulepreload" href="/vendor/three/build/three.module.js">
+<link rel="modulepreload" href="/vendor/three/build/three.core.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/loaders/GLTFLoader.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/loaders/DRACOLoader.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/utils/BufferGeometryUtils.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/utils/SkeletonUtils.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/geometries/RoundedBoxGeometry.js">
 <script type="module">
+const CONNECTED = new URLSearchParams(location.search).get('mode') === 'connected';
+let connectedFrame = null;
+const {connectRenderer,selectAircraft} = await import('./research-renderer.js');
+const {plottable} = await import('./research-client.js');
+
 // three 0.186.1 from the /vendor route (raw, compressed, cacheable; no Vite transform). Addons import the
 // bare 'three', which the importmap resolves to this same module URL, so there is one instance.
 // Dynamic imports keep Vite from rewriting these specifiers in this inline script.
@@ -622,7 +628,8 @@ Promise.all([parseGLB('b747'), parseGLB('air'), parseGLB('evtol')]).then(([a, b,
   for (const ac of actors) { ac.g.remove(ac.model); ac.model = modelFor(ac.kind); ac.g.add(ac.model); }
 });
 const modelFor = (kind) => (kind === '747' ? normModel(M747, 70, Math.PI) : kind === 'air' ? normModel(MAIR, 40, 0) : normModel(MEV, 16, 0));
-function mkActor(cs, kind, fn, tag) {
+function mkActor(cs, kind, fn, tag, connected = false) {
+  if (CONNECTED && !connected) return null;
   const model = modelFor(kind);
   const g = new THREE.Group(); g.add(model); addLights(g, kind === 'evtol' ? 3 : kind === '747' ? 19 : 12); world.add(g);
   const a = { cs, kind, fn, tag: tag || cs, g, model, pos: new THREE.Vector3(), dir: new THREE.Vector3(1, 0, 0), vis: false, onGround: true, phase: Math.random() * 6 };
@@ -743,7 +750,7 @@ const L = {
   l122: ['atc', null, 'UITA one two two, wind zero three zero at six, pad one, cleared to land.', 'UTA122 PAD 1 CLEARED TO LAND, WIND 030/06'],
   l122r: ['pilot', 'UTA122', 'Cleared to land pad one, UITA one two two.'],
 };
-setTimeout(() => SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined }))), 2500);
+if (!CONNECTED) setTimeout(() => SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined }))), 2500);
 const txEl = $('tx');
 SkyRadio.onTransmit(({ speaker, live }) => { txEl.classList.toggle('on', live); txEl.classList.toggle('pilot', live && speaker === 'pilot'); txEl.textContent = live ? (speaker === 'atc' ? 'TWR' : 'ACFT') : 'TX'; });
 
@@ -989,7 +996,7 @@ function drawAir(now) {
   // coastline hint
   if (coast) { g.strokeStyle = 'rgba(120,140,150,.35)'; g.lineWidth = 1.2; for (const ring of coast) { g.beginPath(); ring.forEach((p, i) => { const [x, y] = arXY(p[0], p[1], W, H); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); } }
   // storm cell
-  const sl = stormLevel();
+  const sl = CONNECTED ? 0 : stormLevel();
   if (sl > 0.01) {
     const mid = [(nodeKm('C')[0] + nodeKm('E')[0]) / 2, (nodeKm('C')[1] + nodeKm('E')[1]) / 2 + 0.3];
     const [sx, sy] = arXY(mid[0] + Math.sin(now * 0.05) * 0.3, mid[1], W, H);
@@ -1283,6 +1290,7 @@ function lifeStep(a, f, info) {
   return strip(f.cs)?.hb === 'wait' ? 0 : strip(f.cs)?.hb === 'ok' ? 2 : 1;
 }
 function pick(cs) {
+  if (CONNECTED) { picked = cs; selectAircraft(cs); return; }
   picked = cs || null; $('card').hidden = !picked;
   if (picked) $('help').classList.remove('on');
   hl.visible = false; renderCard();
@@ -1356,16 +1364,17 @@ function loop() {
   booting = false;
   const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000); last = now; frame++;
   const ns = now / 1000;
-  if (!S.paused) { visT += dt; S.t += dt * (S.busy ? 0.6 : 1); }
+  if (!CONNECTED && !S.paused) { visT += dt; S.t += dt * (S.busy ? 0.6 : 1); }
   updateActors(visT);
   // storm visuals
-  const sl = stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
+  const sl = CONNECTED ? 0 : stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
   corrLines['C-E'].material.color.setHex(ceClosed() ? 0xff4a3d : 0x5fd4ff); corrLines['C-E'].material.opacity = ceClosed() ? 0.5 + 0.4 * Math.abs(Math.sin(ns * 3)) : 0.35;
   applyCamera(ns); updatePick();
   // screens: redraw at ~10 fps
   if (ns - lastDraw >= 0.1) {
     const sdt = Math.min(0.5, ns - lastDraw); lastDraw = ns;
-    drawGround(); drawAir(ns); drawTablet(ns, sdt); drawSide(ns); drawLog(ns); renderCard();
+    if (CONNECTED) drawConnected();
+    else { drawGround(); drawAir(ns); drawTablet(ns, sdt); drawSide(ns); drawLog(ns); renderCard(); }
     for (const k in screens) screens[k].tex.needsUpdate = true;
   }
   // HUD
@@ -1385,14 +1394,63 @@ function setHalted() {
 }
 document.addEventListener('visibilitychange', setHalted);
 addEventListener('message', (e) => {
+  if (e.origin !== location.origin || e.source !== parent) return;
   if (e.data?.uita === 'pause') { extPause = true; setHalted(); }
   else if (e.data?.uita === 'resume') { extPause = false; setHalted(); }
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 window.__sky = { S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
+if (CONNECTED) {
+  const connectedStyle=document.createElement('style');connectedStyle.textContent='#score,#banner,#card,#bPlay,#bRestart,#bSound,#help{display:none!important}';document.head.append(connectedStyle);
+  for (const id of ['score','banner','card','bPlay','bRestart','bSound','help']) { const el=$(id); if(el)el.hidden=true; }
+  Object.values(corrLines).forEach(x=>x.visible=false);
+  stormGroup.visible=false;
+  const connectedActors = new Map();
+  connectRenderer((frame, selected) => {
+    connectedFrame=frame; picked=selected; visT=frame.clock;
+    const current=new Set();
+    for (const a of frame.aircraft.filter(plottable)) {
+      current.add(a.id);let actor=connectedActors.get(a.id);
+      if(!actor){actor=mkActor(a.id,'air',()=>({vis:false}),a.callsign,true);connectedActors.set(a.id,actor);}
+      const [x,z]=P(a.longitude,a.latitude), h=(a.track_deg_true??0)*D2R;
+      actor.fn=()=>({x,y:a.altitude_ft*.3048-groundY,z,dx:Math.sin(h),dy:0,dz:-Math.cos(h),vis:true});
+      actor.tag=a.callsign;
+    }
+    for(const [id,actor] of connectedActors)if(!current.has(id))actor.fn=()=>({vis:false});
+  });
+}
+function drawConnected(){
+  for(const [name,screen] of Object.entries(screens)){
+    const g=screen.ctx || screen.g;
+    if(!g)continue;
+    g.fillStyle='#101c20';g.fillRect(0,0,screen.w,screen.h);
+    g.fillStyle='#b8e6df';g.font='24px monospace';
+    g.fillText(connectedFrame ? `${connectedFrame.mode.toUpperCase()} · ${connectedFrame.status}` : 'WAITING FOR BACKEND',14,26);
+    const rows=connectedFrame?.aircraft||[];
+    screen.hits=[];
+    if(name==='ground'||name==='air'){
+      if(name==='ground')g.drawImage(grStatic,0,0);
+      else{g.strokeStyle='#29484a';g.lineWidth=2;for(let r=90;r<screen.h/2;r+=90){g.beginPath();g.arc(screen.w/2,screen.h/2,r,0,Math.PI*2);g.stroke();}}
+      g.fillStyle='#b8e6df';g.font='24px monospace';g.fillText(name==='ground'?'KSFO · RESEARCH SURFACE':'KSFO · RESEARCH TRAFFIC · 20 NM',16,35);
+      for(const a of actors.filter(a=>a.vis)){
+        let x,y;if(name==='ground'){if(a.pos.y-groundY>600)continue;[x,y]=grXY(a.pos.x,a.pos.z,screen.w,screen.h);}
+        else{x=screen.w/2+a.pos.x/37040*(screen.h*.44);y=screen.h/2+a.pos.z/37040*(screen.h*.44);}
+        if(x<0||x>screen.w||y<60||y>screen.h)continue;
+        g.fillStyle=a.cs===picked?'#ffe5a3':'#b8e6df';g.beginPath();g.arc(x,y,5,0,Math.PI*2);g.fill();g.fillText(a.tag,x+10,y-10);
+        screen.hits.push({cs:a.cs,x:x-10,y:y-30,w:180,h:44});
+      }
+      continue;
+    }
+    rows.slice(0,Math.floor((screen.h-85)/38)).forEach((a,i)=>{
+      const y=80+i*38;g.fillStyle=a.id===picked?'#ffe5a3':'#b8e6df';
+      g.fillText(`${a.callsign} ${a.altitude_ft==null?'UNKNOWN':Math.round(a.altitude_ft)+' FT'} ${a.status}`,14,y);
+      screen.hits.push({cs:a.id,x:10,y:y-28,w:screen.w-20,h:38});
+    });
+  }
+}
 loop();
-runLoop();
+if (!CONNECTED) runLoop();
 </script>
 </body>
 </html>

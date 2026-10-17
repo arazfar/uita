@@ -1,133 +1,146 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="preconnect" href="https://tile.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>UITA Control</title>
-    <style>
-      :root {
-        --ink: #e6edf0;
-        --muted: #8aa0a8;
-        --bg: #0b1114;
-        --pill: #142027cc;
-        --line: #2a3b44;
-        --on: #2fa3c9;
-      }
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        background: var(--bg);
-        color: var(--ink);
-        font: 13px/1.4 Inter, ui-sans-serif, system-ui, sans-serif;
-        overflow: hidden;
-      }
-      iframe {
-        position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        border: 0;
-        background: var(--bg);
-      }
-      /* display:none stops rAF in Chrome, so the hidden view costs no GPU time. */
-      iframe[hidden] {
-        display: none;
-      }
-      .switch {
-        position: fixed;
-        right: 16px;
-        bottom: 34px;
-        z-index: 10;
-        display: flex;
-        gap: 2px;
-        padding: 3px;
-        border-radius: 999px;
-        background: var(--pill);
-        border: 1px solid var(--line);
-        backdrop-filter: blur(8px);
-        box-shadow: 0 8px 28px #0007;
-      }
-      .switch button {
-        border: 0;
-        border-radius: 999px;
-        padding: 7px 14px;
-        font: 600 12px/1 Inter, ui-sans-serif, system-ui, sans-serif;
-        color: var(--muted);
-        background: transparent;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-      .switch button[aria-pressed="true"] {
-        background: var(--on);
-        color: #fff;
-      }
-      .switch kbd {
-        margin-left: 6px;
-        font: 10px ui-monospace, monospace;
-        opacity: 0.7;
-      }
-      .loading {
-        position: fixed;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        color: var(--muted);
-        pointer-events: none;
-        z-index: 5;
-      }
-    </style>
-    <link rel="stylesheet" href="sfo-history.css">
+    <base href="/candidates/" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UITA · Research control</title>
+    <link rel="stylesheet" href="research-shell.css" />
   </head>
   <body>
-    <div class="loading" id="loading">Loading SFO…</div>
-    <iframe id="sim" title="UITA 3D simulation" allow="autoplay; microphone"></iframe>
-    <iframe id="cab" title="UITA tower cab" hidden allow="autoplay; microphone"></iframe>
-    <div class="switch" role="group" aria-label="View">
-      <button data-view="sim" aria-pressed="true">3D simulation<kbd>T</kbd></button
-      ><button data-view="cab" aria-pressed="false">Tower cab</button>
-    </div>
-    <script>
-      // Two views, one live at a time: the 3D simulation (with recorded August
-      // traffic) and the tower cab. The hidden one is paused + display:none.
-      const ORDER = ["sim", "cab"];
-      const frames = Object.fromEntries(ORDER.map((k) => [k, document.getElementById(k)]));
-      const src = {
-        sim: "/candidates/11-photoreal-sfo.html?mode=simulation",
-        cab: "/candidates/19-tower-cab-interior.html",
-      };
-      let view = location.hash === "#cab" ? "cab" : "sim";
-      const clearLoading = () => document.getElementById("loading")?.remove();
-      for (const k of ORDER) frames[k].hidden = k !== view;
-      frames[view].src = src[view];
-      frames[view].addEventListener("load", clearLoading, { once: true });
-      setTimeout(clearLoading, 1500);
-      const mark = () => {
-        document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
-        document.body.dataset.view = view;
-      };
-      mark();
-      function show(next) {
-        if (next === view) return;
-        const prev = frames[view];
-        prev.contentWindow?.postMessage({ uita: "pause" }, "*");
-        prev.hidden = true;
-        const f = frames[next];
-        if (!f.src) f.src = src[next];
-        else f.contentWindow?.postMessage({ uita: "resume" }, "*");
-        f.hidden = false;
-        f.focus();
-        view = next;
-        mark();
-        history.replaceState(null, "", view === "sim" ? location.pathname + location.search : "#cab");
-      }
-      document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
-      const toggle = () => show(ORDER[(ORDER.indexOf(view) + 1) % ORDER.length]);
-      addEventListener("keydown", (e) => e.key.toLowerCase() === "t" && !e.repeat && toggle());
-      // Iframes forward their T presses here so the shortcut works wherever focus is.
-      addEventListener("message", (e) => e.data?.uita === "toggle" && toggle());
-    </script>
+    <header>
+      <a class="brand" href="/">UITA</a>
+      <nav aria-label="Mode">
+        <button data-mode="historical">Historical</button
+        ><button data-mode="simulation" aria-pressed="true">Simulation</button
+        ><button data-mode="compare">Compare</button>
+      </nav>
+      <span class="research">Research simulation · not operational ATC</span
+      ><a href="/workbench">Workbench</a><button id="logout">Sign out</button>
+    </header>
+    <main>
+      <section class="view" aria-label="Traffic visualization">
+        <iframe
+          id="scene"
+          title="SFO dashboard"
+          src="11-photoreal-sfo.html?mode=connected"
+        ></iframe>
+        <div class="view-controls" role="group" aria-label="Camera">
+          <button data-camera="dashboard" aria-pressed="true">Dashboard</button
+          ><button data-camera="tower">Tower</button>
+        </div>
+        <div id="render-status" role="status">
+          Loading renderer · traffic and evidence remain available below
+        </div>
+      </section>
+      <aside>
+        <h1>Traffic, decisions, evidence</h1>
+        <p id="source">Loading saved Nemotron recordings…</p>
+        <label>Recording<select id="recordings"></select></label>
+        <div class="row">
+          <button id="recorded">Load recording</button
+          ><button id="export">Export evidence</button>
+        </div>
+        <details id="live-options">
+          <summary>Run a new simulation</summary>
+          <label>Validated scenario<select id="scenarios"></select></label
+          ><label
+            >Controller<select id="controller">
+              <option value="fixture">Authored fixture · free</option>
+              <option value="crusoe">Live Nemotron · up to $0.50</option>
+              <option value="static">Deterministic baseline · free</option>
+            </select></label
+          ><label
+            >Fixture fault<select id="fault">
+              <option value="none">None</option>
+              <option value="provider_timeout">Model failure</option>
+              <option value="budget_exhausted">Budget exhaustion</option>
+            </select></label
+          ><button id="create">Create isolated run</button>
+          <p>
+            Live calls use the shared budget. Fixture output is not Nemotron.
+          </p>
+        </details>
+        <div id="connection" role="status">Connecting</div>
+        <div id="error" role="alert" hidden></div>
+        <button id="retry" hidden>Reconnect</button>
+        <dl id="metrics"></dl>
+        <section id="comparison" hidden>
+          <h2>Matched comparison</h2>
+          <p>
+            Same initial conditions, seed, disruptions and horizon. Historical
+            paths are context, not a human-performance baseline.
+          </p>
+          <button id="compare">Freeze and compare live run</button
+          ><label
+            >Rendered controller<select id="render-controller">
+              <option value="candidate">Candidate</option>
+              <option value="baseline">Deterministic baseline</option>
+            </select></label
+          >
+          <div id="comparison-results"></div>
+        </section>
+        <details open>
+          <summary>Aircraft <span id="traffic-count"></span></summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Callsign</th>
+                  <th>Altitude · ft</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="traffic"></tbody>
+            </table>
+          </div>
+          <pre id="aircraft-detail">
+Select an aircraft on the map or in this table.</pre
+          >
+        </details>
+        <details open>
+          <summary>Decisions and verifier evidence</summary>
+          <label class="check"
+            ><input id="speech" type="checkbox" /> Speak new clearance
+            events</label
+          >
+          <div id="events"><p>No events at this playback time.</p></div>
+        </details>
+        <details>
+          <summary>Separate published benchmark</summary>
+          <pre id="benchmark">Loading…</pre>
+        </details>
+        <a href="11-photoreal-sfo.html?mode=recorded"
+          >Browse late-August recorded observations</a
+        >
+      </aside>
+    </main>
+    <footer>
+      <div class="row">
+        <button id="play">Play recording</button
+        ><button id="step">+10 seconds</button
+        ><button id="close">Close 28R</button
+        ><label
+          >Playback<select id="speed">
+            <option value="1">1×</option>
+            <option value="5">5×</option>
+            <option value="30" selected>30×</option>
+          </select></label
+        ><output id="clock">—</output>
+      </div>
+      <input
+        id="seek"
+        type="range"
+        aria-label="Recording timeline"
+        min="0"
+        max="1200"
+        value="0"
+        step="1"
+      />
+      <p id="timeline-label">
+        Recorded model decisions replay without paid calls.
+      </p>
+    </footer>
+    <script type="module" src="research-shell.js"></script>
   </body>
 </html>

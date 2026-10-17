@@ -1,5 +1,12 @@
 # UITA showcase
 
+**Connected research demo:** the existing dashboard and tower cab now support
+shared historical/recorded/live research state, evidence inspection, matched
+comparison and export. Follow the [connected startup and staging guide](../docs/research/v2/SHOWCASE.md).
+It uses the FastAPI host rather than this directory’s legacy Vite server.
+The recorded Nemotron attempt fell back to the deterministic controller; no
+improvement is claimed. The standalone gallery remains scripted as described below.
+
 The demo frontend for UITA's recursive-agent ATC: a photoreal SFO dashboard with a Tower! Simulator-style cab view, an agent radio loop with voice, and 20 visualization candidates. **Research simulation only; not operational ATC.** Traffic, agent decisions and scores are scripted or mocked unless a page says otherwise.
 
 ## Run

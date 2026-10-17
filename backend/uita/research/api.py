@@ -103,7 +103,8 @@ def create_app(database=None, secure_cookies=True):
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "same-origin"
-        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
         log.info(
             json.dumps(
                 {
@@ -306,6 +307,8 @@ def create_app(database=None, secure_cookies=True):
                         "callsign": entry["callsign"],
                         "x_nm": x,
                         "y_nm": y,
+                        "longitude": p["lon"],
+                        "latitude": p["lat"],
                         "altitude_ft": p["altitude_ft"],
                         "groundspeed_kt": p["groundspeed_kt"],
                         "track_deg_true": p.get("track_deg_true"),
@@ -585,6 +588,31 @@ def create_app(database=None, secure_cookies=True):
                 raise LookupError("Job not found")
             return {"id": row.id, "status": row.status, "result": row.result}
 
+    from .presentation import routes
+
+    routes(app, database)
+    showcase = Path(
+        os.getenv(
+            "UITA_SHOWCASE_DIR", str(Path(__file__).resolve().parents[3] / "showcase")
+        )
+    )
+    if os.getenv("UITA_SHOWCASE") == "1":
+        for route, folder in [
+            ("/candidates", showcase / "candidates"),
+            ("/vendor/three", showcase / "node_modules/three186"),
+            ("/vendor/cesium", showcase / "node_modules/cesium/Build/Cesium"),
+        ]:
+            if folder.exists():
+                app.mount(route, StaticFiles(directory=folder), name=route)
+
+        @app.get("/login")
+        def showcase_login():
+            return FileResponse(showcase / "candidates/research-login.html")
+
+        @app.get("/")
+        def showcase_index():
+            return FileResponse(showcase / "candidates/app.html")
+
     dist = Path(__file__).resolve().parents[3] / "frontend" / "dist"
     if dist.exists():
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
@@ -594,8 +622,11 @@ def create_app(database=None, secure_cookies=True):
             return FileResponse(dist / "favicon.svg")
 
         @app.get("/login")
-        @app.get("/")
+        @app.get("/workbench")
         def index():
             return FileResponse(dist / "index.html")
+
+        if os.getenv("UITA_SHOWCASE") != "1":
+            app.add_api_route("/", index)
 
     return app

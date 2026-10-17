@@ -27,3 +27,9 @@ Local demo gates are complete. Detailed results: [validation.json](validation.js
 Next deployment gate: build the Docker image and run the same acceptance flow in
 an isolated Railway staging environment with appropriate account access. Hosted
 backup restoration and monitoring remain required before production cutover.
+
+## Connected showcase integration
+
+See [the showcase checklist](SHOWCASE-CHECKLIST.md) for its separate current
+acceptance evidence and deployment blockers. The existing production Vite entry
+remains preserved until explicit cutover.

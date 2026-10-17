@@ -171,3 +171,64 @@ class EvaluationReport(Contract):
     simulator_version: str
     results: list[dict]
     limitations: list[str]
+
+
+class PresentationAircraft(Contract):
+    id: str
+    callsign: str
+    longitude: float
+    latitude: float
+    altitude_ft: float | None
+    altitude_reference: str = "research_altitude"
+    track_deg_true: float | None = None
+    groundspeed_kt: float | None = None
+    status: str
+    aircraft_type: str = "UNKNOWN"
+    runway: str | None = None
+    source_time: float
+    age_seconds: float = 0
+    provenance: dict
+
+
+class PresentationFrame(Contract):
+    source_id: str
+    mode: Literal["simulation", "recording", "historical"]
+    clock: float
+    revision: int
+    status: str
+    event_cursor: int
+    aircraft: list[PresentationAircraft]
+    metrics: dict
+    closed_runways: list[str]
+    controller: str
+    simulator_version: str
+    rule_version: str
+    provenance: dict
+    spend: dict = Field(default_factory=dict)
+    runtime: dict = Field(default_factory=dict)
+
+
+class RecordingManifest(Contract):
+    id: str
+    title: str
+    scenario_id: str
+    scenario_checksum: str
+    simulator_version: str
+    rule_version: str
+    policy_version: str
+    model: str
+    start: float
+    end: float
+    seed: int
+    outcome: str
+    model_responses: int
+    fallback_count: int
+    event_tape: list[dict]
+    checksums: dict[str, str]
+    limitations: list[str]
+
+
+class RecordingWindow(Contract):
+    frames: list[PresentationFrame]
+    baseline_frames: list[PresentationFrame]
+    events: list[RunEvent]

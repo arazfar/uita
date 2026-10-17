@@ -115,6 +115,13 @@ function voiceApi(env) {
   return {
     name: "uita-voice-api",
     configureServer(server) {
+      // The integrated research shell is served by FastAPI in isolated staging.
+      // Preserve the existing production Vite entry point until explicit cutover.
+      server.middlewares.use((req, _res, next) => {
+        if (req.url?.split('?')[0] === '/candidates/app.html')
+          req.url = req.url.replace('/candidates/app.html', '/candidates/app-legacy.html');
+        next();
+      });
       // Hosted showcase: one shared password guards the pages and the keyed API.
       // Fail closed: a server bound beyond loopback needs a password unless the
       // operator explicitly opts into a public demo (DEMO_PUBLIC=1).

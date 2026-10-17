@@ -2,6 +2,7 @@
 
 import argparse
 import getpass
+import gzip
 import json
 from pathlib import Path
 
@@ -33,6 +34,13 @@ def main():
                 if digest(artifact["payload"]) != artifact["checksum"]:
                     raise ValueError("Bundled demo checksum mismatch")
                 save_artifact(db, artifact["id"], artifact["kind"], artifact["payload"])
+            recording = Path(__file__).parent / "assets/showcase_recording.json.gz"
+            if recording.exists():
+                from .presentation import install_recording
+
+                install_recording(
+                    db, json.loads(gzip.decompress(recording.read_bytes()))
+                )
             if db.get(Budget, "validation-v2") is None:
                 db.add(Budget(id="validation-v2", cap=5.0, reserved=0.0))
         elif args.command == "user":

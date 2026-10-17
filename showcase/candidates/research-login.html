@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sign in · UITA</title>
+    <style>
+      body {
+        margin: 0;
+        background: #0b1114;
+        color: #e6edf0;
+        font: 16px/1.5 system-ui;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+      }
+      main {
+        width: min(360px, 85vw);
+      }
+      label {
+        display: block;
+        margin: 16px 0;
+      }
+      input,
+      button {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px;
+        font: inherit;
+        background: #142027;
+        color: inherit;
+        border: 1px solid #526975;
+        border-radius: 4px;
+      }
+      h1 {
+        font-size: 28px;
+      }
+      p {
+        color: #b0bec5;
+      }
+      button {
+        cursor: pointer;
+        background: #235568;
+      }
+      :focus-visible {
+        outline: 2px solid #74d2ed;
+        outline-offset: 3px;
+      }
+      #error {
+        color: #ffb9aa;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>UITA research</h1>
+      <p>Private team access · simulated air traffic control</p>
+      <form>
+        <label
+          >Username<input
+            name="username"
+            autocomplete="username"
+            required /></label
+        ><label
+          >Password<input
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            minlength="12" /></label
+        ><button>Sign in</button>
+        <p id="error" role="alert"></p>
+      </form>
+    </main>
+    <script>
+      document.querySelector("form").onsubmit = async (e) => {
+        e.preventDefault();
+        const button = document.querySelector("button");
+        button.disabled = true;
+        try {
+          const r = await fetch("/api/v2/login", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+          });
+          if (!r.ok)
+            throw Error(
+              r.status === 429
+                ? "Too many attempts. Retry in five minutes."
+                : "Sign in failed. Check your account details.",
+            );
+          location.href = "/";
+        } catch (error) {
+          document.getElementById("error").textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
+      };
+    </script>
+  </body>
+</html>
