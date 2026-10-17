@@ -331,7 +331,48 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/LearningJobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/learning/jobs/{id}/cancel": {
+      "post": {
+        "summary": "Cancel Job",
+        "operationId": "cancel_job_api_learning_jobs__id__cancel_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningJobView"
+                }
               }
             }
           },
@@ -368,7 +409,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/LearningJobView"
+                }
               }
             }
           },
@@ -494,6 +537,117 @@
   },
   "components": {
     "schemas": {
+      "AgentEvent": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Sequence"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 400,
+            "title": "Message"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sequence",
+          "stage",
+          "kind",
+          "message",
+          "created_at"
+        ],
+        "title": "AgentEvent"
+      },
+      "AgentLimits": {
+        "properties": {
+          "model_requests": {
+            "type": "integer",
+            "maximum": 8.0,
+            "minimum": 1.0,
+            "title": "Model Requests",
+            "default": 6
+          },
+          "tool_calls": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "Tool Calls",
+            "default": 12
+          },
+          "development_evaluations": {
+            "type": "integer",
+            "maximum": 6.0,
+            "minimum": 1.0,
+            "title": "Development Evaluations",
+            "default": 4
+          },
+          "revisions": {
+            "type": "integer",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Revisions",
+            "default": 1
+          },
+          "input_tokens": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 1000.0,
+            "title": "Input Tokens",
+            "default": 60000
+          },
+          "output_tokens": {
+            "type": "integer",
+            "maximum": 12000.0,
+            "minimum": 256.0,
+            "title": "Output Tokens",
+            "default": 6000
+          },
+          "request_output_tokens": {
+            "type": "integer",
+            "maximum": 1500.0,
+            "minimum": 256.0,
+            "title": "Request Output Tokens",
+            "default": 1000
+          },
+          "wall_seconds": {
+            "type": "integer",
+            "maximum": 300.0,
+            "minimum": 10.0,
+            "title": "Wall Seconds",
+            "default": 120
+          },
+          "spend_usd": {
+            "type": "number",
+            "maximum": 0.05,
+            "exclusiveMinimum": 0.0,
+            "title": "Spend Usd",
+            "default": 0.02
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AgentLimits"
+      },
       "AircraftView": {
         "properties": {
           "id": {
@@ -786,6 +940,89 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LearningJobView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AgentEvent"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Events"
+          },
+          "limits": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentLimits"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "ancestry": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ancestry"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "provider_usage": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Provider Usage"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "LearningJobView",
+        "description": "Additive response contract: old job fields remain available to old clients."
       },
       "MetricsView": {
         "properties": {
@@ -1101,6 +1338,13 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "revisions": {
+            "type": "integer",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Revisions",
+            "default": 1
           }
         },
         "additionalProperties": false,

@@ -1,6 +1,5 @@
 """HTTP adapter for the persistent single-process Uita research monolith."""
 import copy, hashlib, json, logging, multiprocessing, os, threading, time, uuid
-from concurrent.futures import ProcessPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
@@ -13,14 +12,18 @@ from .simulator import new_state, advance, inject, sample, metrics, trajectory, 
 from .planner import plan, BASELINE, STATIC
 from .verifier import verify
 from .airport import RUNWAYS, RULE_VERSION, SOURCES, LIMITATIONS
-from .provider import status as provider_status, propose_policy, ProviderError
+from .provider import status as provider_status, ProviderError
 from .learning import run_experiment, evaluate, TRAIN_SEEDS, CONFIG_HASH
+from .agent_contracts import AgentLimits,GRAMMAR_VERSION,PROMPT_VERSION,LearningJobView
+from .agent_jobs import worker_entry,AGENT_CONFIG_HASH,AGENT_EVALUATOR_VERSION,TERMINAL,append_event
+from .investigator import STRONG_STATIC
 
 log=logging.getLogger('uita')
 
 def create_app(database_url=None):
     store=Store(database_url,recover=True);lock=threading.RLock();last_wall=[time.monotonic()]
-    pool=ProcessPoolExecutor(max_workers=1,mp_context=multiprocessing.get_context('spawn'))
+    workers={}
+    database_address=str(store.engine.url)
     with store.transaction() as db:
         if store.get('state',db) is None:
             initial=new_state();initial['session_id']=str(uuid.uuid4())
@@ -29,12 +32,14 @@ def create_app(database_url=None):
                 initial=copy.deepcopy(initial);advance(initial,180);initial['running']=True
             store.put('state','state',initial,db)
         if not store.get('policy-baseline',db):store.put('policy-baseline','policy',{'id':'baseline','name':BASELINE.name,'program':BASELINE.model_dump(),'status':'builtin','accepted':True,'source':'hand-authored'},db)
+        if not store.get('policy-static-v2',db):store.put('policy-static-v2','policy',{'id':'static-v2','name':STRONG_STATIC.name,'program':STRONG_STATIC.model_dump(),'status':'builtin','accepted':True,'source':'hand-authored'},db)
         if not store.get('policy-static',db):store.put('policy-static','policy',{'id':'static','name':STATIC.name,'program':STATIC.model_dump(),'status':'builtin','accepted':True,'source':'hand-authored'},db)
 
     @asynccontextmanager
     async def lifespan(app):
         yield
-        pool.shutdown(wait=False,cancel_futures=True)
+        for process in list(workers.values()):
+            if process.is_alive():process.terminate();process.join(timeout=2)
 
     app=FastAPI(title='Uita research simulation',version='0.1.0',lifespan=lifespan)
     app.state.store=store;app.state.lock=lock
@@ -101,6 +106,8 @@ def create_app(database_url=None):
     def provider_info():
         info=provider_status()
         completed=[j for j in store.list('job',1000) if j.get('source')=='crusoe-live' and j.get('status')=='complete' and j.get('provider_usage',{}).get('calls',0)>0]
+        agent_completed=[j for j in completed if j.get('evaluator_version')==AGENT_EVALUATOR_VERSION]
+        info.update(agent_loop_verified=bool(agent_completed),agent_framework='pydantic-ai 2.57.0',agent_prompt_version=PROMPT_VERSION,agent_integration_version='native-crusoe-profile-2')
         if completed:
             info.update(live_verified=True,last_verified_job_id=completed[0]['id'],verified_model=completed[0]['provider_usage'].get('model',completed[0]['provider_usage'].get('candidate',{}).get('model')),last_usage=completed[0]['provider_usage'])
         return info
@@ -118,13 +125,13 @@ def create_app(database_url=None):
         result['runway_reservations']=next((c['evidence']['intervals'] for c in verdict['checks'] if c['id']=='runway-resource'),[])
         if extras:
             result['proposals']=[p for p in store.list('proposal',40) if p.get('session_id')==s['session_id']][:12]
-            result['policies']=[{k:v for k,v in p.items() if k not in ('train','validation','heldout')} for p in store.list('policy')]
-            result['learning_jobs']=[{k:v for k,v in j.items() if k!='result'} for j in store.list('job',12)]
+            result['policies']=[{k:v for k,v in p.items() if k not in ('train','validation','heldout','development','revisions')} for p in store.list('policy')]
+            result['learning_jobs']=[{**{k:v for k,v in j.items() if k not in ('result','frozen','events')},'event_count':len(j.get('events',[])),'events':[{**e,'data':{}} for e in j.get('events',[])[-1:]]} for j in store.list('job',12)]
             result['checkpoints']=[{'time':c['time'],'revision':c.get('revision',1)} for c in store.list('checkpoint',500) if c['session_id']==s['session_id']]
         return result
 
     @app.get('/api/health')
-    def health():return {'status':'ok','rule_version':RULE_VERSION,'database':'connected','worker':'bounded subprocess','schema_version':1,'provider':provider_info()}
+    def health():return {'status':'ok','rule_version':RULE_VERSION,'database':'connected','worker':'bounded subprocess','schema_version':2,'provider':provider_info()}
     @app.get('/api/state',response_model=Snapshot)
     def state():
         with lock:return decorate(tick())
@@ -165,7 +172,11 @@ def create_app(database_url=None):
             s=tick();chosen_id=command.policy_id or s['active_policy'];chosen=policy(chosen_id)
             if command.idempotency_key:record_command(command,'propose',None)
         usage={'calls':0,'cost_usd':0,'source':'offline-fixture'}
-        if command.source=='crusoe':chosen,usage=propose_policy({'events':s['events'][-5:],'parent_program':chosen.model_dump()})
+        if command.source=='crusoe':
+            accepted=store.get('policy-'+chosen_id)
+            if not accepted or accepted.get('source')!='crusoe-live' or not accepted.get('accepted') or accepted.get('config_hash')!=AGENT_CONFIG_HASH:
+                raise HTTPException(409,'Run a Crusoe investigation in Learning, then select an independently accepted agent policy. Movement proposals do not bypass the investigation gate.')
+            usage={'calls':0,'cost_usd':0,'source':'accepted-agent-policy','policy_id':chosen_id}
         p=plan(s,chosen);p.update(session_id=s['session_id'],policy_id=chosen_id,source='crusoe-live' if command.source=='crusoe' else 'offline-fixture',provider_usage=usage)
         with store.transaction() as db:store.put('proposal-'+p['id'],'proposal',p,db);record_command(command,'propose',p,db)
         return p
@@ -233,58 +244,55 @@ def create_app(database_url=None):
                     if a['trajectory'][0]['t']>s['time']:a['scheduled']=slot['time'];a['runway']=slot['runway'];a['trajectory']=trajectory(a,slot['time'],slot['runway']);a.pop('admission_hold',None)
             results.append({'policy_id':id,'metrics':metrics(candidate,horizon=2700),'state':decorate(candidate,False),'verification':v,'plan':p,'projection_horizon':2700})
         return {'checkpoint_time':s['time'],'checkpoint_hash':snapshot_hash(s),'matched':True,'objective':OBJECTIVES,'scope':'Matched current checkpoint scheduling projection. Experiment worker performs separate fixed-seed closed-loop evaluation.','comparisons':results}
-    def finish_job(job_id,future):
-        try:
-            result=future.result()
-            with lock,store.transaction() as db:
-                job=store.get('job-'+job_id,db)
-                result['source']=job['source'];result['provider_usage']=job['provider_usage']
-                for candidate in result['candidates']:
-                    candidate['source']=job['source']
-                    key='policy-'+candidate['id'];previous=store.get(key,db)
-                    if not previous:store.put(key,'policy',candidate,db)
-                    if candidate.get('heldout'):store.put('heldout-'+candidate['artifact_hash'],'heldout',{'artifact_hash':candidate['artifact_hash'],'config_hash':CONFIG_HASH,'result':candidate['heldout']},db)
-                store.put('job-'+job_id,'job',{**job,'status':'complete','result':result,'finished_at':time.time()},db)
-        except Exception as error:
-            job=store.get('job-'+job_id);store.put('job-'+job_id,'job',{**job,'status':'failed','error':f'{type(error).__name__}: {str(error)[:300]}'})
-    @app.post('/api/learning/train')
+    @app.post('/api/learning/train',response_model=LearningJobView,response_model_exclude_unset=True)
     def train(command:Train):
         with lock:
             prior=previous_command(command,'train')
             if prior:return store.get('job-'+prior['id']) or prior
-            active=[j for j in store.list('job') if j['status'] in ('queued','running')]
-            if active:raise HTTPException(409,'A bounded experiment is already running')
-            s=load();parent_id=s.get('active_policy','static')
-            if parent_id=='baseline':parent_id='static'
-            parent=policy(parent_id);iteration=len(store.list('job',100000));id=str(uuid.uuid4())
-            usage={'calls':0,'input_tokens':0,'output_tokens':0,'cost_usd':0}
-            job={'id':id,'status':'queued','generations':command.generations,'source':'crusoe-live' if command.source=='crusoe' else 'offline-fixture','created_at':time.time(),'parent_id':parent_id,'iteration':iteration,'provider_usage':usage}
-            with store.transaction() as db:store.put('job-'+id,'job',job,db);record_command(command,'train',job,db)
-            consumed=[r['artifact_hash'] for r in store.list('heldout',100000)]
-        def dispatch():
-            try:
-                candidates=None;stateless=None;stateless_usage=None;usage={'calls':0,'input_tokens':0,'output_tokens':0,'cost_usd':0}
-                if command.source=='crusoe':
-                    development=pool.submit(evaluate,parent,TRAIN_SEEDS).result(timeout=120)
-                    worst=sorted(development['raw'],key=lambda r:r['metrics']['score'],reverse=True)[:2]
-                    evidence={'summary':'Fixed development episodes reveal delay and incomplete traffic under the eight-read budget. Improve observation allocation while preserving verifier feasibility.','cases':[{'seed':r['seed'],'scenario':r['scenario'],'backlog':r['metrics']['backlog'],'mean_delay':r['metrics']['mean_delay'],'rejected_plans':r['rejected_plans'],'unresolved_plans':r['unresolved_plans'],'observed_tools':r['observations'][:2]} for r in worst]}
-                    with lock:
-                        latest=store.get('job-'+id);store.put('job-'+id,'job',{**latest,'development_evidence':evidence})
-                    candidate,candidate_usage=propose_policy({'parent_program':parent.model_dump(),'development':evidence,'iteration':iteration});candidates=[candidate]
-                    # Matched nonpersistent model baseline has identical tools/budget,
-                    # receives the same event evidence, and no accepted parent.
-                    stateless,stateless_usage=propose_policy({'development':evidence,'instruction':'Choose a fresh observation program without persistent policy memory.'})
-                    usage={k:candidate_usage[k]+stateless_usage[k] for k in ('calls','input_tokens','output_tokens','cost_usd','reserved_usd')}
-                    usage.update(provider='Crusoe',model=candidate_usage['model'])
-                    usage['candidate']=candidate_usage;usage['stateless_baseline']=stateless_usage
-                with lock:
-                    latest=store.get('job-'+id);store.put('job-'+id,'job',{**latest,'status':'running','provider_usage':usage})
-                future=pool.submit(run_experiment,command.generations,candidates,parent_id,parent.model_dump(),iteration,consumed,stateless.model_dump() if stateless else None,stateless_usage)
-                future.add_done_callback(lambda f:finish_job(id,f))
-            except Exception as error:
-                latest=store.get('job-'+id);store.put('job-'+id,'job',{**latest,'status':'failed','error':f'{type(error).__name__}: {str(error)[:300]}'})
-        threading.Thread(target=dispatch,name='uita-experiment-dispatch',daemon=True).start();return job
-    @app.get('/api/learning/jobs/{id}')
+            if any(j['status'] in ('queued','running') for j in store.list('job')):
+                raise HTTPException(409,'A bounded experiment is already running')
+            memory=store.get('agent-accepted-parent')
+            parent_record=store.get('policy-'+memory['policy_id']) if memory and memory.get('config_hash')==AGENT_CONFIG_HASH else None
+            if parent_record and parent_record.get('accepted'):
+                parent=Policy(**parent_record['program']);parent_id=parent_record['id'];ancestry=memory.get('ancestry',[])
+            else:
+                parent=STRONG_STATIC;parent_id='static-v2';ancestry=[]
+            id=str(uuid.uuid4());limits=AgentLimits(revisions=command.revisions)
+            job={'id':id,'status':'queued','stage':'queued','generations':command.generations,'source':'crusoe-live' if command.source=='crusoe' else 'offline-fixture','created_at':time.time(),'parent_id':parent_id,'parent_program':parent.model_dump(),'ancestry':ancestry,'memory_mode':'persistent','provider_usage':{'calls':0,'input_tokens':0,'output_tokens':0,'cost_usd':0,'reserved_usd':0,'paid_retries':0},'limits':limits.model_dump(),'events':[],'grammar_version':GRAMMAR_VERSION,'prompt_version':PROMPT_VERSION,'evaluator_version':AGENT_EVALUATOR_VERSION,'config_hash':AGENT_CONFIG_HASH,'heldout_consumed':bool(store.list('heldout',1))}
+            with store.transaction() as db:
+                store.put('job-'+id,'job',job,db);record_command(command,'train',job,db)
+            process=multiprocessing.get_context('spawn').Process(target=worker_entry,args=(database_address,id),name='uita-investigator-'+id[:8],daemon=True)
+            workers[id]=process;process.start()
+        def monitor():
+            process.join(limits.wall_seconds+30)
+            if process.is_alive():process.terminate();process.join(timeout=2)
+            with lock:
+                latest=store.get('job-'+id)
+                if latest and latest['status'] not in TERMINAL:
+                    append_event(store,id,'termination','Worker stopped; ambiguous inference is never reissued',{'stage':'interrupted'})
+                    latest=store.get('job-'+id)
+                    store.put('job-'+id,'job',{**latest,'status':'interrupted','stage':'interrupted','error':'Worker stopped before completion; retained evidence and spend reservations are available. Start a new bounded job.','finished_at':time.time()})
+                workers.pop(id,None)
+        threading.Thread(target=monitor,name='uita-investigator-monitor',daemon=True).start()
+        return job
+
+    @app.post('/api/learning/jobs/{id}/cancel',response_model=LearningJobView,response_model_exclude_unset=True)
+    def cancel_job(id:str):
+        with lock:
+            job=store.get('job-'+id)
+            if not job:raise HTTPException(404,'Experiment not found')
+            if job['status'] in TERMINAL:return job
+            process=workers.get(id)
+            if process and process.is_alive():process.terminate();process.join(timeout=2)
+            job=store.get('job-'+id)
+            if job['status'] in TERMINAL:return job
+            append_event(store,id,'termination','Cancelled; completed evidence and reservations retained',{'stage':'cancelled'})
+            job=store.get('job-'+id)
+            job={**job,'status':'cancelled','stage':'cancelled','finished_at':time.time()}
+            store.put('job-'+id,'job',job)
+            return job
+
+    @app.get('/api/learning/jobs/{id}',response_model=LearningJobView,response_model_exclude_unset=True)
     def get_job(id:str):
         result=store.get('job-'+id)
         if not result:raise HTTPException(404,'Experiment not found')
@@ -299,9 +307,11 @@ def create_app(database_url=None):
         with lock,store.transaction() as db:
             p=store.get('policy-'+id,db)
             if not p or not p.get('accepted'):raise HTTPException(409,'Only accepted, supported observation programs may be promoted')
-            if p.get('status')!='builtin' and p.get('config_hash')!=CONFIG_HASH:raise HTTPException(409,'Policy evaluation is from another configuration; re-evaluate before promotion')
+            if p.get('status')!='builtin' and p.get('config_hash') not in (CONFIG_HASH,AGENT_CONFIG_HASH):raise HTTPException(409,'Policy evaluation is from another configuration; re-evaluate before promotion')
             Policy(**p['program'])
-            s=load();s['previous_policy']=s['active_policy'];s['active_policy']=id;s['revision']+=1
+            s=load()
+            if s['active_policy']==id:return decorate(s)
+            s['previous_policy']=s['active_policy'];s['active_policy']=id;s['revision']+=1
             s['events'].append({'time':s['time'],'type':'policy','message':f'Observation policy {p["name"]} activated for future proposals'})
             save(s,True,db);return decorate(s)
     @app.post('/api/learning/rollback')
@@ -312,7 +322,7 @@ def create_app(database_url=None):
     @app.get('/api/export')
     def export():
         with lock:s=load()
-        return {'schema_version':1,'research_only':True,'state':s,'rule_version':RULE_VERSION,'sources':SOURCES,'limitations':LIMITATIONS,'proposals':store.list('proposal',1000),'policies':store.list('policy',1000),'jobs':store.list('job',1000),'checkpoints':[c for c in store.list('checkpoint',5000) if c['session_id']==s['session_id']],'evaluation_config_hash':CONFIG_HASH,'provider':provider_status()}
+        return {'schema_version':2,'research_only':True,'state':s,'rule_version':RULE_VERSION,'sources':SOURCES,'limitations':LIMITATIONS,'proposals':store.list('proposal',1000),'policies':store.list('policy',1000),'jobs':store.list('job',1000),'checkpoints':[c for c in store.list('checkpoint',5000) if c['session_id']==s['session_id']],'evaluation_config_hash':CONFIG_HASH,'provider':provider_status()}
     dist=Path(__file__).resolve().parents[2]/'frontend'/'dist'
     if dist.exists():app.mount('/',StaticFiles(directory=str(dist),html=True),name='frontend')
     return app

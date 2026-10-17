@@ -36,18 +36,32 @@ class SpendLedger:
         if not math.isfinite(self.cap) or self.cap<=0:raise ProviderError('A finite positive approved spend cap is required')
         self.budget_id=os.getenv('CRUSOE_BUDGET_ID','default')
         with sqlite3.connect(self.path,timeout=5) as db:
+            db.execute('CREATE TABLE IF NOT EXISTS inference_budgets (budget_id TEXT PRIMARY KEY, cap REAL NOT NULL)')
+            db.execute('INSERT OR IGNORE INTO inference_budgets VALUES (?,?)',(self.budget_id,self.cap))
+            stored=db.execute('SELECT cap FROM inference_budgets WHERE budget_id=?',(self.budget_id,)).fetchone()[0]
+            self.cap=min(self.cap,stored)
             db.execute('CREATE TABLE IF NOT EXISTS inference_reservations (id TEXT PRIMARY KEY, budget_id TEXT NOT NULL, reserved_usd REAL NOT NULL, actual_usd REAL, created REAL NOT NULL)')
-    def reserve(self,amount):
+            db.execute('CREATE TABLE IF NOT EXISTS inference_job_reservations (reservation_id TEXT PRIMARY KEY, job_id TEXT NOT NULL, reserved_usd REAL NOT NULL)')
+    def reserve(self,amount,job_id=None,job_cap=None):
         if not math.isfinite(amount) or amount<0:raise ProviderError('Invalid request reservation')
         with sqlite3.connect(self.path,timeout=5) as db:
             db.execute('BEGIN IMMEDIATE')
             used=db.execute('SELECT COALESCE(SUM(reserved_usd),0) FROM inference_reservations WHERE budget_id=?',(self.budget_id,)).fetchone()[0]
             if used+amount>self.cap:raise ProviderError('Aggregate approved Crusoe spend cap exhausted')
+            if job_id is not None:
+                job_used=db.execute('SELECT COALESCE(SUM(reserved_usd),0) FROM inference_job_reservations WHERE job_id=?',(job_id,)).fetchone()[0]
+                if job_cap is None or job_used+amount>job_cap:raise ProviderError('Per-job Crusoe spend cap exhausted')
             identifier=str(uuid.uuid4())
             db.execute('INSERT INTO inference_reservations VALUES (?,?,?,?,?)',(identifier,self.budget_id,amount,None,time.time()))
+            if job_id is not None:db.execute('INSERT INTO inference_job_reservations VALUES (?,?,?)',(identifier,job_id,amount))
             return identifier
     def record_actual(self,identifier,actual):
+        if not math.isfinite(actual) or actual<0:raise ProviderError('Invalid actual cost')
         with sqlite3.connect(self.path,timeout=5) as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT reserved_usd,actual_usd FROM inference_reservations WHERE id=?',(identifier,)).fetchone()
+            if row is None or actual>row[0]:raise ProviderError('Actual cost outside reservation')
+            if row[1] is not None and row[1]!=actual:raise ProviderError('Conflicting actual cost update')
             db.execute('UPDATE inference_reservations SET actual_usd=? WHERE id=?',(actual,identifier))
 
 

@@ -1,0 +1,34 @@
+{
+  "recorded_at": "2026-10-17T20:01:55.993738+00:00",
+  "command": "PYTHONPATH=backend .venv-agent/bin/pytest -q backend/tests --tb=short",
+  "result": {
+    "passed": 227,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 18.76,
+    "existing_tests": 70,
+    "new_independent_tests": 157
+  },
+  "python": "3.11.17",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "packages": {
+    "pydantic-ai-slim": "2.57.0",
+    "pydantic": "2.14.1",
+    "openai": "3.33.0",
+    "httpx": "0.28.1",
+    "ortools": "9.11.4210",
+    "pytest": "8.4.2"
+  },
+  "implementation_sha256": {
+    "backend/uita/investigator.py": "d1abfe3130c3435a19c29e0123fb49dff1315ac7475c59febd365348bdb6e415",
+    "backend/uita/agent_jobs.py": "c5304784fd44171a965842dda557f1798be62a8045da7b9092cfdb95bec3f577",
+    "backend/uita/agent_provider.py": "31bdacc10fc0682a557db4999939bdefc4fd0a22c07c17e8d9294a2d3d40503a",
+    "backend/uita/agent_contracts.py": "dcfbecf30911c089d61feb62e7ecb4774f27eedf54a718dc66133ef94e731800",
+    "backend/uita/learning.py": "e7b2cc53866e3de6cbd49eab267680ccae672a9244218e62e37c26fe9605e5a3",
+    "backend/uita/planner.py": "7d15aefe107357f628aeefd342d4d74523631c79c2df540cd4fb3d7c318deffe",
+    "backend/uita/storage.py": "a2511c3ce0b47453835a14ad98718f12e2adc4a73a1571f6708678aacbffd3b8",
+    "backend/uita/provider.py": "8bac5249df758166817866afba3fd93ed80132fb3317165a155f2dd601c72998",
+    "backend/uita/app.py": "cb73c8f7d5ad2ac182024c2c3c69d9c30c3d09d8f15a15af4e2f2e7e9907e2ed"
+  },
+  "scope": "Mock inference only; SQLite and local processes; no paid requests; no held-out access"
+}

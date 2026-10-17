@@ -1,0 +1,141 @@
+{
+  "source": "crusoe-live",
+  "purpose": "Explicit new capability experiment with documented native compatibility profile; no failed request replay",
+  "output_mode": "native-json-schema",
+  "events": [
+    {
+      "kind": "discovery",
+      "message": "Authenticated exact-model capabilities checked",
+      "data": {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "supported_parameters": [
+          "background",
+          "cache_salt",
+          "chat_template_kwargs",
+          "conversation",
+          "frequency_penalty",
+          "include",
+          "instructions",
+          "logit_bias",
+          "logprobs",
+          "max_completion_tokens",
+          "max_output_tokens",
+          "max_tokens",
+          "max_tool_calls",
+          "metadata",
+          "min_p",
+          "parallel_tool_calls",
+          "presence_penalty",
+          "previous_response_id",
+          "prompt_cache_key",
+          "reasoning",
+          "reasoning_effort",
+          "repetition_penalty",
+          "response_format",
+          "safety_identifier",
+          "seed",
+          "service_tier",
+          "stop",
+          "stop_sequences",
+          "store",
+          "structured_outputs",
+          "temperature",
+          "thinking",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p",
+          "truncation",
+          "user"
+        ],
+        "rates_usd_per_token": [
+          5.0000000000000004e-08,
+          2.0000000000000002e-07
+        ],
+        "context_length": 262144,
+        "integration_version": "native-crusoe-profile-2",
+        "settings": {
+          "temperature": 0,
+          "output_token_parameter": "max_tokens",
+          "provider_strict_tool_definition": false,
+          "local_pydantic_strict": true,
+          "paid_retries": 0,
+          "thinking_disabled": true
+        }
+      }
+    },
+    {
+      "kind": "inference_reserved",
+      "message": "Paid request reserved before dispatch",
+      "data": {
+        "reservation_id": "c667d85a-92bd-4c23-9cf6-b63aaab73b73",
+        "input_bound": 2680,
+        "output_bound": 1500,
+        "usage": {
+          "calls": 1,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "reserved_usd": 0.00043400000000000003,
+          "cost_usd": 0.0,
+          "cost_estimate_known": false,
+          "ambiguous_requests": 1,
+          "paid_retries": 0,
+          "provider": "Crusoe",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "integration_version": "native-crusoe-profile-2"
+        }
+      }
+    },
+    {
+      "kind": "inference_metadata",
+      "message": "Response envelope inspected without storing model content",
+      "data": {
+        "finish_reason": "stop",
+        "usage": {
+          "prompt_tokens": 307,
+          "total_tokens": 317,
+          "completion_tokens": 10
+        },
+        "status_code": 200
+      }
+    },
+    {
+      "kind": "inference_received",
+      "message": "Complete response usage verified",
+      "data": {
+        "reservation_id": "c667d85a-92bd-4c23-9cf6-b63aaab73b73",
+        "usage": {
+          "calls": 1,
+          "input_tokens": 307,
+          "output_tokens": 10,
+          "reserved_usd": 0.00043400000000000003,
+          "cost_usd": 1.735e-05,
+          "cost_estimate_known": true,
+          "ambiguous_requests": 0,
+          "paid_retries": 0,
+          "provider": "Crusoe",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "integration_version": "native-crusoe-profile-2"
+        }
+      }
+    }
+  ],
+  "status": "failed-no-function-tool",
+  "output": {
+    "status": "ok"
+  },
+  "usage": {
+    "calls": 1,
+    "input_tokens": 307,
+    "output_tokens": 10,
+    "reserved_usd": 0.00043400000000000003,
+    "cost_usd": 1.735e-05,
+    "cost_estimate_known": true,
+    "ambiguous_requests": 0,
+    "paid_retries": 0,
+    "provider": "Crusoe",
+    "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+    "integration_version": "native-crusoe-profile-2"
+  }
+}

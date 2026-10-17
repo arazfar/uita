@@ -95,7 +95,7 @@ def test_readonly_store_does_not_interrupt_live_worker(api):
     assert response.status_code==200,response.text
     job_id=response.json()['id']
     reader=Store(url)
-    assert reader.get('job-'+job_id)['status'] in ('running','complete')
+    assert reader.get('job-'+job_id)['status'] in ('queued','running','complete')
     deadline=time.monotonic()+30
     while time.monotonic()<deadline:
         job=client.get(f'/api/learning/jobs/{job_id}').json()
