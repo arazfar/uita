@@ -30,7 +30,7 @@ export interface FlightsFile {
   flights: Flight[]
 }
 
-/** [t unix s, lon, lat, alt_ft | null, spd_kt | null] */
+/** [UTC unix seconds, lon, lat, reported beacon feet | null, derived knots | null] */
 export type TrackPoint = [number, number, number, number | null, number | null]
 export type TracksFile = Record<string, TrackPoint[]>
 
@@ -89,7 +89,7 @@ export interface KpiCoverage {
 
 export interface KpisFile {
   /** Full-week observation coverage; zero evaluable tracks means unavailable. */
-  coverage?: KpiCoverage
+  coverage: KpiCoverage
   /** sorted by t_start */
   sep_events: SepEvent[]
   /** sorted by t */

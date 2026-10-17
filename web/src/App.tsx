@@ -44,7 +44,7 @@ function Live({ ds, runways, kpis }: Loaded) {
   const compute = useCallback((): Snap => {
     const t = clock.now()
     const day = fmt.dayStart(t)
-    const today = countKinds(ds, day, t)
+    const today = countKinds(ds, day - 1, t)
     const hour = countKinds(ds, t - 3600, t)
     return {
       t,

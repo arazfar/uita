@@ -74,15 +74,6 @@ export function countKinds(ds: Dataset, from: number, to: number) {
   return { arr, dep: b - a - arr }
 }
 
-/** Flights without a track whose op time is in (t - windowSec, t]. */
-export function recentNoTrack(ds: Dataset, t: number, windowSec: number): Flight[] {
-  const out: Flight[] = []
-  for (let i = upperBound(ds.times, t) - 1; i >= lowerBound(ds.times, t - windowSec); i--) {
-    if (!ds.flights[i].has_track || !ds.tracks.has(ds.flights[i].id)) out.push(ds.flights[i])
-  }
-  return out
-}
-
 /** Tracks whose time span contains t. */
 export function activeTracks(ds: Dataset, t: number): CompiledTrack[] {
   const out: CompiledTrack[] = []

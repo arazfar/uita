@@ -2,6 +2,26 @@
 
 A working SFO research simulation: inspect moving traffic, inject disruptions, independently verify reservations, replay checkpoints, and run matched bounded-observation experiments. **Research only; not operational ATC.**
 
+## Historical SFO traffic prototype
+
+The separate `web/` app replays August 3–9, 2026 traffic. It shows available flight
+paths while keeping all 8,439 recorded operations in the feed and roster KPIs.
+
+```sh
+cd web
+bun install --frozen-lockfile
+bun run dev
+```
+
+Open [the SFO replay](http://localhost:5174). Startup regenerates local JSON from
+the tracked source bundles. No database, API key, or paid data source is required.
+The basemap uses internet-hosted CARTO/OpenStreetMap tiles.
+
+The KPI panel includes throughput, arrival schedule offset, runway use, arrival
+spacing, path coverage, and limited safety candidates. Current altitude evidence
+cannot support a go-around count. See [data methods](pipeline/WEB_REPLAY.md),
+[optional ADSB.lol backfill](pipeline/ADSB_LOL.md), and [run and verify](web/README.md).
+
 ## Run locally
 
 Python 3.11 and Node 22 are local/deployment targets. Default execution needs no model credentials.

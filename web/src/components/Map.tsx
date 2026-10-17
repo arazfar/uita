@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import { MapboxOverlay } from '@deck.gl/mapbox'
 import { IconLayer, PathLayer, PolygonLayer, TextLayer } from '@deck.gl/layers'
@@ -104,6 +104,7 @@ function fmtAlt(ft: number): string {
 }
 
 export default function MapView({ ds, clock, runways, selectedId, onSelect }: Props) {
+  const [basemap, setBasemap] = useState<'loading' | 'ready' | 'unavailable'>('loading')
   const el = useRef<HTMLDivElement>(null)
   const selRef = useRef(selectedId)
   const selectRef = useRef(onSelect)
@@ -118,6 +119,12 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
       zoom: 7.4,
       attributionControl: { compact: true },
     })
+    const basemapTimeout = window.setTimeout(() => setBasemap((state) => state === 'loading' ? 'unavailable' : state), 15000)
+    map.on('style.load', () => {
+      window.clearTimeout(basemapTimeout)
+      setBasemap('ready')
+    })
+    map.on('error', () => setBasemap('unavailable'))
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
 
     const overlay = new MapboxOverlay({
@@ -270,6 +277,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
 
     return () => {
       cancelAnimationFrame(raf)
+      window.clearTimeout(basemapTimeout)
       map.remove()
     }
   }, [ds, clock, runways])
@@ -277,6 +285,7 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
   return (
     <div className="map-shell">
       <div ref={el} className="map" role="region" aria-label="SFO tracked flight map" />
+      {basemap !== 'ready' && <div className="map-status" role="status">{basemap === 'loading' ? 'Loading basemap…' : 'Basemap is slow or unavailable. Aircraft paths remain available.'}</div>}
       <div className="map-legend"><span className="legend-arr">● Arrivals</span><span className="legend-dep">● Departures</span><span>Available paths</span></div>
     </div>
   )

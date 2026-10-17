@@ -25,3 +25,4 @@ pipeline/.venv/
 /web/public/data/
 supabase/.temp/
 .venv-agent/
+.e2e/

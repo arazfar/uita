@@ -23,6 +23,7 @@ a { color: var(--arr); text-underline-offset: 3px; }
 .left { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .map { flex: 1; min-height: 240px; position: relative; }
 .map-shell { flex: 1; min-height: 240px; display: flex; position: relative; }
+.map-status { position: absolute; left: 10px; top: 10px; max-width: calc(100% - 65px); padding: 7px 9px; background: #0b0f14e6; border: 1px solid var(--line); border-radius: 4px; color: var(--mute); font-size: 11px; pointer-events: none; }
 .map-legend { position: absolute; left: 10px; bottom: 32px; display: flex; flex-wrap: wrap; gap: 10px; padding: 7px 9px; background: #0b0f14e6; border: 1px solid var(--line); border-radius: 4px; font-size: 10px; color: var(--mute); pointer-events: none; }
 .legend-arr { color: var(--arr); }
 .legend-dep { color: var(--dep); }

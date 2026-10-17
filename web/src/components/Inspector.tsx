@@ -32,7 +32,7 @@ export default function Inspector({ ds, id, t, fmt, onClose }: Props) {
     [flight.kind === 'arr' ? 'Arrival' : 'Departure', `${fmt.day(flight.t)} ${fmt.hms(flight.t)}`],
     ['Track points', track ? track.n.toLocaleString() : 'No map path'],
     ['Reported altitude now', sample && Number.isFinite(sample.alt) ? `${Math.round(sample.alt).toLocaleString()} ft` : '—'],
-    ['Speed now', sample && Number.isFinite(sample.spd) ? `${Math.round(sample.spd)} kt` : '—'],
+    ['Derived speed now', sample && Number.isFinite(sample.spd) ? `${Math.round(sample.spd)} kt` : '—'],
   ]
   if (flight.kind === 'arr' && typeof flight.sched === 'number' && Number.isFinite(flight.sched)) {
     rows.push(['Scheduled arrival', `${fmt.day(flight.sched)} ${fmt.hm(flight.sched)}`])
