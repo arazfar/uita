@@ -83,27 +83,22 @@
   </head>
   <body>
     <div class="loading" id="loading">Loading SFO…</div>
-    <iframe id="dash" title="UITA recorded week" allow="autoplay; microphone"></iframe>
-    <iframe id="sim" title="UITA 3D simulation" hidden allow="autoplay; microphone"></iframe>
+    <iframe id="sim" title="UITA 3D simulation" allow="autoplay; microphone"></iframe>
     <iframe id="cab" title="UITA tower cab" hidden allow="autoplay; microphone"></iframe>
     <div class="switch" role="group" aria-label="View">
-      <button data-view="dash" aria-pressed="true">Recorded week<kbd>T</kbd></button
-      ><button data-view="sim" aria-pressed="false">3D simulation</button
+      <button data-view="sim" aria-pressed="true">3D simulation<kbd>T</kbd></button
       ><button data-view="cab" aria-pressed="false">Tower cab</button>
     </div>
     <script>
-      // Three views, one live at a time: recorded August traffic, the scripted 3D
-      // simulation (same page in simulation mode), and the tower cab. Others load
-      // on first use and are paused + display:none while hidden.
-      const ORDER = ["dash", "sim", "cab"];
+      // Two views, one live at a time: the 3D simulation (with recorded August
+      // traffic) and the tower cab. The hidden one is paused + display:none.
+      const ORDER = ["sim", "cab"];
       const frames = Object.fromEntries(ORDER.map((k) => [k, document.getElementById(k)]));
       const src = {
-        dash: "/candidates/11-photoreal-sfo.html",
         sim: "/candidates/11-photoreal-sfo.html?mode=simulation",
         cab: "/candidates/19-tower-cab-interior.html",
       };
-      const fromHash = { "#sim": "sim", "#cab": "cab" };
-      let view = fromHash[location.hash] || "dash";
+      let view = location.hash === "#cab" ? "cab" : "sim";
       const clearLoading = () => document.getElementById("loading")?.remove();
       for (const k of ORDER) frames[k].hidden = k !== view;
       frames[view].src = src[view];
@@ -126,7 +121,7 @@
         f.focus();
         view = next;
         mark();
-        history.replaceState(null, "", view === "dash" ? location.pathname + location.search : "#" + view);
+        history.replaceState(null, "", view === "sim" ? location.pathname + location.search : "#cab");
       }
       document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
       const toggle = () => show(ORDER[(ORDER.indexOf(view) + 1) % ORDER.length]);
