@@ -14,3 +14,13 @@ output/
 *.log
 .playwright-cli/
 *.tsbuildinfo
+
+.env*
+!.env.example
+dist/
+pipeline/.cache/
+pipeline/.venv/
+.DS_Store
+/data/
+/web/public/data/
+supabase/.temp/
