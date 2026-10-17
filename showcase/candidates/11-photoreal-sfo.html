@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="modulepreload" href="/node_modules/cesium/Build/Cesium/index.js" />
+<link rel="preload" as="script" href="/vendor/cesium/Cesium.js" />
 <title>UITA Tower SFO</title>
-<script>window.CESIUM_BASE_URL = '/node_modules/cesium/Build/Cesium/';</script>
-<link rel="stylesheet" href="/node_modules/cesium/Build/Cesium/Widgets/widgets.css">
+<script>window.CESIUM_BASE_URL = '/vendor/cesium/';</script>
+<link rel="stylesheet" href="/vendor/cesium/Widgets/widgets.css">
 <script src="radio-audio.js?v=3"></script>
 <script src="uita-live.js"></script>
 <style>
@@ -130,11 +130,10 @@ body.details .details{display:block}
 <div id="err" class="panel"></div>
 <div id="credits"></div>
 
+<!-- Local Cesium via /vendor (raw, compressed, cached): no CDN on venue wifi. -->
+<script src="/vendor/cesium/Cesium.js"></script>
 <script type="module">
-// Local Cesium (no CDN on venue wifi). The ESM build is used because the dev server
-// rewrites classic .js from node_modules into modules, which breaks Cesium.js.
-import * as Cesium from '/node_modules/cesium/Build/Cesium/index.js';
-window.Cesium = Cesium;
+const Cesium = window.Cesium;
 (async () => {
 const C = Cesium;
 const LOOP = 90;                 // seconds per scripted loop

@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { extname, resolve } from "node:path";
+import { brotliCompressSync, gzipSync, constants as zc } from "node:zlib";
 import { defineConfig, loadEnv } from "vite";
 
 // Local-only API for the voice loop. Keys stay on the dev server; the browser
@@ -144,6 +145,67 @@ function voiceApi(env) {
           res.setHeader("www-authenticate", 'Basic realm="SkyFlow"');
           res.end("SkyFlow demo: password required");
         });
+      // /vendor/* serves big libraries straight from node_modules: untransformed,
+      // compressed once in memory and cacheable for a year. Vite's dev pipeline
+      // otherwise ships Cesium's 25 MB raw with no-cache on every visit.
+      const VENDOR = {
+        "/vendor/cesium/": resolve("node_modules/cesium/Build/Cesium"),
+        "/vendor/three/": resolve("node_modules/three186"),
+      };
+      const TYPES = {
+        ".js": "text/javascript",
+        ".mjs": "text/javascript",
+        ".css": "text/css",
+        ".json": "application/json",
+        ".wasm": "application/wasm",
+        ".svg": "image/svg+xml",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".glb": "model/gltf-binary",
+        ".ktx2": "image/ktx2",
+        ".xml": "application/xml",
+      };
+      const packed = new Map();
+      server.middlewares.use((req, res, next) => {
+        const prefix = Object.keys(VENDOR).find((k) => req.url.startsWith(k));
+        if (!prefix || req.method !== "GET") return next();
+        const rel = decodeURIComponent(
+          req.url.slice(prefix.length).split("?")[0],
+        );
+        const file = resolve(VENDOR[prefix], rel);
+        if (!file.startsWith(VENDOR[prefix]) || !existsSync(file))
+          return next();
+        const type = TYPES[extname(file)] || "application/octet-stream";
+        const accept = String(req.headers["accept-encoding"] || "");
+        const enc = /\bbr\b/.test(accept)
+          ? "br"
+          : /gzip/.test(accept)
+            ? "gzip"
+            : "";
+        const textual = /text|json|svg|xml|wasm/.test(type);
+        const key = file + "|" + (textual ? enc : "");
+        if (!packed.has(key)) {
+          const raw = readFileSync(file);
+          packed.set(
+            key,
+            !textual || !enc
+              ? raw
+              : enc === "br"
+                ? brotliCompressSync(raw, {
+                    params: { [zc.BROTLI_PARAM_QUALITY]: 5 },
+                  })
+                : gzipSync(raw, { level: 6 }),
+          );
+        }
+        res.setHeader("content-type", type);
+        res.setHeader("cache-control", "public, max-age=31536000, immutable");
+        res.setHeader("access-control-allow-origin", "*");
+        if (textual && enc) {
+          res.setHeader("content-encoding", enc);
+          res.setHeader("vary", "accept-encoding");
+        }
+        res.end(packed.get(key));
+      });
       // Public mode: per-visitor limits on anything that spends money or mutates
       // the shared simulation. Cached clips and GETs stay unlimited.
       if (hosted) {
