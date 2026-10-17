@@ -7,12 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- start every heavy asset at once; the module script picks them up from cache -->
-<link rel="modulepreload" href="/node_modules/three186/build/three.module.js">
-<link rel="modulepreload" href="/node_modules/three186/examples/jsm/loaders/GLTFLoader.js?raw">
-<link rel="modulepreload" href="/node_modules/three186/examples/jsm/loaders/DRACOLoader.js?raw">
-<link rel="modulepreload" href="/node_modules/three186/examples/jsm/utils/BufferGeometryUtils.js?raw">
-<link rel="modulepreload" href="/node_modules/three186/examples/jsm/utils/SkeletonUtils.js?raw">
-<link rel="modulepreload" href="/node_modules/three186/examples/jsm/geometries/RoundedBoxGeometry.js?raw">
+<link rel="modulepreload" href="/vendor/three/build/three.module.js">
+<link rel="modulepreload" href="/vendor/three/build/three.core.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/loaders/GLTFLoader.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/loaders/DRACOLoader.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/utils/BufferGeometryUtils.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/utils/SkeletonUtils.js">
+<link rel="modulepreload" href="/vendor/three/examples/jsm/geometries/RoundedBoxGeometry.js">
 <link rel="preload" as="image" href="sfo-pack/sfo-ortho.jpg" crossorigin="anonymous">
 <link rel="preload" as="image" href="sfo-pack/bay-ortho.jpg" crossorigin="anonymous">
 <link rel="preload" as="fetch" href="sfo-pack/sfo-buildings.glb" crossorigin="anonymous">
@@ -123,15 +124,15 @@
 <script src="radio-audio.js?v=3"></script>
 <script type="importmap">
 { "imports": {
-  "three": "/node_modules/three186/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  "three": "/vendor/three/build/three.module.js",
+  "three/addons/": "/vendor/three/examples/jsm/"
 } }
 </script>
 <script type="module">
-// three 0.186.1 from the local install (works offline). The URL must match the importmap entry so
-// every importer shares one instance. Vite rewrites a bare 'three' inside node_modules files to its
-// bundled 0.170, so addons are loaded as raw source with 'three' pointed at three186 explicitly.
-const T186 = location.origin + '/node_modules/three186/';
+// three 0.186.1 from the /vendor route (raw, compressed, cacheable; no Vite transform). Addons import the
+// bare 'three', which the importmap resolves to this same module URL, so there is one instance.
+// Dynamic imports keep Vite from rewriting these specifiers in this inline script.
+const VENDOR = location.origin + '/vendor/three/';
 // Fire every independent load now, in parallel; consumers await these promises when they need them.
 const getJSON = (u) => fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const getBuf = (u) => fetch(u).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
@@ -142,25 +143,11 @@ const early = {
   glb: Object.fromEntries(Object.entries(GLB).map(([k, u]) => [k, getBuf(u)])),
   mapsKey: fetch('/api/maps-key').then((r) => r.json()).then((j) => j.key || null).catch(() => null),
 };
-const THREE = await import(/* @vite-ignore */ T186 + 'build/three.module.js');
-const addonURLs = new Map();
-function addon(url) {
-  if (!addonURLs.has(url)) addonURLs.set(url, (async () => {
-    let src = (await import(/* @vite-ignore */ url + '?raw')).default;
-    for (const rel of new Set([...src.matchAll(/from\s*['"](\.{1,2}\/[^'"]+\.js)['"]/g)].map((m) => m[1]))) {
-      const blob = await addon(new URL(rel, url).href);
-      src = src.split(`'${rel}'`).join(`'${blob}'`).split(`"${rel}"`).join(`'${blob}'`);
-    }
-    src = src.replace(/from\s*['"]three['"]/g, `from '${T186}build/three.module.js'`);
-    src = src.split('import.meta.url').join(JSON.stringify(url)); // blob: URLs can't resolve relative paths
-    return URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
-  })());
-  return addonURLs.get(url);
-}
-const jsm = async (path) => import(/* @vite-ignore */ await addon(T186 + 'examples/jsm/' + path));
+const THREE = await import(/* @vite-ignore */ VENDOR + 'build/three.module.js');
+const jsm = (path) => import(/* @vite-ignore */ VENDOR + 'examples/jsm/' + path);
 const [{ GLTFLoader }, { DRACOLoader }, { RoundedBoxGeometry }, { mergeGeometries }] = await Promise.all(
   ['loaders/GLTFLoader.js', 'loaders/DRACOLoader.js', 'geometries/RoundedBoxGeometry.js', 'utils/BufferGeometryUtils.js'].map(jsm));
-const draco = new DRACOLoader().setDecoderPath('sfo-pack/vendor/three@0.170.0/addons/libs/draco/gltf/');
+const draco = new DRACOLoader().setDecoderPath('/vendor/three/examples/jsm/libs/draco/gltf/');
 
 const $ = (id) => document.getElementById(id);
 const D2R = Math.PI / 180;
