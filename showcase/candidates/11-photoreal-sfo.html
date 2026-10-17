@@ -96,6 +96,32 @@ body.details .details{display:block}
 #radar canvas{display:block}
 #err{display:none;position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);z-index:30;padding:14px 18px;max-width:420px;font:13px/1.4 var(--sans)}
 #loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;font:600 11px/1 var(--mono);color:var(--mute);letter-spacing:.14em}
+/* flight card + data block (Squawk-style light cards) */
+#fcard{display:none;position:absolute;left:14px;bottom:84px;width:410px;z-index:12;background:rgba(255,255,255,.96);color:#1d2733;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:14px 16px 12px;font:13px/1.35 var(--sans)}
+#fcard .top{display:flex;align-items:baseline;gap:10px}
+#fcCs{font:700 18px/1 var(--sans);letter-spacing:.01em}
+#fcType{color:#66727d;font-size:12px}
+#fcClose{margin-left:auto;background:none;color:#8a949c;padding:2px 4px;font-size:15px}
+#fcClose:hover{background:#eef1f4}
+#fcRoute{color:#4a5560;font-size:12px;margin-top:3px}
+#fcStatus{display:inline-block;margin-top:8px;font:600 11px/1 var(--sans);color:#2b5cff;background:#e9efff;border-radius:999px;padding:5px 9px}
+#fcStatus.emg{color:#c62828;background:#fdeaea}
+#fcGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0 10px}
+#fcGrid i{display:block;font-style:normal;font-size:10px;color:#8a949c;text-transform:uppercase;letter-spacing:.06em}
+#fcGrid b{font:600 15px/1.2 var(--mono)}
+#fcClr{background:#f4f6f8;border-radius:8px;padding:8px 10px;font-size:12px}
+#fcClr .q{color:#2d3843}
+#fcClr .ok{color:#1e8e4e;font:600 11px/1.4 var(--mono);margin-top:3px}
+#fcClr .bad{color:#c62828;font:600 11px/1.4 var(--mono);margin-top:3px}
+#fcSteps{display:flex;list-style:none;margin:12px 0 0;padding:0}
+#fcSteps li{flex:1;position:relative;text-align:center;font-size:10.5px;color:#9aa3aa;padding-top:16px}
+#fcSteps li span{position:absolute;top:0;left:50%;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:#d6dbe0;z-index:1}
+#fcSteps li:not(:first-child)::before{content:"";position:absolute;top:5px;left:-50%;width:100%;height:2px;background:#d6dbe0}
+#fcSteps li.done span,#fcSteps li.done::before,#fcSteps li.cur::before{background:#2b5cff}
+#fcSteps li.done{color:#4a5560}
+#fcSteps li.cur{color:#1d2733;font-weight:700}
+#fcSteps li.cur span{background:#fff;box-shadow:0 0 0 3px #2b5cff}
+#fcTag{display:none;position:absolute;left:0;top:0;z-index:11;pointer-events:none;background:rgba(18,24,30,.86);color:#fff;font:600 11px/1.3 var(--mono);padding:4px 7px;border-radius:5px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -125,6 +151,14 @@ body.details .details{display:block}
   <span class="sep"></span><button id="bZout" title="Zoom out (−)" aria-label="Zoom out">−</button><button id="bZin" title="Zoom in (+)" aria-label="Zoom in">+</button>
   <span class="sep"></span><button id="bCine" class="on" title="Key C">Cinematic</button><button id="resume">Resume cinematic</button><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bDet" title="Key D: strips, radar, labels">Details</button><button id="bBox" title="Key L">Letterbox</button><button id="bPhoto" title="Key G: stream Google Photorealistic 3D Tiles (needs network)">Photoreal (online)</button>
   <span id="camlabel">CINEMATIC</span>
+</div>
+<div id="fcTag"></div>
+<div id="fcard" role="dialog" aria-label="Flight card">
+  <div class="top"><span id="fcCs"></span><span id="fcType"></span><button id="fcClose" aria-label="Close (Esc)">✕</button></div>
+  <div id="fcRoute"></div><span id="fcStatus"></span>
+  <div id="fcGrid"></div>
+  <div id="fcClr"></div>
+  <ol id="fcSteps"></ol>
 </div>
 <div class="lb top"></div><div class="lb bot"></div>
 <div id="err" class="panel"></div>
@@ -176,7 +210,7 @@ try {
   // bay overview under the 1.2 m SFO detail (Mercator rows vs linear latitude: <0.3 m at SFO, ~25 m mid-bay)
   for (const k of ['bay', 'sfo']) {
     const im = pb.images[k], b = im.lonlat_bounds;
-    viewer.imageryLayers.add(C.ImageryLayer.fromProviderAsync(C.SingleTileImageryProvider.fromUrl(PACK + im.file, { rectangle: C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north) })));
+    viewer.imageryLayers.add(C.ImageryLayer.fromProviderAsync(C.SingleTileImageryProvider.fromUrl(PACK + im.file, { rectangle: C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north) }), { rectangle: C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north) })); // layer rectangle clips edge smear
   }
   const o = pb.enu.origin_lonlat; // GLB is ENU metres from the SFO tower, glTF y-up / z = -north
   C.Model.fromGltfAsync({ url: PACK + 'sfo-buildings.glb', modelMatrix: C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(o[0], o[1], 0)), upAxis: C.Axis.Y, forwardAxis: C.Axis.X })
@@ -694,6 +728,7 @@ function preset(n) {
 }
 function pauseCine() {
   if (camMode !== 'cine') return;
+  cineEndedAt = performance.now();
   camMode = 'user'; blend = null; cam.frustum.fov = 60 * D2R; setLabel('FREE CAMERA');
   $('bCine').classList.remove('on'); $('resume').style.display = 'inline-block';
 }
@@ -723,6 +758,7 @@ $('bPhoto').onclick = () => setPhotoreal(!photoreal);
 $('bBox').onclick = () => { letterbox = !letterbox; document.body.classList.toggle('letterbox', letterbox); $('bBox').classList.toggle('on', letterbox); };
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+  if (e.key === 'Escape') return closeCard();
   if (e.key >= '1' && e.key <= '5') preset(+e.key);
   else if (e.key === 'c' || e.key === 'C') $('bCine').onclick();
   else if (e.key === 'l' || e.key === 'L') $('bBox').onclick();
@@ -813,6 +849,7 @@ function liveEntity(a) {
       style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -30), disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 40000) },
   });
   liveEnts.set(a.id, rec);
+  PICK.set(rec.entity, { kind: 'live', ref: rec });
   return rec;
 }
 const liveItems = [];
@@ -874,6 +911,104 @@ $('bPVC').onclick = async () => {
 };
 UitaLive.start({ intervalMs: 1000 });
 
+// ---------- click an aircraft: data block + flight card (Squawk pattern) ----------
+const PICK = new Map(); // entity -> {kind, ref}
+for (const a of airliners) PICK.set(a.entity, { kind: 'air', ref: a });
+for (const f of flights) PICK.set(f.entity, { kind: 'evtol', ref: f });
+let picked = null, cineEndedAt = -1e9;
+const DIG = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+const SPOKEN = { UAL852: 'United eight five two', SWA1255: 'Southwest twelve fifty-five', ASA331: 'Alaska three thirty-one' };
+const spokenOf = cs => SPOKEN[cs] || (cs.startsWith('SKF') ? 'SkyFlow ' + [...cs.slice(3)].map(d => DIG[d]).join(' ') : cs);
+const fmt = n => Math.round(n).toLocaleString('en-US');
+// latest revealed controller call to this aircraft and the readback that followed it
+function clearanceOf(cs) {
+  const sp = spokenOf(cs);
+  for (let i = revealed - 1; i >= 0; i--) {
+    const r = RADIO[i];
+    if (r.plt || !r.txt.startsWith(sp)) continue;
+    const rb = RADIO.slice(i + 1, revealed).find(x => x.plt && x.who === cs);
+    const bad = rb && rb.hb && rb.hb.find(h => h[1]);
+    return { txt: r.txt, check: !rb ? 'awaiting readback' : bad ? `✗ readback mismatch · ${bad[0]}` : '✓ readback matched' + (rb.commit ? ' · committed' : ''), bad: !!bad };
+  }
+  return null;
+}
+const STEPS = { arr: ['Descend', 'Hold', 'Approach', 'Land', 'Vacate'], dep: ['Pushback', 'Taxi', 'Takeoff', 'Climb', 'Handoff'], evtol: ['Request', 'Hold', 'Cleared', 'Airborne', 'Land'] };
+function describe(p) {
+  const t = tNow(), now = clock.currentTime;
+  if (p.kind === 'air') {
+    const a = p.ref, q = a.prof(t), q2 = a.prof(Math.min(a.show[1], t + 0.5)) || q, g = rwyGeo(a.rwy);
+    const v = Math.hypot(q2.s - q.s, (q2.lat || 0) - (q.lat || 0), q2.h - q.h) / 0.5;
+    let step;
+    if (a.kind === 'arr') step = q.h > 1 ? (q.s < -2500 ? 0 : 2) : (q.lat ? 4 : 3);
+    else step = t < 28 ? 1 : q.h < 1 ? 2 : q.h < 400 ? 3 : 4;
+    const st = a.kind === 'arr' ? ['Descending', 'Holding', 'On final', 'Landing roll', 'Vacating'][step] : ['Pushback', 'Line up and wait', 'Takeoff roll', 'Climbing', 'Handoff to departure'][step];
+    return { cs: a.id, type: a.label.split('· ')[1], op: a.kind === 'arr' ? 'Arrival' : 'Departure', route: `Runway ${a.rwy}`, status: st,
+      alt: q.h * 3.281, spd: v * 1.944, hdg: (Math.atan2(g.ux, g.uy) / D2R + 360) % 360, delay: 0, steps: STEPS[a.kind], step, clr: clearanceOf(a.id) };
+  }
+  if (p.kind === 'evtol') {
+    const f = p.ref, m = simMin(), prog = Math.max(0, Math.min(1, (m - f.dep) / f.dur));
+    const step = m < f.dep - 2 ? 0 : m < f.dep - 0.8 ? 1 : m < f.dep ? 2 : m < f.dep + f.dur - 0.8 ? 3 : 4;
+    const a1 = routePoint(f, m), a2 = routePoint(f, m + 0.05);
+    return { cs: f.callsign, type: 'eVTOL', op: f.rerouted ? 'Rerouted (storm)' : 'Scheduled', route: `${f.o} → ${f.d} · ${f.route.join('›')}`, status: ['Requesting', 'Holding on pad', 'Cleared', 'Airborne', 'Landing'][step],
+      alt: step === 3 ? 1500 : step === 4 ? 1500 * (1 - (m - (f.dep + f.dur - 0.8)) / 0.8) : 0, spd: step === 3 ? KMPM * 1000 / 60 * 1.944 : 0,
+      hdg: (Math.atan2((a2[0] - a1[0]) * mPerLon, (a2[1] - a1[1]) * mPerLat) / D2R + 360) % 360, delay: 0, battery: Math.round(96 - 38 * prog),
+      steps: STEPS.evtol, step, clr: clearanceOf(f.callsign) };
+  }
+  const a = p.ref.a, arr = a.op !== 'departure', ps = livePose(a);
+  const s = String(a.status || '').toLowerCase();
+  let step = arr ? (/hold/.test(s) ? 1 : /approach|final/.test(s) ? 2 : /land|roll/.test(s) ? 3 : /taxi|complete|gate/.test(s) ? 4 : 0)
+                 : (/gate|pending|push/.test(s) ? 0 : /taxi/.test(s) ? 1 : /takeoff|roll/.test(s) ? 2 : /complete|handoff/.test(s) ? 4 : 3);
+  return { cs: a.callsign, type: a.type, op: arr ? 'Arrival' : 'Departure', route: `Runway ${a.runway || '—'} · UITA live`, status: a.status + (a.emergency ? ' · EMERGENCY' : ''),
+    alt: ps.alt, spd: a.speedKt, hdg: ps.hdg, delay: (a.delayS || 0) / 60, steps: STEPS[arr ? 'arr' : 'dep'], step, emergency: a.emergency,
+    clr: { txt: `Backend plan · ${a.path && a.path.length ? a.path.length + ' trajectory points' : 'no trajectory'}`, check: 'kernel-verified plan (no voice readback)', bad: false } };
+}
+function renderCard() {
+  if (!picked) return;
+  const gone = picked.kind === 'evtol' ? !picked.ref.visible.getValue(clock.currentTime)
+    : picked.kind === 'live' ? !picked.entity.show : !picked.entity.isAvailable(clock.currentTime);
+  if (gone) return closeCard();
+  const d = describe(picked);
+  $('fcCs').textContent = d.cs; $('fcType').textContent = `${d.type} · ${d.op}`; $('fcRoute').textContent = d.route;
+  $('fcStatus').textContent = d.status; $('fcStatus').classList.toggle('emg', !!d.emergency);
+  const cells = [['Altitude', `${fmt(d.alt)} ft`], ['Speed', `${fmt(d.spd || 0)} kt`], ['Heading', `${String(Math.round(d.hdg || 0) % 360).padStart(3, '0')}°`],
+    d.battery != null ? ['Battery', `${d.battery}%`] : ['Delay', `${(d.delay || 0).toFixed(1)} min`]];
+  $('fcGrid').innerHTML = cells.map(([k, v]) => `<div><i>${k}</i><b>${v}</b></div>`).join('');
+  $('fcClr').innerHTML = d.clr ? `<div class="q">${esc(d.clr.txt)}</div><div class="${d.clr.bad ? 'bad' : 'ok'}">${esc(d.clr.check)}</div>` : '<div class="q">No clearance issued yet</div>';
+  $('fcSteps').innerHTML = d.steps.map((s, i) => `<li class="${i < d.step ? 'done' : i === d.step ? 'cur' : ''}"><span></span>${s}</li>`).join('');
+  $('fcTag').textContent = `${d.cs} / ${d.type} · ${fmt(d.alt)} ft · ${fmt(d.spd || 0)} kt`;
+}
+function selectAircraft(e, chase) {
+  const p = PICK.get(e); if (!p) return closeCard();
+  picked = Object.assign({ entity: e }, p);
+  $('fcard').style.display = 'block'; $('fcTag').style.display = 'block';
+  renderCard();
+  if (!picked) return;
+  if (chase) { viewer.trackedEntity = e; setLabel(`CHASE · ${describe(picked).cs}`); }
+}
+function closeCard() { picked = null; $('fcard').style.display = 'none'; $('fcTag').style.display = 'none'; }
+// selection ring: a hollow screen-space circle that follows the picked aircraft
+viewer.entities.add({
+  position: new C.CallbackProperty(() => picked && picked.entity.position.getValue(clock.currentTime), false),
+  point: { pixelSize: 38, color: C.Color.TRANSPARENT, outlineColor: C.Color.fromCssColorString('#4c7dff'), outlineWidth: 2.5, disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    show: new C.CallbackProperty(() => !!picked, false) },
+});
+viewer.screenSpaceEventHandler.setInputAction(click => {
+  const hit = scene.pick(click.position), e = hit && hit.id;
+  if (e && PICK.has(e)) selectAircraft(e, performance.now() - cineEndedAt < 1500);
+  else closeCard();
+}, C.ScreenSpaceEventType.LEFT_CLICK);
+viewer.screenSpaceEventHandler.removeInputAction(C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+// keep the data block glued to the aircraft
+const w2w = C.SceneTransforms.worldToWindowCoordinates || C.SceneTransforms.wgs84ToWindowCoordinates;
+scene.postRender.addEventListener(() => {
+  if (!picked) return;
+  const pos = picked.entity.position.getValue(clock.currentTime), el = $('fcTag');
+  const w = pos && w2w(scene, pos);
+  if (!w) { el.style.visibility = 'hidden'; return; }
+  el.style.visibility = 'visible'; el.style.transform = `translate(${Math.round(w.x + 24)}px, ${Math.round(w.y - 34)}px)`;
+});
+
+$('fcClose').onclick = closeCard;
 // ---------- main tick ----------
 let lastT = 0, lastHud = -1;
 scene.preRender.addEventListener(() => {
@@ -888,10 +1023,11 @@ scene.preRender.addEventListener(() => {
     renderBanner(nR);
     if (details) renderStrips(t);
     renderScore(t, nR);
+    renderCard();
   }
 });
 
-window.__sky = { viewer, airliners, setPhotoreal, buildings: () => buildings, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
+window.__sky = { viewer, airliners, select: (e, chase) => selectAircraft(e, chase), picked: () => picked && describe(picked), w2w: p => w2w(scene, p), setPhotoreal, buildings: () => buildings, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
 })();
 </script>
 </body>
