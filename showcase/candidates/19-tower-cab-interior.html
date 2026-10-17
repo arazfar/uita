@@ -87,6 +87,32 @@
   #help kbd { display: inline-block; min-width: 54px; color: var(--teal); font: inherit; }
   #help p { margin: 8px 0 0; font: 500 10px system-ui, sans-serif; color: var(--dim); line-height: 1.4; }
   #skyradio-gate { display: none !important; }
+
+  /* aircraft inspector card (click an aircraft or a radar data block) */
+  #card { position: fixed; left: 16px; bottom: 56px; width: 392px; background: rgba(14,17,21,.93); border: 1px solid var(--line);
+    border-radius: 4px; padding: 10px 12px 12px; font: 500 12px "JetBrains Mono", monospace; }
+  #card[hidden] { display: none; }
+  #card .hd { display: flex; align-items: baseline; gap: 8px; }
+  #card .hd b { font-size: 16px; color: var(--teal); }
+  #card .hd span { flex: 1; color: var(--dim); font: 500 13px "Barlow Condensed", sans-serif; letter-spacing: .03em; }
+  #card .hd button { background: none; border: 0; color: var(--dim); font-size: 16px; cursor: pointer; padding: 0 2px; }
+  #card .steps { display: flex; margin: 12px 0 10px; }
+  #card .steps div { flex: 1; position: relative; text-align: center; font: 600 11px "Barlow Condensed", sans-serif; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--dim); }
+  #card .steps div::before { content: ''; position: relative; z-index: 1; display: block; width: 10px; height: 10px; margin: 0 auto 5px;
+    border-radius: 50%; border: 2px solid #4a525c; background: #0e1115; }
+  #card .steps div::after { content: ''; position: absolute; top: 6px; left: -50%; width: 100%; height: 2px; background: #3a4048; }
+  #card .steps div:first-child::after { display: none; }
+  #card .steps .done::before { background: var(--teal); border-color: var(--teal); }
+  #card .steps .done::after, #card .steps .cur::after { background: var(--teal); }
+  #card .steps .cur { color: var(--ink); }
+  #card .steps .cur::before { background: #fff; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(95,212,255,.25); }
+  #card .kv { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 6px; }
+  #card .kv i { display: block; font: 600 10px "Barlow Condensed", sans-serif; font-style: normal; letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
+  #card .kv b { font-size: 13px; white-space: nowrap; }
+  #card .clr { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+  #card .clr .hb { white-space: nowrap; font-weight: 700; }
+  #card .ok { color: var(--ok); } #card .bad { color: var(--bad); } #card .wait { color: var(--amber); }
 </style>
 </head>
 <body>
@@ -103,8 +129,15 @@
   <div><kbd>1–6</kbd>desk · runway · ground · air · strips · agents</div>
   <div><kbd>C</kbd>cinematic on/off</div>
   <div><kbd>G</kbd>photoreal Google tiles (online)</div>
+  <div><kbd>click</kbd>an aircraft or radar tag · <kbd style="min-width:0">Esc</kbd> close</div>
   <div><kbd>space</kbd>pause · <kbd style="min-width:0">R</kbd> restart · <kbd style="min-width:0">M</kbd> sound</div>
   <p>Simulation. Aircraft: “Airplane” Poly by Google, “Boeing 747” Miha Lunar (CC BY 3.0). Airport and buildings © OpenStreetMap contributors (ODbL). Imagery: USGS NAIP (public domain). METAR: NOAA/NWS.</p>
+</div>
+<div id="card" hidden>
+  <div class="hd"><b id="cCs"></b><span id="cSub"></span><button id="cX" title="Close (Esc)">×</button></div>
+  <div class="steps" id="cSteps"></div>
+  <div class="kv" id="cKv"></div>
+  <div class="clr"><span id="cClr"></span><span class="hb" id="cHb"></span></div>
 </div>
 <div id="controls">
   <button id="bPlay" title="Pause (space)">❚❚</button><button id="bRestart" title="Restart (R)">↺</button><button id="bSound" title="Sound (M)">🔈</button>
@@ -646,7 +679,9 @@ function updateActors(visT) {
   const tmp = new THREE.Vector3();
   for (const a of actors) {
     const s = a.fn(visT, a); a.vis = !!s.vis; a.g.visible = a.vis; if (!a.vis) continue;
+    const px = a.pos.x, py = a.pos.y, pz = a.pos.z, dtv = visT - (a.lastT ?? visT); a.lastT = visT;
     a.pos.set(s.x, s.y + groundY, s.z); a.dir.set(s.dx, s.dy, s.dz).normalize(); a.onGround = s.y < 2;
+    if (dtv > 0) a.spd = lerp(a.spd || 0, Math.min(150, Math.hypot(a.pos.x - px, a.pos.y - py, a.pos.z - pz) / dtv), 0.15);
     a.g.position.copy(a.pos); tmp.copy(a.pos).add(a.dir); a.g.lookAt(tmp);
     const L = a.g.userData.lights; const ph = visT + a.phase;
     L.red.visible = ph % 1.2 < 0.12; L.wht.visible = (ph * 1.7) % 1.5 < 0.06; L.land.visible = !a.onGround || a.kind !== 'evtol';
@@ -689,7 +724,8 @@ function resetState() {
   $('score').classList.remove('reveal');
 }
 const strip = (cs) => S.strips.find((s) => s.cs === cs);
-function setBanner(text, sub, cls) { S.banner = { text, sub, cls }; const b = $('banner'); b.className = cls || ''; $('cmd').innerHTML = `<small>${sub}</small>${text}`; }
+const lastClr = {}; // callsign → latest clearance shown on the banner
+function setBanner(text, sub, cls) { S.banner = { text, sub, cls }; { const m = text.match(/^(SKF\d+) /); if (m) lastClr[m[1]] = text; } const b = $('banner'); b.className = cls || ''; $('cmd').innerHTML = `<small>${sub}</small>${text}`; }
 function logLine(who, text, cls = '') { S.log.unshift({ t: clockStr(), who, text, cls }); if (S.log.length > 30) S.log.pop(); }
 
 // ---- radio lines (voice text spells numbers as words) ----
@@ -918,6 +954,7 @@ function drawGround() {
     g.fillStyle = '#fff'; g.fillRect(x - 5, y - 5, 10, 10); }
   g.font = FONT(600, 22);
   for (const p of PARKED) { const [x, y] = grXY(p.x, p.z, W, H); planeGlyph(g, x, y, p.h, 9, '#4fa9e8'); g.fillStyle = '#9a8cf2'; g.fillText(p.cs, x + 10, y - 8); }
+  screens.ground.hits = [];
   for (const a of actors) {
     if (!a.vis || a.pos.y - groundY > 600) continue;
     const [x, y] = grXY(a.pos.x, a.pos.z, W, H); if (x < -50 || x > W + 50 || y < 60 || y > H + 40) continue;
@@ -926,6 +963,8 @@ function drawGround() {
     const air = a.pos.y - groundY > 3;
     g.fillStyle = a.cs === 'SKF412' && S.flags.mismatch ? '#ff5b4f' : air ? '#c9bfff' : '#9a8cf2'; g.font = FONT(700, 24);
     g.fillText(a.tag, x + 14, y - 12);
+    screens.ground.hits.push({ cs: a.cs, x: x - 20, y: y - 38, w: 180, h: 60 });
+    if (a.cs === picked) { g.strokeStyle = '#5fd4ff'; g.lineWidth = 3; g.strokeRect(x - 18, y - 18, 36, 36); }
     if (air) { g.font = FONT(600, 17); g.fillText(String(Math.round((a.pos.y - groundY) * 3.28 / 100)).padStart(3, '0'), x + 14, y + 8); }
   }
   g.restore();
@@ -937,7 +976,7 @@ const arC = P(AR.lon, AR.lat);
 const arXY = (kx, ky, W, H) => [W / 2 + (kx - arC[0] / 1000) * AR.pxkm, 88 + (H - 88) / 2 - (ky + arC[1] / 1000) * AR.pxkm];
 const hist = new Map();
 const BLOCK_OFF = { SKF412: [-190, 46], SKF421: [30, -64], SKF117: [30, 44], SKF122: [-170, 10] };
-let lastHist = -1;
+let lastHist = -1, lastAir = [];
 function drawAir(now) {
   const { ctx: g, w: W, h: H } = screens.air;
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
@@ -972,7 +1011,7 @@ function drawAir(now) {
     g.strokeStyle = pad ? '#d9e1e7' : '#5fd4ff'; g.lineWidth = 2; g.beginPath(); pad ? g.rect(x - 6, y - 6, 12, 12) : g.arc(x, y, 5, 0, 7); g.stroke();
     g.fillStyle = pad ? '#d9e1e7' : '#5fd4ff'; g.font = FONT(700, 15); g.fillText(k, x + 9, y + 18); }
   // traffic
-  const tr = airTraffic();
+  const tr = airTraffic(); lastAir = tr; screens.air.hits = [];
   if (now - lastHist > 0.8) { lastHist = now; for (const f of tr) { const h = hist.get(f.cs) || []; h.push([f.x, f.y]); if (h.length > 6) h.shift(); hist.set(f.cs, h); } }
   for (const f of tr) {
     const [x, y] = arXY(f.x, f.y, W, H);
@@ -988,6 +1027,8 @@ function drawAir(now) {
     g.fillStyle = col; g.font = FONT(700, 22, 'JetBrains Mono'); g.fillText(f.cs + (f.holding ? ' H' : ''), bx, by);
     g.font = FONT(500, 20, 'JetBrains Mono'); g.fillText(`${String(f.alt).padStart(3, '0')} ${String(f.gs * 9 + 6).padStart(3, '0')}`, bx, by + 22);
     if (mism) { g.fillStyle = '#ff5b4f'; g.font = FONT(700, 17); g.fillText(f.cs === 'SKF421' ? 'READBACK ≠ ADDRESSEE' : 'NO VALID READBACK', bx, by + 44); }
+    screens.air.hits.push({ cs: f.cs, x: bx - 6, y: by - 24, w: 172, h: 52 }, { cs: f.cs, x: x - 16, y: y - 16, w: 32, h: 32 });
+    if (f.cs === picked) { g.strokeStyle = '#5fd4ff'; g.lineWidth = 3; g.strokeRect(bx - 6, by - 24, 172, 52); g.strokeRect(x - 14, y - 14, 28, 28); }
   }
   g.restore();
 }
@@ -1138,7 +1179,7 @@ const camState = { yawOffset: () => cur.yaw };
 function goTo(name, dur = 1.5) {
   const p = presets()[name]; if (!p) return; curShot = name;
   tween = { from: { eye: cur.eye.clone(), yaw: cur.yaw, pitch: cur.pitch, fov: cur.fov }, to: p, t0: performance.now(), dur: dur * 1000 };
-  binoOn = name === 'binoc'; $('binoc').classList.toggle('on', binoOn);
+  binoOn = name === 'binoc'; binoTrack = null; $('binoc').classList.toggle('on', binoOn);
 }
 function shot(name) { if (cine) goTo(name); }
 function userTook() { if (cine) { cine = false; $('bCine').classList.remove('on'); } tween = null; }
@@ -1154,6 +1195,11 @@ function applyCamera(now) {
   }
   cab.position.set(0, groundY + CAB_EYE_H - 1.45, 0);
   cab.updateMatrixWorld();
+  if (binoOn && binoTrack && binoTrack.vis) {
+    const t = aimFrom(cur.eye, worldToCab(binoTrack.pos), cur.fov);
+    if (tween) { tween.to.yaw = t.yaw; tween.to.pitch = t.pitch; }
+    else { let dy = t.yaw - cur.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cur.yaw += dy * 0.2; cur.pitch = lerp(cur.pitch, t.pitch, 0.2); }
+  }
   camera.position.copy(cab.localToWorld(cur.eye.clone()));
   const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(cur.pitch, cur.yaw, 0, 'YXZ'));
   camera.quaternion.copy(cab.quaternion).multiply(q);
@@ -1162,13 +1208,25 @@ function applyCamera(now) {
 }
 // input
 let drag = null;
-canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); userTook(); });
+let down = null;
+canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; down = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); userTook(); });
 canvas.addEventListener('pointermove', (e) => { if (!drag) return; const k = (cur.fov / 60) * 0.0042; cur.yaw += (e.clientX - drag.x) * k; cur.pitch = clamp(cur.pitch + (e.clientY - drag.y) * k, -1.2, 0.6); drag = { x: e.clientX, y: e.clientY }; });
-canvas.addEventListener('pointerup', () => (drag = null));
+canvas.addEventListener('pointerup', (e) => { drag = null; if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) pick(pickAt(e.clientX, e.clientY)); down = null; });
 const zoom = (f) => { userTook(); cur.fov = clamp(cur.fov * f, 5, 75); };
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); zoom(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
 const keyMap = { 1: 'desk', 2: 'runway', 3: 'ground', 4: 'air', 5: 'tablet', 6: 'side' };
-function toggleBino() { userTook(); if (binoOn) goTo(prevShot || 'desk', 0.8); else { prevShot = curShot === 'binoc' ? 'runway' : curShot; goTo('binoc', 0.8); } }
+function toggleBino() {
+  userTook();
+  if (binoOn) { binoTrack = null; return goTo(prevShot || 'desk', 0.8); }
+  prevShot = curShot === 'binoc' ? 'runway' : curShot;
+  const a = picked && actors.find((x) => x.cs === picked && x.vis);
+  if (!a) return goTo('binoc', 0.8);
+  // zoom toward the picked aircraft and keep it centred
+  binoTrack = a; curShot = 'binoc';
+  const eye = new THREE.Vector3(0, 1.78, -0.72);
+  tween = { from: { eye: cur.eye.clone(), yaw: cur.yaw, pitch: cur.pitch, fov: cur.fov }, to: aimFrom(eye, worldToCab(a.pos), a.kind === 'evtol' ? 5 : 8), t0: performance.now(), dur: 800 };
+  binoOn = true; $('binoc').classList.add('on');
+}
 let prevShot = 'desk';
 addEventListener('keydown', (e) => {
   if ((e.key === 't' || e.key === 'T') && !e.repeat) { if (window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); return; }
@@ -1177,6 +1235,7 @@ addEventListener('keydown', (e) => {
   else if (e.key === 'c' || e.key === 'C') setCine(!cine);
   else if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'r' || e.key === 'R') restart();
+  else if (e.key === 'Escape') pick(null);
   else if (e.key === '?' || e.key === '/') toggleHelp();
   else if ((e.key === 'g' || e.key === 'G') && !e.repeat) setPhotoreal(!photoreal);
   else if (e.key === 'm' || e.key === 'M') toggleSound();
@@ -1196,6 +1255,94 @@ $('bSound').onclick = toggleSound;
 document.addEventListener('skyradio:enabled', syncSound); syncSound();
 
 // ================= main loop =================
+// ================= pick & inspect =================
+const INFO = {
+  UAL900: { type: 'B744', op: 'United', route: 'RWY 28R · TRUKN2', life: 'dep', clr: 'UAL900 RWY 28R CLEARED FOR TAKEOFF' },
+  AAL173: { type: 'A321', op: 'American', route: 'ILS 28L', life: 'arr', clr: 'AAL173 RWY 28L CLEARED TO LAND' },
+  UAL1210: { type: 'B738', op: 'United', route: 'TWY C → RWY 01R', life: 'dep', clr: 'UAL1210 TAXI 01R VIA C' },
+  CPA873: { type: 'B744', op: 'Cathay Pacific', route: 'TWY A → GATE', life: 'arr', clr: 'CPA873 TAXI TO GATE VIA A' },
+};
+const LIFE = { arr: ['Descend', 'Hold', 'Approach', 'Land', 'Vacate'], dep: ['Pushback', 'Taxi', 'Takeoff', 'Climb', 'Handoff'], evtol: ['Request', 'Hold', 'Cleared', 'Airborne', 'Land'] };
+const STATUS = { arr: ['Descending', 'In the hold', 'On approach', 'Landing roll', 'Vacating'], dep: ['Pushback', 'Taxiing', 'Takeoff roll', 'Climbing', 'Handed off'], evtol: ['Requesting', 'Holding', 'Cleared', 'Airborne', 'Landing'] };
+const DELAY = { SKF412: 1.8, SKF421: 3.1, SKF117: 2.4, SKF122: 0.6 };
+let picked = null, binoTrack = null;
+const infoFor = (cs) => INFO[cs] || { type: 'EV4', op: 'UITA SkyFlow', route: strip(cs)?.rt || (cs === 'SKF119' || cs === 'SKF127' ? 'W–SFO corridor' : '—'), life: 'evtol' };
+function lifeStep(a, f, info) {
+  if (a) {
+    const agl = a.pos.y - groundY, spd = a.spd || 0;
+    if (info.life === 'evtol') {
+      if (a.cs === 'SKF122') return agl > 75 ? 3 : 4;
+      if (evState[a.cs] == null && agl < 2) return strip(a.cs)?.hb === 'wait' ? 0 : strip(a.cs)?.hb === 'ok' ? 2 : 1;
+      return agl < 2 ? 2 : 3;
+    }
+    if (info.life === 'dep') return a.cs === 'UAL1210' ? 1 : agl > 400 ? 4 : agl > 2 ? 3 : 2;
+    return a.cs === 'CPA873' ? 4 : agl > 250 ? 0 : agl > 2 ? 2 : spd > 25 ? 3 : 4;
+  }
+  if (f.holding) return 1;
+  if (f.alt > 0) return 3;
+  return strip(f.cs)?.hb === 'wait' ? 0 : strip(f.cs)?.hb === 'ok' ? 2 : 1;
+}
+function pick(cs) {
+  picked = cs || null; $('card').hidden = !picked;
+  if (picked) $('help').classList.remove('on');
+  hl.visible = false; renderCard();
+}
+function renderCard() {
+  if (!picked) return;
+  const a = actors.find((x) => x.cs === picked && x.vis), f = lastAir.find((x) => x.cs === picked);
+  if (!a && !f) return pick(null);
+  const info = infoFor(picked), step = lifeStep(a, f, info), st = strip(picked);
+  const alt = a ? Math.max(0, Math.round((a.pos.y - groundY) * 3.28)) : f.alt * 100;
+  const kt = a ? Math.round((a.spd || 0) * 1.944) : f.gs ? f.gs * 9 + 6 : 0;
+  const hdg = a ? Math.atan2(a.dir.x, -a.dir.z) : Math.atan2(f.hx, f.hy);
+  const delay = DELAY[picked] && simMin() > STORM[0] ? DELAY[picked] : 0;
+  const status = info.life === 'dep' && step === 2 && kt < 3 ? 'Lined up' : info.life === 'evtol' && step === 4 && alt < 5 ? 'On pad' : STATUS[info.life][step];
+  $('cCs').textContent = picked;
+  $('cSub').textContent = `${info.type} · ${info.op} · ${info.route}`;
+  $('cSteps').innerHTML = LIFE[info.life].map((n, i) => `<div class="${i < step ? 'done' : i === step ? 'cur' : ''}">${n}</div>`).join('');
+  $('cKv').innerHTML = [['Status', status], ['Alt', alt ? alt.toLocaleString() + ' ft' : 'GND'], ['Speed', kt + ' kt'],
+    ['Hdg', String(Math.round(((hdg / D2R) + 360) % 360)).padStart(3, '0') + '°'], ['Delay', delay ? '+' + delay.toFixed(1) + 'm' : '0']]
+    .map(([k, v]) => `<div><i>${k}</i><b>${v}</b></div>`).join('');
+  const clr = lastClr[picked] || info.clr || 'No clearance yet';
+  const hb = st?.hb || (info.clr ? 'ok' : '');
+  $('cClr').textContent = clr;
+  $('cHb').className = 'hb ' + (hb === 'ok' ? 'ok' : hb === 'bad' ? 'bad' : hb === 'wait' ? 'wait' : '');
+  $('cHb').textContent = hb === 'ok' ? '✓ readback' : hb === 'bad' ? '✗ ' + (st?.note || 'mismatch') : hb === 'wait' ? '… awaiting readback' : '';
+}
+// corner-bracket highlight around the picked aircraft outside the window
+const hl = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  g.strokeStyle = '#5fd4ff'; g.lineWidth = 5;
+  for (const [x, y, sx, sy] of [[3, 3, 1, 1], [61, 3, -1, 1], [3, 61, 1, -1], [61, 61, -1, -1]]) { g.beginPath(); g.moveTo(x, y + 16 * sy); g.lineTo(x, y); g.lineTo(x + 16 * sx, y); g.stroke(); }
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false, depthTest: false, transparent: true, fog: false }));
+  s.scale.setScalar(0.05); s.renderOrder = 10; s.visible = false; scene.add(s); return s;
+})();
+function updatePick() {
+  const a = picked && actors.find((x) => x.cs === picked && x.vis);
+  hl.visible = !!a; if (a) hl.position.copy(a.pos).add(new THREE.Vector3(0, a.kind === 'evtol' ? 3 : 8, 0));
+}
+const ndc = new THREE.Vector2(), rc = new THREE.Raycaster();
+function pickAt(cx, cy) {
+  const r = canvas.getBoundingClientRect(), x = cx - r.left, y = cy - r.top;
+  ndc.set((x / r.width) * 2 - 1, -(y / r.height) * 2 + 1); rc.setFromCamera(ndc, camera);
+  // monitors sit in front of the window: a click on a radar picks its data block (or nothing)
+  const hit = rc.intersectObjects([screens.ground.mesh, screens.air.mesh, screens.tablet.mesh, screens.side.mesh, screens.log.mesh], false)[0];
+  if (hit) {
+    const sc = hit.object === screens.ground.mesh ? screens.ground : hit.object === screens.air.mesh ? screens.air : null;
+    if (!sc) return null;
+    const px = hit.uv.x * sc.w, py = (1 - hit.uv.y) * sc.h;
+    return (sc.hits || []).find((h) => px >= h.x && px <= h.x + h.w && py >= h.y && py <= h.y + h.h)?.cs || null;
+  }
+  // aircraft outside: nearest on screen within 32 px (models are only a few pixels at 2 km)
+  let best = null, bd = 32; const v = new THREE.Vector3();
+  for (const a of actors) {
+    if (!a.vis) continue; v.copy(a.pos); v.y += 4; v.project(camera); if (v.z > 1) continue;
+    const d = Math.hypot((v.x + 1) / 2 * r.width - x, (1 - v.y) / 2 * r.height - y); if (d < bd) { bd = d; best = a.cs; }
+  }
+  return best;
+}
+$('cX').onclick = () => pick(null);
+
 let last = performance.now(), visT = 0, frame = 0, rayT = 0, lastDraw = -1, halted = false, extPause = false;
 const ray = new THREE.Raycaster();
 function refineGround(now) {
@@ -1214,11 +1361,11 @@ function loop() {
   // storm visuals
   const sl = stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
   corrLines['C-E'].material.color.setHex(ceClosed() ? 0xff4a3d : 0x5fd4ff); corrLines['C-E'].material.opacity = ceClosed() ? 0.5 + 0.4 * Math.abs(Math.sin(ns * 3)) : 0.35;
-  applyCamera(ns);
+  applyCamera(ns); updatePick();
   // screens: redraw at ~10 fps
   if (ns - lastDraw >= 0.1) {
     const sdt = Math.min(0.5, ns - lastDraw); lastDraw = ns;
-    drawGround(); drawAir(ns); drawTablet(ns, sdt); drawSide(ns); drawLog(ns);
+    drawGround(); drawAir(ns); drawTablet(ns, sdt); drawSide(ns); drawLog(ns); renderCard();
     for (const k in screens) screens[k].tex.needsUpdate = true;
   }
   // HUD
@@ -1242,7 +1389,7 @@ addEventListener('message', (e) => {
   else if (e.data?.skyflow === 'resume') { extPause = false; setHalted(); }
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
-window.__sky = { S, presets, goTo, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors };
+window.__sky = { S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 loop();
 runLoop();
