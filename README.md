@@ -2,6 +2,8 @@
 
 A working SFO research simulation: inspect moving traffic, inject disruptions, independently verify reservations, replay checkpoints, and run matched bounded-observation experiments. **Research only; not operational ATC.**
 
+Frontend design agents must read [DESIGN.md](DESIGN.md), the canonical Tempelhof-inspired visual contract for both frontend applications.
+
 ## Historical SFO traffic prototype
 
 The separate `web/` app replays August 3–9, 2026 traffic. It shows available flight

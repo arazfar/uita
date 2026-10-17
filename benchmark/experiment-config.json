@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "deferred_by_user; compare existing models instead",
+  "fine_tuning_authorized": false,
+  "experiment": "uita-historical-order-sft-2026-10-17",
+  "training_model": "ftmodel-6c22bf52-fb65-4bd5-94c4-736f0a7d33f0",
+  "training_model_name": "crusoeai/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-07292026",
+  "inference_reference_model": "nvidia/Nemotron-3.5-Lightning-30B-A3B",
+  "immutable_base_equivalence": "unverified; no fine-tuning gain claim across these aliases",
+  "source_data_directory": "benchmark/data",
+  "reviewed_export_directory": "benchmark/artifacts/training/export",
+  "training_usd_per_million_tokens": 0.4,
+  "training_reservation_cap_usd": 2.0,
+  "max_runtime_seconds": 3600,
+  "seed": 17,
+  "hyperparameters": {
+    "n_epochs": 1,
+    "batch_size": 16,
+    "learning_rate": 0.00005,
+    "lora_rank": 8,
+    "lora_alpha": 16,
+    "lora_dropout": 0.05,
+    "lora_variant": "lora",
+    "early_stopping_patience": 2,
+    "eval_steps_per_epoch": 4,
+    "checkpoint_steps": 20,
+    "warmup_ratio": 0.05,
+    "lr_scheduler": "cosine",
+    "overlong_row_behavior": "error"
+  },
+  "dates": {
+    "train": ["2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06"],
+    "validation": ["2026-08-07"],
+    "sealed_test": ["2026-08-08", "2026-08-09"]
+  },
+  "sources": {
+    "api": "https://docs.crusoecloud.com/api/managed-ai/",
+    "training": "https://docs.crusoecloud.com/serverless-fine-tuning/fine-tune-a-model/index.html",
+    "pricing": "https://www.crusoe.ai/cloud/pricing",
+    "serving": "https://docs.crusoecloud.com/self-serve-deployments/overview/index.html"
+  }
+}

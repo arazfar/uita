@@ -1,0 +1,67 @@
+{
+  "benchmark_version": "historical-arrival-sequence-v1",
+  "primary_task": "historical_recorded_operation_order_prediction",
+  "primary_target_provenance": "recorded_operation_order_not_authentic_ATC_commands",
+  "source_database": "pipeline/build/sfo.duckdb",
+  "source_query": "SELECT e.flight_id, e.spawn_time, e.position, e.groundspeed_kt, e.track_deg_true,\n       e.altitude_provenance, e.aircraft_type, CAST(e.local_date AS VARCHAR) AS local_date,\n       e.split, a.t AS operation_time\nFROM entries e JOIN arrivals a ON e.flight_id = a.id\nWHERE e.local_date BETWEEN DATE '2026-08-03' AND DATE '2026-08-07'\n  AND a.local_date BETWEEN DATE '2026-08-03' AND DATE '2026-08-07'\n  AND e.position_provenance = 'observed'\nORDER BY e.local_date, e.spawn_time, e.flight_id",
+  "source_rows_sha256": "40c4b0765b7280da4ac2c28bc20d42cb13044649e49f46af9455df19f041d338",
+  "source_observed_entry_rows": 1485,
+  "split_dates": {
+    "train": [
+      "2026-08-03",
+      "2026-08-04",
+      "2026-08-05",
+      "2026-08-06"
+    ],
+    "validation": [
+      "2026-08-07"
+    ]
+  },
+  "test_policy": "August 8\u20139 sealed; no scenario/outcome rows queried or evaluated",
+  "grouping": "non-overlapping pairs in entry-time order; max entry age 300 seconds; historical completion and tied timestamps screened",
+  "aliases": "SHA256-seeded shuffle independent of operation timestamp; candidate list shuffled separately",
+  "features": "last-known observed entry positions, not interpolated current positions; only beacon heights retained, all inferred heights null",
+  "free_flow": "max(0, great-circle distance/observed groundspeed*3600-observation_age)",
+  "excluded": {
+    "unpaired_or_stale_entry": 215,
+    "feature_bounds": 6
+  },
+  "artifacts": {
+    "train.jsonl": {
+      "sha256": "ee1821c0be23007dca4f1ab4042297886552a5a6fb15ba10f2bfb11332fe7254",
+      "bytes": 586138,
+      "cases": 488,
+      "independent_encounters": 488,
+      "aircraft": 976,
+      "per_day": {
+        "2026-08-03": 129,
+        "2026-08-04": 116,
+        "2026-08-05": 113,
+        "2026-08-06": 130
+      }
+    },
+    "validation.jsonl": {
+      "sha256": "bcbcb8d74ba3f54d65f82945c7ce231bdc9e91c31ef980fd586e5cb16f600b11",
+      "bytes": 170075,
+      "cases": 141,
+      "independent_encounters": 141,
+      "aircraft": 282,
+      "per_day": {
+        "2026-08-07": 141
+      }
+    }
+  },
+  "frozen_code": {
+    "core.py": "9b18d15e6e9af86004d6a26e14a5515b0dd772020370a17c63c41e6a082e99d9",
+    "build.py": "888a7c50a8ca04ba88f5d1e8c21d1326f383ec62f70f3148a611dea11931003f"
+  },
+  "limits": [
+    "Pairs are a narrow ordering task, not full ATC.",
+    "Aircraft do not repeat between encounters.",
+    "Encounter independence does not create independent traffic days.",
+    "No authentic human controller decisions or measured human safety/delay scores.",
+    "Input snapshots include only first usable observed entry, with age up to 300 seconds.",
+    "Known past arrivals screen inactive members; operation order after snapshot supplies labels only.",
+    "Secondary scheduling metrics use synthetic direct-to-airport dynamics and simplified wake spacing."
+  ]
+}

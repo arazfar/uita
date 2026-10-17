@@ -1,10 +1,10 @@
-# Uita frontend visual contract
+# Uita frontend implementation notes
 
-Mode: Operate, with the 3D simulation as the primary inspection surface. Pinned brief: precise aviation instrument, dark navy, cyan and amber, restrained compact controls. The runway configuration and flight state are backend data; the environment is schematic.
+The canonical visual contract is [../DESIGN.md](../DESIGN.md). Read it before frontend design work. It replaces the earlier navy-and-cyan direction recorded here. The notes below describe existing implementation details, not target visual tokens.
 
-Typography: locally served DM Sans Variable for interface and IBM Plex Mono for coordinates, timestamps, labels and measurements. Display tracking -0.035em; body 11–14px, operational data 9–12px; desktop interface intentionally dense but essential flight content has a table alternative.
+Mode: Operate, with the 3D simulation as the primary inspection surface. The runway configuration and flight state are backend data; the environment is schematic.
 
-Tokens: background #111f2a; panel #14232f; foreground #dbe8ed; secondary #8fa7b5; rules #2a3b48; active cyan #8adadd; caution amber #e9b578. Elevation uses an offset diffuse navy shadow. Controls use 5px corners, drawers 10px, overlays 12px. Focus uses a visible 2px pale cyan outline with 4px offset. Selection and browser scrollbars share the palette.
+Current fonts: locally served DM Sans Variable for interface and IBM Plex Mono for operational values. Use the root contract for target typography, size, and color decisions.
 
 Composition: 70px identity/status header; full available 3D world with 332px operations inspector; 121px transport/reservations/replay strip; 29px research and connection status. Inspector tabs hold traffic, verified decisions, and bounded learning. Below 700px, world and inspector stack and the transport stays available in document flow. The scene has an accessible traffic table. Aircraft, runway, and camera controls are named buttons. Reduced-motion users receive immediate server-position updates and no CSS animation.
 

@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "checks": [
+    "artifact/code hashes",
+    "date boundaries",
+    "source disjointness",
+    "unique public prompts",
+    "source identity exclusion",
+    "all-case scripted/oracle/historical schedules"
+  ],
+  "splits": {
+    "train": {
+      "cases": 488,
+      "aircraft": 976,
+      "scripted_historical_pairwise_agreement": 0.6454918032786885,
+      "scripted_modeled_delay_seconds_sum": 5350.72,
+      "scripted_backlog": 0
+    },
+    "validation": {
+      "cases": 141,
+      "aircraft": 282,
+      "scripted_historical_pairwise_agreement": 0.6453900709219859,
+      "scripted_modeled_delay_seconds_sum": 1514.756,
+      "scripted_backlog": 0
+    }
+  }
+}
