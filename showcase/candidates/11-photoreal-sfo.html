@@ -420,7 +420,7 @@ if (RECORDED) {
 // ---------- recorded traffic layer: real ADS-B week replayed inside the simulation ----------
 // /uita/api/history (ADSB.lol, ODbL). Replaces the scripted airliners; falls back to them if the API fails.
 const REC = { ok: false, hour: 0, acc: 0, data: new Map(), ents: new Map(), lastWall: 0, pick: null };
-const REC_RATE = 20, REC_KM = 60;
+const REC_RATE = 20, REC_KM = 150; // whole Bay: SFO, OAK, SJC and far-out arrivals/departures
 const HEAVY_RE = /^(B77|B74|A35|B78|A38|A34|B76|MD11)/;
 const recFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 function recWindow(start) {
@@ -459,8 +459,9 @@ function recEntity(f) {
   r.entity = viewer.entities.add({
     position: new C.CallbackProperty(pos, false),
     orientation: new C.CallbackProperty(() => { const p = pos(); return p && C.Transforms.headingPitchRollQuaternion(p, new C.HeadingPitchRoll(((r.st.trk || 0) - 90 + (yawFix[uri] ?? 0)) * D2R, 0, 0)); }, false),
-    model: { uri, scale: heavy ? 46 : 0.4, minimumPixelSize: 22, maximumScale: 4000 },
-    label: callsignLabel(new C.CallbackProperty(() => r.st ? r.st.cs : '', false), { show: nearOrPicked(() => r.entity, () => pos()) }),
+    model: { uri, scale: heavy ? 46 : 0.4, minimumPixelSize: 24, maximumScale: 4000 },
+    label: callsignLabel(new C.CallbackProperty(() => r.st ? r.st.cs : '', false), { font: '600 11px Inter,-apple-system,sans-serif', pixelOffset: new C.Cartesian2(0, -22),
+      show: new C.CallbackProperty(() => !!r.labelOn || (picked && picked.entity === r.entity), false) }),
   });
   REC.ents.set(f.id, r);
   if (REC.pick) REC.pick(r);
@@ -481,10 +482,57 @@ function recTick() {
     if (Math.hypot((st.lon - SFO_LL[0]) * mPerLon, (st.lat - SFO_LL[1]) * mPerLat) > REC_KM * 1000) continue;
     const r = recEntity(f); r.f = f; r.st = st; r.entity.show = true; seen.add(f.id);
   }
-  if (win) for (const [id, r] of REC.ents) if (!seen.has(id)) { r.entity.show = false; r.st = null; }
+  if (win) for (const [id, r] of REC.ents) if (!seen.has(id)) { r.entity.show = false; r.st = null; r.labelOn = false; }
+  if (win && w - (REC.lastSlow || 0) > 250) { REC.lastSlow = w; recSlow(t, ws, win); } // trails + label declutter, 4x/s
   $('recchip').textContent = `REC · ${recFmt.format(new Date(t * 1000))} PDT · ADS-B`;
 }
 const SFO_LL = [-122.375, 37.618];
+// Trails: one PolylineCollection, rebuilt at most 4x/s. Last ~8 min of track, plus a 2-min projected dash.
+const recLines = scene.primitives.add(new C.PolylineCollection());
+const trailMat = {};
+for (const [k, c, a] of [['arr', '#5fd4ff', 0.75], ['dep', '#ffb547', 0.75], ['ovr', '#d7dde2', 0.45], ['gnd', '#ffffff', 0.18]]) {
+  trailMat[k] = C.Material.fromType('Color', { color: C.Color.fromCssColorString(c).withAlpha(a) });
+  trailMat[k + 'Dash'] = C.Material.fromType('PolylineDash', { color: C.Color.fromCssColorString(c).withAlpha(a), dashLength: 10 });
+}
+const recH = (alt, gnd) => gnd ? GROUND + 1 : Math.max(GROUND, alt * 0.3048 + VOFF);
+function recSlow(t, ws, win) {
+  recLines.removeAll();
+  const prev = REC.data.get(ws - 900), pw = prev && prev.value;
+  const prevById = pw ? (pw._byId ||= new Map(pw.flights.map(f => [f.id, f]))) : null;
+  const camPos = viewer.camera.positionWC, cand = [];
+  for (const r of REC.ents.values()) {
+    if (!r.st) continue;
+    const st = r.st, cls = st.gnd ? 'gnd' : st.vs < -300 ? 'arr' : st.vs > 300 ? 'dep' : 'ovr';
+    const pts = [];
+    const add = f => { if (!f) return; for (const p of f.points) if (p[0] >= t - 480 && p[0] <= t && Number.isFinite(p[1])) pts.push(p); };
+    if (prevById) add(prevById.get(r.f.id));
+    add(r.f);
+    const pos = pts.map(p => C.Cartesian3.fromDegrees(p[2], p[1], recH(p[3] ?? st.alt, p[6] === true)));
+    const now = C.Cartesian3.fromDegrees(st.lon, st.lat, recH(st.alt, st.gnd));
+    pos.push(now);
+    if (pos.length > 1) recLines.add({ positions: pos, width: cls === 'gnd' ? 1 : 1.6, material: trailMat[cls] });
+    if (!st.gnd && st.gs > 60) { // projected 2 min ahead along track
+      const d = st.gs * 0.5144 * 120, h = st.trk * D2R;
+      const ahead = C.Cartesian3.fromDegrees(st.lon + Math.sin(h) * d / mPerLon, st.lat + Math.cos(h) * d / mPerLat, recH(Math.max(0, st.alt + st.vs * 2), false));
+      recLines.add({ positions: [now, ahead], width: 1.4, material: trailMat[cls + 'Dash'] });
+    }
+    // label priority: airborne first, then closest to the camera
+    const dc = C.Cartesian3.distance(now, camPos);
+    if (st.gnd && dc > 8000) { r.labelOn = false; continue; } // ground traffic only labelled up close (declutters SFO/OAK at overview)
+    cand.push([dc, r]);
+  }
+  cand.sort((a, b) => a[0] - b[0]);
+  cand.forEach(([, r], i) => { r.labelOn = i < 40; });
+}
+// Bay Area airports: always-visible pins
+for (const [code, lon, lat] of [['SFO', -122.375, 37.619], ['OAK', -122.221, 37.721], ['SJC', -121.929, 37.363], ['HWD', -122.122, 37.659],
+  ['PAO', -122.115, 37.461], ['SQL', -122.249, 37.512], ['CCR', -122.057, 37.990], ['NUQ', -122.049, 37.415]]) {
+  viewer.entities.add({
+    position: C.Cartesian3.fromDegrees(lon, lat, 30),
+    point: { pixelSize: 7, color: C.Color.fromCssColorString('#ffffff'), outlineColor: C.Color.fromCssColorString('#2b5cff'), outlineWidth: 2.5, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+    label: callsignLabel(code, { font: '700 11px Inter,-apple-system,sans-serif', fillColor: C.Color.fromCssColorString('#cfe0ff'), backgroundColor: C.Color.fromCssColorString('rgba(20,40,90,0.78)'), pixelOffset: new C.Cartesian2(0, 16) }),
+  });
+}
 (async function initRec(attempt = 0) {
   try {
     const cat = await (await fetch('/uita/api/history/catalog', { signal: AbortSignal.timeout(20000) })).json();
@@ -805,7 +853,7 @@ const flightBy = cs => flights.find(f => f.callsign === cs);
 const at3 = (lonlat, h) => C.Cartesian3.fromDegrees(lonlat[0], lonlat[1], h);
 const STORM_C = at3(mid, cAlt), OAK_PAD = at3(NODES.OAK, GROUND + 10), BAY_C = at3([-122.34, 37.735], 0);
 const PRESETS = {
-  1: { name: 'OVERVIEW · SFO', pose: () => orbitPose(SFO_C, 330, -32, 5500) },
+  1: { name: 'OVERVIEW · BAY', pose: () => orbitPose(at3([-122.16, 37.60], 0), 345, -55, 76000) }, // SFO, OAK, SJC and all recorded routes
   2: { name: 'TOWER CAB · SFO', pose: () => ({ eye: towerEye(), hdg: 94, pitch: -4.5 }) }, // down 28L/R toward the thresholds
   3: { name: 'CHASE', chase: true },
   4: { name: 'STORM · C–E', pose: () => orbitPose(STORM_C, 25, -24, 9000) },
