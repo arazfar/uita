@@ -1,0 +1,161 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "airport": "KSFO",
+        "runway_pair": "01L/19R",
+        "length_ft": 7650.0,
+        "width_ft": 200.0,
+        "surface": "ASPH",
+        "effective_date": "2026-10-01",
+        "historical_open_status": "not established by static NASR"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.38323454960788,
+              37.60802514911885
+            ],
+            [
+              -122.37091545960787,
+              37.62660864911885
+            ],
+            [
+              -122.37030336039213,
+              37.62635407088115
+            ],
+            [
+              -122.38262245039213,
+              37.60777057088115
+            ],
+            [
+              -122.38323454960788,
+              37.60802514911885
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "airport": "KSFO",
+        "runway_pair": "01R/19L",
+        "length_ft": 8650.0,
+        "width_ft": 200.0,
+        "surface": "ASPH",
+        "effective_date": "2026-10-01",
+        "historical_open_status": "not established by static NASR"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.38134679599715,
+              37.60645717456553
+            ],
+            [
+              -122.36741687599715,
+              37.62746948456553
+            ],
+            [
+              -122.36680478400285,
+              37.62721489543447
+            ],
+            [
+              -122.38073470400285,
+              37.60620258543447
+            ],
+            [
+              -122.38134679599715,
+              37.60645717456553
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "airport": "KSFO",
+        "runway_pair": "10L/28R",
+        "length_ft": 11870.0,
+        "width_ft": 200.0,
+        "surface": "ASPH",
+        "effective_date": "2026-10-01",
+        "historical_open_status": "not established by static NASR"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.39323009256185,
+              37.62898069298071
+            ],
+            [
+              -122.35697934256186,
+              37.61377558298071
+            ],
+            [
+              -122.35730287743814,
+              37.61329163701929
+            ],
+            [
+              -122.39355362743814,
+              37.62849674701929
+            ],
+            [
+              -122.39323009256185,
+              37.62898069298071
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "airport": "KSFO",
+        "runway_pair": "10R/28L",
+        "length_ft": 11381.0,
+        "width_ft": 200.0,
+        "surface": "ASPH",
+        "effective_date": "2026-10-01",
+        "historical_open_status": "not established by static NASR"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.39294366472392,
+              37.62653307969304
+            ],
+            [
+              -122.35818738472392,
+              37.61195390969304
+            ],
+            [
+              -122.35851093527609,
+              37.611469970306956
+            ],
+            [
+              -122.39326721527608,
+              37.626049140306954
+            ],
+            [
+              -122.39294366472392,
+              37.62653307969304
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

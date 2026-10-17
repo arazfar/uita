@@ -71,6 +71,7 @@ def main():
     WEB.mkdir(parents=True, exist_ok=True)
     (WEB / "flights.json").write_text(json.dumps(dict(week=week, flights=flights), separators=(",", ":")) + "\n")
     (WEB / "tracks.json").write_text(json.dumps(tracks, separators=(",", ":")) + "\n")
+    (WEB / "runways.geojson").write_text((HERE / "runways.geojson").read_text())
     n = lambda k: sum(f["kind"] == k for f in flights)
     h = lambda k: sum(f["kind"] == k and f["has_track"] for f in flights)
     print(f"flights: {n('arr')} arr ({h('arr')} tracked) + {n('dep')} dep ({h('dep')} tracked); unique ids OK")
