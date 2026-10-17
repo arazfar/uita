@@ -2,6 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://tile.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SkyFlow Control</title>
     <style>
@@ -91,7 +94,10 @@
       const frames = { dash: document.getElementById("dash"), cab: document.getElementById("cab") };
       const src = { dash: "11-photoreal-sfo.html", cab: "19-tower-cab-interior.html" };
       let view = "dash";
-      frames.dash.addEventListener("load", () => document.getElementById("loading").remove(), { once: true });
+      // The dashboard shows its own tile progress; never hold the whole page behind ours.
+      const clearLoading = () => document.getElementById("loading")?.remove();
+      frames.dash.addEventListener("load", clearLoading, { once: true });
+      setTimeout(clearLoading, 1500);
       function show(next) {
         if (next === view) return;
         const prev = frames[view];
