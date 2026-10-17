@@ -301,7 +301,8 @@ function voiceApi(env) {
           }
           const r = await fetch(
             backend.replace(/\/$/, "") +
-              req.url.slice("/uita".length),
+              // The server now mounts recorded history under /uita itself.
+              (req.url.startsWith("/uita/api/history/") ? req.url : req.url.slice("/uita".length)),
             { method: req.method, headers, body },
           );
           res.statusCode = r.status;

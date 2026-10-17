@@ -75,6 +75,10 @@ body.rec #live,body.rec #simtag{display:none!important}
 #cambar .ib:hover{background:rgba(255,255,255,.12)}
 #cambar .ib.on{background:var(--accent);color:#1b1408}
 #cambar .ib[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:42px;left:50%;transform:translateX(-50%);white-space:nowrap;font:500 11px/1 var(--sans);color:#fff;background:rgba(14,18,22,.9);padding:5px 8px;border-radius:6px;pointer-events:none}
+#speedbar{position:absolute;z-index:10;left:254px;bottom:36px;display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(14,18,22,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 18px rgba(0,0,0,.25)}
+#speedbar button{height:34px;min-width:40px;padding:0 9px;border-radius:999px;background:transparent;color:#d9dee2;font:600 12px/1 var(--mono)}
+#speedbar button:hover{background:rgba(255,255,255,.12)}
+#speedbar button.on{background:var(--accent);color:#1b1408}
 #more{display:none;position:absolute;left:150px;bottom:44px;min-width:180px;padding:6px;border-radius:12px;background:rgba(255,255,255,.97);box-shadow:0 10px 30px rgba(0,0,0,.3)}
 #more.open{display:block}
 #more button{display:flex;justify-content:space-between;width:100%;background:none;color:#1d2733;font:500 12.5px/1 var(--sans);padding:8px 10px;border-radius:7px;text-align:left}
@@ -177,6 +181,9 @@ body.details .details{display:block}
   </div>
   <span id="camlabel" hidden></span>
 </div>
+<div id="speedbar" role="radiogroup" aria-label="Simulation speed">
+  <button data-speed="1" role="radio" title="Real time · [ / ]">1×</button><button data-speed="5" role="radio" title="5× · [ / ]">5×</button><button data-speed="10" role="radio" title="10× · [ / ]">10×</button><button data-speed="20" role="radio" title="20× · [ / ]">20×</button><button data-speed="60" role="radio" title="60× · [ / ]">60×</button>
+</div>
 <div id="fcTag"></div>
 <div id="fcard" role="dialog" aria-label="Flight card">
   <div class="top"><span id="fcCs"></span><span id="fcType"></span><button id="fcClose" aria-label="Close (Esc)">✕</button></div>
@@ -200,7 +207,11 @@ let details = false; // declared early: labels built before the recorded-mode re
 const LOOP = 90;                 // seconds per scripted loop
 // Scripted mock scenario (eVTOL fleet, corridors, storm, radio/agent script, scripted airliners) is off by default; ?mock=1 restores it.
 const MOCK = new URLSearchParams(location.search).get('mock') === '1';
-const SIMRATE = 0.85;            // sim minutes per wall second (eVTOL timeline)
+const SIMRATE = 0.85;            // sim minutes per scripted-clock second (eVTOL timeline)
+// One global speed. 1x = recorded ADS-B in real time. The scripted scenario (eVTOLs, radio,
+// agents, storm) is tuned to play as designed at 10x, so its clock runs at speed / 10.
+const SPEEDS = [1, 5, 10, 20, 60];
+let speed = (() => { const v = +new URLSearchParams(location.search).get('speed'); return SPEEDS.includes(v) ? v : 10; })();
 const GEOID = -32.2;             // EGM96 undulation at SFO (m): ellipsoid = MSL + GEOID
 // Offline pack: imagery on the bare ellipsoid, so ground = 0 and MSL heights are used as-is.
 // Photoreal (G): ellipsoidal heights, ground refined by sampling the tiles.
@@ -323,7 +334,7 @@ const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');
 const T1 = C.JulianDate.addSeconds(T0, LOOP, new C.JulianDate());
 const clock = viewer.clock;
 clock.startTime = T0.clone(); clock.stopTime = T1.clone(); clock.currentTime = T0.clone();
-clock.clockRange = C.ClockRange.LOOP_STOP; clock.multiplier = 1; clock.shouldAnimate = true;
+clock.clockRange = C.ClockRange.LOOP_STOP; clock.multiplier = speed / 10; clock.shouldAnimate = true;
 const at = s => C.JulianDate.addSeconds(T0, s, new C.JulianDate());
 const tNow = () => C.JulianDate.secondsDifference(clock.currentTime, T0);
 
@@ -427,7 +438,7 @@ if (RECORDED) {
 // ---------- recorded traffic layer: real ADS-B week replayed inside the simulation ----------
 // /uita/api/history (ADSB.lol, ODbL). Replaces the scripted airliners; falls back to them if the API fails.
 const REC = { ok: false, hour: 0, acc: 0, data: new Map(), ents: new Map(), lastWall: 0, pick: null };
-const REC_RATE = 20, REC_KM = 150; // whole Bay: SFO, OAK, SJC and far-out arrivals/departures
+const REC_KM = 150; // whole Bay: SFO, OAK, SJC and far-out arrivals/departures
 // Show a stable ~30% sample of recorded flights (by ICAO id hash), so the scene
 // stays readable; ?rec=1 shows all.
 const REC_SHARE = Number(new URLSearchParams(location.search).get('rec')) || 0.3;
@@ -481,10 +492,13 @@ function recEntity(f) {
 function recTick() {
   if (!REC.ok) return;
   const w = performance.now(), dt = REC.lastWall ? Math.min(0.25, (w - REC.lastWall) / 1000) : 0; REC.lastWall = w;
-  if (!extPaused && !userPaused) REC.acc += dt * REC_RATE;
+  if (!extPaused && !userPaused) REC.acc += dt * speed;
   const t = recNow(), off = t - REC.hour, ws = REC.hour + Math.floor(off / 900) * 900;
   const cur = recWindow(ws);
-  if (off % 900 > 600) recWindow(off + 900 >= 3600 ? REC.hour : ws + 900); // prefetch next (loops within the hour)
+  // prefetch ahead by wall time (~25 s of playback), so 20-60x never outruns the slow history API; loops within the hour
+  const nextOf = s0 => (s0 + 900 - REC.hour >= 3600 ? REC.hour : s0 + 900);
+  if (900 - (off % 900) < Math.max(300, speed * 25)) recWindow(nextOf(ws));
+  if (speed >= 40) recWindow(nextOf(nextOf(ws)));
   const win = cur.value;
   const seen = new Set();
   if (win) for (const f of win.flights) {
@@ -496,7 +510,7 @@ function recTick() {
   }
   if (win) for (const [id, r] of REC.ents) if (!seen.has(id)) { r.entity.show = false; r.st = null; r.labelOn = false; }
   if (win && w - (REC.lastSlow || 0) > 250) { REC.lastSlow = w; recSlow(t, ws, win); } // trails + label declutter, 4x/s
-  $('recchip').textContent = `REC · ${recFmt.format(new Date(t * 1000))} PDT · ADS-B`;
+  $('recchip').textContent = `REC · ${recFmt.format(new Date(t * 1000))} PDT · ${speed}×`;
 }
 const SFO_LL = [-122.375, 37.618];
 // Trails: one PolylineCollection, rebuilt at most 4x/s. Last ~8 min of track, plus a 2-min projected dash.
@@ -991,6 +1005,14 @@ $('bZin').onclick = () => zoom(1); $('bZout').onclick = () => zoom(-1);
 $('bCine').onclick = () => camMode === 'cine' ? pauseCine() : resumeCine();
 $('bDet').onclick = () => { details = !details; document.body.classList.toggle('details', details); $('bDet').classList.toggle('on', details); lastStripKey = ''; };
 $('bPhoto').onclick = () => setPhotoreal(!photoreal);
+function setSpeed(v) {
+  speed = v;
+  clock.multiplier = speed / 10; // scripted scenario; the recorded replay reads `speed` directly
+  document.querySelectorAll('#speedbar [data-speed]').forEach(b => { const on = +b.dataset.speed === speed; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  const u = new URL(location.href); u.searchParams.set('speed', speed); history.replaceState(null, '', u);
+}
+document.querySelectorAll('#speedbar [data-speed]').forEach(b => b.onclick = () => setSpeed(+b.dataset.speed));
+setSpeed(speed);
 const moreEl = $('more');
 $('bMore').onclick = e => { e.stopPropagation(); const o = moreEl.classList.toggle('open'); $('bMore').setAttribute('aria-expanded', o); $('bMore').classList.toggle('on', o); };
 moreEl.addEventListener('click', e => { if (e.target.closest('button')) { moreEl.classList.remove('open'); $('bMore').classList.remove('on'); $('bMore').setAttribute('aria-expanded', false); } });
@@ -1003,6 +1025,7 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'c' || e.key === 'C') $('bCine').onclick();
   else if (e.key === 'l' || e.key === 'L') $('bBox').onclick();
   else if (e.key === 'g' || e.key === 'G') $('bPhoto').onclick();
+  else if (e.key === '[' || e.key === ']') setSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + (e.key === ']' ? 1 : -1)))]);
   else if (e.key === 'd' || e.key === 'D') $('bDet').onclick();
   else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ uita: 'toggle' }, '*'); // app.html view switch
   else if (e.key === '+' || e.key === '=') zoom(1);
@@ -1292,7 +1315,7 @@ scene.preRender.addEventListener(() => {
   }
 });
 
-window.__sky = { rec: REC, viewer, airliners, select: (e, chase) => selectAircraft(e, chase), picked: () => picked && describe(picked), w2w: p => w2w(scene, p), setPhotoreal, buildings: () => buildings, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
+window.__sky = { rec: REC, setSpeed, speed: () => speed, viewer, airliners, select: (e, chase) => selectAircraft(e, chase), picked: () => picked && describe(picked), w2w: p => w2w(scene, p), setPhotoreal, buildings: () => buildings, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
 })();
 </script>
 </body>
