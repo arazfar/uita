@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "dataset_id": "sfo-historical-closed-loop-validation-2026-08-07-v1",
+  "artifacts": 6,
+  "bytes": 228796,
+  "artifact_names": [
+    "manifest.json",
+    "outcomes.json",
+    "protocol.json",
+    "results.json",
+    "validation-traffic.json",
+    "verification.json"
+  ],
+  "episodes": 6,
+  "controllers": 3,
+  "source_spawns_per_controller": 136,
+  "controller_flight_outcomes": 408,
+  "all_server_checksums_verified": true,
+  "all_downloaded_bytes_verified": true,
+  "contains_final_test_data": false,
+  "verified_at_utc": "2026-10-17T22:44:54.066928+00:00"
+}

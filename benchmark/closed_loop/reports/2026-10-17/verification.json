@@ -1,66 +1,45 @@
 {
   "passed": true,
-  "safe_historical_development_plan_passes": true,
-  "unsafe_proposal_rejected": true,
-  "executed_unsafe_motion_detected": true,
-  "test_split_rejected": true,
-  "private_field_rejected": true,
-  "negative_control_findings": {
-    "separation_violation_episodes": 1,
-    "runway_violation_episodes": 1,
-    "surface_violation_episodes": 1,
-    "wake_violations": 1,
-    "performance_violations": 0,
-    "checked_segment_pairs": 16,
-    "minimum_lateral_nm_when_vertical_under_1000_ft": 0.0,
-    "findings": {
-      "separation": [
-        {
-          "aircraft": [
-            "A001",
-            "A002"
-          ],
-          "interval": [
-            1177.0,
-            1472.9552992069214
-          ]
-        }
-      ],
-      "runway": [
-        {
-          "aircraft": [
-            "A001",
-            "A002"
-          ],
-          "interval": [
-            1457,
-            1656
-          ]
-        }
-      ],
-      "surface": [
-        {
-          "aircraft": [
-            "A001",
-            "A002"
-          ],
-          "interval": [
-            1622,
-            1706
-          ]
-        }
-      ],
-      "wake": [
-        {
-          "aircraft": [
-            "A001",
-            "A002"
-          ],
-          "gap_seconds": 0
-        }
-      ],
-      "performance": []
-    },
-    "scope": "Existing fixed synthetic approach, shared runway and taxi resource; upstream feeder/queue not safety-modeled"
-  }
+  "verification_kind": "independent_complete_matrix_causal_replay",
+  "verifier_sha256": "be15986de37e6baa7006f7a893bb5d2f69b6981933a0af989bad159abcebc117",
+  "worker_sha256": "e9d51c8b801a1c0fcec91f60fa2f85ee6f7c8b71981579fa4a221883bbf741ec",
+  "artifacts": {
+    "plan.json": "dd9b856ca8591ba25d9eef94c29f5934523ce86bdd8cbcbb8e65cea503c6f6e1",
+    "runs.json": "cd21f40f19258edf97e0b7cc032256ddc2654b641dec93eb21db56884a1792cc",
+    "summary.json": "dd946930ad6a5d80da8fbc9eed6ae7ef8b8003b9ea26d956dfb7435321f30fc1"
+  },
+  "counts": {
+    "episodes": 6,
+    "controller_episode_results": 18,
+    "source_arrival_operations_per_controller": 136,
+    "replayed_decisions": 249,
+    "selected_ai_decisions": 83,
+    "raw_audit_records": 87,
+    "duplicate_same_payload_records": 4,
+    "unique_audit_request_ids": 83
+  },
+  "checks": [
+    "frozen source/runtime/data checksums",
+    "complete matched matrix",
+    "causal traffic and weather replay",
+    "strict raw AI request/response binding",
+    "ordered action decoding",
+    "optimizer feasibility and recorded objective",
+    "independent verification before every commit",
+    "immutable admitted motion",
+    "executed safety and all-demand delay replay",
+    "controller aggregates and inference accounting"
+  ],
+  "negative_qa": [
+    "unsafe commit rejected without mutation",
+    "executed separation/runway/surface/wake detection",
+    "two exact conflict intervals remain separate",
+    "future-known public aircraft rejected"
+  ],
+  "limits": [
+    "No provider requests were made during verification.",
+    "August 8\u20139 were not opened or evaluated.",
+    "Anytime optimizer output is checked, not assumed globally optimal or re-solved identically.",
+    "AI results include recorded checked fallbacks; feeder and upstream queue safety remain outside scope."
+  ]
 }
