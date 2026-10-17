@@ -2,13 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<link rel="preconnect" href="https://tile.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SkyFlow Tower SFO</title>
-<script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="modulepreload" href="/node_modules/cesium/Build/Cesium/index.js" />
+<title>UITA Tower SFO</title>
+<script>window.CESIUM_BASE_URL = '/node_modules/cesium/Build/Cesium/';</script>
+<link rel="stylesheet" href="/node_modules/cesium/Build/Cesium/Widgets/widgets.css">
 <script src="radio-audio.js?v=3"></script>
 <script src="uita-live.js"></script>
 <style>
@@ -102,11 +100,11 @@ body.details .details{display:block}
 </head>
 <body>
 <div id="cesium"></div>
-<div id="loading">STREAMING PHOTOREALISTIC 3D TILES…</div>
+<div id="loading">LOADING SFO MAP PACK…</div>
 
-<div id="banner" class="panel"><div class="meta"><span id="bfreq">SFO TWR 120.500</span><span id="clk">T+00:00</span><span id="stormflag">C–E CLOSED</span><span class="sp"></span><span id="simtag">SIMULATION</span><span id="live">● LIVE · Uita server</span></div><div id="bmsg">Standing by.</div></div>
+<div id="banner" class="panel"><div class="meta"><span id="bfreq">SFO TWR 120.500</span><span id="clk">T+00:00</span><span id="stormflag">C–E CLOSED</span><span class="sp"></span><span id="simtag">UITA · SIMULATION</span><span id="live">● LIVE · UITA server</span></div><div id="bmsg">Standing by.</div></div>
 
-<div id="feedp" class="panel"><div class="ph"><span>Radio · agents <i id="txlive"></i></span><b id="feedcount"></b></div><div class="feed" id="feed"></div><button id="bPVC" disabled title="Live Uita server required">Agents propose → Kernel verify → Commit</button></div>
+<div id="feedp" class="panel"><div class="ph"><span>Radio · agents <i id="txlive"></i></span><b id="feedcount"></b></div><div class="feed" id="feed"></div><button id="bPVC" disabled title="Live UITA server required">Agents propose → Kernel verify → Commit</button></div>
 
 <div id="score" class="panel">
   <div class="c"><div class="v good"><span id="sAgent">0</span><small id="sAgentDen">/28</small></div><div class="k" id="k1">On time · agents</div></div>
@@ -125,33 +123,40 @@ body.details .details{display:block}
   <span class="sep"></span>
   <button data-preset="1" title="Key 1">1 Overview</button><button data-preset="2" title="Key 2">2 Tower</button><button data-preset="3" title="Key 3: chase the selected flight (click one to select)">3 Chase</button><button data-preset="4" title="Key 4">4 Storm</button><button data-preset="5" title="Key 5">5 OAK pad</button>
   <span class="sep"></span><button id="bZout" title="Zoom out (−)" aria-label="Zoom out">−</button><button id="bZin" title="Zoom in (+)" aria-label="Zoom in">+</button>
-  <span class="sep"></span><button id="bCine" class="on" title="Key C">Cinematic</button><button id="resume">Resume cinematic</button><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bDet" title="Key D: strips, radar, labels">Details</button><button id="bBox" title="Key L">Letterbox</button>
+  <span class="sep"></span><button id="bCine" class="on" title="Key C">Cinematic</button><button id="resume">Resume cinematic</button><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bDet" title="Key D: strips, radar, labels">Details</button><button id="bBox" title="Key L">Letterbox</button><button id="bPhoto" title="Key G: stream Google Photorealistic 3D Tiles (needs network)">Photoreal (online)</button>
   <span id="camlabel">CINEMATIC</span>
 </div>
 <div class="lb top"></div><div class="lb bot"></div>
 <div id="err" class="panel"></div>
 <div id="credits"></div>
 
-<script>
+<script type="module">
+// Local Cesium (no CDN on venue wifi). The ESM build is used because the dev server
+// rewrites classic .js from node_modules into modules, which breaks Cesium.js.
+import * as Cesium from '/node_modules/cesium/Build/Cesium/index.js';
+window.Cesium = Cesium;
 (async () => {
 const C = Cesium;
 const LOOP = 90;                 // seconds per scripted loop
 const SIMRATE = 0.85;            // sim minutes per wall second (eVTOL timeline)
 const GEOID = -32.2;             // EGM96 undulation at SFO (m): ellipsoid = MSL + GEOID
-let GROUND = 4 + GEOID;          // SFO field elevation, refined by sampling tiles
+// Offline pack: imagery on the bare ellipsoid, so ground = 0 and MSL heights are used as-is.
+// Photoreal (G): ellipsoidal heights, ground refined by sampling the tiles.
+let GROUND = 0, VOFF = 0;
 const D2R = Math.PI / 180;
 
 // ---------- viewer ----------
-let key = null;
-try { key = (await (await fetch('/api/maps-key')).json()).key; } catch (e) {}
 const viewer = new C.Viewer('cesium', {
-  globe: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
+  globe: new C.Globe(C.Ellipsoid.WGS84), baseLayer: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
   navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
   infoBox: false, selectionIndicator: false, creditContainer: document.getElementById('credits'),
   skyAtmosphere: new C.SkyAtmosphere(), msaaSamples: 1, shadows: false, targetFrameRate: 30,
 });
 const scene = viewer.scene;
 scene.skyAtmosphere.show = true;
+scene.globe.baseColor = C.Color.fromCssColorString('#1b3a4c');
+scene.globe.showGroundAtmosphere = false;
+scene.globe.depthTestAgainstTerrain = false;
 scene.fog.enabled = false;
 scene.postProcessStages.fxaa.enabled = false;
 viewer.resolutionScale = Math.min(devicePixelRatio, 1.25) / devicePixelRatio;
@@ -161,25 +166,56 @@ let extPaused = false, wasAnim = true;
 const SFO_C = C.Cartesian3.fromDegrees(-122.375, 37.64, 0);
 { const p = orbitPose(SFO_C, 300, -34, 16000); scene.camera.setView({ destination: p.eye, orientation: { heading: p.hdg * D2R, pitch: p.pitch * D2R, roll: 0 } }); }
 scene.backgroundColor = C.Color.fromCssColorString('#9fb8cc');
-viewer.creditDisplay.addStaticCredit(new C.Credit('Aircraft models: “Airplane” by Poly by Google (CC BY 3.0) · “Boeing 747” by Miha Lunar (CC BY 3.0) · ADS-B: The OpenSky Network · Map data © OpenStreetMap contributors · <b>Simulation</b>', true));
+viewer.creditDisplay.addStaticCredit(new C.Credit('Aircraft models: “Airplane” by Poly by Google (CC BY 3.0) · “Boeing 747” by Miha Lunar (CC BY 3.0) · ADS-B: The OpenSky Network · Imagery: USGS NAIP · Buildings and map data © OpenStreetMap contributors · <b>Simulation</b>', true));
 
-let tileset = null;
-if (key) {
-  C.GoogleMaps.defaultApiKey = key;
-  try {
-    tileset = await C.createGooglePhotorealistic3DTileset({ onlyUsingWithGoogleGeocoder: true }, { maximumScreenSpaceError: 24, skipLevelOfDetail: true, preloadFlightDestinations: true, foveatedScreenSpaceError: true, dynamicScreenSpaceError: true, cacheBytes: 256 * 1024 * 1024, showCreditsOnScreen: true });
-  } catch (e) {
-    console.warn('createGooglePhotorealistic3DTileset failed, using direct URL', e);
-    tileset = await C.Cesium3DTileset.fromUrl(`https://tile.googleapis.com/v1/3dtiles/root.json?key=${key}`, { maximumScreenSpaceError: 24, skipLevelOfDetail: true, preloadFlightDestinations: true, foveatedScreenSpaceError: true, dynamicScreenSpaceError: true, cacheBytes: 256 * 1024 * 1024, showCreditsOnScreen: true });
+// ---------- base map: offline SFO pack (default) · Google photoreal opt-in (G) ----------
+const PACK = 'sfo-pack/';
+const hideLoading = () => { document.getElementById('loading').style.display = 'none'; };
+let buildings = null, tileset = null, photoreal = false;
+try {
+  const pb = await (await fetch(PACK + 'bounds.json')).json();
+  // bay overview under the 1.2 m SFO detail (Mercator rows vs linear latitude: <0.3 m at SFO, ~25 m mid-bay)
+  for (const k of ['bay', 'sfo']) {
+    const im = pb.images[k], b = im.lonlat_bounds;
+    viewer.imageryLayers.add(C.ImageryLayer.fromProviderAsync(C.SingleTileImageryProvider.fromUrl(PACK + im.file, { rectangle: C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north) })));
   }
-  scene.primitives.add(tileset);
-  // hold the scripted loop at T+0 until the first view has streamed in
-  const hideLoading = () => { if (document.getElementById('loading').style.display === 'none') return; document.getElementById('loading').style.display = 'none'; if (extPaused) wasAnim = true; else viewer.clock.shouldAnimate = true; };
-  tileset.initialTilesLoaded.addEventListener(hideLoading); tileset.allTilesLoaded.addEventListener(hideLoading); setTimeout(hideLoading, 4000);
-} else {
+  const o = pb.enu.origin_lonlat; // GLB is ENU metres from the SFO tower, glTF y-up / z = -north
+  C.Model.fromGltfAsync({ url: PACK + 'sfo-buildings.glb', modelMatrix: C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(o[0], o[1], 0)), upAxis: C.Axis.Y, forwardAxis: C.Axis.X })
+    .then(m => { buildings = m; m.show = !photoreal; scene.primitives.add(m); m.readyEvent.addEventListener(hideLoading); })
+    .catch(e => console.warn('buildings GLB failed', e));
+} catch (e) { console.warn('SFO pack failed', e); }
+setTimeout(hideLoading, 3000);
+
+async function setPhotoreal(on) {
   const err = document.getElementById('err');
-  err.style.display = 'block';
-  err.textContent = 'Google Maps key unavailable (GET /api/maps-key failed). Overlays run; photoreal tiles need the dev server on :5190.';
+  if (on && !tileset) {
+    try {
+      const key = (await (await fetch('/api/maps-key')).json()).key;
+      C.GoogleMaps.defaultApiKey = key;
+      const opts = { maximumScreenSpaceError: 24, skipLevelOfDetail: true, preloadFlightDestinations: true, foveatedScreenSpaceError: true, dynamicScreenSpaceError: true, cacheBytes: 256 * 1024 * 1024, showCreditsOnScreen: true };
+      try { tileset = await C.createGooglePhotorealistic3DTileset({ onlyUsingWithGoogleGeocoder: true }, opts); }
+      catch (e) { tileset = await C.Cesium3DTileset.fromUrl(`https://tile.googleapis.com/v1/3dtiles/root.json?key=${key}`, opts); }
+      scene.primitives.add(tileset);
+    } catch (e) {
+      err.style.display = 'block'; err.textContent = 'Photoreal tiles unavailable (no key or no network). Staying on the offline SFO pack.';
+      setTimeout(() => { err.style.display = 'none'; }, 4000);
+      return;
+    }
+  }
+  photoreal = on;
+  if (tileset) tileset.show = on;
+  scene.globe.show = !on;
+  if (buildings) buildings.show = !on;
+  GROUND = on ? 4 + GEOID : 0; VOFF = on ? GEOID : 0;
+  for (const a of airliners) a.pos = buildAirliner(a);
+  $('bPhoto').classList.toggle('on', on);
+  if (on) setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
+    try {
+      const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
+      const [r] = await scene.sampleHeightMostDetailed([c]);
+      if (photoreal && r && Number.isFinite(r.height) && Math.abs(r.height - GROUND) < 25) { GROUND = r.height; for (const a of airliners) a.pos = buildAirliner(a); }
+    } catch (e) { console.warn('height sample failed', e); }
+  }, 6000);
 }
 
 // ---------- clock ----------
@@ -187,7 +223,7 @@ const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');
 const T1 = C.JulianDate.addSeconds(T0, LOOP, new C.JulianDate());
 const clock = viewer.clock;
 clock.startTime = T0.clone(); clock.stopTime = T1.clone(); clock.currentTime = T0.clone();
-clock.clockRange = C.ClockRange.LOOP_STOP; clock.multiplier = 1; clock.shouldAnimate = !tileset;
+clock.clockRange = C.ClockRange.LOOP_STOP; clock.multiplier = 1; clock.shouldAnimate = true;
 const at = s => C.JulianDate.addSeconds(T0, s, new C.JulianDate());
 const tNow = () => C.JulianDate.secondsDifference(clock.currentTime, T0);
 
@@ -280,7 +316,7 @@ for (const a of airliners) {
 yawFix['assets/boeing747-mihalunar/model.glb'] = 180;
 yawFix['assets/airplane-google/model.glb'] = 0;
 
-// ---------- SkyFlow network ----------
+// ---------- UITA eVTOL network (fleet callsign "SkyFlow") ----------
 const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
   W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
 const EDGES = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
@@ -393,7 +429,7 @@ function bgPos(b, t) {
 }
 for (const b of bg.slice(0, 40)) {
   viewer.entities.add({
-    position: new C.CallbackProperty(() => { const p = bgPos(b, tNow()); return C.Cartesian3.fromDegrees(p[0], p[1], p[2] + GEOID); }, false),
+    position: new C.CallbackProperty(() => { const p = bgPos(b, tNow()); return C.Cartesian3.fromDegrees(p[0], p[1], p[2] + VOFF); }, false),
     point: { pixelSize: 5, color: C.Color.fromCssColorString('#d7dde2'), outlineColor: C.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
     label: { show: new C.CallbackProperty(() => details, false), text: b.cs, font: '10px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#c8d0d6'), outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE,
       pixelOffset: new C.Cartesian2(8, 0), horizontalOrigin: C.HorizontalOrigin.LEFT, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 30000), disableDepthTestDistance: Number.POSITIVE_INFINITY },
@@ -404,21 +440,21 @@ for (const b of bg.slice(0, 40)) {
 const RADIO = [
   { t: 1.0, who: 'TWR', f: '120.500', txt: 'United eight five two heavy, wind zero three zero at six, runway two eight right, cleared to land.' },
   { t: 3.5, who: 'UAL852', plt: 1, txt: 'Cleared to land two eight right, United eight five two heavy.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
-  { t: 6.0, who: 'SKYFLOW CTL', f: '123.025', txt: 'SkyFlow one zero two, cleared Oakland to San Francisco via Echo, Charlie, maintain one thousand five hundred.' },
+  { t: 6.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one zero two, cleared Oakland to San Francisco via Echo, Charlie, maintain one thousand five hundred.' },
   { t: 8.5, who: 'SKF102', plt: 1, txt: 'Echo, Charlie, one thousand five hundred, SkyFlow one zero two.', hb: [['CALLSIGN'], ['ROUTE E–C'], ['ALT 1500']], commit: 'SKF102 OAK→E→C→SF' },
-  { t: 14.5, who: 'SKYFLOW CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, corridor Charlie Echo closed, reroute via Whiskey, Echo, maintain one thousand five hundred.' },
+  { t: 14.5, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, corridor Charlie Echo closed, reroute via Whiskey, Echo, maintain one thousand five hundred.' },
   { t: 18.0, who: 'SKF108', plt: 1, txt: 'Reroute via Charlie, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE C–E ≠ W–E', 1], ['ALT 1500']] },
-  { t: 21.0, who: 'SKYFLOW CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, negative. Charlie Echo is closed. Reroute via Whiskey, Echo.' },
+  { t: 21.0, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, negative. Charlie Echo is closed. Reroute via Whiskey, Echo.' },
   { t: 24.0, who: 'SKF108', plt: 1, txt: 'Whiskey, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE W–E'], ['ALT 1500']], commit: 'SKF108 SF→W→E→OAK' },
   { t: 27.5, who: 'TWR', f: '120.500', txt: 'Southwest twelve fifty-five, runway two eight left, wind zero three zero at six, cleared for takeoff.' },
   { t: 30.0, who: 'SWA1255', plt: 1, txt: 'Cleared for takeoff two eight left, Southwest twelve fifty-five.', hb: [['CALLSIGN'], ['RWY 28L'], ['CLRD T/O']] },
   { t: 38.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, runway two eight right, continue, traffic departing two eight left.' },
   { t: 40.5, who: 'ASA331', plt: 1, txt: 'Continue two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R']] },
-  { t: 50.0, who: 'SKYFLOW CTL', f: '123.025', txt: 'SkyFlow one two two, Charlie Echo open, cleared direct Oakland via Charlie, Echo, maintain one thousand five hundred.' },
+  { t: 50.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one two two, Charlie Echo open, cleared direct Oakland via Charlie, Echo, maintain one thousand five hundred.' },
   { t: 52.5, who: 'SKF122', plt: 1, txt: 'Direct Oakland via Charlie, Echo, one thousand five hundred, SkyFlow one two two.', hb: [['CALLSIGN'], ['ROUTE C–E'], ['ALT 1500']], commit: 'SKF122 SF→C→E→OAK' },
   { t: 62.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, wind zero three zero at six, runway two eight right, cleared to land.' },
   { t: 64.5, who: 'ASA331', plt: 1, txt: 'Cleared to land two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
-  { t: 71.0, who: 'SKYFLOW CTL', f: '123.025', txt: 'SkyFlow one two five, cleared Marin to San Francisco International via Sierra Fox, Whiskey, maintain one thousand five hundred.' },
+  { t: 71.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one two five, cleared Marin to San Francisco International via Sierra Fox, Whiskey, maintain one thousand five hundred.' },
   { t: 73.5, who: 'SKF125', plt: 1, txt: 'Via Sierra Fox, Whiskey, one thousand five hundred, SkyFlow one two five.', hb: [['CALLSIGN'], ['ROUTE SF–W'], ['ALT 1500']], commit: 'SKF125 MAR→SF→W→SFO' },
 ];
 const AGENTS = [
@@ -521,7 +557,7 @@ function renderStrips(t) {
   const key = rows.map(r => r.cs + r.st + r.rt2).join('|');
   if (key === lastStripKey) return; lastStripKey = key;
   document.getElementById('stripcount').textContent = `${rows.length} active`;
-  stripList.innerHTML = '<div class="sect">SFO local · 28L / 28R</div>' + rows.map((r, i) => (i > 0 && !rows[i - 1].cls.startsWith('evt') && r.cls.startsWith('evt') ? '<div class="sect">SkyFlow low-altitude</div>' : '') +
+  stripList.innerHTML = '<div class="sect">SFO local · 28L / 28R</div>' + rows.map((r, i) => (i > 0 && !rows[i - 1].cls.startsWith('evt') && r.cls.startsWith('evt') ? '<div class="sect">UITA low-altitude</div>' : '') +
     `<div class="strip ${r.cls}"><div class="bar"></div><div class="cs">${r.cs}<i>${r.sub}</i></div><div class="rt">${r.rt}<i>${r.rt2}</i></div><div class="st">${r.st}</div></div>`).join('');
 }
 
@@ -541,7 +577,7 @@ function renderBanner(n) {
   const ctl = RADIO.slice(0, n).filter(r => !r.plt);
   const r = ctl[ctl.length - 1];
   if (!r) { $('bmsg').textContent = 'Standing by. Traffic calm, all corridors open.'; $('banner').classList.remove('alert'); return; }
-  $('bfreq').textContent = `${r.who === 'TWR' ? 'SFO TWR' : 'SKYFLOW CTL'} ${r.f}`;
+  $('bfreq').textContent = `${r.who === 'TWR' ? 'SFO TWR' : 'UITA CTL'} ${r.f}`;
   $('bmsg').textContent = r.txt;
   const m = simMin();
   $('banner').classList.toggle('alert', m >= STORM[0] && m <= STORM[1]);
@@ -684,12 +720,14 @@ $('bZin').onclick = () => zoom(1); $('bZout').onclick = () => zoom(-1);
 $('bCine').onclick = () => camMode === 'cine' ? pauseCine() : resumeCine();
 $('resume').onclick = resumeCine;
 $('bDet').onclick = () => { details = !details; document.body.classList.toggle('details', details); $('bDet').classList.toggle('on', details); lastStripKey = ''; };
+$('bPhoto').onclick = () => setPhotoreal(!photoreal);
 $('bBox').onclick = () => { letterbox = !letterbox; document.body.classList.toggle('letterbox', letterbox); $('bBox').classList.toggle('on', letterbox); };
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
   if (e.key >= '1' && e.key <= '5') preset(+e.key);
   else if (e.key === 'c' || e.key === 'C') $('bCine').onclick();
   else if (e.key === 'l' || e.key === 'L') $('bBox').onclick();
+  else if (e.key === 'g' || e.key === 'G') $('bPhoto').onclick();
   else if (e.key === 'd' || e.key === 'D') $('bDet').onclick();
   else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); // app.html view switch
   else if (e.key === '+' || e.key === '=') zoom(1);
@@ -758,7 +796,7 @@ function livePose(a) {
   const dt = Math.min(15, Math.max(0, ts - live.time)), d = (a.speedKt || 0) * 0.5144 * dt, h = (a.heading || 0) * D2R;
   return { lon: a.lon + Math.sin(h) * d / mPerLon, lat: a.lat + Math.cos(h) * d / mPerLat, alt: a.altFt || 0, hdg: a.heading || 0 };
 }
-function liveCart(pose) { return C.Cartesian3.fromDegrees(pose.lon, pose.lat, Math.max(GROUND, (pose.alt || 0) * 0.3048 + GEOID)); }
+function liveCart(pose) { return C.Cartesian3.fromDegrees(pose.lon, pose.lat, Math.max(GROUND, (pose.alt || 0) * 0.3048 + VOFF)); }
 function liveEntity(a) {
   let e = liveEnts.get(a.id);
   if (e) return e;
@@ -854,19 +892,7 @@ scene.preRender.addEventListener(() => {
   }
 });
 
-// refine ground height from the photoreal mesh at the 28R touchdown zone
-if (tileset) setTimeout(async () => {
-  try {
-    const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
-    const [r] = await scene.sampleHeightMostDetailed([c]);
-    if (r && Number.isFinite(r.height) && Math.abs(r.height - GROUND) < 25) {
-      GROUND = r.height;
-      for (const a of airliners) a.pos = buildAirliner(a);
-      console.log('ground refined', GROUND.toFixed(1));
-    }
-  } catch (e) { console.warn('height sample failed', e); }
-}, 6000);
-window.__sky = { viewer, airliners, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
+window.__sky = { viewer, airliners, setPhotoreal, buildings: () => buildings, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
 })();
 </script>
 </body>

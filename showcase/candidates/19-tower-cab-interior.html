@@ -3,8 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SkyFlow Tower Cab</title>
+<title>UITA Tower Cab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- start every heavy asset at once; the module script picks them up from cache -->
+<link rel="modulepreload" href="/node_modules/three186/build/three.module.js">
+<link rel="modulepreload" href="/node_modules/three186/examples/jsm/loaders/GLTFLoader.js?raw">
+<link rel="modulepreload" href="/node_modules/three186/examples/jsm/loaders/DRACOLoader.js?raw">
+<link rel="modulepreload" href="/node_modules/three186/examples/jsm/utils/BufferGeometryUtils.js?raw">
+<link rel="modulepreload" href="/node_modules/three186/examples/jsm/utils/SkeletonUtils.js?raw">
+<link rel="modulepreload" href="/node_modules/three186/examples/jsm/geometries/RoundedBoxGeometry.js?raw">
+<link rel="preload" as="image" href="sfo-pack/sfo-ortho.jpg" crossorigin="anonymous">
+<link rel="preload" as="image" href="sfo-pack/bay-ortho.jpg" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="sfo-pack/sfo-buildings.glb" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="sfo-pack/bounds.json" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="data/airports.geojson" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="assets/evtol.glb" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="assets/boeing747-mihalunar/model.glb" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="assets/airplane-google/model.glb" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="data/metar.json" crossorigin="anonymous">
+<link rel="preload" as="fetch" href="data/bay-coastline.geojson" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -83,8 +101,9 @@
   <div><kbd>wheel</kbd>zoom · <kbd style="min-width:0">B</kbd> binoculars</div>
   <div><kbd>1–6</kbd>desk · runway · ground · air · strips · agents</div>
   <div><kbd>C</kbd>cinematic on/off</div>
+  <div><kbd>G</kbd>photoreal Google tiles (online)</div>
   <div><kbd>space</kbd>pause · <kbd style="min-width:0">R</kbd> restart · <kbd style="min-width:0">M</kbd> sound</div>
-  <p>Simulation. Aircraft: “Airplane” Poly by Google, “Boeing 747” Miha Lunar (CC BY 3.0). Airport © OpenStreetMap contributors (ODbL). METAR: NOAA/NWS.</p>
+  <p>Simulation. Aircraft: “Airplane” Poly by Google, “Boeing 747” Miha Lunar (CC BY 3.0). Airport and buildings © OpenStreetMap contributors (ODbL). Imagery: USGS NAIP (public domain). METAR: NOAA/NWS.</p>
 </div>
 <div id="controls">
   <button id="bPlay" title="Pause (space)">❚❚</button><button id="bRestart" title="Restart (R)">↺</button><button id="bSound" title="Sound (M)">🔈</button>
@@ -93,7 +112,7 @@
   <button data-p="air" title="Air radar">4</button><button data-p="tablet" title="Strip tablet">5</button><button data-p="side" title="Agents / METAR">6</button>
   <span class="sep"></span>
   <button id="bBino" title="Binoculars (B)">B</button><button id="bZin" title="Zoom in">＋</button><button id="bZout" title="Zoom out">－</button>
-  <button id="bCine" class="on" title="Cinematic (C)">CINE</button><button id="bHelp" title="Help (?)">?</button>
+  <button id="bPhoto" title="Photoreal (online) — G">G</button><button id="bCine" class="on" title="Cinematic (C)">CINE</button><button id="bHelp" title="Help (?)">?</button>
 </div>
 <div id="binoc"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><mask id="bm"><rect width="100" height="100" fill="white"/>
   <ellipse cx="38.5" cy="50" rx="16" ry="27" fill="black"/><ellipse cx="61.5" cy="50" rx="16" ry="27" fill="black"/></mask>
@@ -104,16 +123,44 @@
 <script src="radio-audio.js?v=3"></script>
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three": "/node_modules/three186/build/three.module.js",
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
 } }
 </script>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/DRACOLoader.js';
-import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { mergeGeometries } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/BufferGeometryUtils.js';
+// three 0.186.1 from the local install (works offline). The URL must match the importmap entry so
+// every importer shares one instance. Vite rewrites a bare 'three' inside node_modules files to its
+// bundled 0.170, so addons are loaded as raw source with 'three' pointed at three186 explicitly.
+const T186 = location.origin + '/node_modules/three186/';
+// Fire every independent load now, in parallel; consumers await these promises when they need them.
+const getJSON = (u) => fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const getBuf = (u) => fetch(u).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+const GLB = { pack: 'sfo-pack/sfo-buildings.glb', b747: 'assets/boeing747-mihalunar/model.glb', air: 'assets/airplane-google/model.glb', evtol: 'assets/evtol.glb' };
+const early = {
+  airports: getJSON('data/airports.geojson'), metar: getJSON('data/metar.json'), coast: getJSON('data/bay-coastline.geojson'),
+  bounds: getJSON('sfo-pack/bounds.json'),
+  glb: Object.fromEntries(Object.entries(GLB).map(([k, u]) => [k, getBuf(u)])),
+  mapsKey: fetch('/api/maps-key').then((r) => r.json()).then((j) => j.key || null).catch(() => null),
+};
+const THREE = await import(/* @vite-ignore */ T186 + 'build/three.module.js');
+const addonURLs = new Map();
+function addon(url) {
+  if (!addonURLs.has(url)) addonURLs.set(url, (async () => {
+    let src = (await import(/* @vite-ignore */ url + '?raw')).default;
+    for (const rel of new Set([...src.matchAll(/from\s*['"](\.{1,2}\/[^'"]+\.js)['"]/g)].map((m) => m[1]))) {
+      const blob = await addon(new URL(rel, url).href);
+      src = src.split(`'${rel}'`).join(`'${blob}'`).split(`"${rel}"`).join(`'${blob}'`);
+    }
+    src = src.replace(/from\s*['"]three['"]/g, `from '${T186}build/three.module.js'`);
+    src = src.split('import.meta.url').join(JSON.stringify(url)); // blob: URLs can't resolve relative paths
+    return URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+  })());
+  return addonURLs.get(url);
+}
+const jsm = async (path) => import(/* @vite-ignore */ await addon(T186 + 'examples/jsm/' + path));
+const [{ GLTFLoader }, { DRACOLoader }, { RoundedBoxGeometry }, { mergeGeometries }] = await Promise.all(
+  ['loaders/GLTFLoader.js', 'loaders/DRACOLoader.js', 'geometries/RoundedBoxGeometry.js', 'utils/BufferGeometryUtils.js'].map(jsm));
+const draco = new DRACOLoader().setDecoderPath('sfo-pack/vendor/three@0.170.0/addons/libs/draco/gltf/');
 
 const $ = (id) => document.getElementById(id);
 const D2R = Math.PI / 180;
@@ -123,8 +170,9 @@ const ease = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
 // ---------- local frame: origin = SFO tower, x east, y up, z = -north (metres) ----------
-const LAT0 = 37.6158, LON0 = -122.3838;
-const KX = Math.cos(LAT0 * D2R) * 111320, KY = 110540;
+// same ENU frame as candidates/sfo-pack (bounds.json): origin SFO ATCT
+const LAT0 = 37.6164, LON0 = -122.3826;
+const KX = 88288.08474587766, KY = 110989.20390546018;
 const P = (lon, lat) => [(lon - LON0) * KX, -(lat - LAT0) * KY];
 
 // ---------- SkyFlow network ----------
@@ -267,9 +315,25 @@ const warm = new THREE.PointLight(0xffd7a8, 0.35, 4, 1.5); warm.position.set(-0.
   floor.rotation.x = -Math.PI / 2; floor.position.y = 0; cab.add(floor);
 }
 
+// ---- boot: render the cab right away; monitors show a placeholder until the sim starts ----
+for (const k in screens) {
+  const sc = screens[k], g = sc.ctx; g.fillStyle = k === 'ground' ? '#2f86a6' : k === 'tablet' || k === 'side' ? '#c3c6ca' : '#05070a';
+  g.fillRect(0, 0, sc.w, sc.h); g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '700 28px "JetBrains Mono", monospace';
+  g.fillText('ACQUIRING…', 24, 52); sc.tex.needsUpdate = true;
+}
+let booting = true;
+(function boot() {
+  if (!booting) return;
+  cab.position.set(0, CAB_EYE_H - 1.45, 0); cab.updateMatrixWorld();
+  camera.position.copy(cab.localToWorld(new THREE.Vector3(0.02, 1.45, 0.32)));
+  camera.quaternion.copy(cab.quaternion).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.33, -0.08, 0, 'YXZ')));
+  camera.fov = 58; camera.updateProjectionMatrix();
+  renderer.render(scene, camera); requestAnimationFrame(boot);
+})();
+
 // ================= data =================
 const fetchJSON = (u) => fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-const [AIRPORTS, METAR] = await Promise.all([fetchJSON('data/airports.geojson'), fetchJSON('data/metar.json')]);
+const [AIRPORTS, METAR] = await Promise.all([early.airports, early.metar]);
 const sfo = (AIRPORTS?.features || []).filter((f) => f.properties.airport === 'SFO');
 const toXZ = (c) => { const [x, z] = P(c[0], c[1]); return [x, z]; };
 const runwayLine = (ref) => {
@@ -300,25 +364,57 @@ function polyAt(pts, s) {
   return { p: pts[0], d: [1, 0] };
 }
 
-// ================= Google Photorealistic 3D Tiles (fallback: OSM procedural) =================
+// ================= outside view: offline SFO pack (default) · Google photoreal (opt-in, G) =================
 const attrib = $('attrib');
 const credits = 'Simulation · © OpenStreetMap · models CC BY 3.0 (?)';
-attrib.innerHTML = credits;
-let tiles = null, tilesOK = false, fallbackOn = false;
-const fallback = new THREE.Group(); world.add(fallback);
-const errBox = (t) => console.warn('[tiles]', t);
+let tiles = null, tilesHolder = null, tilesOK = false, tilesStarting = false, photoreal = false, packOK = false, fallbackOn = false;
+const fallback = new THREE.Group(); fallback.visible = false; world.add(fallback);
+const pack = new THREE.Group(); pack.visible = false; scene.add(pack);
+const errBox = (t) => console.warn('[outside]', t);
+
+// USGS NAIP ortho draped on ENU + OSM buildings GLB (candidates/sfo-pack). Images are EPSG:3857, so
+// rows are resampled per latitude to land exactly on the local frame.
+async function loadPack() {
+  const b = await early.bounds;
+  if (!b) throw new Error('sfo-pack/bounds.json missing');
+  const mercY = (lat) => 6378137 * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
+  const texLoader = new THREE.TextureLoader();
+  const drape = (img, y, order, tint) => new Promise((res, rej) => {
+    const bb = img.lonlat_bounds, e = img.epsg3857_extent, nx = 8, ny = 128, pos = [], uv = [], idx = [];
+    for (let j = 0; j <= ny; j++) {
+      const lat = bb.south + (bb.north - bb.south) * j / ny, v = (mercY(lat) - e.ymin) / (e.ymax - e.ymin);
+      for (let i = 0; i <= nx; i++) { const [x, z] = P(bb.west + (bb.east - bb.west) * i / nx, lat); pos.push(x, y, z); uv.push(i / nx, v); }
+    }
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const a = j * (nx + 1) + i, c = a + nx + 1; idx.push(a, a + 1, c, a + 1, c + 1, c); }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+    texLoader.load('sfo-pack/' + img.file, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex, color: tint })); m.renderOrder = order; pack.add(m); res(m);
+    }, undefined, rej);
+  });
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(160000, 160000), new THREE.MeshBasicMaterial({ color: 0x141d27 }));
+  water.rotation.x = -Math.PI / 2; water.position.y = -4; pack.add(water);
+  // dusk grade: daytime NAIP multiplied down toward blue
+  await Promise.all([drape(b.images.bay, -2, 0, new THREE.Color(0.24, 0.27, 0.36)), drape(b.images.sfo, 0, 1, new THREE.Color(0.26, 0.29, 0.39))]);
+  const buf = await early.glb.pack; if (!buf) throw new Error('sfo-buildings.glb missing');
+  const gltf = await new GLTFLoader().setDRACOLoader(draco).parseAsync(buf, 'sfo-pack/');
+  const bmat = new THREE.MeshStandardMaterial({ color: 0x6f7884, roughness: 0.9, metalness: 0.05, emissive: 0x0b0f15, side: THREE.DoubleSide });
+  gltf.scene.traverse((o) => { if (o.isMesh) o.material = bmat; });
+  pack.add(gltf.scene);
+  packOK = true; applyOutside();
+}
 
 async function startTiles() {
+  if (tiles || tilesStarting) return; tilesStarting = true;
   let mapsKey = null;
-  if (new URLSearchParams(location.search).get('tiles') === '0') return enableFallback(true);
-  try { mapsKey = (await (await fetch('/api/maps-key')).json()).key; } catch (e) {}
-  if (!mapsKey) { errBox('Google Maps key unavailable (GET /api/maps-key). Showing the OSM airport fallback.'); return enableFallback(true); }
+  mapsKey = await early.mapsKey;
+  if (!mapsKey) { errBox('Google Maps key unavailable (GET /api/maps-key); staying on the offline SFO pack.'); tilesStarting = false; return setPhotoreal(false); }
   try {
     const { TilesRenderer } = await import('https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/index.js');
     const { GoogleCloudAuthPlugin, ReorientationPlugin, GLTFExtensionsPlugin, TilesFadePlugin } = await import('https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/index.plugins.js');
     tiles = new TilesRenderer();
     tiles.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: mapsKey, autoRefreshToken: true, useRecommendedSettings: true }));
-    const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/draco/gltf/');
     tiles.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: draco }));
     tiles.registerPlugin(new TilesFadePlugin());
     // origin at SFO tower base; ellipsoid height ~ MSL 4 m + geoid -32 m
@@ -329,31 +425,48 @@ async function startTiles() {
     tiles.parseQueue.maxJobs = 2;
     tiles.lruCache.maxSize = 400;
     // OBJECT_FRAME: +Y up, +Z north, +X west. Rotate to x east, z south.
-    const holder = new THREE.Group(); holder.rotation.y = Math.PI; holder.add(tiles.group); scene.add(holder);
+    tilesHolder = new THREE.Group(); tilesHolder.rotation.y = Math.PI; tilesHolder.visible = false; tilesHolder.add(tiles.group); scene.add(tilesHolder);
     tiles.setCamera(camera); tiles.setResolutionFromRenderer(camera, renderer);
     let loaded = 0, errors = 0;
     tiles.addEventListener('load-model', ({ scene: s }) => {
       loaded++;
       s.traverse((o) => { if (o.material) { o.material.color?.setRGB(0.21, 0.24, 0.34); o.material.fog = true; } });
-      if (loaded > 60 && !tilesOK) { tilesOK = true; enableFallback(false); }
+      if (loaded > 60 && !tilesOK) { tilesOK = true; applyOutside(); }
     });
     tiles.addEventListener('load-error', () => { errors++; });
-    setTimeout(() => { if (!tilesOK && loaded > 20) { tilesOK = true; enableFallback(false); } }, 8000);
-    setTimeout(() => { if (!tilesOK && loaded < 5) { errBox(`Photoreal tiles did not load (${errors} errors). Showing the OSM airport fallback.`); enableFallback(true); } }, 15000);
-  } catch (e) { console.warn(e); errBox('3D Tiles renderer failed to load. Showing the OSM airport fallback.'); enableFallback(true); }
+    setTimeout(() => { if (!tilesOK && loaded > 20) { tilesOK = true; applyOutside(); } }, 8000);
+    setTimeout(() => { if (!tilesOK && loaded < 5) { errBox(`Photoreal tiles did not load (${errors} errors); staying on the offline SFO pack.`); setPhotoreal(false); } }, 15000);
+  } catch (e) { console.warn(e); errBox('3D Tiles renderer failed to load; staying on the offline SFO pack.'); setPhotoreal(false); }
+  tilesStarting = false;
+}
+function setPhotoreal(on) {
+  photoreal = on; $('bPhoto')?.classList.toggle('on', on);
+  if (on) startTiles();
+  applyOutside();
+}
+function applyOutside() {
+  const useTiles = photoreal && tilesOK;
+  if (tilesHolder) tilesHolder.visible = useTiles;
+  pack.visible = !useTiles && packOK;
+  fallback.visible = !useTiles && fallbackOn;
+  if (!useTiles && groundY !== 0) { groundY = 0; worldOffset(); }
+  updateAttrib();
 }
 function updateAttrib() {
-  let g = 'Google';
-  try { const a = tiles?.getAttributions?.() || []; const s = a.filter((x) => x.type === 'string').map((x) => x.value).join('; '); if (s) g = s; } catch (e) {}
-  attrib.innerHTML = (tilesOK ? `<b>Google</b> · ${g} · ` : '') + credits;
+  if (photoreal && tilesOK) {
+    let g = 'Google';
+    try { const a = tiles?.getAttributions?.() || []; const s = a.filter((x) => x.type === 'string').map((x) => x.value).join('; '); if (s) g = s; } catch (e) {}
+    attrib.innerHTML = `<b>Google</b> · ${g} · ` + credits;
+  } else attrib.innerHTML = (packOK ? 'Imagery USGS NAIP · ' : '') + credits;
 }
+attrib.innerHTML = credits;
 
 // ---- fallback: OSM airport + coastline + SF skyline ----
 function buildFallbackGround() {
   const water = new THREE.Mesh(new THREE.PlaneGeometry(120000, 120000), new THREE.MeshBasicMaterial({ color: 0x1c2a38 }));
   water.rotation.x = -Math.PI / 2; water.position.y = -1.2; fallback.add(water);
   const shapeOf = (ring) => { const s = new THREE.Shape(); ring.forEach((c, i) => { const [x, z] = P(c[0], c[1]); i ? s.lineTo(x, -z) : s.moveTo(x, -z); }); return s; };
-  fetchJSON('data/bay-coastline.geojson').then((d) => {
+  early.coast.then((d) => {
     if (!d) return;
     const geos = [];
     for (const f of d.features) {
@@ -402,11 +515,10 @@ function buildSkyline() {
   });
 }
 function enableFallback(on) {
-  fallbackOn = on; fallback.visible = on;
-  if (on) buildSkyline();
-  updateAttrib();
+  if (on && !fallbackOn) { buildFallbackGround(); buildSkyline(); }
+  fallbackOn = on; applyOutside();
 }
-buildFallbackGround();
+loadPack().catch((e) => { errBox('Offline SFO pack failed (' + e.message + '); using the OSM fallback.'); enableFallback(true); });
 
 // ---- airfield lights (both modes) ----
 const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
@@ -429,7 +541,7 @@ function lightPoints(list, color, size) {
   lightPoints(edge, 0xfff2d8, 3.2); lightPoints(thr, 0x6dff8e, 3.4); lightPoints(end, 0xff4433, 3.2); lightPoints(txe, 0x4f7dff, 2.2);
 }
 // eVTOL pads near the tower
-const PAD = { 1: [260, -210], 2: [330, -150] };
+const PAD = { 1: [154, -143], 2: [224, -83] };
 for (const [, p] of Object.entries(PAD)) {
   const ring = []; for (let a = 0; a < 24; a++) ring.push(p[0] + Math.cos(a / 24 * Math.PI * 2) * 14, 1.0, p[1] + Math.sin(a / 24 * Math.PI * 2) * 14);
   lightPoints(ring, 0x5fd4ff, 3);
@@ -458,7 +570,7 @@ const stormGroup = new THREE.Group(); world.add(stormGroup);
 }
 
 // ================= aircraft =================
-const loader = new GLTFLoader();
+const loader = new GLTFLoader().setDRACOLoader(draco);
 const loadGLB = (u) => new Promise((res) => loader.load(u, (g) => res(g.scene), undefined, () => res(null)));
 function normModel(src, len, yawFix) {
   const holder = new THREE.Group();
@@ -483,11 +595,17 @@ function addLights(g, h) {
   g.userData.lights = { red, wht, land };
 }
 const actors = [];
-const [M747, MAIR, MEV] = await Promise.all([loadGLB('assets/boeing747-mihalunar/model.glb'), loadGLB('assets/airplane-google/model.glb'), loadGLB('assets/evtol.glb')]);
+let M747 = null, MAIR = null, MEV = null; // procedural stand-ins until the GLBs arrive
+const parseGLB = async (k) => { const b = await early.glb[k]; if (!b) return null; try { return (await loader.parseAsync(b, GLB[k].replace(/[^/]+$/, ''))).scene; } catch (e) { return null; } };
+Promise.all([parseGLB('b747'), parseGLB('air'), parseGLB('evtol')]).then(([a, b, c]) => {
+  M747 = a; MAIR = b; MEV = c;
+  for (const ac of actors) { ac.g.remove(ac.model); ac.model = modelFor(ac.kind); ac.g.add(ac.model); }
+});
+const modelFor = (kind) => (kind === '747' ? normModel(M747, 70, Math.PI) : kind === 'air' ? normModel(MAIR, 40, 0) : normModel(MEV, 16, 0));
 function mkActor(cs, kind, fn, tag) {
-  const model = kind === '747' ? normModel(M747, 70, Math.PI) : kind === 'air' ? normModel(MAIR, 40, 0) : normModel(MEV, 16, 0);
+  const model = modelFor(kind);
   const g = new THREE.Group(); g.add(model); addLights(g, kind === 'evtol' ? 3 : kind === '747' ? 19 : 12); world.add(g);
-  const a = { cs, kind, fn, tag: tag || cs, g, pos: new THREE.Vector3(), dir: new THREE.Vector3(1, 0, 0), vis: false, onGround: true, phase: Math.random() * 6 };
+  const a = { cs, kind, fn, tag: tag || cs, g, model, pos: new THREE.Vector3(), dir: new THREE.Vector3(1, 0, 0), vis: false, onGround: true, phase: Math.random() * 6 };
   actors.push(a); return a;
 }
 // runway kinematics
@@ -602,7 +720,7 @@ const L = {
   l122: ['atc', null, 'SkyFlow one two two, wind zero three zero at six, pad one, cleared to land.', 'SKF122 PAD 1 CLEARED TO LAND, WIND 030/06'],
   l122r: ['pilot', 'SKF122', 'Cleared to land pad one, SkyFlow one two two.'],
 };
-SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined })));
+setTimeout(() => SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined }))), 2500);
 const txEl = $('tx');
 SkyRadio.onTransmit(({ speaker, live }) => { txEl.classList.toggle('on', live); txEl.classList.toggle('pilot', live && speaker === 'pilot'); txEl.textContent = live ? (speaker === 'atc' ? 'TWR' : 'ACFT') : 'TX'; });
 
@@ -762,7 +880,7 @@ function toolbar(ctx, W, title, items, clock, active) {
 }
 
 // ---- ground radar (ASDE) ----
-const GR = { cx: 650, cy: -350, s: 0.255 }; // centre (x east, z) metres; px per metre
+const GR = { cx: 544, cy: -283, s: 0.255 }; // centre (x east, z) metres; px per metre
 const grXY = (x, z, W, H) => [W / 2 + (x - GR.cx) * GR.s, 88 + (H - 88) / 2 + (z - GR.cy) * GR.s];
 const grStatic = (() => {
   const W = 1280, H = 760, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
@@ -887,7 +1005,7 @@ function drawAir(now) {
   g.restore();
 }
 let coast = null;
-fetchJSON('data/bay-coastline.geojson').then((d) => { if (!d) return; coast = [];
+early.coast.then((d) => { if (!d) return; coast = [];
   for (const f of d.features) { const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates; for (const p of polys) coast.push(p[0].filter((_, i) => i % 2 === 0).map((c) => { const [x, z] = P(c[0], c[1]); return [x / 1000, -z / 1000]; })); } });
 
 // ---- strip tablet (FT3200) ----
@@ -916,7 +1034,7 @@ function drawStrip(g, s, x, y, now) {
 function drawTablet(now, dt) {
   const { ctx: g, w: W, h: H } = screens.tablet;
   g.fillStyle = '#1b1d20'; g.fillRect(0, 0, W, H);
-  g.fillStyle = '#4b4f55'; g.font = FONT(600, 18); g.fillText('SkyFlow  FT3200', W - 190, 30);
+  g.fillStyle = '#4b4f55'; g.font = FONT(600, 18); g.fillText('UITA  FT3200', W - 170, 30);
   g.fillStyle = '#7a7e84'; g.font = FONT(500, 14); g.fillText('Feel the frequency', 52, 30);
   const L0 = 48, T0 = 92, colW = 300, rightX = L0 + colW + 14;
   g.fillStyle = '#e8e9ea'; g.fillRect(L0, 44, W - 96, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 17); g.fillText('STRIP', L0 + 10, 65);
@@ -1073,12 +1191,13 @@ addEventListener('keydown', (e) => {
   else if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'r' || e.key === 'R') restart();
   else if (e.key === '?' || e.key === '/') toggleHelp();
+  else if ((e.key === 'g' || e.key === 'G') && !e.repeat) setPhotoreal(!photoreal);
   else if (e.key === 'm' || e.key === 'M') toggleSound();
   else if (e.key === '+' || e.key === '=') zoom(0.85); else if (e.key === '-') zoom(1.18);
 });
 document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { userTook(); goTo(b.dataset.p); }));
 $('bBino').onclick = toggleBino; $('bZin').onclick = () => zoom(0.85); $('bZout').onclick = () => zoom(1.18);
-$('bCine').onclick = () => setCine(!cine);
+$('bCine').onclick = () => setCine(!cine); $('bPhoto').onclick = () => setPhotoreal(!photoreal);
 const toggleHelp = () => $('help').classList.toggle('on'); $('bHelp').onclick = toggleHelp;
 function togglePause() { S.paused = !S.paused; $('bPlay').textContent = S.paused ? '▶' : '❚❚'; }
 $('bPlay').onclick = togglePause;
@@ -1093,13 +1212,14 @@ document.addEventListener('skyradio:enabled', syncSound); syncSound();
 let last = performance.now(), visT = 0, frame = 0, rayT = 0, lastDraw = -1, halted = false, extPause = false;
 const ray = new THREE.Raycaster();
 function refineGround(now) {
-  if (!tilesOK || now - rayT < 2 || frame > 4000) return; rayT = now;
+  if (now - rayT < 2 || frame > 4000) return; rayT = now;
   ray.set(new THREE.Vector3(600, 800, -500), new THREE.Vector3(0, -1, 0));
   const hit = ray.intersectObject(tiles.group, true)[0];
   if (hit) { const y = hit.point.y; if (Math.abs(y - groundY) > 0.5 && Math.abs(y) < 80) { groundY = y; world.position.y = 0; worldOffset(); } }
 }
 function worldOffset() { for (const c of world.children) if (c !== fallback && !actors.some((a) => a.g === c)) c.position.y = groundY; }
 function loop() {
+  booting = false;
   const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000); last = now; frame++;
   const ns = now / 1000;
   if (!S.paused) { visT += dt; S.t += dt * (S.busy ? 0.6 : 1); }
@@ -1118,7 +1238,7 @@ function loop() {
   const prog = clamp(simMin() / 28, 0, 1);
   $('scAgent').textContent = (S.scoreReveal ? 28 : Math.round(prog * 28)) + '/28';
   $('scStatic').textContent = 'vs ' + (S.scoreReveal ? 10 : Math.round(prog * 10));
-  if (tiles) { tiles.setResolutionFromRenderer(camera, renderer); tiles.update(); refineGround(ns); if (frame % 120 === 0) updateAttrib(); }
+  if (tiles && photoreal) { tiles.setResolutionFromRenderer(camera, renderer); tiles.update(); if (tilesOK) refineGround(ns); if (frame % 120 === 0) updateAttrib(); }
   renderer.render(scene, camera);
   if (!halted) requestAnimationFrame(loop);
 }
@@ -1136,7 +1256,7 @@ addEventListener('message', (e) => {
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 window.__sky = { S, presets, goTo, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors };
-startTiles();
+if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 loop();
 runLoop();
 </script>
