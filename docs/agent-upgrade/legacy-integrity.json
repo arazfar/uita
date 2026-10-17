@@ -1,0 +1,14 @@
+{
+  "scope": "Historic evidence and trusted semantics; captured before upgrade",
+  "git_head": "cf6e0d3ccc5c95fe038eba9e5c8c217480596701",
+  "sha256": {
+    "docs/evaluation/fixture-result.json": "77c42ebf9d36e480353db8443a4542d3d7b05efed2d9d58e5147467ae1cfbb50",
+    "docs/evaluation/live-program-reevaluation.json": "a35efbb96c592d3eb9ac627b0297aff60a8a78f5d6d2f6bda0bdbfb534f50531",
+    "docs/research/live-experiment-2026-10-17.json": "64ed3ca0458b1439ec65e222ac6932152022019262a4afd4801aa49118a7860c",
+    "docs/INDEPENDENT_VALIDATION.md": "9235a82d744dfedc35b9f07997cbc44ce0370878df67e2c23daa30fcaccf20a1",
+    "backend/uita/verifier.py": "7ec7eae2a9026b939b60de4b77dee30119a62189b3a79523a55b75440bf5d439",
+    "backend/uita/objectives.py": "0d92c1f3cf0ccaa11302002a521c520e67eeb135e82dbbd80189f70c9136b9a6",
+    "backend/uita/airport.py": "70aba9142b0a432938a25b61b33bff1bf586bd98810fb20f43884e5eb1fe4b21",
+    "backend/uita/simulator.py": "c88b274462cf790c1eb783cd1e2fef0fa045b8c22926a9ad001e0f1ba38d3052"
+  }
+}

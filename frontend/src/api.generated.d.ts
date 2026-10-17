@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/learning/jobs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Job */
+        post: operations["cancel_job_api_learning_jobs__id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/learning/jobs/{id}": {
         parameters: {
             query?: never;
@@ -263,6 +280,71 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentEvent */
+        AgentEvent: {
+            /** Sequence */
+            sequence: number;
+            /** Stage */
+            stage: string;
+            /** Kind */
+            kind: string;
+            /** Message */
+            message: string;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: number;
+        };
+        /** AgentLimits */
+        AgentLimits: {
+            /**
+             * Model Requests
+             * @default 6
+             */
+            model_requests: number;
+            /**
+             * Tool Calls
+             * @default 12
+             */
+            tool_calls: number;
+            /**
+             * Development Evaluations
+             * @default 4
+             */
+            development_evaluations: number;
+            /**
+             * Revisions
+             * @default 1
+             */
+            revisions: number;
+            /**
+             * Input Tokens
+             * @default 60000
+             */
+            input_tokens: number;
+            /**
+             * Output Tokens
+             * @default 6000
+             */
+            output_tokens: number;
+            /**
+             * Request Output Tokens
+             * @default 1000
+             */
+            request_output_tokens: number;
+            /**
+             * Wall Seconds
+             * @default 120
+             */
+            wall_seconds: number;
+            /**
+             * Spend Usd
+             * @default 0.02
+             */
+            spend_usd: number;
+        };
         /** AircraftView */
         AircraftView: {
             /** Id */
@@ -374,6 +456,33 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * LearningJobView
+         * @description Additive response contract: old job fields remain available to old clients.
+         */
+        LearningJobView: {
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Stage */
+            stage?: string | null;
+            /** Events */
+            events?: components["schemas"]["AgentEvent"][];
+            limits?: components["schemas"]["AgentLimits"] | null;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Ancestry */
+            ancestry?: string[];
+            /** Source */
+            source?: string | null;
+            /** Provider Usage */
+            provider_usage?: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
         };
         /** MetricsView */
         MetricsView: {
@@ -500,6 +609,11 @@ export interface components {
             source: "fixture" | "crusoe";
             /** Idempotency Key */
             idempotency_key?: string | null;
+            /**
+             * Revisions
+             * @default 1
+             */
+            revisions: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -807,7 +921,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LearningJobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_job_api_learning_jobs__id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningJobView"];
                 };
             };
             /** @description Validation Error */
@@ -838,7 +983,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LearningJobView"];
                 };
             };
             /** @description Validation Error */

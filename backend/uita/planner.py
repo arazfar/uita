@@ -18,14 +18,20 @@ def plan(state,policy=BASELINE):
     observations=[];budget=policy.max_observations;observed={}
     # Program order controls observation allocation; the planner sees cached tool
     # outputs only. Every optional operation consumes one budget unit per aircraft.
-    for tool in policy.observations:
-        for a in ordered:
-            if budget<=0:break
-            if tool=='exit_occupancy' and a['operation']!='arrival':continue
-            if tool=='gate_ready' and a['operation']!='departure':continue
-            value=state['weather']['visibility'] if tool=='weather' else a[tool]
-            observed[(a['id'],tool)]=value;budget-=1
-            observations.append({'aircraft_id':a['id'],'tool':tool,'value':value,'cost':1})
+    targets=ordered
+    if policy.grammar_version=='observations-2':
+        if policy.observation_scope=='pending':targets=[a for a in ordered if a in pending]
+        elif policy.observation_scope=='pending-first':targets=[a for a in ordered if a in pending]+[a for a in ordered if a in fixed]
+    pairs=((tool,a) for tool in policy.observations for a in targets)
+    if policy.grammar_version=='observations-2' and policy.allocation=='aircraft-major':
+        pairs=((tool,a) for a in targets for tool in policy.observations)
+    for tool,a in pairs:
+        if budget<=0:break
+        if tool=='exit_occupancy' and a['operation']!='arrival':continue
+        if tool=='gate_ready' and a['operation']!='departure':continue
+        value=state['weather']['visibility'] if tool=='weather' else a[tool]
+        observed[(a['id'],tool)]=value;budget-=1
+        observations.append({'aircraft_id':a['id'],'tool':tool,'value':value,'cost':1})
     def observe(a,key,fallback):
         return observed.get((a['id'],key),fallback)
     times={};runways={};tails={};leads={}

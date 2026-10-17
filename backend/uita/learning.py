@@ -27,10 +27,14 @@ CONFIG_HASH=hashlib.sha256(json.dumps({'train':TRAIN_SEEDS,'validation':VALIDATI
 def program_hash(policy):
     """Names are presentation metadata, not new executable artifacts."""
     body=policy.model_dump();body.pop('name',None)
+    if body.get('grammar_version','observations-1')=='observations-1':
+        for key in ('grammar_version','observation_scope','allocation'):body.pop(key,None)
     return hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
 
 
 def validate_candidate(policy):
+    if policy.grammar_version=='observations-1' and (policy.observation_scope!='all' or policy.allocation!='tool-major'):
+        raise ValueError('Legacy programs cannot use version 2 selectors')
     if len(policy.observations)!=len(set(policy.observations)):
         raise ValueError('Duplicate observation operations are forbidden')
     for field in ('order','reserve_seconds','lookahead','max_observations'):

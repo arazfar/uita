@@ -35,6 +35,9 @@ class Policy(Strict):
     """Bounded declarative observation program: no expressions or executable code."""
     name: str = Field(min_length=1,max_length=80)
     observations: list[Literal['exit_occupancy','gate_ready','wake','weather']] = Field(max_length=4)
+    grammar_version: Literal['observations-1','observations-2'] = 'observations-1'
+    observation_scope: Literal['all','pending','pending-first'] = 'all'
+    allocation: Literal['tool-major','aircraft-major'] = 'tool-major'
     order: Literal['fcfs','priority','wake_group'] = 'fcfs'
     reserve_seconds: int = Field(40,ge=0,le=120)
     lookahead: int = Field(12,ge=4,le=24)
@@ -44,6 +47,7 @@ class Train(Strict):
     generations: int = Field(3,ge=1,le=8)
     source: Literal['fixture','crusoe'] = 'fixture'
     idempotency_key: Optional[str] = Field(None,min_length=8,max_length=128)
+    revisions: int = Field(1,ge=0,le=2)
 
 class Compare(Strict):
     policy_ids: list[str] = Field(default_factory=lambda:['baseline','static'],min_length=1,max_length=4)

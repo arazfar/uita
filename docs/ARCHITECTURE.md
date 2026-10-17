@@ -1,3 +1,5 @@
+> Current agent architecture, schema v2, budgets and migration: [bounded Pydantic AI investigation](agent-upgrade/ARCHITECTURE.md). The descriptions below document the original simulator/evaluator design; the new agent replaces its single-shot experiment dispatch.
+
 # Architecture and modeling scope
 
 Uita is a single-process modular monolith with a bounded experiment subprocess. FastAPI owns command validation and the revision API. Pydantic exports the shared OpenAPI contract. The domain does not import the UI, storage, or inference adapter. React/Vite/R3F renders server trajectories; the verifier never reads scene physics. This is a research simulator, not operational control.

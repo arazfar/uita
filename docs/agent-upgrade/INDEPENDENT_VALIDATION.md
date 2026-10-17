@@ -1,0 +1,37 @@
+# Independent agent-upgrade validation
+
+On October 17, 2026, the complete backend suite passed **227 tests in 18.76 seconds** on Python 3.11.17: 70 existing checks and 157 new checks authored separately from the agent implementation. One upstream Starlette/AnyIO deprecation warning remains. No test made a paid inference request. [Recorded output](independent-test-result.txt) and [runtime/source provenance](independent-test-metadata.json) accompany this report.
+
+```sh
+PYTHONPATH=backend .venv-agent/bin/pytest -q backend/tests --tb=short
+```
+
+The independent validator owns the new tests and capacity evidence, not the production modules. Production fixes were communicated to and implemented by their owner. The original validation report and historical live/fixture result artifacts remain unchanged. One existing test was updated by the implementation owner to allow the new worker's valid queued state; its assertion that read-only access does not interrupt a job remains intact.
+
+## What was exercised
+
+- Actual Pydantic AI `FunctionModel` investigation, tool execution, proposal, development evaluation, feedback revision, identical/no-new-evidence termination and freeze; `TestModel` with an agent override exercises the registered output schema without real inference.
+- Rejection of unregistered tools, validation-case access attempts, unknown development references, extra authority-bearing arguments, coerced numeric strings/booleans, oversized results, duplicate/unknown operations, fabricated citations, and submissions without inspection. Prompt-injection text in a tool result cannot create an unregistered validation capability. Hidden/validation/secret canaries placed at the result, episode and observation-envelope levels do not reach model messages or persisted events.
+- Model request, token, tool, development-evaluation and per-job spend limits. Initial development evidence counts against its evaluation allowance. Repeated counterfactuals reuse a completed evaluation, including two copies submitted in the same model response.
+- SQLite concurrent aggregate reservations, independent per-job caps, immutable original aggregate cap across restart, valid/invalid actual-cost settlement, and idempotent settlement without releasing conservative reservations.
+- Mocked wire requests traverse the production reserved transport and the configured OpenAI SDK. Reservation exists on disk **before dispatch**. Rate limits, server failures, timeouts, malformed/missing/inconsistent/boolean token usage, excessive token counts and truncation do not trigger paid retries. Origin, pinned model and output bounds are checked before spend. Valid usage on a truncated output records actual cost while rejecting the candidate; ambiguous usage retains an unsettled reservation.
+- Cancellation during asynchronous inference and during trusted development evaluation cannot freeze or publish a policy. A deterministic completion/cancel race verifies that completion winning during process join is preserved. Repeated cancellation, training idempotency and repeated activation do not duplicate terminal events, jobs or state revisions. A clearly labeled favorable **test-only** validation fixture exercises accepted-memory persistence, accepted-parent/ancestry selection by the next API job, activation remaining separate from acceptance, and rollback to the prior policy.
+- Two worker threads racing the same queued job run one investigation. Re-entering a running or terminal job performs no inference and leaves the record unchanged. A frozen program is read from a separate database connection before validation begins; no subsequent proposal/tool/development steps follow that freeze. Hash tampering is rejected before validation access. The fixed final set remains sealed.
+- **Real separate processes** are killed with `SIGKILL` at three mocked paid-request boundaries: before the response; after verified usage has been settled in the ledger but before the response journal event is persisted; and after that event is persisted. Read-only access preserves unfinished status; explicit recovery marks the job interrupted; reservations still block over-budget spending. Actual cost remains unknown before a response and is retained after a verified response, even when the job event was lost. Re-entering each recovered job makes zero model calls. The existing separate API/worker process-loss test also passes.
+- All 65 old executable hashes and each old program's original first development-case schedule, metrics and read counts remain unchanged. Representatives of all five old behavior classes match every old development case. Historic artifact and trusted simulator/verifier/objective/rule source hashes remain unchanged.
+
+Ordinary tests block external socket connections and disable Pydantic AI real-model requests. Local mock transports and deterministic model fixtures remain permitted. The process-interruption driver uses an explicit mock transport; no network credential is needed.
+
+## Defects found during independent review
+
+The review identified a duplicate worker-entry path that could restart completed or interrupted work; concurrent counterfactual evaluation duplication; uncharged initial development evaluation; permissive agent argument coercion; missing bounded tool-envelope projection; insufficient transport origin checks; mutable/invalid actual-cost accounting; cancellation overwriting a completed result; and Pydantic AI 2.57 API incompatibilities in output retries and usage access. Regression checks pass after the production owner corrected these boundaries. SDK/transport/framework repair paths now have executable single-attempt checks.
+
+The capacity census also found that the initially proposed pending-first static comparator was weaker than the old strong static. Keeping it as the only comparator would have lowered the promotion hurdle. The implementation retains the original static behavior with explicit v2 selectors. This negative result is recorded in [the capacity report](CAPACITY_AUDIT.md), including all 65 legacy and 390 v2 programs. Neither census evaluated validation or held-out cases, and neither found development headroom above the original static optimum.
+
+## Limits of the evidence
+
+These are software-boundary and synthetic-planning tests, not operational aviation validation or proof of learned improvement. The deliberately favorable/unfavorable promotion fixture tests a gate; it is not learning evidence. Test success does not establish that an arbitrary language model will ignore every injected instruction; it establishes that the tested attempts cannot gain tools or authority outside the bounded interface.
+
+SQLite, local subprocesses and the installed Python runtime were exercised. PostgreSQL, Docker deployment, distributed leases and hosted infrastructure were not independently validated here. The application remains a single-owner local service. The asynchronous evaluation thread can finish after cancellation, but tests establish that its result cannot be frozen or promoted; API cancellation also terminates its isolated worker process.
+
+Fresh live provider outcomes, browser verification and frontend build/type checks belong to the integration owner's separate reports. This report makes no claim of successful live learning or improvement based on fixtures, the historical rejection, or the exhaustive capacity census. No held-out result was used to guide agent development.

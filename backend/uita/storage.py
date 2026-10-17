@@ -20,10 +20,12 @@ class Store:
         Base.metadata.create_all(self.engine)
         self.sessions=sessionmaker(self.engine,expire_on_commit=False)
         with self.transaction() as db:
-            if not db.get(Record,'schema-version'):db.add(Record(id='schema-version',kind='schema',payload={'version':1}))
+            schema=db.get(Record,'schema-version')
+            if not schema:db.add(Record(id='schema-version',kind='schema',payload={'version':2}))
+            elif schema.payload.get('version',1)<2:schema.payload={'version':2,'migration':'Additive agent job journal; legacy payloads retained'}
             for r in db.scalars(select(Record).where(Record.kind=='job')) if recover else []:
                 if r.payload['status'] in ('queued','running'):
-                    r.payload={**r.payload,'status':'interrupted','error':'Worker stopped before completion. Start a fresh bounded experiment.'}
+                    r.payload={**r.payload,'status':'interrupted','stage':'interrupted','error':'Worker stopped before completion. Start a fresh bounded experiment.'}
     @contextmanager
     def transaction(self):
         with self.sessions.begin() as db:yield db
