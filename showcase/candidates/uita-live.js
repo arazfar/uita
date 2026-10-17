@@ -141,7 +141,7 @@
     else if (started && !pausedByMsg && !inflight) poll();
   });
   window.addEventListener("message", function (ev) {
-    var m = ev.data && ev.data.skyflow;
+    var m = ev.data && ev.data.uita;
     if (m === "pause") { pausedByMsg = true; clearTimeout(timer); }
     else if ((m === "play" || m === "resume") && pausedByMsg) {
       pausedByMsg = false; if (started && !inflight) poll();

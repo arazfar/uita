@@ -15,7 +15,7 @@
 ## API
 | Call | What it does |
 |---|---|
-| `start({intervalMs=1000})` / `stop()` | Polls `GET /uita/api/state` with one request in flight at a time. Polling pauses while the page is hidden or after `postMessage({skyflow:'pause'})`, and resumes on `{skyflow:'play'}` or `{skyflow:'resume'}`. |
+| `start({intervalMs=1000})` / `stop()` | Polls `GET /uita/api/state` with one request in flight at a time. Polling pauses while the page is hidden or after `postMessage({uita:'pause'})`, and resumes on `{uita:'play'}` or `{uita:'resume'}`. |
 | `on/off(event, fn)` | Events: `state`, `online`, `offline`, and `step` (kernel progress: `{step, phase: start\|done\|error}`). |
 | `toLonLat(x, y, runway?)` | Converts backend ENU nautical miles to `[lon, lat]`. Pass the aircraft's runway (see the fit section). |
 | `control(action, extra)` | `action` is one of `play`, `pause`, `step`, `speed`, `reset`. Extras: `{speed: 0.25–30}`, `{seconds}` for step, `{seed, scenario}` for reset. |

@@ -1,4 +1,4 @@
-# SkyFlow demo data (SF Bay Area)
+# UITA demo data (SF Bay Area)
 
 Retrieved 2026-10-17 between 19:15 and 19:22 UTC (12:15 to 12:22 PDT). All files are compact JSON. Coordinates are WGS84 `[lon, lat]`. Load them with `fetch('data/<file>')`.
 

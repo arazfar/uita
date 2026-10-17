@@ -112,7 +112,7 @@ footer .src{margin-left:auto;font:500 11px var(--sans);color:var(--faint)}
 </head>
 <body>
 <header>
-  <div class="brand"><b>SKYFLOW</b><span>HEARBACK · ON vs OFF</span></div>
+  <div class="brand"><b>UITA</b><span>HEARBACK · ON vs OFF</span></div>
   <div class="headline">Same frequency. Same mistake. <em>One</em> side checks what the pilot read back before anything is committed.</div>
   <span class="simtag">SIMULATION</span>
   <div class="clock" id="clock">14:20:00</div>
@@ -124,7 +124,7 @@ footer .src{margin-left:auto;font:500 11px var(--sans);color:var(--faint)}
 </header>
 <div class="moment">
   <span class="k">THE MOMENT</span>
-  <span class="m">Controller clears <b class="b">SKYFLOW 412</b> to Oakland via W–E. <b class="a">SKYFLOW 421</b>, waiting at the SF pad, reads it back as its own.</span>
+  <span class="m">Controller clears <b class="b">UITA 412</b> to Oakland via W–E. <b class="a">UITA 421</b>, waiting at the SF pad, reads it back as its own.</span>
   <span class="pass" id="pass">PASS 1 / 2 · AUDIO FOLLOWS LEFT</span>
 </div>
 <main>
@@ -134,7 +134,7 @@ footer .src{margin-left:auto;font:500 11px var(--sans);color:var(--faint)}
       <div class="alarm" id="alarmL"><span class="l">LOSS OF SEPARATION</span><span class="n" id="nmL">1</span><span class="s" id="nmsL">closest —</span></div>
     </div>
     <div class="lower">
-      <div class="tx"><h4><span>TRANSCRIPT · SKYFLOW BAY APPROACH</span></h4><div class="log" id="logL"></div></div>
+      <div class="tx"><h4><span>TRANSCRIPT · UITA BAY APPROACH</span></h4><div class="log" id="logL"></div></div>
       <div class="right">
         <h4><span>HEARBACK</span><span>OFF</span></h4>
         <div class="hb"><table id="hbL"></table></div>
@@ -150,7 +150,7 @@ footer .src{margin-left:auto;font:500 11px var(--sans);color:var(--faint)}
       <div class="okbadge" id="okR"><span class="l">LOSS OF SEPARATION</span><span class="n">0</span><span class="l" style="color:#7fcfbb;letter-spacing:.08em">mismatch caught before liftoff</span></div>
     </div>
     <div class="lower">
-      <div class="tx"><h4><span>TRANSCRIPT · SKYFLOW BAY APPROACH</span></h4><div class="log" id="logR"></div></div>
+      <div class="tx"><h4><span>TRANSCRIPT · UITA BAY APPROACH</span></h4><div class="log" id="logR"></div></div>
       <div class="right">
         <h4><span>HEARBACK · KERNEL</span><span id="hbsR">ARMED</span></h4>
         <div class="hb"><table id="hbR"></table></div>
@@ -198,38 +198,38 @@ const TR={
 const air=(tr,s)=>s>tr[0][0]&&s<tr[tr.length-1][0]+0.01;
 
 // ---------- script ----------
-const C1="SkyFlow four one two, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred.";
-const C2="Cleared to Oakland via Whiskey, Echo, one thousand five hundred, SkyFlow four two one.";
-const C3="SkyFlow four one two, I say again, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred.";
-const C3b="Cleared to Oakland via Whiskey, Echo, climb and maintain one thousand five hundred, SkyFlow four one two.";
-const C4="SkyFlow four two one, now cleared to Oakland via Whiskey, Echo, behind four one two. Climb and maintain one thousand five hundred.";
+const C1="UITA four one two, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred.";
+const C2="Cleared to Oakland via Whiskey, Echo, one thousand five hundred, UITA four two one.";
+const C3="UITA four one two, I say again, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred.";
+const C3b="Cleared to Oakland via Whiskey, Echo, climb and maintain one thousand five hundred, UITA four one two.";
+const C4="UITA four two one, now cleared to Oakland via Whiskey, Echo, behind four one two. Climb and maintain one thousand five hundred.";
 const S=[ // side: B both, L, R.  kind: atc|pilot|sys
   {s:1.0, side:"B", who:"atc", text:C1},
-  {s:7.6, side:"B", who:"pilot", cs:"SKF421", text:C2, bad:true},
+  {s:7.6, side:"B", who:"pilot", cs:"UTA421", text:C2, bad:true},
   {s:12.6,side:"L", who:"sys", cls:"warn", text:"Readback received → plan committed (fields not compared)", fx:"L_commit"},
-  {s:14.0,side:"L", who:"sys", cls:"err",  text:"SKF421 lifting off SF · no reservation on file", fx:"L_dbl"},
-  {s:15.0,side:"L", who:"sys", cls:"warn", text:"SKF412 lifting off SFO · heard its callsign in the clearance"},
-  {s:23.5,side:"L", who:"atc", text:"SkyFlow four two one, traffic alert, eVTOL converging at Whiskey. Turn right immediately, stop climb.", bad:true},
-  {s:31.0,side:"L", who:"pilot", cs:"SKF421", text:"Turning right, stopping climb, SkyFlow four two one. Traffic in sight."},
-  {s:37.0,side:"L", who:"atc", text:"SkyFlow four two one, that clearance was for four one two. Return to the San Francisco pad, report on the ground."},
-  {s:45.0,side:"L", who:"pilot", cs:"SKF421", text:"Returning to San Francisco, SkyFlow four two one."},
+  {s:14.0,side:"L", who:"sys", cls:"err",  text:"UTA421 lifting off SF · no reservation on file", fx:"L_dbl"},
+  {s:15.0,side:"L", who:"sys", cls:"warn", text:"UTA412 lifting off SFO · heard its callsign in the clearance"},
+  {s:23.5,side:"L", who:"atc", text:"UITA four two one, traffic alert, eVTOL converging at Whiskey. Turn right immediately, stop climb.", bad:true},
+  {s:31.0,side:"L", who:"pilot", cs:"UTA421", text:"Turning right, stopping climb, UITA four two one. Traffic in sight."},
+  {s:37.0,side:"L", who:"atc", text:"UITA four two one, that clearance was for four one two. Return to the San Francisco pad, report on the ground."},
+  {s:45.0,side:"L", who:"pilot", cs:"UTA421", text:"Returning to San Francisco, UITA four two one."},
   {s:51.0,side:"L", who:"sys", cls:"err", text:"Incident report filed · 1 loss of separation · W–E double-booked"},
-  {s:12.6,side:"R", who:"sys", cls:"err", text:"Hearback: callsign SKF421 ≠ SKF412 → reservation NOT committed", fx:"R_reject"},
-  {s:14.0,side:"R", who:"atc", text:"SkyFlow four two one, negative, that clearance was for four one two. Caution, similar callsign. Hold position.", bad:true},
-  {s:21.6,side:"R", who:"pilot", cs:"SKF421", text:"Holding position, SkyFlow four two one."},
+  {s:12.6,side:"R", who:"sys", cls:"err", text:"Hearback: callsign UTA421 ≠ UTA412 → reservation NOT committed", fx:"R_reject"},
+  {s:14.0,side:"R", who:"atc", text:"UITA four two one, negative, that clearance was for four one two. Caution, similar callsign. Hold position.", bad:true},
+  {s:21.6,side:"R", who:"pilot", cs:"UTA421", text:"Holding position, UITA four two one."},
   {s:25.0,side:"R", who:"atc", text:C3, fx:"R_reissue"},
-  {s:32.4,side:"R", who:"pilot", cs:"SKF412", text:C3b},
+  {s:32.4,side:"R", who:"pilot", cs:"UTA412", text:C3b},
   {s:38.6,side:"R", who:"sys", cls:"good", text:"Hearback: all fields match → W–SFO, W–E, E–OAK committed", fx:"R_commit"},
   {s:49.0,side:"R", who:"atc", text:C4},
-  {s:56.6,side:"R", who:"pilot", cs:"SKF421", text:C2, fx:"R_421rb"},
-  {s:61.4,side:"R", who:"sys", cls:"good", text:"Hearback: SKF421 fields match → SF–W committed (14:28 slot)", fx:"R_421ok"},
+  {s:56.6,side:"R", who:"pilot", cs:"UTA421", text:C2, fx:"R_421rb"},
+  {s:61.4,side:"R", who:"sys", cls:"good", text:"Hearback: UTA421 fields match → SF–W committed (14:28 slot)", fx:"R_421ok"},
 ];
 const END=74;
 SkyRadio.prefetch(S.filter(l=>l.who!=="sys").map(l=>({text:l.text,speaker:l.who,key:l.cs})));
 
 // ---------- per-side state ----------
-const FIELDS=[["CALLSIGN","SKF412"],["CLEARED TO","OAK"],["ROUTE","W–E"],["ALTITUDE","1500"]];
-const LEDGER=[["SKF412","W–SFO","14:20–22"],["SKF412","W–E","14:22–25"],["SKF412","E–OAK","14:25–27"],["SKF421","SF–W","14:28–29"]];
+const FIELDS=[["CALLSIGN","UTA412"],["CLEARED TO","OAK"],["ROUTE","W–E"],["ALTITUDE","1500"]];
+const LEDGER=[["UTA412","W–SFO","14:20–22"],["UTA412","W–E","14:22–25"],["UTA412","E–OAK","14:25–27"],["UTA421","SF–W","14:28–29"]];
 function fresh(){return{log:[],hb:null,ledger:LEDGER.map(()=>({st:"pend",note:""})),fired:new Set(),minD:99,breach:0}}
 let st={L:fresh(),R:fresh()};
 
@@ -245,22 +245,22 @@ function renderLed(side){
   const el=document.getElementById("led"+side),s=st[side];
   const lab={pend:"PENDING",ok:"COMMITTED",unchk:"UNCHECKED",dbl:"DOUBLE BOOKED",na:"—"};
   el.innerHTML=LEDGER.map(([cs,c,w],i)=>{const r=s.ledger[i];
-    return `<tr class="${r.st==='dbl'?'dbl':''}"><td style="color:${cs==='SKF412'?'var(--blue)':'var(--amber)'}">${cs}</td><td>${c}</td><td style="color:var(--dim)">${w}${r.note?`<br><span style="color:#ff9d95">${r.note}</span>`:""}</td><td class="s"><span class="st ${r.st}">${lab[r.st]}</span></td></tr>`}).join("");
+    return `<tr class="${r.st==='dbl'?'dbl':''}"><td style="color:${cs==='UTA412'?'var(--blue)':'var(--amber)'}">${cs}</td><td>${c}</td><td style="color:var(--dim)">${w}${r.note?`<br><span style="color:#ff9d95">${r.note}</span>`:""}</td><td class="s"><span class="st ${r.st}">${lab[r.st]}</span></td></tr>`}).join("");
 }
 function fx(name){
   const L=st.L,R=st.R;
-  if(name==="L_commit"){L.hb=["SKF421","OAK","W–E","1500"];[0,1,2].forEach(i=>L.ledger[i].st="unchk");renderHB("L");}
-  if(name==="L_dbl"){L.ledger[2-1].st="dbl";L.ledger[1].note="+ SKF421 airborne";L.ledger[3].st="dbl";L.ledger[3].note="early, unfiled";}
-  if(name==="R_reject"){R.hb=["SKF421","OAK","W–E","1500"];setV("R","x","REJECTED · CALLSIGN MISMATCH · NOT COMMITTED");document.getElementById("hbsR").textContent="MISMATCH";renderHB("R");}
-  if(name==="R_reissue"){R.hb=null;setV("R","","RE-ISSUED TO SKF412 · WAITING FOR READBACK");document.getElementById("hbsR").textContent="ARMED";renderHB("R");}
-  if(name==="R_commit"){R.hb=["SKF412","OAK","W–E","1500"];[0,1,2].forEach(i=>R.ledger[i].st="ok");setV("R","k","ALL FIELDS MATCH · COMMITTED");document.getElementById("hbsR").textContent="MATCH";renderHB("R");}
-  if(name==="R_421rb"){FIELDS[0][1]="SKF421";R.hb=null;setV("R","","SKF421 SLOT · WAITING FOR READBACK");renderHB("R");}
-  if(name==="R_421ok"){R.hb=["SKF421","OAK","W–E","1500"];R.ledger[3].st="ok";setV("R","k","SKF421 MATCH · COMMITTED");renderHB("R");}
+  if(name==="L_commit"){L.hb=["UTA421","OAK","W–E","1500"];[0,1,2].forEach(i=>L.ledger[i].st="unchk");renderHB("L");}
+  if(name==="L_dbl"){L.ledger[2-1].st="dbl";L.ledger[1].note="+ UTA421 airborne";L.ledger[3].st="dbl";L.ledger[3].note="early, unfiled";}
+  if(name==="R_reject"){R.hb=["UTA421","OAK","W–E","1500"];setV("R","x","REJECTED · CALLSIGN MISMATCH · NOT COMMITTED");document.getElementById("hbsR").textContent="MISMATCH";renderHB("R");}
+  if(name==="R_reissue"){R.hb=null;setV("R","","RE-ISSUED TO UTA412 · WAITING FOR READBACK");document.getElementById("hbsR").textContent="ARMED";renderHB("R");}
+  if(name==="R_commit"){R.hb=["UTA412","OAK","W–E","1500"];[0,1,2].forEach(i=>R.ledger[i].st="ok");setV("R","k","ALL FIELDS MATCH · COMMITTED");document.getElementById("hbsR").textContent="MATCH";renderHB("R");}
+  if(name==="R_421rb"){FIELDS[0][1]="UTA421";R.hb=null;setV("R","","UTA421 SLOT · WAITING FOR READBACK");renderHB("R");}
+  if(name==="R_421ok"){R.hb=["UTA421","OAK","W–E","1500"];R.ledger[3].st="ok";setV("R","k","UTA421 MATCH · COMMITTED");renderHB("R");}
   renderLed("L");renderLed("R");
 }
 function setV(side,cls,txt){const e=document.getElementById("hbv"+side);e.className="hbv "+cls;e.textContent=txt}
 function resetUI(){
-  FIELDS[0][1]="SKF412";
+  FIELDS[0][1]="UTA412";
   st={L:fresh(),R:fresh()};
   for(const s of["L","R"]){document.getElementById("log"+s).innerHTML="";renderHB(s);renderLed(s)}
   setV("R","","WAITING FOR READBACK");document.getElementById("hbsR").textContent="ARMED";
@@ -370,7 +370,7 @@ function drawMap(side){
     g.beginPath();g.moveTo(8,0);g.lineTo(-6,-5);g.lineTo(-3,0);g.lineTo(-6,5);g.closePath();g.fill();g.restore();
     // tag
     const held=!live&&s<T[cs][0][0];
-    const label=`SKF${cs}`+(held?(side==="R"&&cs==="421"&&s>14?" · HOLDING":" · ON PAD"):"");
+    const label=`UTA${cs}`+(held?(side==="R"&&cs==="421"&&s>14?" · HOLDING":" · ON PAD"):"");
     g.font="700 11px ui-monospace,Menlo,monospace";const tw=g.measureText(label).width;
     const lx=q[0]+(cs==="412"?12:-tw-14),ly=q[1]+(cs==="412"?16:-12);
     g.fillStyle="rgba(8,11,14,.85)";g.fillRect(lx-4,ly-11,tw+8,15);

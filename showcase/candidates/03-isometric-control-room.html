@@ -246,7 +246,7 @@ body.cine .lbox{height:34px}
 </aside>
 
 <section class="card flight">
-  <div class="fl-h"><span class="cs">SkyFlow 112</span><span class="rt" id="fl-rt">SF → OAK · filed via C–E</span><span class="del" id="fl-del">sched dep 14:15L</span></div>
+  <div class="fl-h"><span class="cs">UITA 112</span><span class="rt" id="fl-rt">SF → OAK · filed via C–E</span><span class="del" id="fl-del">sched dep 14:15L</span></div>
   <div class="stepper" id="stepper"></div>
   <div class="radio">
     <div class="tx-list" id="tx"></div>
@@ -490,7 +490,7 @@ function makeEVTOL(sel){
 }
 const acObjs=FLIGHTS.map(f=>{
   const g=makeEVTOL(f.i===SEL);g.visible=false;scene.add(g);
-  const el=document.createElement('div');el.className='lbl ac'+(f.i===SEL?' sel':'');el.textContent='SKF'+f.cs;
+  const el=document.createElement('div');el.className='lbl ac'+(f.i===SEL?' sel':'');el.textContent='UTA'+f.cs;
   const o=new CSS2DObject(el);o.position.set(0,2,0);g.add(o);
   return {g,el,o};
 });
@@ -529,7 +529,7 @@ const SHOTS={
 };
 const PRESETS=[['overview','Bay'],['tower','Tower'],['chase','Chase'],['storm','Storm'],['oak','OAK pad']];
 // auto-director: [from minute, shot, label, cut?]
-const SCRIPT=[[0,'establish','Establishing orbit'],[7.6,'push','Push in · C–E closes'],[11.1,'follow','Follow reroute · SKF105'],[13.4,'mismatch','Close-up · SKF112 readback',true],[19.4,'chase','Chase · SKF112 via W–E'],[24,'recovery','Pull back · recovery'],[36,'oak','Vertiport · OAK'],[44,'tower','SFO tower cab'],[52,'establish','Wide orbit'],[64,'chase','Chase · SKF112',false,19],[70,'recovery','Pull back · final score']];
+const SCRIPT=[[0,'establish','Establishing orbit'],[7.6,'push','Push in · C–E closes'],[11.1,'follow','Follow reroute · UTA105'],[13.4,'mismatch','Close-up · UTA112 readback',true],[19.4,'chase','Chase · UTA112 via W–E'],[24,'recovery','Pull back · recovery'],[36,'oak','Vertiport · OAK'],[44,'tower','SFO tower cab'],[52,'establish','Wide orbit'],[64,'chase','Chase · UTA112',false,19],[70,'recovery','Pull back · final score']];
 let camMode='cine',curShot=null,trans=null,shotLbl='';
 function snap(){return{pos:cam.position.clone(),tgt:controls.target.clone(),fov:cam.fov};}
 let camInit=false;
@@ -596,13 +596,13 @@ function alertBox(kind,title,body){
 function setBadge(){const b=$('al-badge');b.textContent=S.alerts;b.style.display=S.alerts&&curTab!=='alerts'?'inline':'none';}
 /* ---------------- radio voice (shared SkyRadio module) ---------------- */
 const RL={
- c0:['CTL','SkyFlow one zero one, San Francisco Control, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred.'],
- p0:['PLT','Cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred, SkyFlow one zero one.','SKF101'],
+ c0:['CTL','UITA one zero one, San Francisco Control, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred.'],
+ p0:['PLT','Cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred, UITA one zero one.','UTA101'],
  wx:['CTL','All stations, San Francisco Control. Corridor Charlie Echo is <em>closed</em> for weather until one four two four. Expect reroute via Whiskey.'],
- c1:['CTL','SkyFlow one one two, San Francisco Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one five.'],
- p1:['PLT','Cleared to Oakland via <em>Charlie, Echo</em>, climb and maintain one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
- c2:['CTL','SkyFlow one one two, <em>negative</em>. Charlie Echo is closed for weather. Cleared via <strong>Whiskey, Echo</strong>. Read back.'],
- p2:['PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
+ c1:['CTL','UITA one one two, San Francisco Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one five.'],
+ p1:['PLT','Cleared to Oakland via <em>Charlie, Echo</em>, climb and maintain one thousand five hundred, squawk four two one five, UITA one one two.','UTA112'],
+ c2:['CTL','UITA one one two, <em>negative</em>. Charlie Echo is closed for weather. Cleared via <strong>Whiskey, Echo</strong>. Read back.'],
+ p2:['PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one five, UITA one one two.','UTA112'],
 };
 const plainText=h=>h.replace(/<[^>]+>/g,'');
 let voiceBusy=0;
@@ -630,7 +630,7 @@ function radio(sp,html,key,live){
 }
 const strip=h=>h.replace(/<[^>]+>/g,'');
 function cut(html,n){let out='',c=0,inTag=false;for(const ch of html){if(ch==='<')inTag=true;if(inTag){out+=ch;if(ch==='>')inTag=false;continue;}if(c>=n)break;out+=ch;c++;}return out.replace(/<(em|strong)>([^<]*)$/,'<$1>$2</$1>');}
-const HBF=[['CALLSIGN','SKF112'],['ROUTE','W–E'],['ALT','1,500'],['SQUAWK','4215'],['DEST','OAK']];
+const HBF=[['CALLSIGN','UTA112'],['ROUTE','W–E'],['ALT','1,500'],['SQUAWK','4215'],['DEST','OAK']];
 function renderHB(){
   const hb=S.hb;
   $('hb-fields').innerHTML=HBF.map(([k,exp],i)=>{const got=hb?hb[i]:null;const ok=got===null?null:got===exp;
@@ -678,22 +678,22 @@ const EV=[
  [7.9,()=>{S.phase='storm';storm.visible=true;alertBox('r','Convective cell over C–E','Unforecast CB, tops 9,000 ft, moving NE at 8 kt. Kernel closed corridor C–E for 08–24.');log('WX','Cell detected between Charlie and Echo. Not in TAF.',null,'var(--red)');log('KERNEL','NOTAM: corridor C–E CLOSED 14:08–14:24L.',null,'var(--red)');ag('coord',{st:'work',task:'C–E closed. 6 trips affected. Spawning sector agents.',used:9});}],
  [8.4,()=>{S.phase='replan';ag('secC',{on:true,st:'work',task:'Replanning SF/MAR flows away from C–E.',used:2});ag('secE',{on:true,st:'work',task:'Replanning OAK/BER flows. Spawning pad agents.',used:2});log('COORD','Spawned Sector Central (D1), Sector East (D1).',null,'var(--ink)');}],
  [8.9,()=>{ag('padOAK',{on:true,st:'work',task:'Sequencing OAK arrivals on W–E.',used:1});ag('padBER',{on:true,st:'work',task:'Assessing BER departures under outflow.',used:1});log('SEC-E','Spawned Pad OAK (D2), Pad BER (D2). Depth cap reached.',null,'var(--blue)');}],
- [9.4,()=>{ag('padOAK',{st:'prop',task:'Proposed: hold SKF105 on pad SF +1.5 min, then W–E.',used:3});log('PAD-OAK','Proposes: hold SKF105 at SF +1.5 min, reroute W–E.',null,'var(--blue)');}],
- [9.9,()=>{ag('padOAK',{st:'ok'});log('VALIDATOR','SKF105 hold + W–E: separation ≥ 3.2 NM, capacity OK.','ACCEPT','var(--teal)');}],
- [10.3,()=>{ag('secC',{st:'prop',task:'Proposed: reroute SKF103, SKF104, SKF112 via W–E (+14% dist).',used:7});log('SEC-C','Proposes: reroute SKF103, SKF104, SKF112 via W–E.',null,'var(--blue)');}],
+ [9.4,()=>{ag('padOAK',{st:'prop',task:'Proposed: hold UTA105 on pad SF +1.5 min, then W–E.',used:3});log('PAD-OAK','Proposes: hold UTA105 at SF +1.5 min, reroute W–E.',null,'var(--blue)');}],
+ [9.9,()=>{ag('padOAK',{st:'ok'});log('VALIDATOR','UTA105 hold + W–E: separation ≥ 3.2 NM, capacity OK.','ACCEPT','var(--teal)');}],
+ [10.3,()=>{ag('secC',{st:'prop',task:'Proposed: reroute UTA103, UTA104, UTA112 via W–E (+14% dist).',used:7});log('SEC-C','Proposes: reroute UTA103, UTA104, UTA112 via W–E.',null,'var(--blue)');}],
  [10.8,()=>{ag('secC',{st:'ok'});log('VALIDATOR','W–E load 4 of 6 slots. No conflicts.','ACCEPT','var(--teal)');S.sel.rt='SF → OAK · rerouted via W–E';drawSel(ROUTES['SF-OAK'].a);}],
- [11.3,()=>{ag('secE',{st:'prop',task:'Proposed: keep SKF109 on C–E at 800 ft, under the cell.',used:9});log('SEC-E','Proposes: keep SKF109 on C–E at 800 ft, under the cell.',null,'var(--blue)');}],
- [11.8,()=>{ag('secE',{st:'rej',task:'Rejected. Replanning SKF109 via E–W.'});log('VALIDATOR','C–E is CLOSED 08–24 at all altitudes. Rule R-7: no closed-corridor reservations.','REJECT','var(--red)');alertBox('a','Proposal rejected','Sector East asked to keep SKF109 under the cell on C–E. Validator rule R-7: closed corridors take no reservations at any altitude.');}],
- [12.0,()=>{setStep(0);log('SKF112','Requests departure SF → OAK.',null,'var(--amber)');}],
- [12.4,()=>{setStep(1);log('KERNEL','SKF112 held on pad SF pending W–E slot.',null,'var(--ink2)');}],
- [12.9,()=>{ag('secE',{st:'prop',task:'Revised: SKF109 via E–W–SF (+1.8 min).',used:11});log('SEC-E','Revised: SKF109 via E–W–SF.',null,'var(--blue)');}],
- [13.3,()=>{ag('secE',{st:'ok'});log('VALIDATOR','SKF109 via E–W–SF. Separation ≥ 2.9 NM.','ACCEPT','var(--teal)');}],
+ [11.3,()=>{ag('secE',{st:'prop',task:'Proposed: keep UTA109 on C–E at 800 ft, under the cell.',used:9});log('SEC-E','Proposes: keep UTA109 on C–E at 800 ft, under the cell.',null,'var(--blue)');}],
+ [11.8,()=>{ag('secE',{st:'rej',task:'Rejected. Replanning UTA109 via E–W.'});log('VALIDATOR','C–E is CLOSED 08–24 at all altitudes. Rule R-7: no closed-corridor reservations.','REJECT','var(--red)');alertBox('a','Proposal rejected','Sector East asked to keep UTA109 under the cell on C–E. Validator rule R-7: closed corridors take no reservations at any altitude.');}],
+ [12.0,()=>{setStep(0);log('UTA112','Requests departure SF → OAK.',null,'var(--amber)');}],
+ [12.4,()=>{setStep(1);log('KERNEL','UTA112 held on pad SF pending W–E slot.',null,'var(--ink2)');}],
+ [12.9,()=>{ag('secE',{st:'prop',task:'Revised: UTA109 via E–W–SF (+1.8 min).',used:11});log('SEC-E','Revised: UTA109 via E–W–SF.',null,'var(--blue)');}],
+ [13.3,()=>{ag('secE',{st:'ok'});log('VALIDATOR','UTA109 via E–W–SF. Separation ≥ 2.9 NM.','ACCEPT','var(--teal)');}],
  [13.6,()=>{radio(...RL.c1);}],
  [14.8,()=>{radio(...RL.p1);}],
- [16.0,()=>{S.hb=['SKF112','C–E','1,500','4215','OAK'];S.commit='MISMATCH · route C–E is closed';S.commitCls='bad';renderHB();radio('HBK','Route field mismatch: heard <em>C–E</em>, cleared W–E. Reservation not committed.');alertBox('r','Hearback mismatch · SKF112','Pilot read back closed corridor C–E. Controller agent issues correction.');log('HEARBACK','SKF112 readback route C–E ≠ W–E. Hold commit.',null,'var(--red)');}],
+ [16.0,()=>{S.hb=['UTA112','C–E','1,500','4215','OAK'];S.commit='MISMATCH · route C–E is closed';S.commitCls='bad';renderHB();radio('HBK','Route field mismatch: heard <em>C–E</em>, cleared W–E. Reservation not committed.');alertBox('r','Hearback mismatch · UTA112','Pilot read back closed corridor C–E. Controller agent issues correction.');log('HEARBACK','UTA112 readback route C–E ≠ W–E. Hold commit.',null,'var(--red)');}],
  [16.7,()=>{radio(...RL.c2);}],
  [17.8,()=>{radio(...RL.p2);}],
- [18.7,()=>{S.hb=['SKF112','W–E','1,500','4215','OAK'];S.commit='COMMITTED · RSV-0112 W–E';S.commitCls='ok';renderHB();setStep(2);radio('HBK','All five fields match. Reservation <strong>RSV-0112</strong> committed by kernel.');log('KERNEL','RSV-0112 SKF112 via W–E committed.',null,'var(--teal)');}],
+ [18.7,()=>{S.hb=['UTA112','W–E','1,500','4215','OAK'];S.commit='COMMITTED · RSV-0112 W–E';S.commitCls='ok';renderHB();setStep(2);radio('HBK','All five fields match. Reservation <strong>RSV-0112</strong> committed by kernel.');log('KERNEL','RSV-0112 UTA112 via W–E committed.',null,'var(--teal)');}],
  [15.2,()=>{S.kiosk={state:'pending',until:S.m+9/SPM};ag('padBER',{st:'prop',task:'Proposed: ground stop BER departures 12 min. Escalated.',used:5});log('PAD-BER','Proposes: ground stop BER 12 min.',null,'var(--blue)');log('VALIDATOR','Legal, but over the 10-min autonomy limit. Escalated to supervisor.',null,'var(--amber)');renderKiosk();}],
  [19.1,()=>{setStep(3);}],
  [24.0,()=>{S.phase='recover';ce.material.color.set(0x3aa395);ce.material.opacity=.55;alertBox('t','C–E reopened','Cell moved off NE. Kernel reopened C–E at 14:24L. Agents retiring.');log('KERNEL','NOTAM cancelled: C–E OPEN.',null,'var(--teal)');ag('coord',{task:'Recovery: restoring filed routes for new departures.',used:18});}],
@@ -777,12 +777,12 @@ function updateUI(m,air,onpad,sepMin){
   // selected flight header
   const sf=FLIGHTS[SEL];$('fl-rt').textContent=S.sel.rt;
   $('fl-del').textContent=m<sf.dep?'sched dep '+loc(sf.sched)+'L':m<sf.arr?'ETA '+loc(sf.arr)+'L · delay +'+sf.delay.toFixed(1)+' min':'landed '+loc(sf.arr)+'L · +'+sf.delay.toFixed(1)+' min';
-  if(S.step===3&&m>=sf.arr){setStep(4);log('SKF112','Landed OAK. Reservation released.',null,'var(--amber)');}
+  if(S.step===3&&m>=sf.arr){setStep(4);log('UTA112','Landed OAK. Reservation released.',null,'var(--amber)');}
   // traffic table
   const rows=FLIGHTS.filter(f=>(m>=f.sched-1.2&&m<=f.arr)).slice(0,12).map(f=>{
     const st=m<f.dep?(m>f.sched?'<span class="tag hold">HOLD</span>':'<span class="tag">PAD</span>'):f.rr?'<span class="tag rr">REROUTE</span>':'<span class="tag air">AIR</span>';
     const p=posOf(f,m);const alt=p?(p.east?'1,500':'2,000'):'—';
-    return `<tr class="${f.i===SEL?'sel':''}"><td>SKF${f.cs}</td><td>${f.path.join('-')}</td><td>${alt}</td><td>${loc(f.arr)}</td><td>${st}</td></tr>`;}).join('');
+    return `<tr class="${f.i===SEL?'sel':''}"><td>UTA${f.cs}</td><td>${f.path.join('-')}</td><td>${alt}</td><td>${loc(f.arr)}</td><td>${st}</td></tr>`;}).join('');
   $('tr-body').innerHTML=rows||'<tr><td colspan="5" style="color:var(--ink3)">No traffic.</td></tr>';
 }
 if(window.SkyRadio){SkyRadio.onTransmit(e=>{S.wave=e.live;});$('snd').onclick=()=>{SkyRadio.enabled?SkyRadio.disable():SkyRadio.enable();soundBtn();};soundBtn();}

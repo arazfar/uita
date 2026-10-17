@@ -280,7 +280,7 @@ const flights = PAIRS.map(([a, b], i) => {
   const rel = i * 2.5, plan = route(a, b, false);
   const replan = rel >= 7 && rel < STORM1 && usesCE(plan);
   const path = replan ? route(a, b, true) : plan;
-  let dep = rel; if (i === 5) dep = 14.7; // SKF112 waits for corrected readback
+  let dep = rel; if (i === 5) dep = 14.7; // UTA112 waits for corrected readback
   const dur = pathLen(path) / SPEED + 0.8;
   const planArr = rel + pathLen(plan) / SPEED + 0.8;
   return { i, cs: CALLS[i], a, b, rel, dep, plan, path, replan, dur, arr: dep + dur, planArr, delay: Math.max(0, dep + dur - planArr) };
@@ -288,7 +288,7 @@ const flights = PAIRS.map(([a, b], i) => {
 const planTotal = flights.reduce((s, f) => s + pathLen(f.plan), 0);
 
 const word = n => String(n).split('').map(c => ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'niner'][+c]).join(' ');
-const csw = cs => 'SkyFlow ' + word(cs);
+const csw = cs => 'UITA ' + word(cs);
 const via = p => p.slice(1, -1).map(n => NAME[n]).join(', ');
 
 /* radio + agent scripts (sim minutes) */
@@ -303,21 +303,21 @@ for (const f of flights) {
   BANNERS.push({ t, cs: f.cs, text: clr, st: 'ISSUED', fields: [] });
   BANNERS.push({ t: t + 0.35, cs: f.cs, text: clr, st: 'COMMITTED', fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'].map(k => [k, true]) });
 }
-// the caught readback: SkyFlow 112 vs 121
-const C112 = 'SkyFlow one one two, Oakland pad, Charlie–Echo closed, cleared to San Francisco via Echo, Whiskey, climb and maintain one thousand five hundred.';
+// the caught readback: UITA 112 vs 121
+const C112 = 'UITA one one two, Oakland pad, Charlie–Echo closed, cleared to San Francisco via Echo, Whiskey, climb and maintain one thousand five hundred.';
 RADIO.push({ t: 12.0, who: 'CTL', to: 112, text: C112 });
-RADIO.push({ t: 12.7, who: 'PLT', from: 121, text: 'Cleared via Echo, Whiskey, one thousand five hundred, SkyFlow one two one.',
+RADIO.push({ t: 12.7, who: 'PLT', from: 121, text: 'Cleared via Echo, Whiskey, one thousand five hundred, UITA one two one.',
   hb: { ok: false, fields: [['CALLSIGN', false, 'heard 121 · cleared 112'], ['ROUTE', true], ['ALT', true]] } });
-RADIO.push({ t: 13.4, who: 'CTL', to: 121, neg: true, text: 'SkyFlow one two one, negative, that clearance was for SkyFlow one one two. Hold on the pad. SkyFlow one one two, read back.' });
-RADIO.push({ t: 14.1, who: 'PLT', from: 112, text: 'Echo, Whiskey, climb and maintain one thousand five hundred, San Francisco, SkyFlow one one two.',
-  hb: { ok: true, fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'] }, commit: 'COMMITTED · reservation E–W 16:15–16:21 · SKF112' });
-RADIO.push({ t: 15.6, who: 'CTL', to: 121, text: 'SkyFlow one two one, San Francisco pad, cleared to Oakland via Whiskey, Echo, climb and maintain one thousand five hundred.' });
-RADIO.push({ t: 16.0, who: 'PLT', from: 121, text: 'Cleared to Oakland via Whiskey, Echo, one thousand five hundred, SkyFlow one two one.', hb: { ok: true, fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'] } });
+RADIO.push({ t: 13.4, who: 'CTL', to: 121, neg: true, text: 'UITA one two one, negative, that clearance was for UITA one one two. Hold on the pad. UITA one one two, read back.' });
+RADIO.push({ t: 14.1, who: 'PLT', from: 112, text: 'Echo, Whiskey, climb and maintain one thousand five hundred, San Francisco, UITA one one two.',
+  hb: { ok: true, fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'] }, commit: 'COMMITTED · reservation E–W 16:15–16:21 · UTA112' });
+RADIO.push({ t: 15.6, who: 'CTL', to: 121, text: 'UITA one two one, San Francisco pad, cleared to Oakland via Whiskey, Echo, climb and maintain one thousand five hundred.' });
+RADIO.push({ t: 16.0, who: 'PLT', from: 121, text: 'Cleared to Oakland via Whiskey, Echo, one thousand five hundred, UITA one two one.', hb: { ok: true, fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'] } });
 BANNERS.push({ t: 12.0, cs: 112, text: C112, st: 'ISSUED', fields: [] });
 BANNERS.push({ t: 12.7, cs: 112, text: C112, st: 'MISMATCH', mis: true, fields: [['CALLSIGN 121≠112', false], ['ROUTE', true], ['ALT', true], ['PAD', null]] });
-BANNERS.push({ t: 13.4, cs: 112, text: '“SkyFlow one two one, negative, that clearance was for SkyFlow one one two.”', st: 'NEGATIVE SENT', mis: true, fields: [['CALLSIGN 121≠112', false]] });
+BANNERS.push({ t: 13.4, cs: 112, text: '“UITA one two one, negative, that clearance was for UITA one one two.”', st: 'NEGATIVE SENT', mis: true, fields: [['CALLSIGN 121≠112', false]] });
 BANNERS.push({ t: 14.1, cs: 112, text: C112, st: 'COMMITTED', fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'].map(k => [k, true]) });
-BANNERS.push({ t: 15.6, cs: 121, text: 'SkyFlow one two one, San Francisco pad, cleared to Oakland via Whiskey, Echo, climb and maintain one thousand five hundred.', st: 'COMMITTED', fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'].map(k => [k, true]) });
+BANNERS.push({ t: 15.6, cs: 121, text: 'UITA one two one, San Francisco pad, cleared to Oakland via Whiskey, Echo, climb and maintain one thousand five hundred.', st: 'COMMITTED', fields: ['CALLSIGN', 'ROUTE', 'ALT', 'PAD'].map(k => [k, true]) });
 RADIO.sort((a, b) => a.t - b.t); BANNERS.sort((a, b) => a.t - b.t);
 
 const F = (t, who, p, k, why) => FEED.push({ t, who, p, k, why });
@@ -325,22 +325,22 @@ F(0.05, 'COORD', 'Coordinator online. Spawning sector agents NORTH, CENTRAL, EAS
 F(0.5, 'COORD › NORTH', 'Spawned pad agents MAR, SF.', 'sys', 'spawn ×2');
 F(0.8, 'COORD › CENTRAL', 'Spawned pad agent SFO; owns junctions W, C.', 'sys', 'spawn ×1');
 F(1.1, 'COORD › EAST', 'Spawned pad agents OAK, BER; owns junction E.', 'sys', 'spawn ×2');
-F(3.0, 'EAST › PAD-OAK', 'Propose: SKF101 land pad 2 instead of pad 1 (pad 1 inspection).', 'acc', 'kernel: pad 2 free 16:04–16:07');
+F(3.0, 'EAST › PAD-OAK', 'Propose: UTA101 land pad 2 instead of pad 1 (pad 1 inspection).', 'acc', 'kernel: pad 2 free 16:04–16:07');
 F(7.3, 'CENTRAL', 'Radar returns building over Charlie–Echo. Not in KSFO TAF.', 'sys', 'observation');
-F(7.9, 'KERNEL', 'Corridor C–E closed 16:08 until further notice.', 'sys', 'commit · NOTAM SKF-07');
-F(8.3, 'EAST', 'Propose: reroute SKF104 OAK→SF via E–W.', 'acc', 'kernel: separation ≥ 1.2 nm, +4.9 km');
-F(8.9, 'EAST › PAD-OAK', 'Propose: priority departure SKF105 before arrivals.', 'acc', 'kernel: no conflict on pad 2');
-F(9.5, 'CENTRAL', 'Propose: hold SKF104 at Charlie six minutes, then C–E.', 'rej', 'VETO: C–E closed; hold exceeds 3 min limit');
-F(10.2, 'NORTH', 'Propose: route SKF105 under the cell at 800 ft.', 'rej', 'VETO: corridor closed at all altitudes');
+F(7.9, 'KERNEL', 'Corridor C–E closed 16:08 until further notice.', 'sys', 'commit · NOTAM UTA-07');
+F(8.3, 'EAST', 'Propose: reroute UTA104 OAK→SF via E–W.', 'acc', 'kernel: separation ≥ 1.2 nm, +4.9 km');
+F(8.9, 'EAST › PAD-OAK', 'Propose: priority departure UTA105 before arrivals.', 'acc', 'kernel: no conflict on pad 2');
+F(9.5, 'CENTRAL', 'Propose: hold UTA104 at Charlie six minutes, then C–E.', 'rej', 'VETO: C–E closed; hold exceeds 3 min limit');
+F(10.2, 'NORTH', 'Propose: route UTA105 under the cell at 800 ft.', 'rej', 'VETO: corridor closed at all altitudes');
 F(10.9, 'COORD', 'Propose: all C–E traffic via W–E until the cell clears.', 'acc', 'kernel: W–E load 9/12 per 10 min');
-F(14.6, 'KERNEL', 'Readback verified. Reservation E–W 16:15–16:21 for SKF112.', 'sys', 'commit · after hearback fix');
+F(14.6, 'KERNEL', 'Readback verified. Reservation E–W 16:15–16:21 for UTA112.', 'sys', 'commit · after hearback fix');
 F(16.6, 'EAST › PAD-OAK', 'Propose: slide OAK arrivals +1 min to absorb reroutes.', 'acc', 'kernel: all within 5 min of plan');
-F(18.4, 'EAST › PAD-BER', 'Propose: take SKF109 diversion from OAK on pad 1.', 'rej', 'VETO: pad 1 occupied 16:20–16:24');
-F(19.2, 'COORD', 'Propose: SKF109 keep OAK pad 2, 40 s spacing.', 'acc', 'kernel: separation ok');
-F(24.0, 'KERNEL', 'Cell dissipated. Corridor C–E reopened 16:24.', 'sys', 'commit · NOTAM SKF-07 cancelled');
+F(18.4, 'EAST › PAD-BER', 'Propose: take UTA109 diversion from OAK on pad 1.', 'rej', 'VETO: pad 1 occupied 16:20–16:24');
+F(19.2, 'COORD', 'Propose: UTA109 keep OAK pad 2, 40 s spacing.', 'acc', 'kernel: separation ok');
+F(24.0, 'KERNEL', 'Cell dissipated. Corridor C–E reopened 16:24.', 'sys', 'commit · NOTAM UTA-07 cancelled');
 F(24.7, 'COORD', 'Propose: restore planned routes for releases after 16:25.', 'acc', 'kernel: plan restored');
 F(31.0, 'COORD', 'Recovery: every trip within 5 min of plan. No human input needed.', 'sys', 'status');
-F(52.0, 'NORTH › PAD-MAR', 'Propose: early release SKF122 (pad idle).', 'rej', 'VETO: SF–MAR slot not reserved until 16:52');
+F(52.0, 'NORTH › PAD-MAR', 'Propose: early release UTA122 (pad idle).', 'rej', 'VETO: SF–MAR slot not reserved until 16:52');
 F(64.0, 'COORD', 'Demand tapering. Releasing sector agents EAST, NORTH at 17:10.', 'sys', 'plan');
 
 /* time warp: real seconds -> sim minutes (slower through the storm + voice loop) */
@@ -796,14 +796,14 @@ const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 const CINE = [
   { t0: 0, name: 'Establishing orbit', dur: 0, pose: (T, l) => orbitAt(BAY, -0.75 + l * 0.05, 25000 - l * 600, 10500 - l * 250, 40) },
   { t0: 7.4, name: 'Storm closes C–E', dur: 2.2, pose: (T, l) => { const k = ease(Math.min(1, l / 3.2)); return orbitAt(STORMT, -0.95 + l * 0.06, 16000 - 7500 * k, 2600 - 1100 * k, 46); } },
-  { t0: 10.6, name: 'Follow reroute · SKF104', dur: 1.6, pose: () => chasePose(3, 1.5) },
-  { t0: 11.9, name: 'Readback mismatch · SKF112', dur: 0, pose: (T, l) => {
+  { t0: 10.6, name: 'Follow reroute · UTA104', dur: 1.6, pose: () => chasePose(3, 1.5) },
+  { t0: 11.9, name: 'Readback mismatch · UTA112', dur: 0, pose: (T, l) => {
       const p = poses[5];
       if (!p.on) return orbitAt(OAKP, -0.6, 300, 90, 40);
       if (p.parked) { const a = -0.5 + l * 0.12; return { p: new V3(p.pos.x + Math.sin(a) * 75, p.pos.y + 22, p.pos.z + Math.cos(a) * 75), t: p.pos.clone().add(new V3(0, 3, 0)), fov: 36 }; }
       return chasePose(5, 0.8);
     } },
-  { t0: 15.9, name: 'Follow reroute · SKF121', dur: 1.8, pose: () => chasePose(6, 1.2) },
+  { t0: 15.9, name: 'Follow reroute · UTA121', dur: 1.8, pose: () => chasePose(6, 1.2) },
   { t0: 19.5, name: 'Tower cab', dur: 1.6, pose: (T, l) => towerPose((40 + l * 2.2) * Math.PI / 180, -0.04, 50) },
   { t0: 24, name: 'C–E reopens', dur: 2.2, pose: (T, l) => orbitAt(STORMT, -0.6 + l * 0.05, 15000, 3800, 44) },
   { t0: 30, name: 'Tower cab', dur: 1.6, pose: (T, l) => towerPose((10 + l * 1.6) * Math.PI / 180, -0.05, 50) },
@@ -908,7 +908,7 @@ function rebuildLists(T) {
   if (nr !== shownRadio) {
     shownRadio = nr; const items = RADIO.slice(Math.max(0, nr - 7), nr);
     $('radioList').innerHTML = items.map(r => {
-      const who = r.who === 'CTL' ? `SKYFLOW CTL <span>→ SKF${r.to}</span>` : `SKF${r.from} <span>pilot</span>`;
+      const who = r.who === 'CTL' ? `UITA CTL <span>→ UTA${r.to}</span>` : `UTA${r.from} <span>pilot</span>`;
       let h = `<div class="tx"><div class="rx ${r.who === 'PLT' ? 'pl' : ''} ${r.neg ? 'neg' : ''} ${r.text === liveText ? 'live' : ''}"><div class="k">${who}</div>${r.text}</div>`;
       if (r.hb) h += `<div class="hb ${r.hb.ok ? 'good' : 'bad'}"><span class="lbl">${r.hb.ok ? 'HEARBACK OK' : 'HEARBACK MISMATCH'}</span>${r.hb.fields.map(f => Array.isArray(f) ? `<span class="fd ${f[1] ? 'ok' : 'bad'}">${f[0]}${f[2] ? ' · ' + f[2] : ''}</span>` : `<span class="fd ok">${f}</span>`).join('')}</div>`;
       if (r.commit) h += `<div class="cm">${r.commit}</div>`;
@@ -928,7 +928,7 @@ function rebuildLists(T) {
   let bi = -1; for (let i = 0; i < BANNERS.length; i++) if (BANNERS[i].t <= T) bi = i;
   if (bi !== shownBanner && bi >= 0) {
     shownBanner = bi; const b = BANNERS[bi];
-    $('bnCs').textContent = 'SKF' + b.cs; $('bnTx').textContent = b.text;
+    $('bnCs').textContent = 'UTA' + b.cs; $('bnTx').textContent = b.text;
     const st = $('bnSt'); st.textContent = b.st; st.className = 'st ' + (b.mis ? 'mis' : b.st === 'COMMITTED' ? 'ok' : 'rb');
     $('banner').classList.toggle('mis', !!b.mis);
     $('bnFl').innerHTML = b.fields.map(([k, ok]) => `<span class="fd ${ok === true ? 'ok' : ok === false ? 'bad' : ''}">${k}</span>`).join('');
@@ -941,7 +941,7 @@ function updateStrips(T) {
     const st = T > f.arr ? 'arr' : T < f.dep ? (f.i === 5 && T >= 12.7 ? 'hold' : 'gnd') : f.replan ? 'rr' : '';
     const stx = { arr: 'ARR', hold: 'HOLD', gnd: 'GND', rr: 'RR', '': 'ENR' }[st];
     const rt = f.path.join('–'), planRt = f.replan ? `<b class="x">plan ${f.plan.join('–')} · C–E closed</b>` : 'filed route';
-    return `<div class="strip ${st} ${f.i === selIdx ? 'sel' : ''}" data-i="${f.i}"><div class="bar"></div><div class="cs">SKF${f.cs}<small>${stx}</small></div><div class="rt">${rt}<small>${planRt}</small></div><div class="tm">${hhmm(f.arr)}<small>${f.delay > 0.05 ? '+' + f.delay.toFixed(1) : 'on plan'}</small></div></div>`;
+    return `<div class="strip ${st} ${f.i === selIdx ? 'sel' : ''}" data-i="${f.i}"><div class="bar"></div><div class="cs">UTA${f.cs}<small>${stx}</small></div><div class="rt">${rt}<small>${planRt}</small></div><div class="tm">${hhmm(f.arr)}<small>${f.delay > 0.05 ? '+' + f.delay.toFixed(1) : 'on plan'}</small></div></div>`;
   }).join('');
   if (html !== updateStrips._h) { $('stripList').innerHTML = html; updateStrips._h = html; }
   const arrived = flights.filter(f => f.arr <= T);
@@ -1000,7 +1000,7 @@ const stormK = T => THREE.MathUtils.smoothstep(T, 7.0, 9.0) * (1 - THREE.MathUti
 
 /* ---------------- radio audio (shared SkyRadio module) ---------------- */
 const Radio = window.SkyRadio;
-const voiceArgs = r => r.who === 'CTL' ? ['atc', undefined] : ['pilot', 'SKF' + r.from];
+const voiceArgs = r => r.who === 'CTL' ? ['atc', undefined] : ['pilot', 'UTA' + r.from];
 let spoken = 0, pending = 0, audioGen = 0;
 Radio?.prefetch(RADIO.map(r => { const [speaker, key] = voiceArgs(r); return { text: r.text, speaker, key }; }));
 function speakDue(T) {
@@ -1063,7 +1063,7 @@ renderer.setAnimationLoop(() => {
     const hot = (f.cs === 112 && T < 15) || (f.cs === 121 && T < 16.5 && T > 12.6);
     const cls = 'tag ' + (hot ? 'hot' : f.replan ? 'rr' : '');
     if (el.className !== cls) el.className = cls;
-    place(el, p.pos, `SKF${f.cs}<i>${f.a}→${f.b} · 015</i>`);
+    place(el, p.pos, `UTA${f.cs}<i>${f.a}→${f.b} · 015</i>`);
   });
   adsbAC.forEach((a, i) => {
     const el = acTags[i]; if (!a.obj.visible || camera.position.distanceTo(a.obj.position) > 9000) { el.style.display = 'none'; return; }

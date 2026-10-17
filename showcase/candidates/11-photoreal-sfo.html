@@ -375,7 +375,7 @@ for (const a of airliners) {
 yawFix['assets/boeing747-mihalunar/model.glb'] = 180;
 yawFix['assets/airplane-google/model.glb'] = 0;
 
-// ---------- UITA eVTOL network (fleet callsign "SkyFlow") ----------
+// ---------- UITA eVTOL network (fleet callsign "UITA") ----------
 const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
   W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
 const EDGES = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
@@ -451,7 +451,7 @@ for (let i = 0; i < 28; i++) {
   let rerouted = false;
   if (usesCE(route) && dep >= STORM[0] - 0.5 && dep < STORM[1]) { route = opts[1]; rerouted = true; }
   const cs = 101 + i;
-  flights.push({ cs, callsign: `SKF${cs}`, o, d, route, rerouted, dep, dur: routeLen(route) / KMPM, normal: opts[0] });
+  flights.push({ cs, callsign: `UTA${cs}`, o, d, route, rerouted, dep, dur: routeLen(route) / KMPM, normal: opts[0] });
 }
 function routePoint(f, m) {
   let dist = Math.max(0, m - f.dep) * KMPM;
@@ -505,36 +505,36 @@ for (const b of bg.slice(0, 40)) {
 const RADIO = [
   { t: 1.0, who: 'TWR', f: '120.500', txt: 'United eight five two heavy, wind zero three zero at six, runway two eight right, cleared to land.' },
   { t: 3.5, who: 'UAL852', plt: 1, txt: 'Cleared to land two eight right, United eight five two heavy.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
-  { t: 6.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one zero two, cleared Oakland to San Francisco via Echo, Charlie, maintain one thousand five hundred.' },
-  { t: 8.5, who: 'SKF102', plt: 1, txt: 'Echo, Charlie, one thousand five hundred, SkyFlow one zero two.', hb: [['CALLSIGN'], ['ROUTE E–C'], ['ALT 1500']], commit: 'SKF102 OAK→E→C→SF' },
-  { t: 14.5, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, corridor Charlie Echo closed, reroute via Whiskey, Echo, maintain one thousand five hundred.' },
-  { t: 18.0, who: 'SKF108', plt: 1, txt: 'Reroute via Charlie, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE C–E ≠ W–E', 1], ['ALT 1500']] },
-  { t: 21.0, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, negative. Charlie Echo is closed. Reroute via Whiskey, Echo.' },
-  { t: 24.0, who: 'SKF108', plt: 1, txt: 'Whiskey, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE W–E'], ['ALT 1500']], commit: 'SKF108 SF→W→E→OAK' },
+  { t: 6.0, who: 'UITA CTL', f: '123.025', txt: 'UITA one zero two, cleared Oakland to San Francisco via Echo, Charlie, maintain one thousand five hundred.' },
+  { t: 8.5, who: 'UTA102', plt: 1, txt: 'Echo, Charlie, one thousand five hundred, UITA one zero two.', hb: [['CALLSIGN'], ['ROUTE E–C'], ['ALT 1500']], commit: 'UTA102 OAK→E→C→SF' },
+  { t: 14.5, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'UITA one zero eight, corridor Charlie Echo closed, reroute via Whiskey, Echo, maintain one thousand five hundred.' },
+  { t: 18.0, who: 'UTA108', plt: 1, txt: 'Reroute via Charlie, Echo, one thousand five hundred, UITA one zero eight.', hb: [['CALLSIGN'], ['ROUTE C–E ≠ W–E', 1], ['ALT 1500']] },
+  { t: 21.0, who: 'UITA CTL', f: '123.025', alert: 1, txt: 'UITA one zero eight, negative. Charlie Echo is closed. Reroute via Whiskey, Echo.' },
+  { t: 24.0, who: 'UTA108', plt: 1, txt: 'Whiskey, Echo, one thousand five hundred, UITA one zero eight.', hb: [['CALLSIGN'], ['ROUTE W–E'], ['ALT 1500']], commit: 'UTA108 SF→W→E→OAK' },
   { t: 27.5, who: 'TWR', f: '120.500', txt: 'Southwest twelve fifty-five, runway two eight left, wind zero three zero at six, cleared for takeoff.' },
   { t: 30.0, who: 'SWA1255', plt: 1, txt: 'Cleared for takeoff two eight left, Southwest twelve fifty-five.', hb: [['CALLSIGN'], ['RWY 28L'], ['CLRD T/O']] },
   { t: 38.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, runway two eight right, continue, traffic departing two eight left.' },
   { t: 40.5, who: 'ASA331', plt: 1, txt: 'Continue two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R']] },
-  { t: 50.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one two two, Charlie Echo open, cleared direct Oakland via Charlie, Echo, maintain one thousand five hundred.' },
-  { t: 52.5, who: 'SKF122', plt: 1, txt: 'Direct Oakland via Charlie, Echo, one thousand five hundred, SkyFlow one two two.', hb: [['CALLSIGN'], ['ROUTE C–E'], ['ALT 1500']], commit: 'SKF122 SF→C→E→OAK' },
+  { t: 50.0, who: 'UITA CTL', f: '123.025', txt: 'UITA one two two, Charlie Echo open, cleared direct Oakland via Charlie, Echo, maintain one thousand five hundred.' },
+  { t: 52.5, who: 'UTA122', plt: 1, txt: 'Direct Oakland via Charlie, Echo, one thousand five hundred, UITA one two two.', hb: [['CALLSIGN'], ['ROUTE C–E'], ['ALT 1500']], commit: 'UTA122 SF→C→E→OAK' },
   { t: 62.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, wind zero three zero at six, runway two eight right, cleared to land.' },
   { t: 64.5, who: 'ASA331', plt: 1, txt: 'Cleared to land two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
-  { t: 71.0, who: 'UITA CTL', f: '123.025', txt: 'SkyFlow one two five, cleared Marin to San Francisco International via Sierra Fox, Whiskey, maintain one thousand five hundred.' },
-  { t: 73.5, who: 'SKF125', plt: 1, txt: 'Via Sierra Fox, Whiskey, one thousand five hundred, SkyFlow one two five.', hb: [['CALLSIGN'], ['ROUTE SF–W'], ['ALT 1500']], commit: 'SKF125 MAR→SF→W→SFO' },
+  { t: 71.0, who: 'UITA CTL', f: '123.025', txt: 'UITA one two five, cleared Marin to San Francisco International via Sierra Fox, Whiskey, maintain one thousand five hundred.' },
+  { t: 73.5, who: 'UTA125', plt: 1, txt: 'Via Sierra Fox, Whiskey, one thousand five hundred, UITA one two five.', hb: [['CALLSIGN'], ['ROUTE SF–W'], ['ALT 1500']], commit: 'UTA125 MAR→SF→W→SFO' },
 ];
 const AGENTS = [
   { t: 0.5, cls: 'spawn', who: 'COORDINATOR', tag: 'SPAWN', txt: 'Spawned sector agents CENTRAL, EAST, WEST for 28-trip bank.' },
   { t: 2.5, cls: 'spawn', who: 'SECTOR-WEST', tag: 'SPAWN', txt: 'Spawned pad agents PAD-SFO, PAD-SF.' },
   { t: 4.0, cls: 'spawn', who: 'SECTOR-EAST', tag: 'SPAWN', txt: 'Spawned pad agents PAD-OAK, PAD-BER.' },
   { t: 9.4, cls: 'sys', who: 'KERNEL · WX', tag: 'CLOSED', txt: 'Unforecast convective cell. Segment C–E closed T+08 → T+24.' },
-  { t: 10.5, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Reroute SKF108 SF→W→E→OAK (+2.4 km). Separation ok at W.' },
-  { t: 12.0, cls: 'rej', who: 'SECTOR-EAST → KERNEL', tag: 'VETO', txt: 'Keep SKF109 on E–C at 800 ft beneath the cell.', why: 'R2: reservation intersects closed segment C–E (T+08→T+24). Altitude does not reopen a closed volume.' },
-  { t: 13.6, cls: 'acc', who: 'SECTOR-EAST → KERNEL', tag: 'ACCEPT', txt: 'Revised: SKF109 OAK→E→W→SF (+2.6 km), departs on time.' },
+  { t: 10.5, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Reroute UTA108 SF→W→E→OAK (+2.4 km). Separation ok at W.' },
+  { t: 12.0, cls: 'rej', who: 'SECTOR-EAST → KERNEL', tag: 'VETO', txt: 'Keep UTA109 on E–C at 800 ft beneath the cell.', why: 'R2: reservation intersects closed segment C–E (T+08→T+24). Altitude does not reopen a closed volume.' },
+  { t: 13.6, cls: 'acc', who: 'SECTOR-EAST → KERNEL', tag: 'ACCEPT', txt: 'Revised: UTA109 OAK→E→W→SF (+2.6 km), departs on time.' },
   { t: 16.0, cls: 'acc', who: 'PAD-OAK → KERNEL', tag: 'ACCEPT', txt: 'Resequence OAK arrivals 108 / 110 / 115, 90 s spacing.' },
-  { t: 25.0, cls: 'acc', who: 'KERNEL', tag: 'COMMIT', txt: 'Reservation SKF108 SF→W→E→OAK committed after hearback.' },
+  { t: 25.0, cls: 'acc', who: 'KERNEL', tag: 'COMMIT', txt: 'Reservation UTA108 SF→W→E→OAK committed after hearback.' },
   { t: 28.3, cls: 'sys', who: 'KERNEL · WX', tag: 'OPEN', txt: 'Cell cleared. Segment C–E reopened.' },
-  { t: 31.0, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Restore direct C–E routing for SKF116 onward.' },
-  { t: 36.0, cls: 'acc', who: 'PAD-SFO → KERNEL', tag: 'ACCEPT', txt: 'Priority to SKF118 (medical) at SFO pad 2.' },
+  { t: 31.0, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Restore direct C–E routing for UTA116 onward.' },
+  { t: 36.0, cls: 'acc', who: 'PAD-SFO → KERNEL', tag: 'ACCEPT', txt: 'Priority to UTA118 (medical) at SFO pad 2.' },
   { t: 58.0, cls: 'acc', who: 'COORDINATOR', tag: 'RECOVER', txt: 'Backlog cleared. All 28 slots on time; conflicts 0.' },
 ];
 const STATIC_ON_TIME = new Set([0, 1, 2, 7, 8, 9, 10, 11, 12, 13].map(i => 101 + i)); // static plan: 10/28
@@ -654,7 +654,8 @@ const cam = scene.camera, ssc = scene.screenSpaceCameraController;
 ssc.minimumZoomDistance = 25; ssc.maximumZoomDistance = 90000;
 const ZMIN = 30, ZMAX = 85000;
 let camMode = 'cine', shot = null, blend = null, towerTgt = null, letterbox = false;
-const TOWER = C.Cartesian3.fromDegrees(-122.3838, 37.6159, GROUND + 74);
+// Tower eye ~100 m above the local ground (photoreal ground is ellipsoidal, the pack's is 0), clear of the cab roof mesh
+const towerEye = () => C.Cartesian3.fromDegrees(-122.3838, 37.6159, GROUND + 100);
 const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; // cubic in-out
 function enu(from, to) {
   const tr = C.Transforms.eastNorthUpToFixedFrame(from); const inv = C.Matrix4.inverseTransformation(tr, new C.Matrix4());
@@ -677,7 +678,7 @@ const at3 = (lonlat, h) => C.Cartesian3.fromDegrees(lonlat[0], lonlat[1], h);
 const STORM_C = at3(mid, cAlt), OAK_PAD = at3(NODES.OAK, GROUND + 10), BAY_C = at3([-122.34, 37.735], 0);
 const PRESETS = {
   1: { name: 'OVERVIEW · SFO', pose: () => orbitPose(SFO_C, 330, -32, 5500) },
-  2: { name: 'TOWER CAB · 74 M AGL', pose: () => ({ eye: TOWER, hdg: 58, pitch: -8 }) },
+  2: { name: 'TOWER CAB · SFO', pose: () => ({ eye: towerEye(), hdg: 94, pitch: -4.5 }) }, // down 28L/R toward the thresholds
   3: { name: 'CHASE', chase: true },
   4: { name: 'STORM · C–E', pose: () => orbitPose(STORM_C, 25, -24, 9000) },
   5: { name: 'VERTIPORT · OAK', pose: () => orbitPose(OAK_PAD, 300, -28, 1700) },
@@ -690,20 +691,21 @@ function followPose(posProp, t, range, pitch, side, dt) {
   return orbitPose(r.p, (followHdg ?? 0) + side, pitch, range);
 }
 const evtPos = f => new C.CallbackProperty(time => { const m = C.JulianDate.secondsDifference(time, T0) * SIMRATE; const p = routePoint(f, m); return C.Cartesian3.fromDegrees(p[0], p[1], cAlt + 25); }, false);
-const SKF108 = flightBy('SKF108'), skf108Pos = evtPos(SKF108);
+const UTA108 = flightBy('UTA108'), skf108Pos = evtPos(UTA108);
 // Cinematic shot list, synced to the scenario beats (wall seconds within the 90 s loop)
 const SHOTS = [
   { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 2.4, -30 + t * 0.3, 4200 + t * 250) },
   { t0: 9.4, name: 'C–E CLOSES · STORM', fov: 50, pose: (t) => { const k = ease(Math.min(1, (t - 9.4) / 5)); return orbitPose(STORM_C, 10 + (t - 9.4) * 3, -30 + 8 * k, 15000 - 8500 * k); } },
-  { t0: 14.5, cut: true, name: 'READBACK · SKF108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
-  { t0: 24.5, name: 'REROUTE · SKF108 VIA W–E', fov: 55, pose: (t, dt) => followPose(skf108Pos, t, 900, -18, 25, dt) },
+  { t0: 14.5, cut: true, name: 'READBACK · UTA108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
+  { t0: 24.5, name: 'REROUTE · UTA108 VIA W–E', fov: 55, pose: (t, dt) => followPose(skf108Pos, t, 900, -18, 25, dt) },
   { t0: 40, name: 'TOWER CAB · 28L DEPARTURE', fov: 50, tower: airliners[1] },
   { t0: 58, name: 'CHASE · SWA1255 CLIMB-OUT', fov: 58, pose: (t, dt) => followPose(airliners[1].pos, t, 160, -9, 20, dt) },
   { t0: 70, name: 'CHASE · ASA331 FINAL 28R', fov: 58, pose: (t, dt) => followPose(airliners[2].pos, t, 150, -8, -25, dt) },
   { t0: 81, name: 'RECOVERY · 28/28 ON TIME', fov: 60, pose: (t) => { const k = ease(Math.min(1, (t - 81) / 7)); return orbitPose(at3([-122.36, 37.69], 0), 330 + (t - 81) * 2, -14 - 24 * k, 2500 + 9000 * k); } },
 ];
 function towerPose(a, dt) {
-  const p = a.pos.getValue(clock.currentTime); if (!p) return { eye: TOWER, hdg: 62, pitch: -5 };
+  const p = a.pos.getValue(clock.currentTime); const TOWER = towerEye();
+  if (!p) return { eye: TOWER, hdg: 94, pitch: -4.5 };
   const v = enu(TOWER, p), hd = Math.atan2(v.x, v.y) / D2R, pt = Math.max(-12, Math.min(8, Math.atan2(v.z, Math.hypot(v.x, v.y)) / D2R)) - 1;
   if (!towerTgt) towerTgt = { hdg: hd, pitch: pt };
   towerTgt.hdg += ((((hd - towerTgt.hdg) + 540) % 360) - 180) * Math.min(1, dt * 1.5); towerTgt.pitch += (pt - towerTgt.pitch) * Math.min(1, dt * 1.5);
@@ -738,7 +740,7 @@ function selectedFlight() {
   const e = viewer.selectedEntity, now = clock.currentTime;
   const fl = flights.find(f => f.entity === e);
   if (e && e.position && e.position.getValue(now) && (!fl || fl.visible.getValue(now))) return e;
-  if (SKF108.visible.getValue(now)) return SKF108.entity;
+  if (UTA108.visible.getValue(now)) return UTA108.entity;
   const t = tNow(); return t < 63 ? airliners[1].entity : airliners[2].entity;
 }
 function fly(p) {
@@ -795,7 +797,7 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'l' || e.key === 'L') $('bBox').onclick();
   else if (e.key === 'g' || e.key === 'G') $('bPhoto').onclick();
   else if (e.key === 'd' || e.key === 'D') $('bDet').onclick();
-  else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); // app.html view switch
+  else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ uita: 'toggle' }, '*'); // app.html view switch
   else if (e.key === '+' || e.key === '=') zoom(1);
   else if (e.key === '-' || e.key === '_') zoom(-1);
   else if (e.key === ' ') { e.preventDefault(); $('bPlay').onclick(); }
@@ -824,7 +826,7 @@ SkyRadio.onTransmit(({ speaker, key, live }) => {
 const syncSnd = () => { $('bSnd').textContent = SkyRadio.enabled ? 'Sound on' : 'Sound off'; $('bSnd').classList.toggle('on', SkyRadio.enabled); };
 $('bSnd').onclick = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSnd(); };
 document.addEventListener('skyradio:enabled', syncSnd);
-// Pause everything when hidden or when the host page asks (iframe toggle): {skyflow:'pause'|'resume'}
+// Pause everything when hidden or when the host page asks (iframe toggle): {uita:'pause'|'resume'}
 function setPaused(p) {
   if (p === extPaused) return;
   extPaused = p;
@@ -834,7 +836,7 @@ function setPaused(p) {
   requestAnimationFrame(() => requestAnimationFrame(() => { if (!extPaused) clock.shouldAnimate = wasAnim && !userPaused && !holding; }));
 }
 document.addEventListener('visibilitychange', () => setPaused(document.hidden));
-window.addEventListener('message', e => { const m = e.data && e.data.skyflow; if (m === 'pause') setPaused(true); else if (m === 'resume') setPaused(false); });
+window.addEventListener('message', e => { const m = e.data && e.data.uita; if (m === 'pause') setPaused(true); else if (m === 'resume') setPaused(false); });
 if (document.hidden) setPaused(true);
 $('bPlay').onclick = () => { userPaused = !userPaused; clock.shouldAnimate = !userPaused && !holding; $('bPlay').textContent = userPaused ? 'Play' : 'Pause'; };
 $('bRestart').onclick = () => { userPaused = false; clock.currentTime = T0.clone(); clock.shouldAnimate = true; $('bPlay').textContent = 'Pause'; };
@@ -948,7 +950,7 @@ for (const f of flights) PICK.set(f.entity, { kind: 'evtol', ref: f });
 let cineEndedAt = -1e9;
 const DIG = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 const SPOKEN = { UAL852: 'United eight five two', SWA1255: 'Southwest twelve fifty-five', ASA331: 'Alaska three thirty-one' };
-const spokenOf = cs => SPOKEN[cs] || (cs.startsWith('SKF') ? 'SkyFlow ' + [...cs.slice(3)].map(d => DIG[d]).join(' ') : cs);
+const spokenOf = cs => SPOKEN[cs] || (cs.startsWith('UTA') ? 'UITA ' + [...cs.slice(3)].map(d => DIG[d]).join(' ') : cs);
 const fmt = n => Math.round(n).toLocaleString('en-US');
 // latest revealed controller call to this aircraft and the readback that followed it
 function clearanceOf(cs) {

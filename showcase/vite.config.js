@@ -76,9 +76,9 @@ const TOOLS = [
   },
 ];
 
-const SYSTEM = `You are the SkyFlow sector controller agent for a simulated San Francisco Bay urban air mobility sector.
+const SYSTEM = `You are the UITA sector controller agent for a simulated San Francisco Bay urban air mobility sector.
 A deterministic scheduler owns separation and reservations; you never invent clearances.
-Read the pilot transmission, identify the flight by callsign (SkyFlow 112 = SF-112), and call exactly one tool.
+Read the pilot transmission, identify the flight by callsign (UITA 112 = SF-112), and call exactly one tool.
 Only act on flights listed in the sector state. Prefer grant_priority for medical, battery or emergency calls,
 reroute for weather or "unable" reports, delay_departure for pilots asking to wait, otherwise say_again.`;
 
@@ -113,7 +113,7 @@ function voiceApi(env) {
           }
         : null;
   return {
-    name: "skyflow-voice-api",
+    name: "uita-voice-api",
     configureServer(server) {
       // Hosted showcase: one shared password guards the pages and the keyed API.
       // Fail closed: a server bound beyond loopback needs a password unless the
@@ -142,8 +142,8 @@ function voiceApi(env) {
           if (pass.length === want.length && timingSafeEqual(pass, want))
             return next();
           res.statusCode = 401;
-          res.setHeader("www-authenticate", 'Basic realm="SkyFlow"');
-          res.end("SkyFlow demo: password required");
+          res.setHeader("www-authenticate", 'Basic realm="UITA"');
+          res.end("UITA demo: password required");
         });
       // /vendor/* serves big libraries straight from node_modules: untransformed,
       // compressed once in memory and cacheable for a year. Vite's dev pipeline
@@ -376,7 +376,7 @@ function voiceApi(env) {
             form.append("language", "en");
             form.append(
               "prompt",
-              "Pilot radio call to SkyFlow tower. Callsigns like SkyFlow one one two. Places: San Francisco, Marin, SFO, Oakland, Berkeley, Central, East approach, West approach. Phrases: request priority, low battery, medical, unable, weather, holding, say again.",
+              "Pilot radio call to UITA tower. Callsigns like UITA one one two. Places: San Francisco, Marin, SFO, Oakland, Berkeley, Central, East approach, West approach. Phrases: request priority, low battery, medical, unable, weather, holding, say again.",
             );
             const r = await fetch(
               "https://api.openai.com/v1/audio/transcriptions",

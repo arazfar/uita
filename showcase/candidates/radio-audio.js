@@ -1,7 +1,7 @@
 // Shared radio voice for UITA candidates.
 //   <script src="radio-audio.js"></script>
-//   SkyRadio.say("SkyFlow one zero five, negative...", "atc")      // controller
-//   SkyRadio.say("Via Whiskey, Echo...", "pilot", "SKF105")         // pilot, voice per callsign
+//   SkyRadio.say("UITA one zero five, negative...", "atc")      // controller
+//   SkyRadio.say("Via Whiskey, Echo...", "pilot", "UTA105")         // pilot, voice per callsign
 //   SkyRadio.prefetch(lines)  // [{text, speaker, key}] — bake/warm clips up front
 // Clips come from the dev server's /api/tts (OpenAI gpt-4o-mini-tts), cached on disk in
 // candidates/audio/, played through a VHF band-pass with squelch, one at a time.

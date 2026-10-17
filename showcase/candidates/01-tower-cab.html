@@ -178,7 +178,7 @@ html,body{height:100%;overflow:hidden;background:#06090b;color:var(--ink);font-f
 <header id="banner">
   <div class="id">
     <div class="t">SF VERTIPORT TOWER <span class="simtag">SIMULATION</span></div>
-    <div class="s">SKYFLOW RECURSIVE ATC · TWR 118.55</div>
+    <div class="s">UITA RECURSIVE ATC · TWR 118.55</div>
   </div>
   <div id="clr"><span class="tx" id="txled"></span><span class="who" id="who">TWR</span><span class="txt" id="clrtxt">Standing by.</span></div>
   <div class="atis"><div id="clock">16:00:00L</div><div id="wx">ATIS K · WIND 270/08 · VIS 10 · DUSK</div></div>
@@ -290,43 +290,43 @@ function tOf(m){for(let k=1;k<KNOTS.length;k++){const[a,b]=KNOTS[k-1],[c,d]=KNOT
 const clock=m=>{const s=Math.floor((16*60+m)*60);return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}L`;};
 
 /* ===== scripted voice + agent events (t in loop seconds) ===== */
-const HB_101={cs:'SkyFlow 101',rows:[['CALLSIGN','SKF101','SKF101'],['CLEARANCE','TAKEOFF PAD 1','TAKEOFF PAD 1'],['ROUTE','via C','via C'],['ALT','1,500','1,500']]};
-const HB_102={cs:'SkyFlow 102',rows:[['CALLSIGN','SKF102','SKF102'],['CLEARANCE','LAND PAD 3','LAND PAD 3'],['WIND','270/08','270/08']]};
-const HB_105a={cs:'SkyFlow 105',rows:[['CALLSIGN','SKF105','SKF105'],['ROUTE','W–E–OAK','C–E–OAK'],['ALT','1,200','1,200'],['CLEARANCE','TAKEOFF PAD 2','TAKEOFF PAD 2']]};
-const HB_105b={cs:'SkyFlow 105',rows:[['CALLSIGN','SKF105','SKF105'],['ROUTE','W–E–OAK','W–E–OAK'],['ALT','1,200','1,200'],['CLEARANCE','TAKEOFF PAD 2','TAKEOFF PAD 2']]};
-const HB_113={cs:'SkyFlow 113',rows:[['CALLSIGN','SKF113','SKF113'],['ROUTE','C–E–OAK','C–E–OAK'],['ALT','1,500','1,500']]};
+const HB_101={cs:'UITA 101',rows:[['CALLSIGN','UTA101','UTA101'],['CLEARANCE','TAKEOFF PAD 1','TAKEOFF PAD 1'],['ROUTE','via C','via C'],['ALT','1,500','1,500']]};
+const HB_102={cs:'UITA 102',rows:[['CALLSIGN','UTA102','UTA102'],['CLEARANCE','LAND PAD 3','LAND PAD 3'],['WIND','270/08','270/08']]};
+const HB_105a={cs:'UITA 105',rows:[['CALLSIGN','UTA105','UTA105'],['ROUTE','W–E–OAK','C–E–OAK'],['ALT','1,200','1,200'],['CLEARANCE','TAKEOFF PAD 2','TAKEOFF PAD 2']]};
+const HB_105b={cs:'UITA 105',rows:[['CALLSIGN','UTA105','UTA105'],['ROUTE','W–E–OAK','W–E–OAK'],['ALT','1,200','1,200'],['CLEARANCE','TAKEOFF PAD 2','TAKEOFF PAD 2']]};
+const HB_113={cs:'UITA 113',rows:[['CALLSIGN','UTA113','UTA113'],['ROUTE','C–E–OAK','C–E–OAK'],['ALT','1,500','1,500']]};
 const EVENTS=[
- {t:0.6,k:'radio',who:'TWR',txt:'SkyFlow one zero one, pad one, wind two seven zero at eight, climb via Charlie, maintain one thousand five hundred, cleared for takeoff.',hb:{...HB_101,phase:'issued'}},
- {t:2.8,k:'radio',who:'SKF101',pilot:1,txt:'Cleared for takeoff pad one, via Charlie, one thousand five hundred, SkyFlow one zero one.',hb:{...HB_101,phase:'ok'}},
- {t:5.0,k:'radio',who:'TWR',txt:'SkyFlow one zero two, wind two seven zero at eight, pad three, cleared to land.',hb:{...HB_102,phase:'issued'}},
- {t:6.6,k:'radio',who:'SKF102',pilot:1,txt:'Cleared to land pad three, SkyFlow one zero two.',hb:{...HB_102,phase:'ok'}},
+ {t:0.6,k:'radio',who:'TWR',txt:'UITA one zero one, pad one, wind two seven zero at eight, climb via Charlie, maintain one thousand five hundred, cleared for takeoff.',hb:{...HB_101,phase:'issued'}},
+ {t:2.8,k:'radio',who:'UTA101',pilot:1,txt:'Cleared for takeoff pad one, via Charlie, one thousand five hundred, UITA one zero one.',hb:{...HB_101,phase:'ok'}},
+ {t:5.0,k:'radio',who:'TWR',txt:'UITA one zero two, wind two seven zero at eight, pad three, cleared to land.',hb:{...HB_102,phase:'issued'}},
+ {t:6.6,k:'radio',who:'UTA102',pilot:1,txt:'Cleared to land pad three, UITA one zero two.',hb:{...HB_102,phase:'ok'}},
  {t:8.0,k:'radio',who:'WX',sys:1,txt:'Unforecast convective cell over corridor Charlie-Echo. Corridor closed one six zero eight to one six two four.',wx:1},
  {t:8.6,k:'tree',add:['SECTOR-C','SECTOR-E']},
  {t:9.4,k:'tree',add:['PAD-OAK','PAD-SF']},
- {t:10.2,k:'prop',id:'P-01',by:'SECTOR-E',txt:'REROUTE SKF104 OAK→E→W→SF',why:'+2.4 NM · W–E slot 16:10 free',ok:1},
- {t:11.4,k:'prop',id:'P-02',by:'PAD-SF',txt:'HOLD SKF105 on pad 2, re-clear via W–E',why:'hold ≤ 4 min · pad 2 reserved',ok:1},
- {t:12.6,k:'prop',id:'P-03',by:'SECTOR-E',txt:'REROUTE SKF109 SF→C→E direct',why:'C–E closed WX-01 until 16:24',ok:0,veto:'Proposal P-03 · SECTOR-E · reroute SkyFlow 109 via C–E',vetor:'Rejected: corridor C–E is closed (WX-01, 16:08–16:24). No reservation can intersect a closed corridor.'},
- {t:14.4,k:'radio',who:'TWR',txt:'SkyFlow one zero five, amended route, via Whiskey, Echo, then Oakland, maintain one thousand two hundred, pad two, cleared for takeoff.',hb:{...HB_105a,phase:'issued'}},
- {t:17.6,k:'radio',who:'SKF105',pilot:1,txt:'Via Charlie, Echo, Oakland, one thousand two hundred, cleared for takeoff pad two, SkyFlow one zero five.',hb:{...HB_105a,phase:'bad'}},
- {t:20.6,k:'radio',who:'TWR',txt:'SkyFlow one zero five, negative. Corridor Charlie-Echo is closed. Route via Whiskey, Echo, Oakland. Read back.',hb:{...HB_105a,phase:'bad',neg:1}},
- {t:23.4,k:'radio',who:'SKF105',pilot:1,txt:'Via Whiskey, Echo, Oakland, one thousand two hundred, SkyFlow one zero five.',hb:{...HB_105b,phase:'ok'}},
- {t:25.2,k:'commit',txt:'SKF105 · W–E reservation 16:13–16:19 · pad 2 released',radio:'Hearback matched. Reservation SKF105 via W–E committed.'},
+ {t:10.2,k:'prop',id:'P-01',by:'SECTOR-E',txt:'REROUTE UTA104 OAK→E→W→SF',why:'+2.4 NM · W–E slot 16:10 free',ok:1},
+ {t:11.4,k:'prop',id:'P-02',by:'PAD-SF',txt:'HOLD UTA105 on pad 2, re-clear via W–E',why:'hold ≤ 4 min · pad 2 reserved',ok:1},
+ {t:12.6,k:'prop',id:'P-03',by:'SECTOR-E',txt:'REROUTE UTA109 SF→C→E direct',why:'C–E closed WX-01 until 16:24',ok:0,veto:'Proposal P-03 · SECTOR-E · reroute UITA 109 via C–E',vetor:'Rejected: corridor C–E is closed (WX-01, 16:08–16:24). No reservation can intersect a closed corridor.'},
+ {t:14.4,k:'radio',who:'TWR',txt:'UITA one zero five, amended route, via Whiskey, Echo, then Oakland, maintain one thousand two hundred, pad two, cleared for takeoff.',hb:{...HB_105a,phase:'issued'}},
+ {t:17.6,k:'radio',who:'UTA105',pilot:1,txt:'Via Charlie, Echo, Oakland, one thousand two hundred, cleared for takeoff pad two, UITA one zero five.',hb:{...HB_105a,phase:'bad'}},
+ {t:20.6,k:'radio',who:'TWR',txt:'UITA one zero five, negative. Corridor Charlie-Echo is closed. Route via Whiskey, Echo, Oakland. Read back.',hb:{...HB_105a,phase:'bad',neg:1}},
+ {t:23.4,k:'radio',who:'UTA105',pilot:1,txt:'Via Whiskey, Echo, Oakland, one thousand two hundred, UITA one zero five.',hb:{...HB_105b,phase:'ok'}},
+ {t:25.2,k:'commit',txt:'UTA105 · W–E reservation 16:13–16:19 · pad 2 released',radio:'Hearback matched. Reservation UTA105 via W–E committed.'},
  {t:30.0,k:'prop',id:'P-04',by:'PAD-SF',txt:'RESEQUENCE arrivals pad 3 / pad 4',why:'spacing 90 s kept',ok:1},
  {t:tOf(24),k:'radio',who:'WX',sys:1,txt:'Cell moving east. Corridor Charlie-Echo reopened at one six two four.',wx:0},
  {t:tOf(24)+0.8,k:'prop',id:'P-05',by:'COORD',txt:'RELEASE holds · restore C–E routing',why:'C–E open · capacity 6/h',ok:1},
- {t:tOf(29.5),k:'radio',who:'TWR',txt:'SkyFlow one one three, pad one, climb via Charlie, Echo, maintain one thousand five hundred, cleared for takeoff.',hb:{...HB_113,phase:'issued'}},
- {t:tOf(29.5)+2.4,k:'radio',who:'SKF113',pilot:1,txt:'Via Charlie, Echo, one thousand five hundred, cleared for takeoff pad one, SkyFlow one one three.',hb:{...HB_113,phase:'ok'}},
- {t:44,k:'prop',id:'P-06',by:'PAD-SF',txt:'LAND SKF116 + SKF120 on pad 3 together',why:'pad capacity 1 · separation 90 s',ok:0,veto:'Proposal P-06 · PAD-SF · two arrivals on pad 3 at 16:42',vetor:'Rejected: pad capacity is one aircraft; minimum 90 s between movements.'},
+ {t:tOf(29.5),k:'radio',who:'TWR',txt:'UITA one one three, pad one, climb via Charlie, Echo, maintain one thousand five hundred, cleared for takeoff.',hb:{...HB_113,phase:'issued'}},
+ {t:tOf(29.5)+2.4,k:'radio',who:'UTA113',pilot:1,txt:'Via Charlie, Echo, one thousand five hundred, cleared for takeoff pad one, UITA one one three.',hb:{...HB_113,phase:'ok'}},
+ {t:44,k:'prop',id:'P-06',by:'PAD-SF',txt:'LAND UTA116 + UTA120 on pad 3 together',why:'pad capacity 1 · separation 90 s',ok:0,veto:'Proposal P-06 · PAD-SF · two arrivals on pad 3 at 16:42',vetor:'Rejected: pad capacity is one aircraft; minimum 90 s between movements.'},
  {t:48,k:'tree',add:['PAD-BER']},
- {t:52,k:'prop',id:'P-07',by:'SECTOR-C',txt:'PRIORITY SKF118 (battery 21%)',why:'reserve ≥ 20% · pad 4 free',ok:1},
+ {t:52,k:'prop',id:'P-07',by:'SECTOR-C',txt:'PRIORITY UTA118 (battery 21%)',why:'reserve ≥ 20% · pad 4 free',ok:1},
 ];
 const GENERIC=[];
 // filler radio for SF departures/arrivals in recovery phase
 for(const f of FLIGHTS){ if(f.cs<=113) continue;
   const w=['zero','one','two','three','four','five','six','seven','eight','nine'];
   const spoken=String(f.cs).split('').map(c=>w[+c]).join(' ');
-  if(f.dep3d) GENERIC.push({t:tOf(f.dep-0.9),k:'radio',who:'TWR',txt:`SkyFlow ${spoken}, pad ${['','one','two'][f.pad]}, climb via ${f.route[1]==='C'?'Charlie':f.route[1]==='W'?'Whiskey':'Marin'}, cleared for takeoff.`,gen:1});
-  if(f.arr3d) GENERIC.push({t:tOf(f.arr-1.4),k:'radio',who:'TWR',txt:`SkyFlow ${spoken}, wind two seven zero at eight, pad ${['','','','three','four'][f.pad]}, cleared to land.`,gen:1});
+  if(f.dep3d) GENERIC.push({t:tOf(f.dep-0.9),k:'radio',who:'TWR',txt:`UITA ${spoken}, pad ${['','one','two'][f.pad]}, climb via ${f.route[1]==='C'?'Charlie':f.route[1]==='W'?'Whiskey':'Marin'}, cleared for takeoff.`,gen:1});
+  if(f.arr3d) GENERIC.push({t:tOf(f.arr-1.4),k:'radio',who:'TWR',txt:`UITA ${spoken}, wind two seven zero at eight, pad ${['','','','three','four'][f.pad]}, cleared to land.`,gen:1});
 }
 const ALL=[...EVENTS,...GENERIC.filter(g=>g.t>32 && g.t<77)].sort((a,b)=>a.t-b.t);
 
@@ -590,7 +590,7 @@ function drawGround(m,live){
   for(const o of live){ if(o.alt>60||Math.abs(o.p.x)>400||o.p.z<-520||o.p.z>200) continue; const [x,y]=P(o.p.x,o.p.z);
     g.fillStyle=o.f.arr3d?'#ffd27a':'#e8fffb';g.beginPath();g.arc(x,y,5,0,7);g.fill();
     g.strokeStyle='rgba(232,255,251,.6)';g.beginPath();g.moveTo(x+5,y-5);g.lineTo(x+14,y-14);g.stroke();
-    g.font='500 12px IBM Plex Mono';g.fillStyle='#e8fffb';g.fillText('SKF'+o.f.cs,x+16,y-16);
+    g.font='500 12px IBM Plex Mono';g.fillStyle='#e8fffb';g.fillText('UTA'+o.f.cs,x+16,y-16);
     g.fillStyle='#8fd8cd';g.font='11px IBM Plex Mono';g.fillText(o.phase+(o.alt>3?' '+Math.round(o.alt*3.28)+'ft':''),x+16,y-3);}
   g.fillStyle='#4fae9f';g.font='11px IBM Plex Mono';g.fillText('100 m',W-70,H-12);g.fillRect(W-70,H-26,100*S,2);
 }
@@ -621,7 +621,7 @@ function drawApproach(m,t,closed){
     const col=f.rer?'#ffb547':'#7fe39b';
     h.forEach(([hx,hy],k)=>{g.fillStyle=`rgba(127,227,155,${.12+k*.08})`;g.fillRect(hx-1.5,hy-1.5,3,3);});
     g.fillStyle=col;g.fillRect(x-3,y-3,6,6);g.strokeStyle=col;g.beginPath();g.moveTo(x+3,y-3);g.lineTo(x+12,y-12);g.stroke();
-    g.font='500 11px IBM Plex Mono';g.fillText('SKF'+f.cs,x+14,y-16);g.fillStyle=f.rer?'#ffd8a0':'#aef0c1';g.font='10px IBM Plex Mono';g.fillText((f.rer?'RR ':'')+'012 '+f.d,x+14,y-4);}
+    g.font='500 11px IBM Plex Mono';g.fillText('UTA'+f.cs,x+14,y-16);g.fillStyle=f.rer?'#ffd8a0':'#aef0c1';g.font='10px IBM Plex Mono';g.fillText((f.rer?'RR ':'')+'012 '+f.d,x+14,y-4);}
   g.fillStyle='#3d6670';g.font='10px IBM Plex Mono';g.fillText('SIMULATION · NM',AW-110,AH-10);
 }
 
@@ -679,7 +679,7 @@ function resetHUD(){radioEl.innerHTML='';propsEl.innerHTML='';treeNodes=['COORDI
 function strip(f,m,kind){
   const rt=f.route.join('–');const dep=f.dep3d;const pad=dep?f.pad:f.pad;
   const held=f.cs===105&&m>f.rel&&m<f.dep-.45;
-  return `<div class="strip ${dep?'':'arr'} ${f.rer?'reroute':''} ${held?'held':''}"><div class="bar"></div><div class="cs">SKF${f.cs}<small>EVTL/J ${dep?'DEP':'ARR'}</small></div><div class="rt">${rt}${f.rer?' RR':''}<small>${dep?'P':'ETA'} ${clock(dep?f.dep:f.arr).slice(0,5)} · ${held?'HOLD':'A012'}</small></div><div class="pd">P${pad}</div></div>`;
+  return `<div class="strip ${dep?'':'arr'} ${f.rer?'reroute':''} ${held?'held':''}"><div class="bar"></div><div class="cs">UTA${f.cs}<small>EVTL/J ${dep?'DEP':'ARR'}</small></div><div class="rt">${rt}${f.rer?' RR':''}<small>${dep?'P':'ETA'} ${clock(dep?f.dep:f.arr).slice(0,5)} · ${held?'HOLD':'A012'}</small></div><div class="pd">P${pad}</div></div>`;
 }
 function renderStrips(m){
   const pend=[],clr=[],air=[];
@@ -714,7 +714,7 @@ function chaseShot(cs,u){
   if(!o){o=[...liveMap.values()].filter(x=>x.alt>30).sort((a,b)=>(b.f.rer-a.f.rer)||(a.p.length()-b.p.length()))[0];}
   if(!o) return null;
   const f=fwdOf(o),k=o.alt<30?.55:1,side=V(-f.z,0,f.x);
-  return {pos:o.p.clone().addScaledVector(f,-95*k).addScaledVector(side,28*k).add(V(0,30*k,0)),tgt:o.p.clone().addScaledVector(f,25*k),fov:56,label:'CHASE SKF'+o.f.cs,cs:o.f.cs};
+  return {pos:o.p.clone().addScaledVector(f,-95*k).addScaledVector(side,28*k).add(V(0,30*k,0)),tgt:o.p.clone().addScaledVector(f,25*k),fov:56,label:'CHASE UTA'+o.f.cs,cs:o.f.cs};
 }
 const SHOTS={
   overview:u=>({pos:BAY_C.clone().add(V(15000,23000,10000)),tgt:BAY_C.clone(),fov:50,label:'OVERVIEW · BAY'}),
@@ -723,7 +723,7 @@ const SHOTS={
   stormPush:u=>{const t0=storm.position.clone().setY(700),d=V(.62,.2,.76).normalize();return {pos:t0.clone().addScaledVector(d,15000-7500*easeIO(u/5.5)),tgt:t0,fov:44,label:'STORM · C–E PUSH-IN'};},
   storm:u=>{const t0=storm.position.clone().setY(700),d=V(.62,.2,.76).normalize();return {pos:t0.clone().addScaledVector(d,7000),tgt:t0.clone().setY(450),fov:44,label:'STORM · C–E'};},
   stormWide:u=>({pos:CE_MID.clone().add(V(6200,4600,5200-u*80)),tgt:CE_MID.clone(),fov:48,label:'C–E · REOPENING'}),
-  pad105:u=>{const p=PADS[2],a=.75+u*.045;return {pos:p.clone().add(V(Math.cos(a)*62,15,Math.sin(a)*62)),tgt:p.clone().add(V(0,4,0)),fov:40,label:'CLOSE-UP · SKF105 PAD 2'};},
+  pad105:u=>{const p=PADS[2],a=.75+u*.045;return {pos:p.clone().add(V(Math.cos(a)*62,15,Math.sin(a)*62)),tgt:p.clone().add(V(0,4,0)),fov:40,label:'CLOSE-UP · UTA105 PAD 2'};},
   oak:u=>{const a=.5+u*.05;return {pos:OAK_C.clone().add(V(Math.cos(a)*175,62,Math.sin(a)*175)),tgt:OAK_C.clone().add(V(0,6,0)),fov:42,label:'OAK VERTIPORT'};},
   pullback:u=>{const d=V(.45,.72,.52).normalize();return {pos:BAY_C.clone().addScaledVector(d,6000+30000*easeIO(u/8)),tgt:BAY_C.clone(),fov:50,label:'PULL-BACK · RECOVERY'};},
   chase:cs=>u=>chaseShot(cs,u),
@@ -765,7 +765,7 @@ function updateCamera(dt,wall){
   } else {
     if(lastChase){const o=liveMap.get(lastChase);if(o&&lastChasePos){const d=o.p.clone().sub(lastChasePos);camera.position.add(d);controls.target.add(d);lastChasePos.copy(o.p);}}
     controls.update();curTgt.copy(controls.target);
-    r={label:preset===3&&lastChase?'CHASE SKF'+lastChase:preset?['','OVERVIEW · BAY','TOWER CAB · SF VPT','CHASE','STORM · C–E','OAK VERTIPORT'][preset]+' · FREE':'FREE CAMERA'};
+    r={label:preset===3&&lastChase?'CHASE UTA'+lastChase:preset?['','OVERVIEW · BAY','TOWER CAB · SF VPT','CHASE','STORM · C–E','OAK VERTIPORT'][preset]+' · FREE':'FREE CAMERA'};
   }
   $('shot').textContent='CAM · '+(r.label||'');
   // tower-cab framing only when the eye is in the cab
@@ -832,9 +832,9 @@ function frame(now){
     if(o.el.dataset.cs!==String(f.cs)){o.el.dataset.cs=f.cs;o.el.onclick=()=>{selectFlight(f.cs);setPreset(3,true);};}
     const held=f.cs===105&&m<f.dep-.45&&m>f.rel;
     o.el.className='tag'+(f.arr3d?' arr':'')+(held?' held':'')+(selected===f.cs?' sel':'');
-    o.el.innerHTML=`<b>SKF${f.cs}</b> ${s.phase}${s.alt>5?' '+String(Math.round(s.alt*3.28/100)).padStart(3,'0'):''}<br>${'→'+f.d}${f.rer?' RR':''}${held?' HOLD':''}`;
+    o.el.innerHTML=`<b>UTA${f.cs}</b> ${s.phase}${s.alt>5?' '+String(Math.round(s.alt*3.28/100)).padStart(3,'0'):''}<br>${'→'+f.d}${f.rer?' RR':''}${held?' HOLD':''}`;
     live.push({f,...s});}
-  // SKF105 held on pad: park it on the pad while held
+  // UTA105 held on pad: park it on the pad while held
   for(const [cs,o] of ac3d){if(!seen.has(cs)){scene.remove(o.m);o.lab.element.remove();ac3d.delete(cs);}}
   liveMap.clear();for(const o of live)liveMap.set(o.f.cs,o);
   updateCamera(dt,now/1000);

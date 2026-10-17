@@ -105,7 +105,7 @@ main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--
 </head>
 <body>
 <header>
-  <div class="brand"><b>SKYFLOW</b><span>RECURSIVE ATC · BAY</span></div>
+  <div class="brand"><b>UITA</b><span>RECURSIVE ATC · BAY</span></div>
   <div class="headline">Same 28 trips. Same unforecast storm on corridor <em>C–E</em>. Two ways to run the sky.</div>
   <span class="simtag">SIMULATION</span>
   <div class="clock"><small>T+</small><span id="clock">00:00</span></div>
@@ -194,7 +194,7 @@ function simStatic(){
     }
     padFree[o]=dep+1.2;
     const b=buildSegs(r,dep,holdAt,holdUntil);
-    out.push({i,cs:'SkyFlow '+(101+i),o,d,rel,sched,dep,route:r,dist:plen(r),why,...b,delay:b.arr-sched});
+    out.push({i,cs:'UITA '+(101+i),o,d,rel,sched,dep,route:r,dist:plen(r),why,...b,delay:b.arr-sched});
   });
   return out;}
 
@@ -222,7 +222,7 @@ function simAgent(){
     if(wi>=0){const off=lenTo(r,wi)/SPEED;let e=dep+off;while(weSlots.some(x=>Math.abs(x-e)<1.0)){e+=0.1;}gh=e-dep-off;dep+=gh;weSlots.push(e);}
     padFree[o]=dep+0.7;
     ({segs,arr}=buildSegs(r,dep,-1,0));
-    out.push({i,cs:'SkyFlow '+(101+i),o,d,rel,sched,dep,route:r,route0:r0,dist:plen(r),dist0:plen(r0),why,gh,segs,arr,delay:arr-sched,replanAt});
+    out.push({i,cs:'UITA '+(101+i),o,d,rel,sched,dep,route:r,route0:r0,dist:plen(r),dist0:plen(r0),why,gh,segs,arr,delay:arr-sched,replanAt});
   });
   return out;}
 if(typeof module!=='undefined')module.exports={simStatic,simAgent,TRIPS,N,EDGES,PADS,STORM,TOL,T_END,SPEED};
@@ -262,13 +262,13 @@ function buildEvents(){
     add(eA,t,'prop',sect(f),`reroute ${f.cs} ${old} → ${nw}${f.why==='airReroute'?' (airborne)':''}`,{k:[['acc',`KERNEL ✓ commit · +${(f.dist-f.dist0).toFixed(1)} km · sep ≥ 1.0 min`]],tx:2});
     if(f.gh>0.05)add(eA,t+0.06,'prop','PAD-'+f.o,`release ${f.cs} now`,{k:[['rej',`KERNEL ✗ reject · W–E separation < 1.0 min`],['acc',`re-proposed +${f.gh.toFixed(1)} min ground hold → ✓ commit`]]});
   });
-  add(eA,9.0,'prop','SECTOR-EAST','swap SkyFlow 109 ahead of 105 at E',{k:[['rej','KERNEL ✗ reject · 105 holds the E slot reservation']]});
+  add(eA,9.0,'prop','SECTOR-EAST','swap UITA 109 ahead of 105 at E',{k:[['rej','KERNEL ✗ reject · 105 holds the E slot reservation']]});
   // voice loop for 104
-  const v=[[8.30,'CTRL',`SkyFlow ${num(104)}, Bay Approach, reroute via Whiskey, Echo, direct Oakland. Maintain one thousand two hundred.`],
-           [8.75,'PILOT',`Via Charlie, Echo, direct Oakland, one thousand two hundred, SkyFlow ${num(104)}.`],
+  const v=[[8.30,'CTRL',`UITA ${num(104)}, Bay Approach, reroute via Whiskey, Echo, direct Oakland. Maintain one thousand two hundred.`],
+           [8.75,'PILOT',`Via Charlie, Echo, direct Oakland, one thousand two hundred, UITA ${num(104)}.`],
            [9.15,'CHECK','Hearback: callsign ✓  route ✗ (C–E is closed)  altitude ✓'],
-           [9.35,'CTRL',`SkyFlow ${num(104)}, negative. Charlie Echo is closed. Reroute via Whiskey, Echo, direct Oakland.`],
-           [9.65,'PILOT',`Whiskey, Echo, direct Oakland, SkyFlow ${num(104)}.`],
+           [9.35,'CTRL',`UITA ${num(104)}, negative. Charlie Echo is closed. Reroute via Whiskey, Echo, direct Oakland.`],
+           [9.65,'PILOT',`Whiskey, Echo, direct Oakland, UITA ${num(104)}.`],
            [9.78,'CHECK','Hearback ✓ all fields — W–E reservation committed.']];
   v.forEach(([t,who,txt])=>add(eA,t,who==='CHECK'?(txt.includes('✗')?'bad':'ok'):'voice',who,who==='CHECK'?txt:'',{q:who==='CHECK'?null:txt,tx:who==='CHECK'?0:1}));
   add(eA,STORM[1],'wx','WX','C–E reopens. SECTOR-CENTRAL returns new releases to direct routes.');
@@ -442,7 +442,7 @@ function renderRadio(t){
   const on=t>=8.25&&t<10.6;radio.classList.toggle('on',on);if(!on){radioKey='';return;}
   const cur=VOICE.filter(e=>e.t<=t).pop();if(!cur)return;
   const key=cur.t;if(key===radioKey)return;radioKey=key;
-  rline.innerHTML=cur.q?`<b>${cur.who==='CTRL'?'CTRL':'SKYFLOW 104'}</b>${cur.q}`:`<b>HEARBACK</b>${cur.txt}`;
+  rline.innerHTML=cur.q?`<b>${cur.who==='CTRL'?'CTRL':'UITA 104'}</b>${cur.q}`:`<b>HEARBACK</b>${cur.txt}`;
   const stage=VOICE.indexOf(cur);
   const fields=[['CALLSIGN 104','ok'],['ROUTE '+(stage>=1&&stage<4?'C–E':'W–E'),stage===0?'':(stage>=1&&stage<4?'bad':'ok')],['ALT 1200','ok'],['RESERVATION',stage>=5?'ok':'']];
   if(stage===0)fields.forEach(f=>f[1]='');
@@ -490,7 +490,7 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 // ---------- radio audio ----------
-const RADIO_LINES=eA.filter(e=>e.cls==='voice').map(e=>({t:e.t,text:e.q,speaker:e.who==='CTRL'?'atc':'pilot',key:e.who==='CTRL'?undefined:'SKF104'}));
+const RADIO_LINES=eA.filter(e=>e.cls==='voice').map(e=>({t:e.t,text:e.q,speaker:e.who==='CTRL'?'atc':'pilot',key:e.who==='CTRL'?undefined:'UTA104'}));
 const SR=window.SkyRadio;
 if(SR){SR.prefetch(RADIO_LINES);
   SR.onTransmit(x=>{radio.classList.toggle('tx',!!x.live);});}

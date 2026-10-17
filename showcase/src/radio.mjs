@@ -64,9 +64,9 @@ export const digits = (n) =>
     .split("")
     .map((d) => DIGITS[+d] ?? d)
     .join(" ");
-export const callsign = (id) => "SkyFlow " + id.replace(/^SF-/, "");
+export const callsign = (id) => "UITA " + id.replace(/^SF-/, "");
 export const spokenCallsign = (id) =>
-  "SkyFlow " + digits(id.replace(/^SF-/, ""));
+  "UITA " + digits(id.replace(/^SF-/, ""));
 // Altitude band is deterministic per route so the same flight always reads the same band.
 export const band = (path) => 1 + (edgeKey(path[0], path[1]).length % 3);
 const hhmm = (t) => {
@@ -143,7 +143,7 @@ export function parse(text) {
     const prev = tokens[i - 1]?.word;
     const v = tokens[i].value;
     if (!v) continue;
-    if (prev === "skyflow" || prev === "flight") out.id = "SF-" + v;
+    if (prev === "uita" || prev === "flight") out.id = "SF-" + v;
     else if (prev === "band" || prev === "level") out.band = +v;
     else if (prev === "slot" || prev === "at" || prev === "expect") {
       if (out.slot === undefined) out.slot = v.padStart(4, "0");

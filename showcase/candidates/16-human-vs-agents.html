@@ -107,7 +107,7 @@ main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 12px 12px;
 <main>
   <section class="col listening" id="H">
     <div class="hd"><span class="dot" style="background:var(--red)"></span><span class="t">One human controller</span><span class="d">ONE FREQUENCY · ALL CLEARANCES BY VOICE</span><span class="ear">🎧 LISTENING</span></div>
-    <div class="scope"><canvas id="scH"></canvas><span class="tag">BAY SECTOR · 123.875 · ONE POSITION</span><span class="alert" id="alH">⚠ NEAR-MISS · SKF121 / SKF112 · 0.3 NM</span></div>
+    <div class="scope"><canvas id="scH"></canvas><span class="tag">BAY SECTOR · 123.875 · ONE POSITION</span><span class="alert" id="alH">⚠ NEAR-MISS · UTA121 / UTA112 · 0.3 NM</span></div>
     <div class="cards">
       <div class="card" id="gH"><div class="k">RADIO UTILISATION</div><canvas class="gauge" id="gaugeH" width="300" height="124"></canvas><div class="gv" id="gvH">0%</div><div class="gl" id="glH">OF AIRTIME</div></div>
       <div class="card"><div class="k">AIRCRAFT ON FREQUENCY</div><div class="v" id="nH">0<small>/ 18</small></div>
@@ -123,7 +123,7 @@ main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 12px 12px;
 
   <section class="col" id="A">
     <div class="hd"><span class="dot" style="background:var(--teal)"></span><span class="t">Agent team</span><span class="d">3 SECTOR AGENTS · DATALINK FIRST · VOICE FOR EXCEPTIONS</span><span class="ear">🎧 LISTENING</span></div>
-    <div class="scope"><canvas id="scA"></canvas><span class="tag">NORTH · CENTRAL · SOUTH AGENTS · KERNEL-VALIDATED</span><span class="alert" id="alA" style="background:var(--teal);color:#06231d">✓ CAUGHT · SKF121 READ BACK SKF112'S CLEARANCE</span></div>
+    <div class="scope"><canvas id="scA"></canvas><span class="tag">NORTH · CENTRAL · SOUTH AGENTS · KERNEL-VALIDATED</span><span class="alert" id="alA" style="background:var(--teal);color:#06231d">✓ CAUGHT · UTA121 READ BACK UTA112'S CLEARANCE</span></div>
     <div class="cards">
       <div class="card" id="gA"><div class="k">VOICE UTILISATION</div><canvas class="gauge" id="gaugeA" width="300" height="124"></canvas><div class="gv" id="gvA">0%</div><div class="gl">OF AIRTIME</div></div>
       <div class="card"><div class="k">AIRCRAFT PER AGENT</div><div class="v" id="nA">0<small>max</small></div>
@@ -153,12 +153,12 @@ const flights=[]; let t=0, n=0;
 while(t<58){
   const gap=t<6?1.6:t<28?0.55:t<40?0.9:1.6;
   const r=ROUTES[n%ROUTES.length];
-  const cs=n<28?'SkyFlow '+(101+n):'Bayhop '+(201+n-28), id=n<28?'SKF'+(101+n):'BHP'+(201+n-28);
+  const cs=n<28?'UITA '+(101+n):'Bayhop '+(201+n-28), id=n<28?'UTA'+(101+n):'BHP'+(201+n-28);
   flights.push({n,cs,id,rel:t,route:r,spd:0.024+rnd()*0.006});
   t+=gap; n++;
 }
 // the similar-callsign pair used in the readback story
-const F112=flights.find(f=>f.id==='SKF112'), F121=flights.find(f=>f.id==='SKF121');
+const F112=flights.find(f=>f.id==='UTA112'), F121=flights.find(f=>f.id==='UTA121');
 F112.route=['SFO','W','E','OAK']; F112.rel=14.1; F112.spd=0.026; F121.route=['MAR','SF','W','SFO']; F121.rel=12.25; F121.spd=0.026;
 const segLen=(a,b)=>Math.hypot((NODE[a][0]-NODE[b][0])*0.79,NODE[a][1]-NODE[b][1]);
 const usesCE=r=>r.some((x,i)=>i&&((x==='C'&&r[i-1]==='E')||(x==='E'&&r[i-1]==='C')));
@@ -185,9 +185,9 @@ function build(f,side){
   return {K,r,end:tt,rr:inStorm&&side==='A',held:holdAt>=0};
 }
 for(const f of flights){f.H=build(f,'H'); f.A=build(f,'A');}
-// Human side: SKF121 flies the clearance meant for SKF112 and meets it at Whiskey.
+// Human side: UTA121 flies the clearance meant for UTA112 and meets it at Whiskey.
 F121.H=build({...F121,route:['MAR','SF','W','E','OAK']},'H');
-// Agent side: the mismatch is caught, so SKF121 keeps its route and is sequenced behind SKF112.
+// Agent side: the mismatch is caught, so UTA121 keeps its route and is sequenced behind UTA112.
 F121.A=build({...F121,spd:0.0215},'A');
 function pos(T,t){
   const K=T.K; if(t<K[0].t||t>K[K.length-1].t) return null;
@@ -201,44 +201,44 @@ const sectorOf=p=>p.lat>37.8?'north':p.lat<37.745?'south':'central';
 // ---------- scripted radio ----------
 // Human side: rapid, stepped-on, one frequency. flag: sa (say again), miss (readback slipped through)
 const HL=[
- [0.8,'atc','SkyFlow one zero one, Bay, cleared to Oakland via Charlie, Echo, maintain one thousand five hundred.'],
- [0.9,'pilot','Cleared Oakland via Charlie, Echo, one thousand five hundred, SkyFlow one zero one.','SKF101'],
- [3.6,'atc','SkyFlow one zero three, cleared to Marin via Whiskey, maintain one thousand two hundred.'],
- [3.7,'pilot','Marin via Whiskey, one thousand two hundred, SkyFlow one zero three.','SKF103'],
+ [0.8,'atc','UITA one zero one, Bay, cleared to Oakland via Charlie, Echo, maintain one thousand five hundred.'],
+ [0.9,'pilot','Cleared Oakland via Charlie, Echo, one thousand five hundred, UITA one zero one.','UTA101'],
+ [3.6,'atc','UITA one zero three, cleared to Marin via Whiskey, maintain one thousand two hundred.'],
+ [3.7,'pilot','Marin via Whiskey, one thousand two hundred, UITA one zero three.','UTA103'],
  [8.1,'atc','All stations, Bay. Corridor Charlie Echo closed, weather. Expect holding. Stand by for reroutes.'],
- [8.6,'pilot','Bay, SkyFlow one zero six, request reroute around the cell.','SKF106'],
- [8.8,'pilot','Bay, SkyFlow one zero eight, holding at Charlie, say expected delay.','SKF108'],
+ [8.6,'pilot','Bay, UITA one zero six, request reroute around the cell.','UTA106'],
+ [8.8,'pilot','Bay, UITA one zero eight, holding at Charlie, say expected delay.','UTA108'],
  [9.4,'atc','Station calling, say again, you were blocked.',null,{sa:1}],
- [9.6,'pilot','SkyFlow one zero six, request reroute.','SKF106'],
- [10.4,'atc','SkyFlow one zero six, hold at Charlie, expect further clearance at two four.'],
- [10.8,'pilot','Bay, SkyFlow one one zero, battery at forty percent, request priority.','SKF110'],
- [11.6,'pilot','Bay, SkyFlow one zero niner, say again for one zero niner.','SKF109',{sa:1}],
- [12.4,'atc','SkyFlow one one zero, stand by. All stations, hold at Charlie or Echo, maintain present altitude.'],
+ [9.6,'pilot','UITA one zero six, request reroute.','UTA106'],
+ [10.4,'atc','UITA one zero six, hold at Charlie, expect further clearance at two four.'],
+ [10.8,'pilot','Bay, UITA one one zero, battery at forty percent, request priority.','UTA110'],
+ [11.6,'pilot','Bay, UITA one zero niner, say again for one zero niner.','UTA109',{sa:1}],
+ [12.4,'atc','UITA one one zero, stand by. All stations, hold at Charlie or Echo, maintain present altitude.'],
  [13.6,'pilot','Bay, Bayhop two zero one, entering hold, request.','BHP201'],
- [14.4,'atc','SkyFlow one one two, proceed direct Whiskey, then Echo, Oakland.'],
- [14.5,'pilot','Direct Whiskey, then Echo, Oakland, SkyFlow one two one.','SKF121',{miss:1}],
+ [14.4,'atc','UITA one one two, proceed direct Whiskey, then Echo, Oakland.'],
+ [14.5,'pilot','Direct Whiskey, then Echo, Oakland, UITA one two one.','UTA121',{miss:1}],
  [15.0,'atc','Bayhop two zero one, say again.',null,{sa:1}],
- [15.8,'pilot','Bay, SkyFlow one one four, how long the hold?','SKF114'],
- [16.6,'pilot','Bay, SkyFlow one one six, request lower.','SKF116'],
- [17.6,'atc','SkyFlow one two one, traffic alert! Turn left immediately, heading two seven zero.',null,{alert:1}],
- [17.7,'pilot','Left two seven zero, SkyFlow one two one. We had a clearance for Whiskey.','SKF121'],
- [19.0,'pilot','Bay, SkyFlow one one eight, say again the hold.','SKF118',{sa:1}],
+ [15.8,'pilot','Bay, UITA one one four, how long the hold?','UTA114'],
+ [16.6,'pilot','Bay, UITA one one six, request lower.','UTA116'],
+ [17.6,'atc','UITA one two one, traffic alert! Turn left immediately, heading two seven zero.',null,{alert:1}],
+ [17.7,'pilot','Left two seven zero, UITA one two one. We had a clearance for Whiskey.','UTA121'],
+ [19.0,'pilot','Bay, UITA one one eight, say again the hold.','UTA118',{sa:1}],
  [20.5,'atc','All stations, Bay, I have twenty three on frequency. Keep transmissions brief.'],
  [24.2,'atc','All stations, Charlie Echo open. Expect clearances in sequence. Stand by.'],
- [30.0,'atc','SkyFlow one zero eight, cleared to Oakland via Echo, sorry for the delay.'],
- [30.1,'pilot','Oakland via Echo, SkyFlow one zero eight.','SKF108'],
+ [30.0,'atc','UITA one zero eight, cleared to Oakland via Echo, sorry for the delay.'],
+ [30.1,'pilot','Oakland via Echo, UITA one zero eight.','UTA108'],
 ];
 // Agent side: routine clearances go silently by datalink; voice only for exceptions.
 const AL=[
- [8.1,'atc','All SkyFlow traffic, Bay. Corridor Charlie Echo closed due to weather. Reroutes coming by datalink.'],
- [11.0,'atc','SkyFlow one one zero, Central. Priority approved, proceed direct Oakland pad two via Whiskey, Echo.'],
- [11.1,'pilot','Direct Oakland pad two via Whiskey, Echo, SkyFlow one one zero.','SKF110',{ok:1}],
- [14.4,'atc','SkyFlow one one two, South. Proceed direct Whiskey, then Echo, Oakland.'],
- [14.5,'pilot','Direct Whiskey, then Echo, Oakland, SkyFlow one two one.','SKF121',{bad:1}],
- [14.6,'atc','SkyFlow one two one, negative. That clearance was for SkyFlow one one two. Maintain present routing.'],
- [14.7,'pilot','Maintain present routing, SkyFlow one two one.','SKF121',{ok:1}],
- [14.8,'pilot','Direct Whiskey, then Echo, Oakland, SkyFlow one one two.','SKF112',{ok:1,commit:1}],
- [24.2,'atc','All SkyFlow traffic, Bay. Charlie Echo is open. Filed routes restored by datalink.'],
+ [8.1,'atc','All UITA traffic, Bay. Corridor Charlie Echo closed due to weather. Reroutes coming by datalink.'],
+ [11.0,'atc','UITA one one zero, Central. Priority approved, proceed direct Oakland pad two via Whiskey, Echo.'],
+ [11.1,'pilot','Direct Oakland pad two via Whiskey, Echo, UITA one one zero.','UTA110',{ok:1}],
+ [14.4,'atc','UITA one one two, South. Proceed direct Whiskey, then Echo, Oakland.'],
+ [14.5,'pilot','Direct Whiskey, then Echo, Oakland, UITA one two one.','UTA121',{bad:1}],
+ [14.6,'atc','UITA one two one, negative. That clearance was for UITA one one two. Maintain present routing.'],
+ [14.7,'pilot','Maintain present routing, UITA one two one.','UTA121',{ok:1}],
+ [14.8,'pilot','Direct Whiskey, then Echo, Oakland, UITA one one two.','UTA112',{ok:1,commit:1}],
+ [24.2,'atc','All UITA traffic, Bay. Charlie Echo is open. Filed routes restored by datalink.'],
 ];
 SkyRadio.prefetch([...HL,...AL].map(([,s,text,key])=>({text,speaker:s,key:key||undefined})));
 
