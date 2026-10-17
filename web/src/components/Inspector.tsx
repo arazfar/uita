@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { Dataset } from '../data/dataset'
 import { sampleTrack } from '../data/interpolate'
 import type { TimeFormat } from '../data/time'
@@ -11,38 +12,44 @@ interface Props {
 }
 
 export default function Inspector({ ds, id, t, fmt, onClose }: Props) {
-  const f = ds.byId.get(id)
-  if (!f) return null
-  const tr = ds.tracks.get(id)
-  const s = tr ? sampleTrack(tr, t) : null
+  const panel = useRef<HTMLElement>(null)
+  useEffect(() => {
+    panel.current?.focus({ preventScroll: true })
+    panel.current?.scrollIntoView({ block: 'nearest' })
+  }, [id])
+  const flight = ds.byId.get(id)
+  if (!flight) return null
+  const track = ds.tracks.get(id)
+  const sample = track ? sampleTrack(track, t) : null
+  const name = flight.callsign || flight.reg || flight.id
   const rows: [string, string][] = [
-    ['Callsign', f.callsign],
-    ['Reg', f.reg],
-    ['Type', f.type],
-    ['Airline', f.airline],
-    [f.kind === 'arr' ? 'Origin' : 'Destination', f.port],
-    ['Runway', f.runway],
-    [f.kind === 'arr' ? 'Landed' : 'Departed', `${fmt.day(f.t)} ${fmt.hms(f.t)}`],
-    ['Track points', tr ? String(tr.n) : 'no path'],
-    ['Altitude now', s && !Number.isNaN(s.alt) ? `${Math.round(s.alt)} ft` : '-'],
-    ['Speed now', s && !Number.isNaN(s.spd) ? `${Math.round(s.spd)} kt` : '-'],
+    ['Callsign', flight.callsign || 'Unknown'],
+    ['Registration', flight.reg || 'Unknown'],
+    ['Aircraft', flight.type || 'Unknown'],
+    ['Airline', flight.airline || 'Unknown'],
+    [flight.kind === 'arr' ? 'Origin' : 'Destination', flight.port || 'Unknown'],
+    ['Runway', flight.runway || 'Unknown'],
+    [flight.kind === 'arr' ? 'Arrival' : 'Departure', `${fmt.day(flight.t)} ${fmt.hms(flight.t)}`],
+    ['Track points', track ? track.n.toLocaleString() : 'No map path'],
+    ['Reported altitude now', sample && Number.isFinite(sample.alt) ? `${Math.round(sample.alt).toLocaleString()} ft` : '—'],
+    ['Speed now', sample && Number.isFinite(sample.spd) ? `${Math.round(sample.spd)} kt` : '—'],
   ]
+  if (flight.kind === 'arr' && typeof flight.sched === 'number' && Number.isFinite(flight.sched)) {
+    rows.push(['Scheduled arrival', `${fmt.day(flight.sched)} ${fmt.hm(flight.sched)}`])
+  }
   return (
-    <div className="inspector">
+    <section ref={panel} tabIndex={-1} className="inspector" aria-label={`Flight details for ${name}`}>
       <div className="ih">
-        <b>
-          {f.callsign || f.reg} <span className={`badge ${f.kind}`}>{f.kind === 'arr' ? 'ARR' : 'DEP'}</span>
-        </b>
-        <button onClick={onClose}>Close</button>
+        <b>{name} <span className={`badge ${flight.kind}`}>{flight.kind === 'arr' ? 'ARR' : 'DEP'}</span></b>
+        <button onClick={onClose} aria-label="Close flight details">Close</button>
       </div>
+      <p className="inspector-status">{!track ? 'This roster operation has no map path.' : sample ? 'Observed path at the replay time.' : 'Path available outside the current replay time.'}</p>
       <dl>
-        {rows.map(([k, v]) => (
-          <div key={k}>
-            <dt>{k}</dt>
-            <dd>{v}</dd>
-          </div>
+        {rows.map(([label, value]) => (
+          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
         ))}
       </dl>
-    </div>
+      <p className="inspector-zone">Times in {fmt.tzName(t)}</p>
+    </section>
   )
 }

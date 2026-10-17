@@ -15,6 +15,8 @@ export interface Flight {
   port: string
   runway: string
   has_track: boolean
+  /** Museum scheduled arrival time, unix s; exact gate/runway semantics unverified. */
+  sched?: number | null
 }
 
 export interface WeekInfo {
@@ -62,4 +64,34 @@ export interface Week {
   start: number
   end: number
   tz: string
+}
+
+export interface SepEvent {
+  t_start: number
+  t_end: number
+  a: string
+  b: string
+  min_nm: number
+  min_ft: number
+}
+
+export interface KpiCoverage {
+  roster_arrivals: number
+  roster_departures: number
+  tracked_arrivals: number
+  tracked_departures: number
+  separation_evaluable_tracks: number
+  separation_evaluable_arrivals: number
+  go_around_evaluable_arrivals: number
+  beacon_points: number
+  total_points: number
+}
+
+export interface KpisFile {
+  /** Full-week observation coverage; zero evaluable tracks means unavailable. */
+  coverage?: KpiCoverage
+  /** sorted by t_start */
+  sep_events: SepEvent[]
+  /** sorted by t */
+  go_arounds: { t: number; id: string }[]
 }

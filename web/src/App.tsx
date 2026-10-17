@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Controls from './components/Controls'
 import Feed from './components/Feed'
+import Kpis from './components/Kpis'
 import Inspector from './components/Inspector'
 import MapView from './components/Map'
 import { SimClock } from './data/clock'
 import { activeTracks, buildDataset, countKinds, recentEvents, type Dataset } from './data/dataset'
-import { loadFlights, loadRunways, loadTracks, type RunwayCollection } from './data/loaders'
+import { loadFlights, loadKpis, loadRunways, loadTracks, type RunwayCollection } from './data/loaders'
 import { makeTimeFormat } from './data/time'
-import type { Flight } from './data/types'
+import { sampleTrack } from './data/interpolate'
+import type { Flight, KpisFile } from './data/types'
 
 const FEED_MAX = 200
 const UI_HZ_MS = 250
@@ -15,6 +17,7 @@ const UI_HZ_MS = 250
 interface Loaded {
   ds: Dataset
   runways: RunwayCollection
+  kpis: KpisFile
 }
 
 interface Snap {
@@ -29,10 +32,10 @@ interface Snap {
   hourDep: number
 }
 
-function Live({ ds, runways }: Loaded) {
+function Live({ ds, runways, kpis }: Loaded) {
   const fmt = useMemo(() => makeTimeFormat(ds.week.tz), [ds])
   const clock = useMemo(() => {
-    const c = new SimClock(ds.week.start, ds.week.end, fmt.dayStart(ds.week.start + 12 * 3600) + 7 * 3600)
+    const c = new SimClock(ds.week.start, ds.week.end - 1, fmt.dayStart(ds.week.start + 12 * 3600) + 7 * 3600)
     c.speed = 60
     return c
   }, [ds, fmt])
@@ -48,7 +51,7 @@ function Live({ ds, runways }: Loaded) {
       playing: clock.playing,
       speed: clock.speed,
       events: recentEvents(ds, t, FEED_MAX),
-      airborne: activeTracks(ds, t).length,
+      airborne: activeTracks(ds, t).filter((track) => sampleTrack(track, t) !== null).length,
       arrToday: today.arr,
       depToday: today.dep,
       hourArr: hour.arr,
@@ -78,10 +81,9 @@ function Live({ ds, runways }: Loaded) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
-      const tag = (e.target as HTMLElement | null)?.tagName
-      if (tag === 'TEXTAREA' || tag === 'SELECT') return
+      const target = e.target as HTMLElement | null
+      if (e.repeat || target?.closest('button, input, textarea, select, a, [contenteditable="true"]')) return
       e.preventDefault()
-      ;(document.activeElement as HTMLElement | null)?.blur()
       act((c) => c.toggle())
     }
     window.addEventListener('keydown', onKey)
@@ -96,13 +98,15 @@ function Live({ ds, runways }: Loaded) {
       </div>
       <aside className="side">
         <div className="stats">
-          <div><b>{snap.airborne}</b><span>airborne</span></div>
+          <div><b>{snap.airborne}</b><span>on map now</span></div>
           <div><b>{snap.arrToday}</b><span>arr today</span></div>
           <div><b>{snap.depToday}</b><span>dep today</span></div>
           <div><b>{snap.hourArr + snap.hourDep}</b><span>last hr ({snap.hourArr}a/{snap.hourDep}d)</span></div>
         </div>
+        <Kpis ds={ds} kpis={kpis} t={snap.t} fmt={fmt} onSelect={setSelected} />
         {selected && <Inspector ds={ds} id={selected} t={snap.t} fmt={fmt} onClose={() => setSelected(null)} />}
-        <h2>Live feed</h2>
+        <h2>Operations feed</h2>
+        <p className="feed-caption">Latest {FEED_MAX} roster operations at replay time</p>
         <Feed events={snap.events} fmt={fmt} selectedId={selected} onSelect={setSelected} />
       </aside>
     </div>
@@ -115,21 +119,22 @@ export default function App() {
 
   useEffect(() => {
     const p = '/data/'
-    Promise.all([loadFlights(`${p}flights.json`), loadTracks(`${p}tracks.json`), loadRunways('/data/runways.geojson')])
-      .then(([ff, tf, runways]) => setData({ ds: buildDataset(ff, tf), runways }))
+    Promise.all([loadFlights(`${p}flights.json`), loadTracks(`${p}tracks.json`), loadRunways('/data/runways.geojson'), loadKpis(`${p}kpis.json`)])
+      .then(([ff, tf, runways, kpis]) => setData({ ds: buildDataset(ff, tf), runways, kpis }))
       .catch((e) => setError(String(e)))
   }, [])
 
   return (
     <div className="app">
       <header>
-        <h1>Up in the Air - SFO week replay</h1>
+        <h1>Up in the Air · SFO</h1>
         <div className="attr">
-          DataSF SFO Flight Operations (PDDL) · SFO Museum flight paths (CDLA-Permissive-1.0). Positions are observed
-          paths; gaps are not filled.
+          Aug 3–9, 2026 · Historical replay · Research prototype
+          <br />
+          Full operation roster in the feed and throughput. Map shows available tracks; gaps over 2 minutes stay empty.
         </div>
       </header>
-      {error && <div className="msg err">Failed to load data: {error}</div>}
+      {error && <div className="msg err" role="alert">Failed to load replay data: {error}. Run <code>bun run data</code> in the web folder, then reload.</div>}
       {!data && !error && <div className="msg">Loading flights and tracks...</div>}
       {data && <Live {...data} />}
     </div>

@@ -1,6 +1,8 @@
 // Pure track compilation + time interpolation. Reusable by the sim.
 import type { CompiledTrack, Sample, TrackPoint } from './types'
 
+export const MAX_TRACK_GAP_SEC = 120
+
 export function compileTrack(id: string, points: TrackPoint[]): CompiledTrack {
   const pts = points.slice().sort((a, b) => a[0] - b[0])
   const n = pts.length
@@ -55,8 +57,10 @@ export function bearingDeg(lon1: number, lat1: number, lon2: number, lat2: numbe
 }
 
 function lerpNaN(a: number, b: number, f: number): number {
-  if (Number.isNaN(a)) return b
-  if (Number.isNaN(b)) return a
+  // A reported height cannot establish the height at an unmeasured neighbour.
+  if (f === 0) return a
+  if (f === 1) return b
+  if (Number.isNaN(a) || Number.isNaN(b)) return NaN
   return a + (b - a) * f
 }
 
@@ -64,7 +68,7 @@ function lerpNaN(a: number, b: number, f: number): number {
  * Position at time t, or null if t is outside the track's span or inside a
  * sample gap longer than maxGapSec (observed paths only, gaps are not filled).
  */
-export function sampleTrack(tr: CompiledTrack, t: number, maxGapSec = 600): Sample | null {
+export function sampleTrack(tr: CompiledTrack, t: number, maxGapSec = MAX_TRACK_GAP_SEC): Sample | null {
   if (tr.n < 2 || t < tr.t0 || t > tr.t1) return null
   let i = upperBound(tr.ts, t) - 1 // last point with ts <= t
   if (i >= tr.n - 1) i = tr.n - 2

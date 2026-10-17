@@ -1,19 +1,18 @@
 import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import { MapboxOverlay } from '@deck.gl/mapbox'
-import { IconLayer, PathLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
+import { IconLayer, PathLayer, PolygonLayer, TextLayer } from '@deck.gl/layers'
 import { TripsLayer } from '@deck.gl/geo-layers'
 import type { SimClock } from '../data/clock'
-import { activeTracks, recentNoTrack, type Dataset } from '../data/dataset'
-import { SFO, destination, ring, runwayThresholds, thresholdFor } from '../data/geo'
-import { sampleTrack } from '../data/interpolate'
+import { activeTracks, type Dataset } from '../data/dataset'
+import { SFO, destination, ring } from '../data/geo'
+import { MAX_TRACK_GAP_SEC, sampleTrack } from '../data/interpolate'
 import type { RunwayCollection } from '../data/loaders'
 import type { CompiledTrack, Kind } from '../data/types'
 
 const STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 const COLOR: Record<Kind, [number, number, number]> = { arr: [34, 211, 238], dep: [251, 191, 36] }
 const TRAIL_SEC = 240
-const PULSE_SEC = 120
 const RING_NM = [10, 40, 80]
 
 interface Props {
@@ -59,28 +58,41 @@ function planeIcon(): string {
   return c.toDataURL()
 }
 
-/** Binary trip data (one layer per kind) with timestamps relative to week start. */
+/** Split long observation gaps so trails never imply an observed path across them. */
+function trackSegments(track: CompiledTrack) {
+  const segments: { track: CompiledTrack; start: number; end: number }[] = []
+  let start = 0
+  for (let i = 1; i <= track.n; i++) {
+    if (i === track.n || track.ts[i] - track.ts[i - 1] > MAX_TRACK_GAP_SEC) {
+      if (i - start >= 2) segments.push({ track, start, end: i })
+      start = i
+    }
+  }
+  return segments
+}
+
+/** Binary trip data with timestamps relative to week start. */
 function tripData(ds: Dataset, kind: Kind) {
-  const tracks = ds.trackList.filter((t) => ds.byId.get(t.id)!.kind === kind && t.n >= 2)
-  const startIndices = new Uint32Array(tracks.length + 1)
+  const segments = ds.trackList.filter((t) => ds.byId.get(t.id)!.kind === kind).flatMap(trackSegments)
+  const startIndices = new Uint32Array(segments.length + 1)
   let total = 0
-  tracks.forEach((t, i) => {
+  segments.forEach(({ start, end }, i) => {
     startIndices[i] = total
-    total += t.n
+    total += end - start
   })
-  startIndices[tracks.length] = total
+  startIndices[segments.length] = total
   const path = new Float32Array(total * 2)
   const time = new Float32Array(total)
-  tracks.forEach((t, i) => {
+  segments.forEach(({ track: t, start, end }, i) => {
     const o = startIndices[i]
-    for (let k = 0; k < t.n; k++) {
-      path[(o + k) * 2] = t.lon[k]
-      path[(o + k) * 2 + 1] = t.lat[k]
-      time[o + k] = t.ts[k] - ds.week.start
+    for (let k = start; k < end; k++) {
+      path[(o + k - start) * 2] = t.lon[k]
+      path[(o + k - start) * 2 + 1] = t.lat[k]
+      time[o + k - start] = t.ts[k] - ds.week.start
     }
   })
   return {
-    length: tracks.length,
+    length: segments.length,
     startIndices,
     attributes: { getPath: { value: path, size: 2 }, getTimestamps: { value: time, size: 1 } },
   }
@@ -117,7 +129,6 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
     map.addControl(overlay as unknown as maplibregl.IControl)
 
     // static data, built once
-    const thresholds = runwayThresholds(runways)
     const icon = planeIcon()
     const iconMapping = { plane: { x: 0, y: 0, width: 64, height: 64, mask: true } }
     const arrTrips = tripData(ds, 'arr')
@@ -156,10 +167,21 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
     ]
 
     let raf = 0
+    let lastTime = NaN
+    let lastSelected: string | null | undefined
+    let selectedPaths: [number, number][][] = []
     const frame = () => {
       raf = requestAnimationFrame(frame)
       const t = clock.now()
       const sel = selRef.current
+      if (t === lastTime && sel === lastSelected) return
+      if (sel !== lastSelected) {
+        const track = sel ? ds.tracks.get(sel) : undefined
+        selectedPaths = track ? trackSegments(track).map(({ start, end }) =>
+          Array.from(track.lon.slice(start, end), (lon, i) => [lon, track.lat[start + i]] as [number, number])) : []
+      }
+      lastTime = t
+      lastSelected = sel
 
       const active: Active[] = []
       for (const tr of activeTracks(ds, t)) {
@@ -175,12 +197,6 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
           label: alt ? `${f.callsign} ${alt}` : f.callsign,
         })
       }
-      const pulses = recentNoTrack(ds, t, PULSE_SEC).map((f) => ({
-        kind: f.kind,
-        position: thresholdFor(thresholds, f.runway),
-        age: (t - f.t) / PULSE_SEC,
-      }))
-      const selTrack: CompiledTrack | undefined = sel ? ds.tracks.get(sel) : undefined
       const rel = t - ds.week.start
 
       overlay.setProps({
@@ -208,23 +224,11 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
           }),
           new PathLayer({
             id: 'selected-path',
-            data: selTrack ? [selTrack] : [],
-            getPath: (d: CompiledTrack) => Array.from(d.lon, (lon, i) => [lon, d.lat[i]] as [number, number]),
+            data: selectedPaths,
+            getPath: (path) => path,
             getColor: [255, 255, 255, 230],
             getWidth: 2,
             widthUnits: 'pixels',
-          }),
-          new ScatterplotLayer({
-            id: 'pulses',
-            data: pulses,
-            getPosition: (d) => d.position,
-            stroked: true,
-            filled: false,
-            radiusUnits: 'pixels',
-            lineWidthUnits: 'pixels',
-            getRadius: (d) => 6 + 34 * d.age,
-            getLineWidth: 2,
-            getLineColor: (d) => [...COLOR[d.kind as Kind], Math.round(255 * (1 - d.age))],
           }),
           new IconLayer<Active>({
             id: 'aircraft',
@@ -270,5 +274,10 @@ export default function MapView({ ds, clock, runways, selectedId, onSelect }: Pr
     }
   }, [ds, clock, runways])
 
-  return <div ref={el} className="map" />
+  return (
+    <div className="map-shell">
+      <div ref={el} className="map" role="region" aria-label="SFO tracked flight map" />
+      <div className="map-legend"><span className="legend-arr">● Arrivals</span><span className="legend-dep">● Departures</span><span>Available paths</span></div>
+    </div>
+  )
 }

@@ -20,6 +20,14 @@ export interface Dataset {
 }
 
 export function buildDataset(ff: FlightsFile, tf: TracksFile): Dataset {
+  const start = toUnix(ff.week.start_utc)
+  const end = toUnix(ff.week.end_utc)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error('Invalid replay time range')
+  if (ff.flights.some((flight) => flight.t < start || flight.t >= end)) throw new Error('Operation outside replay time range')
+  // Coverage and the feed must agree with the actual paths loaded into the map.
+  if (ff.flights.some((flight) => flight.has_track !== Boolean(tf[flight.id]?.length >= 2))) {
+    throw new Error('Roster and path coverage disagree; regenerate replay data')
+  }
   const flights = ff.flights.slice().sort((a, b) => a.t - b.t)
   const times = Float64Array.from(flights, (f) => f.t)
   const byId = new Map(flights.map((f) => [f.id, f]))
@@ -35,7 +43,7 @@ export function buildDataset(ff: FlightsFile, tf: TracksFile): Dataset {
   const maxTrackDur = trackList.reduce((m, t) => Math.max(m, t.t1 - t.t0), 0)
 
   return {
-    week: { start: toUnix(ff.week.start_utc), end: toUnix(ff.week.end_utc), tz: ff.week.tz },
+    week: { start, end, tz: ff.week.tz },
     flights,
     times,
     byId,
