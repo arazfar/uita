@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "dataset_id": "sfo-arrival-order-model-comparison-2026-08-03_07-v1",
+  "artifacts": 5,
+  "all_checksums_verified": true,
+  "contains_final_test_data": false,
+  "validation_cases": 141,
+  "models": 5,
+  "bytes": 471515,
+  "artifact_names": [
+    "comparison.json",
+    "data/manifest.json",
+    "data/validation.jsonl",
+    "data/verification.json",
+    "manifest.json"
+  ],
+  "download_roundtrip_verified": true
+}

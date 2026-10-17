@@ -133,3 +133,19 @@ Final run-summary hashes independently verified:
 | `super35vl-validation-20261017` | `9e4a450dc9eb4a1400e4467736dd2b896672ce10ed41cb246dbf7102e0db4f99` |
 | `gpt-oss-120b-validation-20261017` | `05880d42a3f7cf74e313d02b567076bd8d04131625781595abbc1a65ca8c1c6f` |
 | `qwen38-validation-20261017-final` | `7801f2b09e42541aeae026dc2f12658b5bc2d12642064c0656b270e45cb0e204` |
+
+## Final reporter recheck: passed
+
+The reporter fixes are complete. I inspected the revised `report.py` and the generated `reports/2026-10-17/comparison.json` and `comparison.md`. I executed the reporter's read-only raw-run audit across all five runs, then independently checked its exported aggregates and per-case records.
+
+All **705 raw decisions** passed the provenance checks. The reporter now verifies exact call membership, unique request identities, request payload hashes, public messages, generation settings, original response parsing, saved decisions, score recomputation, artifact checksums, and archived source checksums. Every one of the 141 exported per-case records agrees with the frozen validation label and the five raw-run decisions.
+
+All three accuracy denominators now appear in the Markdown table. The shared successful-case list contains the same 90 identities I reconstructed independently. All model numerators, baseline numerators, valid-action counts, known token costs, unknown-cost counts, valid-response medians, and valid-response p95 values match recomputation. The report labels the older-entry reference as posthoc and the common subset as selected by provider success. It preserves the one-day and human-performance limitations. No unresolved numerical or provenance finding remains for these report files.
+
+No held-out payload was opened and no new inference occurred during this recheck. This acceptance covers the files below, not a future benchmark or a broader ATC performance claim.
+
+| Final artifact | SHA-256 |
+| --- | --- |
+| `report.py` | `d1ce3593037a90f1681a9d73b335a54951793dc52862d4fcd1b8907245322bac` |
+| `reports/2026-10-17/comparison.json` | `5678854a2fe7564307ed964e36f653b7e1d51fe8cd6dcca20d9556c1b89e7a74` |
+| `reports/2026-10-17/comparison.md` | `11dabb15e3afbb16b21b2600861b9d4ca5458579a8c6155ee0d43c5a8d453a9b` |

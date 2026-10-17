@@ -2,6 +2,8 @@
 
 Prepared October 17, 2026. Scope: simulated SFO arrivals seeded from August 3–9, 2026. Railway PostgreSQL replaces the initial Supabase storage request.
 
+**Current status:** fine-tuning is deferred at Oscar's request. The separate, narrow historical arrival-order pilot is complete for five untuned models: [results](../benchmark/reports/2026-10-17/comparison.md), [objective and testing](../benchmark/TESTING.md). Its primary score measures recorded-order agreement, not human control quality. The broader simulator benchmark below remains a plan for the harness team.
+
 ## What we can measure
 
 Use a benchmark now. It is necessary to distinguish an improved controller from a changed simulator or easier traffic.

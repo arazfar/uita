@@ -91,7 +91,9 @@ The adapter does not replace the simulator, checker, agent harness, voice system
 
 ## Evaluation and fine-tuning
 
-Read `context/data-benchmark-plan.md`. The benchmark manifest and summary tool are ready; no controller performance has been measured yet. The disturbance names are specifications for the simulator team; this pipeline does not implement those effects.
+The completed five-model arrival-order pilot has [results](../benchmark/reports/2026-10-17/comparison.md) and [testing/objective documentation](../benchmark/TESTING.md). It predicts recorded order from observed snapshots. It does not measure human control quality or closed-loop controller performance. Fine-tuning is deferred.
+
+Read `context/data-benchmark-plan.md` for the separate simulator benchmark. Its manifest and summary tool are ready; this data work has not measured closed-loop controller performance. The disturbance names are specifications for the simulator team; this pipeline does not implement those effects.
 
 `benchmark.py` accepts one complete result per episode/seed/variant/controller. Required fields are `episode_id`, `seed`, `variant`, `controller`, `finished: true`, `checker_version`, `simulator_version`, `completed`, `backlog`, `separation_violations`, `runway_violations`, `checker_rejections`, `delay_seconds_sum`, `holding_seconds_sum`, `decision_latency_p95_ms`, `cost_usd`. Counts cover all episode spawns, including warmup. The simulator defines and freezes delay's free-flow reference and violation episode counting before baseline runs.
 

@@ -6,12 +6,12 @@ The primary task predicts recorded arrival order from observed entry snapshots. 
 
 `benchmark/core.py` exports:
 
-- `SYSTEM_PROMPT`: exact prompt shared by inference and supervised training.
+- `SYSTEM_PROMPT`: exact prompt shared by all model inference runs. Fine-tuning is deferred.
 - `model_messages(case) -> [{role, content}, ...]`: only `case["input"]` enters model messages.
 - `parse_action(raw, input) -> dict`: strict JSON, exact permutation of active local aircraft IDs, no extra fields.
 - `evaluate_action(case, action) -> dict`: independent schedule checker and historical agreement metrics.
 - `scripted_action(input) -> {"order": [...]}`: earliest free-flow-arrival order; ID breaks ties.
-- `teacher_action(input) -> {"order": [...]}`: exact enumeration minimizes total modeled delay, then maximum modeled delay, then lexicographic IDs.
+- `teacher_action(input) -> {"order": [...]}`: exact enumeration minimizes backlog, then total modeled delay, then maximum modeled delay, then lexicographic IDs.
 - `load_cases(split, directory=...)`: accepts only `train` or `validation`; final test is inaccessible.
 
 Provider returns raw model text. Runners parse with `parse_action`; malformed output is a failed decision with every encounter aircraft counted as backlog. Do not repair output or quietly replace it with a scripted action.
@@ -41,24 +41,36 @@ Cases: `benchmark/data/train.jsonl` and `benchmark/data/validation.jsonl`. One J
       "groundspeed_kt": 240,
       "track_deg_true": 290,
       "wake_category": "medium",
-      "free_flow_seconds": 331.5,
+      "free_flow_seconds": 301.5,
       "position_source": "observed_entry",
       "altitude_source": "beacon_reported",
       "age_seconds": 30
+    }, {
+      "id": "A2",
+      "distance_nm": 30,
+      "bearing_deg_true": 120,
+      "altitude_ft": null,
+      "groundspeed_kt": 250,
+      "track_deg_true": 290,
+      "wake_category": "medium",
+      "free_flow_seconds": 432,
+      "position_source": "observed_entry",
+      "altitude_source": "unknown",
+      "age_seconds": 0
     }]
   },
   "private": {
-    "historical_order": ["A1"],
-    "source_flight_ids": ["private provenance only"],
-    "alias_to_source": {"A1": "private provenance only"},
-    "source_entry_times": {"A1": 1779999970},
+    "historical_order": ["A1", "A2"],
+    "source_flight_ids": ["source-operation-1", "source-operation-2"],
+    "alias_to_source": {"A1": "source-operation-1", "A2": "source-operation-2"},
+    "source_entry_times": {"A1": 1779999970, "A2": 1780000000},
     "snapshot_time": 1780000000,
     "source_position_stratum": "observed_only"
   }
 }
 ```
 
-The frozen pilot uses **pairs**, with 488 training and 141 validation encounters. The contract accepts 2–6 aircraft for later separately versioned datasets. Aircraft never repeat between encounters. IDs are shuffled local aliases, independent of historical order. Candidate-list order is shuffled separately.
+The frozen pilot uses **pairs**, with 488 development and 141 validation encounters. The contract accepts 2–6 aircraft for later separately versioned datasets. Source arrival operations never repeat between encounters; the same physical airframe can operate multiple flights. IDs are shuffled local aliases, independent of historical order. Candidate-list order is shuffled separately.
 
 Model inputs contain no callsigns, source IDs, dates, historical timestamps, future paths/weather, assigned historical runway, template IDs or historical sequence. Positions are the last-known observed entry positions, with their ages stated. No interpolation or synthetic position projection occurs. `free_flow_seconds = max(0, distance_nm / groundspeed_kt * 3600 - age_seconds)` is a disclosed direct-to-airport estimate, not a recovered ATC ETA. Only beacon-reported actual heights are retained; all inferred heights become `altitude_ft: null, altitude_source: "unknown"`. The snapshot clock is the latest member's entry time. No future recorded trajectory is used.
 
@@ -72,6 +84,6 @@ Historical metrics: next-arrival accuracy, exact-sequence accuracy and pairwise 
 
 ## Split and exposure
 
-Train: August 3–6. Validation: August 7. August 8–9 remain sealed. The builder queries only permitted dates from the source DuckDB tables; it never opens test scenario files or emits test data. Aircraft appear in at most one encounter. Duplicate snapshots are forbidden. The manifest records source query, code/data hashes, encounter counts and dates. Training and validation outputs are distinct and must never be concatenated for fitting.
+Development (`train.jsonl`): August 3–6. Validation: August 7. August 8–9 remain sealed. The builder queries only permitted dates from the source DuckDB tables; it never opens test scenario files or emits test data. Each source arrival operation appears in at most one encounter. Duplicate snapshots are forbidden. The manifest records source query, code/data hashes, encounter counts and dates. Development and validation outputs remain distinct.
 
-**Primary fine-tuning targets use recorded operation order**, matching the untuned baseline task. They are independently audited historical labels, not human-reviewed ATC commands. `teacher_action` optimizes the synthetic scheduler using public input only and supplies a separate secondary oracle. Never substitute this oracle's labels for historical targets while claiming improvement on the same primary task.
+The private primary target is recorded operation order. These are independently audited historical labels, not human-reviewed ATC commands. Fine-tuning is deferred. `teacher_action` optimizes the synthetic scheduler using public input only and supplies a separate secondary oracle. Never substitute this oracle's labels for historical targets while claiming improvement on the same primary task.

@@ -35,7 +35,7 @@ Authenticated Crusoe inference discovery on October 17 confirmed these five sele
 | `openai/gpt-oss-120b` | $0.05 | $0.25 | Different reasoning model family |
 | `Qwen/Qwen3.8-27B` | $0.25 | $2.00 | Different model family with a similar nominal size |
 
-This table states planned scope, not completed results. The comparison runner reports exactly which models it called.
+All five runs completed with 141 attempted cases each. See [results](reports/2026-10-17/comparison.md) and [testing instructions](TESTING.md). The results separate failed API calls from valid decisions and disclose all denominators.
 
 ## Reasoning controls need model-specific handling
 
