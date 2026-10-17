@@ -65,19 +65,20 @@ html,body{margin:0;height:100%;background:#0b0f13;color:var(--ink);font-family:v
 #score .v.dim{color:var(--mute)}
 #score .k{font:600 9.5px/1.3 var(--sans);color:var(--mute);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
 /* camera bar */
-#cambar{left:50%;transform:translateX(-50%);bottom:36px;width:max-content;display:flex;gap:4px;padding:5px;align-items:center;white-space:nowrap}
+#cambar{left:14px;bottom:36px;width:max-content;display:flex;gap:4px;padding:5px;align-items:center;white-space:nowrap}
 #cambar .sep{width:1px;height:18px;background:var(--line);margin:0 3px}
 #cambar #bZout,#cambar #bZin{width:28px;font-size:14px;padding:4px 0}
 #camlabel{font:600 10px/1 var(--mono);color:var(--mute);letter-spacing:.06em;padding:0 6px}
 button{font:600 11px/1 var(--sans);color:var(--ink);background:rgba(255,255,255,.06);border:0;border-radius:5px;padding:7px 9px;cursor:pointer}
 button:hover{background:rgba(255,255,255,.14)}
 button.on{background:var(--accent);color:#1b1408}
-#resume{display:none;background:var(--accent);color:#1b1408}
+.dx{display:none}
+body.details .dx{display:inline-block}
 .lb{position:absolute;left:0;right:0;height:9vh;background:#000;z-index:4;transform:scaleY(0);transition:transform .6s ease;pointer-events:none}
 .lb.top{top:0;transform-origin:top}.lb.bot{bottom:0;transform-origin:bottom}
 body.letterbox .lb{transform:scaleY(1)}
 /* keep the shared module's one-time sound gate clear of the camera bar */
-#skyradio-gate{top:108px!important;bottom:auto!important;font-size:12px!important;padding:8px 14px!important}
+#skyradio-gate{display:none!important} /* the Sound button enables audio */
 /* details layer (key D): strips + radar */
 .details{display:none}
 body.details .details{display:block}
@@ -92,7 +93,7 @@ body.details .details{display:block}
 .strip .rt{padding:3px 6px;font-weight:500;font-size:10.5px;border-right:1px dashed #9b9682;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .strip .st{padding:3px 4px;font-size:9.5px;text-align:center}
 .sect{font:600 9.5px/1 var(--sans);letter-spacing:.14em;color:var(--mute);padding:5px 2px 1px;text-transform:uppercase}
-#radar{left:14px;bottom:36px;width:300px;height:250px}
+#radar{left:14px;bottom:84px;width:300px;height:250px}
 #radar canvas{display:block}
 #err{display:none;position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);z-index:30;padding:14px 18px;max-width:420px;font:13px/1.4 var(--sans)}
 #loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;font:600 11px/1 var(--mono);color:var(--mute);letter-spacing:.14em}
@@ -126,7 +127,7 @@ body.details .details{display:block}
 </head>
 <body>
 <div id="cesium"></div>
-<div id="loading">LOADING SFO MAP PACK…</div>
+<div id="loading">LOADING SFO…</div>
 
 <div id="banner" class="panel"><div class="meta"><span id="bfreq">SFO TWR 120.500</span><span id="clk">T+00:00</span><span id="stormflag">C–E CLOSED</span><span class="sp"></span><span id="simtag">UITA · SIMULATION</span><span id="live">● LIVE · UITA server</span></div><div id="bmsg">Standing by.</div></div>
 
@@ -145,12 +146,11 @@ body.details .details{display:block}
 </div>
 
 <div id="cambar" class="panel">
-  <button id="bPlay" title="Space">Pause</button><button id="bRestart">Restart</button>
-  <span class="sep"></span>
-  <button data-preset="1" title="Key 1">1 Overview</button><button data-preset="2" title="Key 2">2 Tower</button><button data-preset="3" title="Key 3: chase the selected flight (click one to select)">3 Chase</button><button data-preset="4" title="Key 4">4 Storm</button><button data-preset="5" title="Key 5">5 OAK pad</button>
+  <button data-preset="1" title="Key 1">Overview</button><button data-preset="2" title="Key 2">Tower</button><button data-preset="3" title="Key 3: chase the selected flight (click one to select)">Chase</button><button data-preset="4" title="Key 4">Storm</button>
   <span class="sep"></span><button id="bZout" title="Zoom out (−)" aria-label="Zoom out">−</button><button id="bZin" title="Zoom in (+)" aria-label="Zoom in">+</button>
-  <span class="sep"></span><button id="bCine" class="on" title="Key C">Cinematic</button><button id="resume">Resume cinematic</button><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bDet" title="Key D: strips, radar, labels">Details</button><button id="bBox" title="Key L">Letterbox</button><button id="bPhoto" title="Key G: stream Google Photorealistic 3D Tiles (needs network)">Photoreal (online)</button>
-  <span id="camlabel">CINEMATIC</span>
+  <span class="sep"></span><button id="bCine" class="on" title="Key C">Cinematic</button><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bDet" title="Key D: strips, radar, labels, more controls">Details</button>
+  <span class="sep dx"></span><button class="dx" id="bPlay" title="Space">Pause</button><button class="dx" id="bRestart">Restart</button><button class="dx" data-preset="5" title="Key 5">OAK pad</button><button class="dx" id="bBox" title="Key L">Letterbox</button><button class="dx" id="bPhoto" title="Key G: Google Photorealistic 3D Tiles (needs network)">Photoreal</button>
+  <span id="camlabel"></span>
 </div>
 <div id="fcTag"></div>
 <div id="fcard" role="dialog" aria-label="Flight card">
@@ -192,64 +192,92 @@ scene.globe.showGroundAtmosphere = false;
 scene.globe.depthTestAgainstTerrain = false;
 scene.fog.enabled = false;
 scene.postProcessStages.fxaa.enabled = false;
-viewer.resolutionScale = Math.min(devicePixelRatio, 1.25) / devicePixelRatio;
+viewer.useBrowserRecommendedResolution = false; // crisp labels on retina
+viewer.resolutionScale = Math.min(devicePixelRatio, 2) / devicePixelRatio;
 viewer.targetFrameRate = 30;
 // Open over SFO so the first tile requests are the ones the establishing shot shows.
 let extPaused = false, wasAnim = true;
-const SFO_C = C.Cartesian3.fromDegrees(-122.375, 37.64, 0);
-{ const p = orbitPose(SFO_C, 300, -34, 16000); scene.camera.setView({ destination: p.eye, orientation: { heading: p.hdg * D2R, pitch: p.pitch * D2R, roll: 0 } }); }
+const SFO_C = C.Cartesian3.fromDegrees(-122.378, 37.617, 0);
+let picked = null; // selected aircraft (flight card)
+const LBL_FONT = '600 12px Inter,-apple-system,"SF Pro Text","Helvetica Neue",sans-serif';
+// clean callsign label: filled text on a dark box, shown near the camera (15 km) or when selected
+function callsignLabel(text, extra = {}) {
+  return Object.assign({ text, font: LBL_FONT, fillColor: C.Color.WHITE, style: C.LabelStyle.FILL, showBackground: true,
+    backgroundColor: C.Color.fromCssColorString('rgba(12,16,20,0.78)'), backgroundPadding: new C.Cartesian2(6, 3),
+    pixelOffset: new C.Cartesian2(0, -28), disableDepthTestDistance: Number.POSITIVE_INFINITY }, extra);
+}
+function nearOrPicked(ent, posFn) {
+  return new C.CallbackProperty(time => { if (picked && picked.entity === ent()) return true; const p = posFn(time); return !!p && C.Cartesian3.distance(p, viewer.camera.positionWC) < 15000; }, false);
+}
+{ const p = orbitPose(SFO_C, 300, -30, 4200); scene.camera.setView({ destination: p.eye, orientation: { heading: p.hdg * D2R, pitch: p.pitch * D2R, roll: 0 } }); }
 scene.backgroundColor = C.Color.fromCssColorString('#9fb8cc');
 viewer.creditDisplay.addStaticCredit(new C.Credit('Aircraft models: “Airplane” by Poly by Google (CC BY 3.0) · “Boeing 747” by Miha Lunar (CC BY 3.0) · ADS-B: The OpenSky Network · Imagery: USGS NAIP · Buildings and map data © OpenStreetMap contributors · <b>Simulation</b>', true));
 
-// ---------- base map: offline SFO pack (default) · Google photoreal opt-in (G) ----------
+// ---------- base map: Google photoreal when online, offline SFO pack as fallback ----------
 const PACK = 'sfo-pack/';
 const hideLoading = () => { document.getElementById('loading').style.display = 'none'; };
-let buildings = null, tileset = null, photoreal = false;
+let buildings = null, tileset = null, photoreal = false, tilesSeen = false;
+scene.globe.baseColor = C.Color.fromCssColorString('#16303f'); // plain water beyond the SFO imagery
 try {
   const pb = await (await fetch(PACK + 'bounds.json')).json();
-  // bay overview under the 1.2 m SFO detail (Mercator rows vs linear latitude: <0.3 m at SFO, ~25 m mid-bay)
-  for (const k of ['bay', 'sfo']) {
-    const im = pb.images[k], b = im.lonlat_bounds;
-    viewer.imageryLayers.add(C.ImageryLayer.fromProviderAsync(C.SingleTileImageryProvider.fromUrl(PACK + im.file, { rectangle: C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north) }), { rectangle: C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north) })); // layer rectangle clips edge smear
-  }
-  const o = pb.enu.origin_lonlat; // GLB is ENU metres from the SFO tower, glTF y-up / z = -north
-  C.Model.fromGltfAsync({ url: PACK + 'sfo-buildings.glb', modelMatrix: C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(o[0], o[1], 0)), upAxis: C.Axis.Y, forwardAxis: C.Axis.X })
-    .then(m => { buildings = m; m.show = !photoreal; scene.primitives.add(m); m.readyEvent.addEventListener(hideLoading); })
+  // SFO detail only (1.2 m NAIP), clipped to its own rectangle; no Bay overview (no-data edges smear)
+  const b = pb.images.sfo.lonlat_bounds, rect = C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north);
+  viewer.imageryLayers.add(C.ImageryLayer.fromProviderAsync(C.SingleTileImageryProvider.fromUrl(PACK + pb.images.sfo.file, { rectangle: rect }), { rectangle: rect }));
+  // OSM buildings, clipped to the airport box: the downtown SF set floats off the tangent plane
+  const o = pb.enu.origin_lonlat;
+  const clip = new C.ClippingPolygonCollection({ inverse: true, polygons: [new C.ClippingPolygon({ positions: C.Cartesian3.fromDegreesArray([b.west, b.south, b.east, b.south, b.east, b.north, b.west, b.north]) })] });
+  C.Model.fromGltfAsync({ url: PACK + 'sfo-buildings.glb', modelMatrix: C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(o[0], o[1], 0)), upAxis: C.Axis.Y, forwardAxis: C.Axis.X, clippingPolygons: clip })
+    .then(m => { buildings = m; scene.primitives.add(m); applyBase(); })
     .catch(e => console.warn('buildings GLB failed', e));
 } catch (e) { console.warn('SFO pack failed', e); }
-setTimeout(hideLoading, 3000);
+setTimeout(hideLoading, 2500);
 
+// Show photoreal only once its tiles actually render; until then (or offline) the pack stays visible.
+function applyBase() {
+  const pr = photoreal && tilesSeen;
+  if (tileset) tileset.show = photoreal;
+  scene.globe.show = !pr;
+  if (buildings) buildings.show = !pr;
+  const g = pr ? 4 + GEOID : 0;
+  if (g !== GROUND || VOFF !== (pr ? GEOID : 0)) {
+    GROUND = g; VOFF = pr ? GEOID : 0;
+    try { for (const a of airliners) a.pos = buildAirliner(a); } catch (e) { /* not built yet; they read GROUND when built */ }
+  }
+  const bp = document.getElementById('bPhoto'); if (bp) bp.classList.toggle('on', photoreal);
+}
 async function setPhotoreal(on) {
-  const err = document.getElementById('err');
+  photoreal = on;
   if (on && !tileset) {
     try {
       const key = (await (await fetch('/api/maps-key')).json()).key;
+      if (!key) throw new Error('no key');
       C.GoogleMaps.defaultApiKey = key;
-      const opts = { maximumScreenSpaceError: 24, skipLevelOfDetail: true, preloadFlightDestinations: true, foveatedScreenSpaceError: true, dynamicScreenSpaceError: true, cacheBytes: 256 * 1024 * 1024, showCreditsOnScreen: true };
+      const opts = { maximumScreenSpaceError: 16, skipLevelOfDetail: true, preloadFlightDestinations: true, foveatedScreenSpaceError: true, dynamicScreenSpaceError: true, cacheBytes: 1024 * 1024 * 1024, maximumCacheOverflowBytes: 512 * 1024 * 1024, showCreditsOnScreen: true }; // in-memory only; no disk/server tile cache (Google terms)
       try { tileset = await C.createGooglePhotorealistic3DTileset({ onlyUsingWithGoogleGeocoder: true }, opts); }
       catch (e) { tileset = await C.Cesium3DTileset.fromUrl(`https://tile.googleapis.com/v1/3dtiles/root.json?key=${key}`, opts); }
+      tileset.show = photoreal;
       scene.primitives.add(tileset);
+      tileset.tileVisible.addEventListener(() => {
+        if (tilesSeen) return;
+        tilesSeen = true; applyBase();
+        setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
+          try {
+            const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
+            const [r] = await scene.sampleHeightMostDetailed([c]);
+            if (photoreal && r && Number.isFinite(r.height) && Math.abs(r.height - GROUND) < 25) { GROUND = r.height; for (const a of airliners) a.pos = buildAirliner(a); }
+          } catch (e) { console.warn('height sample failed', e); }
+        }, 3000);
+      });
     } catch (e) {
-      err.style.display = 'block'; err.textContent = 'Photoreal tiles unavailable (no key or no network). Staying on the offline SFO pack.';
-      setTimeout(() => { err.style.display = 'none'; }, 4000);
-      return;
+      console.warn('photoreal unavailable, using offline SFO pack', e);
+      photoreal = false;
     }
   }
-  photoreal = on;
-  if (tileset) tileset.show = on;
-  scene.globe.show = !on;
-  if (buildings) buildings.show = !on;
-  GROUND = on ? 4 + GEOID : 0; VOFF = on ? GEOID : 0;
-  for (const a of airliners) a.pos = buildAirliner(a);
-  $('bPhoto').classList.toggle('on', on);
-  if (on) setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
-    try {
-      const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
-      const [r] = await scene.sampleHeightMostDetailed([c]);
-      if (photoreal && r && Number.isFinite(r.height) && Math.abs(r.height - GROUND) < 25) { GROUND = r.height; for (const a of airliners) a.pos = buildAirliner(a); }
-    } catch (e) { console.warn('height sample failed', e); }
-  }, 6000);
+  applyBase();
 }
+// default: try photoreal; fall back to the pack if nothing has rendered within 6 s
+setPhotoreal(true);
+setTimeout(() => { if (photoreal && !tilesSeen) { console.warn('photoreal: no tiles in 6 s, offline SFO pack'); setPhotoreal(false); } }, 6000);
 
 // ---------- clock ----------
 const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');
@@ -340,9 +368,7 @@ for (const a of airliners) {
     position: new C.CallbackProperty(time => a.pos.getValue(time), false),
     orientation: ori,
     model: { uri: a.model, scale: a.scale, minimumPixelSize: 28, maximumScale: 4000 },
-    label: { text: new C.CallbackProperty(() => details ? a.label : a.id, false), font: '600 12px ui-monospace,Menlo,monospace', fillColor: C.Color.WHITE, outlineColor: C.Color.BLACK, outlineWidth: 3,
-      style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -30), showBackground: true, backgroundColor: C.Color.fromCssColorString('rgba(10,14,18,.65)'),
-      disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 25000) },
+    label: callsignLabel(new C.CallbackProperty(() => details ? a.label : a.id, false), { show: nearOrPicked(() => a.entity, time => a.pos.getValue(time)) }),
   });
 }
 // The 747 glTF models its nose along -Z, the Poly airplane along +Z.
@@ -388,12 +414,18 @@ for (const [k, v] of Object.entries(NODES)) {
 }
 // storm cell over C–E
 const mid = [(NODES.C[0] + NODES.E[0]) / 2, (NODES.C[1] + NODES.E[1]) / 2];
-viewer.entities.add({
-  position: C.Cartesian3.fromDegrees(mid[0], mid[1], cAlt + 200),
-  ellipsoid: { radii: new C.Cartesian3(3200, 2600, 1100), material: new C.ColorMaterialProperty(new C.CallbackProperty(() => C.Color.fromCssColorString('#b8c3cf').withAlpha(0.5 * stormLevel()), false)), outline: false,
-    show: new C.CallbackProperty(() => stormLevel() > 0, false) },
-  label: { text: 'CB CELL · UNFORECAST', font: '700 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#ff8a80'), outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE,
-    show: new C.CallbackProperty(() => stormLevel() > 0.4, false), disableDepthTestDistance: Number.POSITIVE_INFINITY, pixelOffset: new C.Cartesian2(0, -24) },
+const stormShow = new C.CallbackProperty(() => stormLevel() > 0, false);
+viewer.entities.add({ // ground footprint
+  position: C.Cartesian3.fromDegrees(mid[0], mid[1], 2),
+  ellipse: { semiMajorAxis: 3200, semiMinorAxis: 2500, rotation: 0.35, height: 2, show: stormShow,
+    material: new C.ColorMaterialProperty(new C.CallbackProperty(() => C.Color.fromCssColorString('#ff4a3d').withAlpha(0.16 * stormLevel()), false)),
+    outline: true, outlineColor: new C.CallbackProperty(() => C.Color.fromCssColorString('#ff7a5c').withAlpha(0.9 * stormLevel()), false), outlineWidth: 2 },
+});
+viewer.entities.add({ // low translucent column over the closed segment
+  position: C.Cartesian3.fromDegrees(mid[0], mid[1], cAlt / 2 + 150),
+  cylinder: { length: cAlt + 300, topRadius: 2500, bottomRadius: 2500, show: stormShow, slices: 64,
+    material: new C.ColorMaterialProperty(new C.CallbackProperty(() => C.Color.fromCssColorString('#ffb547').withAlpha(0.1 * stormLevel()), false)), outline: false },
+  label: callsignLabel('C–E CLOSED · WX', { show: new C.CallbackProperty(() => stormLevel() > 0.4, false), fillColor: C.Color.fromCssColorString('#ffb3a6'), pixelOffset: new C.Cartesian2(0, -20) }),
 });
 
 // 28 eVTOL trips; normal route and storm reroute (agent plan)
@@ -436,9 +468,9 @@ for (const f of flights) {
   f.entity = viewer.entities.add({
     position: new C.CallbackProperty(() => { const p = routePoint(f, simMin()); return C.Cartesian3.fromDegrees(p[0], p[1], cAlt + 25); }, false),
     point: { show: f.visible, pixelSize: 10, color: C.Color.fromCssColorString(f.rerouted ? '#ffb547' : '#4fdc8a'), outlineColor: C.Color.BLACK, outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-    label: { show: f.visible, text: new C.CallbackProperty(() => details ? `${f.callsign}  ${f.o}→${f.d}` : f.callsign, false), font: '600 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString(f.rerouted ? '#ffd38a' : '#b9f5d2'),
-      outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(10, -10), horizontalOrigin: C.HorizontalOrigin.LEFT,
-      disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 60000) },
+    label: callsignLabel(new C.CallbackProperty(() => details ? `${f.callsign}  ${f.o}→${f.d}` : f.callsign, false), {
+      show: (() => { const near = nearOrPicked(() => f.entity, () => f.entity.position.getValue(clock.currentTime)); return new C.CallbackProperty(time => f.visible.getValue(time) && near.getValue(time), false); })(),
+      fillColor: C.Color.fromCssColorString(f.rerouted ? '#ffd38a' : '#c9f7dc'), pixelOffset: new C.Cartesian2(10, -10), horizontalOrigin: C.HorizontalOrigin.LEFT }),
   });
 }
 
@@ -464,7 +496,7 @@ for (const b of bg.slice(0, 40)) {
   viewer.entities.add({
     position: new C.CallbackProperty(() => { const p = bgPos(b, tNow()); return C.Cartesian3.fromDegrees(p[0], p[1], p[2] + VOFF); }, false),
     point: { pixelSize: 5, color: C.Color.fromCssColorString('#d7dde2'), outlineColor: C.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-    label: { show: new C.CallbackProperty(() => details, false), text: b.cs, font: '10px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#c8d0d6'), outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE,
+    label: { show: new C.CallbackProperty(() => details, false), text: b.cs, font: '500 11px Inter,-apple-system,sans-serif', fillColor: C.Color.fromCssColorString('#d7dde2'), style: C.LabelStyle.FILL, showBackground: true, backgroundColor: C.Color.fromCssColorString('rgba(12,16,20,0.6)'),
       pixelOffset: new C.Cartesian2(8, 0), horizontalOrigin: C.HorizontalOrigin.LEFT, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 30000), disableDepthTestDistance: Number.POSITIVE_INFINITY },
   });
 }
@@ -644,8 +676,8 @@ const flightBy = cs => flights.find(f => f.callsign === cs);
 const at3 = (lonlat, h) => C.Cartesian3.fromDegrees(lonlat[0], lonlat[1], h);
 const STORM_C = at3(mid, cAlt), OAK_PAD = at3(NODES.OAK, GROUND + 10), BAY_C = at3([-122.34, 37.735], 0);
 const PRESETS = {
-  1: { name: 'OVERVIEW · BAY', pose: () => orbitPose(BAY_C, 345, -40, 36000) },
-  2: { name: 'TOWER CAB · 74 M AGL', pose: () => ({ eye: TOWER, hdg: 62, pitch: -5 }) },
+  1: { name: 'OVERVIEW · SFO', pose: () => orbitPose(SFO_C, 330, -32, 5500) },
+  2: { name: 'TOWER CAB · 74 M AGL', pose: () => ({ eye: TOWER, hdg: 58, pitch: -8 }) },
   3: { name: 'CHASE', chase: true },
   4: { name: 'STORM · C–E', pose: () => orbitPose(STORM_C, 25, -24, 9000) },
   5: { name: 'VERTIPORT · OAK', pose: () => orbitPose(OAK_PAD, 300, -28, 1700) },
@@ -661,14 +693,14 @@ const evtPos = f => new C.CallbackProperty(time => { const m = C.JulianDate.seco
 const SKF108 = flightBy('SKF108'), skf108Pos = evtPos(SKF108);
 // Cinematic shot list, synced to the scenario beats (wall seconds within the 90 s loop)
 const SHOTS = [
-  { t0: 0, name: 'ESTABLISHING · SFO → BAY', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 2.4, -34 + t * 0.2, 16000 + t * 1100) },
+  { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 2.4, -30 + t * 0.3, 4200 + t * 250) },
   { t0: 9.4, name: 'C–E CLOSES · STORM', fov: 50, pose: (t) => { const k = ease(Math.min(1, (t - 9.4) / 5)); return orbitPose(STORM_C, 10 + (t - 9.4) * 3, -30 + 8 * k, 15000 - 8500 * k); } },
   { t0: 14.5, cut: true, name: 'READBACK · SKF108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
   { t0: 24.5, name: 'REROUTE · SKF108 VIA W–E', fov: 55, pose: (t, dt) => followPose(skf108Pos, t, 900, -18, 25, dt) },
   { t0: 40, name: 'TOWER CAB · 28L DEPARTURE', fov: 50, tower: airliners[1] },
   { t0: 58, name: 'CHASE · SWA1255 CLIMB-OUT', fov: 58, pose: (t, dt) => followPose(airliners[1].pos, t, 160, -9, 20, dt) },
   { t0: 70, name: 'CHASE · ASA331 FINAL 28R', fov: 58, pose: (t, dt) => followPose(airliners[2].pos, t, 150, -8, -25, dt) },
-  { t0: 81, name: 'RECOVERY · 28/28 ON TIME', fov: 60, pose: (t) => { const k = ease(Math.min(1, (t - 81) / 7)); return orbitPose(at3([-122.36, 37.69], 0), 330 + (t - 81) * 2, -14 - 24 * k, 2500 + 34000 * k); } },
+  { t0: 81, name: 'RECOVERY · 28/28 ON TIME', fov: 60, pose: (t) => { const k = ease(Math.min(1, (t - 81) / 7)); return orbitPose(at3([-122.36, 37.69], 0), 330 + (t - 81) * 2, -14 - 24 * k, 2500 + 9000 * k); } },
 ];
 function towerPose(a, dt) {
   const p = a.pos.getValue(clock.currentTime); if (!p) return { eye: TOWER, hdg: 62, pitch: -5 };
@@ -695,7 +727,7 @@ function lerpFrame(a, b, k) {
 function setLabel(s) { $('camlabel').textContent = s; }
 function cine(t, dt) {
   let s = SHOTS[0]; for (const x of SHOTS) if (t >= x.t0) s = x;
-  if (s !== shot) { blend = shot && !s.cut ? { from: snapshot(), t0: t } : null; shot = s; followHdg = null; towerTgt = null; setLabel('CINEMATIC · ' + s.name); }
+  if (s !== shot) { blend = shot && !s.cut ? { from: snapshot(), t0: t } : null; shot = s; followHdg = null; towerTgt = null; setLabel(s.name); }
   const pose = s.tower ? towerPose(s.tower, dt) : s.pose(t, dt);
   if (!pose || !pose.eye) return;
   let f = frame(pose), fov = s.fov + 1.2 * Math.sin(t * 0.45); // subtle FOV breathing
@@ -729,14 +761,14 @@ function preset(n) {
 function pauseCine() {
   if (camMode !== 'cine') return;
   cineEndedAt = performance.now();
-  camMode = 'user'; blend = null; cam.frustum.fov = 60 * D2R; setLabel('FREE CAMERA');
-  $('bCine').classList.remove('on'); $('resume').style.display = 'inline-block';
+  camMode = 'user'; blend = null; cam.frustum.fov = 60 * D2R; setLabel('');
+  $('bCine').classList.remove('on');
 }
 function resumeCine() {
   if (camMode === 'cine') return;
   viewer.trackedEntity = undefined; cam.cancelFlight(); cam.lookAtTransform(C.Matrix4.IDENTITY);
   camMode = 'cine'; shot = null; blend = { from: snapshot(), t0: tNow() };
-  $('bCine').classList.add('on'); $('resume').style.display = 'none';
+  $('bCine').classList.add('on');
   document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('on'));
 }
 function zoom(dir) {
@@ -752,7 +784,6 @@ const canvas = scene.canvas;
 document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => preset(+b.dataset.preset));
 $('bZin').onclick = () => zoom(1); $('bZout').onclick = () => zoom(-1);
 $('bCine').onclick = () => camMode === 'cine' ? pauseCine() : resumeCine();
-$('resume').onclick = resumeCine;
 $('bDet').onclick = () => { details = !details; document.body.classList.toggle('details', details); $('bDet').classList.toggle('on', details); lastStripKey = ''; };
 $('bPhoto').onclick = () => setPhotoreal(!photoreal);
 $('bBox').onclick = () => { letterbox = !letterbox; document.body.classList.toggle('letterbox', letterbox); $('bBox').classList.toggle('on', letterbox); };
@@ -845,8 +876,7 @@ function liveEntity(a) {
     }, false),
     show: true,
     model: { uri, scale: heavy ? 46 : 0.4, minimumPixelSize: 28, maximumScale: 4000, color: a.emergency ? C.Color.RED : undefined, colorBlendAmount: a.emergency ? 0.5 : 0 },
-    label: { text: a.callsign, font: '600 12px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#ffd38a'), outlineColor: C.Color.BLACK, outlineWidth: 3,
-      style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -30), disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 40000) },
+    label: callsignLabel(a.callsign, { fillColor: C.Color.fromCssColorString('#ffd38a'), show: nearOrPicked(() => rec.entity, () => liveCart(livePose(rec.a))) }),
   });
   liveEnts.set(a.id, rec);
   PICK.set(rec.entity, { kind: 'live', ref: rec });
@@ -915,7 +945,7 @@ UitaLive.start({ intervalMs: 1000 });
 const PICK = new Map(); // entity -> {kind, ref}
 for (const a of airliners) PICK.set(a.entity, { kind: 'air', ref: a });
 for (const f of flights) PICK.set(f.entity, { kind: 'evtol', ref: f });
-let picked = null, cineEndedAt = -1e9;
+let cineEndedAt = -1e9;
 const DIG = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 const SPOKEN = { UAL852: 'United eight five two', SWA1255: 'Southwest twelve fifty-five', ASA331: 'Alaska three thirty-one' };
 const spokenOf = cs => SPOKEN[cs] || (cs.startsWith('SKF') ? 'SkyFlow ' + [...cs.slice(3)].map(d => DIG[d]).join(' ') : cs);
