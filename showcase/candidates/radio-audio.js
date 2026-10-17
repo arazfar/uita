@@ -45,11 +45,38 @@
     hp.connect(lp).connect(sh).connect(ac.destination);
     return hp;
   }
-  function squelch(d = 0.08) {
-    const n = Math.floor(ac.sampleRate * d), b = ac.createBuffer(1, n, ac.sampleRate), x = b.getChannelData(0);
-    for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n) * 0.3;
-    const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start();
-    return new Promise((r) => setTimeout(r, d * 1000 + 30));
+  // Radio key click + short band-limited static that decays, instead of raw
+  // white noise (which read as a hi-hat). `open` = key-down, else key-up tail.
+  function squelch(d = 0.08, open = true) {
+    const now = ac.currentTime, sr = ac.sampleRate;
+    // Click: a few ms of a damped 1.1 kHz sine, like a PTT relay.
+    const click = ac.createOscillator(), cg = ac.createGain();
+    click.frequency.value = open ? 1100 : 900;
+    cg.gain.setValueAtTime(0.0001, now);
+    cg.gain.exponentialRampToValueAtTime(0.12, now + 0.002);
+    cg.gain.exponentialRampToValueAtTime(0.0001, now + 0.018);
+    click.connect(cg).connect(ac.destination);
+    click.start(now);
+    click.stop(now + 0.03);
+    // Static: brown-ish noise through a 700–2400 Hz band, soft exponential decay.
+    const len = Math.floor(sr * (open ? 0.12 : 0.22)),
+      b = ac.createBuffer(1, len, sr),
+      x = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) {
+      last = (last + 0.06 * (Math.random() * 2 - 1)) / 1.06;
+      x[i] = last * 3.2;
+    }
+    const n = ac.createBufferSource(), hp = ac.createBiquadFilter(), lp = ac.createBiquadFilter(), ng = ac.createGain();
+    hp.type = "highpass"; hp.frequency.value = 700;
+    lp.type = "lowpass"; lp.frequency.value = 2400;
+    n.buffer = b;
+    ng.gain.setValueAtTime(0.0001, now + 0.004);
+    ng.gain.exponentialRampToValueAtTime(open ? 0.05 : 0.07, now + 0.012);
+    ng.gain.exponentialRampToValueAtTime(0.0001, now + len / sr);
+    n.connect(hp).connect(lp).connect(ng).connect(ac.destination);
+    n.start(now + 0.004);
+    return new Promise((r) => setTimeout(r, (open ? 60 : 40)));
   }
   async function play(text, speaker, key) {
     const data = await clip(text, speaker, key);
@@ -65,7 +92,7 @@
       setTimeout(r, buf.duration * 1000 + 1200);
       src.start();
     });
-    await squelch(0.05);
+    await squelch(0.05, false);
     onTx({ text, speaker, key, live: false });
   }
   const SkyRadio = {
