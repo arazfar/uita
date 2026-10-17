@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Ops Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --desk:#101418; --panel:#171c21; --panel2:#1d2329; --line:#29313a; --line2:#353e48;
+  --ink:#dfe4e8; --mut:#8b96a1; --dim:#5d6873;
+  --amber:#f0b43c; --red:#e5534b; --green:#46b981; --cyan:#58c4dc; --blue:#6aa2ff;
+  --paper:#ece3c9; --paper2:#dfeaf2; --pink:#f2d9d6; --strip-ink:#1c232d;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif; --cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--desk);color:var(--ink);font-family:var(--sans);font-size:13px;overflow:hidden}
+.app{display:grid;grid-template-rows:62px 1fr;height:100vh;min-width:1240px}
+header{display:flex;align-items:center;gap:14px;white-space:nowrap;padding:0 18px;border-bottom:1px solid var(--line);background:#0c1013}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-family:var(--cond);font-size:19px;letter-spacing:.02em;font-weight:700}
+.brand span{font-family:var(--mono);font-size:11px;color:var(--mut)}
+.simtag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--amber);border:1px solid #6b5420;padding:2px 6px;border-radius:3px}
+.clock{font-family:var(--mono);font-size:22px;font-weight:500;letter-spacing:.02em;min-width:108px}
+.phase{font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.08em;padding:5px 10px;border-radius:3px;border:1px solid var(--line2);color:var(--green);white-space:nowrap}
+.phase.storm{color:#fff;background:#7d2420;border-color:#b23a33;animation:pulse 1.4s infinite}
+.phase.recovery{color:var(--amber);border-color:#6b5420}
+@keyframes pulse{50%{background:#5b1a17}}
+.score{display:flex;gap:0;margin-left:auto;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.kpi{padding:6px 12px;border-right:1px solid var(--line);min-width:78px}
+.kpi:last-child{border-right:0}
+.kpi small{display:block;font-size:10px;color:var(--mut);letter-spacing:.06em;text-transform:uppercase;font-family:var(--cond);font-weight:600}
+.kpi div{font-family:var(--mono);font-size:17px;font-weight:500;margin-top:1px}
+.kpi div i{font-style:normal;color:var(--dim);font-size:12px}
+.kpi.vs div{display:flex;gap:10px;align-items:baseline}
+.kpi .bad{color:var(--red)} .kpi .good{color:var(--green)}
+.ctrls{display:flex;gap:6px}
+.ctrls button{background:var(--panel2);border:1px solid var(--line2);color:var(--ink);font-family:var(--mono);font-size:12px;height:30px;padding:0 10px;border-radius:4px;cursor:pointer}
+.ctrls button:hover{border-color:var(--mut)}
+main{display:grid;grid-template-columns:376px minmax(0,1fr) 356px;min-height:0}
+@media (max-width:1560px){.brand span{display:none}.kpi{min-width:0;padding:6px 10px}header{gap:12px}}
+@media (max-width:1380px){main{grid-template-columns:344px minmax(0,1fr) 316px}#radio{grid-template-columns:minmax(0,1fr) 290px}.brand span{display:none}.kpi{min-width:0;padding:6px 9px}.strip{grid-template-columns:6px 84px 1fr 62px 42px}.strip .stamp{right:108px}.legend span:last-child{display:none}}
+section{min-height:0;display:flex;flex-direction:column}
+.h{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.h em{font-style:normal;font-family:var(--mono);letter-spacing:0;text-transform:none;color:var(--dim);font-size:11px;font-weight:400}
+
+/* strip bay */
+#bay{border-right:1px solid var(--line);background:linear-gradient(90deg,#12171b,#151a1f)}
+.racks{flex:1;display:flex;flex-direction:column;gap:8px;padding:0 10px 10px;min-height:0}
+.rack{background:#0d1114;border:1px solid #232a31;border-radius:4px;display:flex;flex-direction:column;box-shadow:inset 0 1px 0 #1f262d}
+.rack .rh{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;font-family:var(--cond);font-weight:600;font-size:11px;letter-spacing:.12em;color:var(--mut);border-bottom:1px solid #1d242a}
+.rack .rh b{font-family:var(--mono);font-weight:500;color:var(--ink);font-size:11px}
+.slots{padding:5px 6px 6px;display:flex;flex-direction:column;gap:4px;position:relative}
+.slots::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,transparent 0 39px,#161c21 39px 41px);pointer-events:none}
+.more{font-family:var(--mono);font-size:10px;color:var(--dim);padding:0 4px;height:12px}
+.r-pending .slots{height:150px} .r-cleared .slots{height:146px} .r-air .slots{flex:1;overflow:hidden} .r-air{flex:1;min-height:0} .r-landed .slots{height:146px}
+.strip{position:relative;height:40px;flex:none;display:grid;grid-template-columns:6px 92px 1fr 70px 46px;align-items:stretch;background:var(--paper);color:var(--strip-ink);border-radius:2px;box-shadow:0 1px 0 #0006,0 2px 6px #0005;font-family:var(--mono);z-index:1;overflow:hidden}
+.strip.arr{background:var(--paper2)}
+.strip.landed{opacity:.55;filter:saturate(.4)}
+.strip .tab{background:#3c6fb8}
+.strip.arr .tab{background:#b07b2c}
+.strip .c{border-right:1px solid #0002;padding:3px 7px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.strip .cs{font-family:var(--cond);font-size:16px;font-weight:700;letter-spacing:.02em;line-height:1}
+.strip .sub{font-size:9.5px;color:#3d4756;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip .rt{font-size:12px;font-weight:600;white-space:nowrap}
+.strip .tm{font-size:12px;font-weight:500}
+.strip .stamp{position:absolute;right:124px;top:4px;font-family:var(--cond);font-weight:700;font-size:10px;letter-spacing:.08em;color:#b3261e;border:1.5px solid #b3261e;padding:0 4px;border-radius:2px;transform:rotate(-7deg);opacity:.85;background:#ece3c9cc}
+.strip .prog{position:absolute;left:6px;right:0;bottom:0;height:3px;background:#0001}
+.strip .prog i{display:block;height:100%;background:#3c6fb8}
+.strip .st{align-items:center;font-size:9px;font-weight:600;letter-spacing:.06em;text-align:center}
+.strip .st .dot{width:9px;height:9px;border-radius:50%;margin:0 auto 3px;border:1.5px solid #1c232d}
+.strip.flash{animation:sflash .9s}
+@keyframes sflash{0%{box-shadow:0 0 0 2px var(--amber),0 2px 6px #0005}100%{box-shadow:0 1px 0 #0006,0 2px 6px #0005}}
+
+/* center */
+#center{display:grid;grid-template-rows:1fr 262px;min-width:0}
+#ledgerWrap{position:relative;min-height:0;display:flex;flex-direction:column;border-bottom:1px solid var(--line)}
+#ledger{flex:1;width:100%;min-height:0;display:block}
+.legend{display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--mut);text-transform:none;letter-spacing:0;font-weight:400}
+.legend span{display:flex;align-items:center;gap:5px}
+.sw{width:16px;height:8px;border-radius:1px;display:inline-block}
+#radio{display:grid;grid-template-columns:1fr 330px;min-height:0}
+#tx{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#lines{flex:1;overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 22%);mask-image:linear-gradient(transparent,#000 22%);padding:0 14px 10px;display:flex;flex-direction:column;justify-content:flex-end;gap:5px}
+.ln{display:grid;grid-template-columns:62px 38px 1fr;gap:8px;font-size:12px;line-height:1.35;align-items:start}
+.ln .fq{font-family:var(--mono);font-size:10px;color:var(--dim);padding-top:2px}
+.ln .who{font-family:var(--cond);font-weight:700;font-size:11px;letter-spacing:.06em;padding:1px 0;text-align:center;border-radius:2px}
+.ln.CTL .who{color:#0c1013;background:var(--cyan)} .ln.PLT .who{color:#0c1013;background:#c8d0d8}
+.ln .tx{color:var(--ink)} .ln.old .tx{color:var(--mut)} .ln.old .who{opacity:.55}
+.ln.bad .tx{color:#ffb4ae} .ln.neg .tx{color:#fff;font-weight:500}
+.ln.dl{grid-template-columns:62px 38px 1fr} .ln.dl .who{background:none;border:1px solid var(--line2);color:var(--mut)} .ln.dl .tx{font-family:var(--mono);font-size:11px;color:var(--mut)}
+.wave{display:inline-flex;gap:2px;align-items:center;height:11px;margin-left:6px;vertical-align:middle}
+.wave i{width:2px;background:var(--cyan);border-radius:1px;animation:w .5s infinite alternate}
+.wave i:nth-child(2){animation-delay:.1s}.wave i:nth-child(3){animation-delay:.25s}.wave i:nth-child(4){animation-delay:.05s}.wave i:nth-child(5){animation-delay:.3s}
+@keyframes w{from{height:2px}to{height:11px}}
+#hb{display:flex;flex-direction:column;padding:0 14px 12px;min-height:0}
+.hbcard{border:1px solid var(--line2);border-radius:4px;background:var(--panel);flex:1;display:flex;flex-direction:column}
+.hbtop{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px}
+.hbtop b{font-family:var(--cond);font-size:15px;letter-spacing:.02em}
+table.hbt{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+.hbt th{font-family:var(--cond);font-weight:600;font-size:10px;letter-spacing:.1em;color:var(--dim);text-align:left;padding:6px 10px 3px}
+.hbt td{padding:5px 10px;border-top:1px solid #222a31;white-space:nowrap}
+.hbt td:first-child{color:var(--mut);font-family:var(--sans);font-size:11.5px}
+.hbt td.ok{color:var(--green)} .hbt td.x{color:var(--red);font-weight:600}
+.hbt tr.badrow td{background:#3a1715}
+.hbres{margin-top:auto;padding:8px 10px;font-family:var(--cond);font-weight:600;font-size:12.5px;letter-spacing:.04em;border-top:1px solid var(--line);color:var(--mut)}
+.hbres.ok{color:var(--green)} .hbres.bad{color:#fff;background:#7d2420}
+
+/* right */
+#right{border-left:1px solid var(--line);background:#13181c;min-height:0}
+#tree{padding:0 14px 10px;font-family:var(--mono);font-size:11.5px;border-bottom:1px solid var(--line)}
+.node{display:flex;align-items:center;gap:7px;height:20px;color:var(--mut);transition:color .3s}
+.node.on{color:var(--ink)}
+.node .d{width:7px;height:7px;border-radius:50%;background:#2d363f;flex:none}
+.node.on .d{background:var(--green)}
+.node.ping .d{box-shadow:0 0 0 4px #46b98155}
+.node .br{color:var(--dim);white-space:pre}
+.kernel{margin-top:6px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line2);border-radius:3px;padding:5px 8px;background:#0e1215}
+.kernel b{font-family:var(--cond);letter-spacing:.06em;font-size:11.5px}
+.kernel span{font-size:11px} .kernel .a{color:var(--green)} .kernel .r{color:var(--red)}
+#appr{padding:0 14px 6px;display:flex;flex-direction:column;gap:8px;min-height:44px}
+.card{border:1px solid #6b5420;background:linear-gradient(#211c12,#1a1712);border-radius:5px;padding:10px 11px;position:relative}
+.card .lab{font-family:var(--cond);font-weight:600;font-size:10px;letter-spacing:.14em;color:var(--amber);display:flex;justify-content:space-between}
+.card h4{font-family:var(--cond);font-size:16px;font-weight:600;margin:3px 0 4px;color:#fff;letter-spacing:.01em}
+.card p{font-size:11.5px;color:#c9c0ad;line-height:1.4}
+.card p.imp{color:var(--mut);margin-top:2px}
+.card .btns{display:flex;gap:6px;margin-top:9px}
+.card .btns button{flex:1;height:28px;border-radius:3px;font-family:var(--cond);font-weight:600;letter-spacing:.06em;font-size:12px;border:1px solid var(--line2);background:#1f252b;color:var(--ink)}
+.card .btns .ap{background:#1d3a2c;border-color:#2f6b4f;color:#bff0d6}
+.card .btns .ap.press{background:var(--green);color:#08130d;transform:scale(.97)}
+.card.done{border-color:#2f6b4f;background:#14201a;padding:7px 11px}
+.card.done h4{font-size:13.5px;margin:2px 0 0}
+.card.done p,.card.done .btns{display:none}
+.card.done .lab{color:var(--green)}
+.card .wait{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.35}}
+#audit{flex:1;overflow:hidden;padding:0 14px 12px;min-height:0;position:relative}
+#audit::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(transparent,#13181c)}
+.au{display:grid;grid-template-columns:54px 1fr;gap:6px;padding:5px 0;border-top:1px solid #20272e;font-size:11.5px;line-height:1.35}
+.au .t{font-family:var(--mono);color:var(--dim);font-size:10.5px;padding-top:1px}
+.au .who{font-family:var(--mono);font-size:10.5px;color:var(--mut)}
+.au .v{font-family:var(--cond);font-weight:700;font-size:10px;letter-spacing:.08em;padding:0 4px;border-radius:2px;margin-right:4px}
+.v.ACCEPT,.v.COMMIT,.v.APPROVED{background:#1d3a2c;color:#8fe3b9} .v.REJECT,.v.WX,.v.MISMATCH{background:#4a1b18;color:#ffb4ae} .v.SPAWN{background:#1b2c3c;color:#9cc9f5} .v.KERNEL{background:#2a2f36;color:#d5dbe0} .v.HUMAN{background:#3a2f12;color:#f3d38a}
+.au .rs{color:var(--mut)}
+.au.new{animation:aunew 1.2s}
+@keyframes aunew{from{background:#24303a}to{background:transparent}}
+#end{position:absolute;inset:44px 20px 20px 90px;display:none;align-items:center;justify-content:center;pointer-events:none}
+#end .box{background:#0c1013ee;border:1px solid var(--line2);border-radius:6px;padding:20px 26px;text-align:center;box-shadow:0 10px 40px #000a}
+#end h3{font-family:var(--cond);font-size:13px;letter-spacing:.16em;color:var(--mut);font-weight:600}
+#end .big{display:flex;gap:28px;margin-top:10px;font-family:var(--mono)}
+#end .big div{font-size:30px} #end .big small{display:block;font-family:var(--sans);font-size:11px;color:var(--mut)}
+
+#bSnd .w1,#bSnd .w2{opacity:.25} #bSnd.snd-on .w1,#bSnd.snd-on .w2{opacity:1} #bSnd.snd-on{border-color:#3d8a63;color:#bff0d6}
+#txl{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--dim);display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border-radius:3px;border:1px solid transparent}
+#txl.live{color:#fff;background:#7d2420;border-color:#b23a33}
+#txl i{width:7px;height:7px;border-radius:50%;background:#ff6b62;animation:blinkTx .5s infinite alternate}
+@keyframes blinkTx{to{opacity:.3}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><b>SKYFLOW</b><span>Bay Area UAM · Ops Desk</span></div>
+  <span class="simtag">SIMULATION</span>
+  <div class="clock" id="clock">T+00:00</div>
+  <div class="phase" id="phase">NOMINAL</div>
+  <div class="score">
+    <div class="kpi vs"><small>On time · agents / static</small><div><span class="good" id="kOk">0</span><i>/28</i><span class="bad" id="kSt">0</span><i>/28</i></div></div>
+    <div class="kpi"><small>Max delay</small><div id="kDel">0.0<i> min</i></div></div>
+    <div class="kpi"><small>Conflicts</small><div id="kCon">0</div></div>
+    <div class="kpi"><small>Human</small><div id="kHum">0</div></div>
+    <div class="kpi"><small>Radio tx</small><div id="kRad">0</div></div>
+  </div>
+  <div class="ctrls"><button id="bSnd" title="Radio voice on/off"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="w1" d="M16 9a4 4 0 0 1 0 6"/><path class="w2" d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg><span>Sound off</span></button><button id="bPlay" title="Play / pause (space)">❚❚ Pause</button><button id="bRe" title="Restart (R)">↺ Restart</button></div>
+</header>
+<main>
+  <section id="bay">
+    <div class="h">Strip bay <em>28 filed · 1 per 2.5 min</em></div>
+    <div class="racks">
+      <div class="rack r-pending"><div class="rh">PENDING <b id="nP">0</b></div><div class="slots" id="sP"></div></div>
+      <div class="rack r-cleared"><div class="rh">CLEARED · RESERVED <b id="nC">0</b></div><div class="slots" id="sC"></div></div>
+      <div class="rack r-air"><div class="rh">AIRBORNE <b id="nA">0</b></div><div class="slots" id="sA"></div></div>
+      <div class="rack r-landed"><div class="rh">LANDED <b id="nL">0</b></div><div class="slots" id="sL"></div></div>
+    </div>
+  </section>
+  <section id="center">
+    <div id="ledgerWrap">
+      <div class="h">Reservation ledger · kernel commits
+        <div class="legend"><span><i class="sw" style="background:#58c4dc"></i>committed</span><span><i class="sw" style="border:1.5px dashed #e5534b"></i>rejected proposal</span><span><i class="sw" style="background:repeating-linear-gradient(45deg,#e5534b 0 2px,transparent 2px 5px)"></i>closed</span><span><i class="sw" style="border:1px dashed #6d7782"></i>superseded</span></div>
+      </div>
+      <canvas id="ledger"></canvas>
+      <div id="end"><div class="box"><h3>RUN COMPLETE · SIMULATION</h3><div class="big"><div class="good" style="color:var(--green)">28/28<small>agent team on time</small></div><div style="color:var(--red)">10/28<small>static plan on time</small></div><div>0<small>conflicts</small></div><div>+14.3%<small>distance flown</small></div></div></div></div>
+    </div>
+    <div id="radio">
+      <div id="tx"><div class="h">Radio · Bay App <span id="txl">RX</span><em>128.35 / East 124.90</em></div><div id="lines"></div></div>
+      <div id="hb"><div class="h">Hearback check</div>
+        <div class="hbcard">
+          <div class="hbtop"><b id="hbCs">—</b><span id="hbSt" style="color:var(--dim)">idle</span></div>
+          <table class="hbt"><thead><tr><th>FIELD</th><th>CLEARED</th><th>READBACK</th><th></th></tr></thead><tbody id="hbBody"></tbody></table>
+          <div class="hbres" id="hbRes">Waiting for transmission</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="right">
+    <div class="h">Agent team</div>
+    <div id="tree"></div>
+    <div class="h">Human approval <em>permissive or consequential only</em></div>
+    <div id="appr"></div>
+    <div class="h">Audit trail</div>
+    <div id="audit"></div>
+  </section>
+</main>
+</div>
+<script src="radio-audio.js?v=3"></script>
+<script>
+// ---- SkyFlow scripted scenario (Simulation) ----
+const SIM = (() => {
+  const LOOP = 90, RATE = 0.95;               // seconds per loop, sim-minutes per second
+  const STORM = [8, 24];                       // C–E closed, sim minutes
+  const SPEED = 2.5;                           // km per sim minute (150 km/h)
+  const toT = m => m / RATE, toM = t => t * RATE;
+  const VP = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865] };
+  const JN = { W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
+  const NODES = { ...VP, ...JN };
+  const CORR = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
+  const PADS = ['SF', 'MAR', 'SFO', 'OAK', 'BER'];
+  const PADNAME = { SF: 'San Francisco', MAR: 'Marin', SFO: 'San Francisco International', OAK: 'Oakland', BER: 'Berkeley' };
+  const JNAME = { W: 'Whiskey', C: 'Charlie', E: 'Echo' };
+  const DIG = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'niner'];
+  const spoken = n => String(n).split('').map(d => DIG[+d]).join(' ');
+  const key = (a, b) => CORR.includes(a + '-' + b) ? a + '-' + b : b + '-' + a;
+  const km = (a, b) => { const p = NODES[a], q = NODES[b]; return Math.hypot((p[0] - q[0]) * 88, (p[1] - q[1]) * 111); };
+  const adj = {};
+  CORR.forEach(c => { const [a, b] = c.split('-'); (adj[a] ||= []).push(b); (adj[b] ||= []).push(a); });
+  function path(from, to, avoid) {
+    const d = { [from]: 0 }, prev = {}, q = new Set(Object.keys(NODES));
+    while (q.size) {
+      let u = null; q.forEach(n => { if (d[n] !== undefined && (u === null || d[n] < d[u])) u = n; });
+      if (u === null || u === to) break; q.delete(u);
+      for (const v of adj[u]) { if (avoid && key(u, v) === avoid) continue; const nd = d[u] + km(u, v); if (d[v] === undefined || nd < d[v]) { d[v] = nd; prev[v] = u; } }
+    }
+    const p = [to]; while (p[0] !== from) p.unshift(prev[p[0]]); return p;
+  }
+  const routeKm = r => r.slice(1).reduce((s, n, i) => s + km(r[i], n), 0);
+  const viaText = r => { const j = r.filter(n => JN[n]); if (!j.length) return 'direct'; if (j.length === 1) return JNAME[j[0]]; return j.slice(0, -1).map((x, i) => JNAME[x] + '-' + JNAME[j[i + 1]]).join(', '); };
+  const viaShort = r => { const j = r.filter(n => JN[n]); return j.length ? j.join('–') : 'DCT'; };
+
+  const PAIRS = ['SF>BER', 'SFO>OAK', 'SFO>SF', 'MAR>OAK', 'OAK>SF', 'SF>BER', 'BER>OAK', 'SF>OAK', 'OAK>SF', 'SF>MAR', 'SFO>OAK', 'SF>OAK', 'BER>SF', 'OAK>BER',
+    'SF>SFO', 'MAR>OAK', 'OAK>SFO', 'SF>BER', 'BER>OAK', 'SF>OAK', 'SFO>SF', 'OAK>SF', 'MAR>SF', 'SF>BER', 'SFO>OAK', 'BER>SF', 'SF>OAK', 'OAK>MAR'];
+  const HOLD = { 6: 1.5, 16: 2 };
+  const STATIC_OK = new Set([0, 1, 2, 5, 9, 13, 17, 20, 23, 27]);
+  const ALT = [1200, 1500, 1800];
+
+  function segs(route, dep, from, to) {
+    const s = [{ key: from, kind: 'pad', m0: dep - 1, m1: dep + 0.3 }]; let m = dep;
+    for (let i = 1; i < route.length; i++) { const d = km(route[i - 1], route[i]) / SPEED; s.push({ key: key(route[i - 1], route[i]), kind: 'corr', m0: m, m1: m + d, a: route[i - 1], b: route[i] }); m += d; }
+    s.push({ key: to, kind: 'pad', m0: m, m1: m + 1.4 }); return s;
+  }
+  const flights = PAIRS.map((p, i) => {
+    const [from, to] = p.split('>'), release = 2.5 * i, cs = 101 + i;
+    const A = path(from, to), B = path(from, to, 'C-E');
+    const dep = release + (HOLD[i] || 0);
+    const sA = segs(A, release, from, to);
+    const ce = sA.find(s => s.key === 'C-E');
+    const affected = !!ce && ce.m1 > STORM[0] && ce.m0 < STORM[1];
+    const route = affected ? B : A;
+    const s = segs(route, dep, from, to);
+    const sched = sA[sA.length - 1].m0, arr = s[s.length - 1].m0;
+    return { i, cs, csSp: spoken(cs), from, to, A, B, route, affected, release, dep, arr, sched, delay: Math.max(0, arr - sched), segsA: sA, segs: s,
+      alt: ALT[i % 3], kmA: routeKm(A), kmR: routeKm(route), staticOk: STATIC_OK.has(i), plans: [] };
+  });
+
+  // ---- radio + events ----
+  const ev = [];
+  const fixed = [];   // occupied radio intervals
+  const altSp = a => a === 1200 ? 'one thousand two hundred' : a === 1500 ? 'one thousand five hundred' : 'one thousand eight hundred';
+  const fieldsOf = (f, route) => ({ callsign: 'SkyFlow ' + f.cs, route: viaShort(route), dest: f.to, alt: f.alt });
+  const FREQ = { BAY: '128.35', EAST: '124.90' };
+  const freqOf = f => (f.from === 'OAK' || f.from === 'BER') ? 'EAST' : 'BAY';
+  function radio(t, who, f, text, dur, freq) {
+    ev.push({ t, type: 'radio', who, cs: f ? f.cs : null, text, dur, freq, mhz: FREQ[freq] }); fixed.push([t, t + dur, freq]);
+  }
+  const busy = (t, d, fq) => fixed.some(([a, b, q]) => q === fq && t < b + 0.12 && t + d > a - 0.12);
+  function slot(t, d, fq) { while (busy(t, d, fq)) t += 0.1; return t; }
+  function exchange(desired, f, route, kind, fq = freqOf(f)) {
+    const v = viaText(route), via = v === 'direct' ? 'direct' : 'via ' + v;
+    const c = kind === 'reroute'
+      ? `SkyFlow ${f.csSp}, reroute ${via}, ${PADNAME[f.to]}. Charlie-Echo closed.`
+      : `SkyFlow ${f.csSp}, cleared ${PADNAME[f.to]} ${via}, maintain ${altSp(f.alt)}.`;
+    const r = kind === 'reroute'
+      ? `Reroute ${via}, ${PADNAME[f.to]}, SkyFlow ${f.csSp}.`
+      : `Cleared ${PADNAME[f.to]} ${via}, ${altSp(f.alt)}, SkyFlow ${f.csSp}.`;
+    const d1 = Math.min(1.9, Math.max(1.1, c.length * 0.017)), d2 = Math.min(1.6, Math.max(1.0, r.length * 0.017));
+    const t1 = slot(desired, d1 + d2 + 0.25, fq);
+    radio(t1, 'CTL', f, c, d1, fq);
+    radio(t1 + d1 + 0.25, 'PLT', f, r, d2, fq);
+    const t3 = t1 + d1 + 0.25 + d2 + 0.05;
+    ev.push({ t: t3, type: 'hearback', cs: f.cs, cleared: fieldsOf(f, route), readback: fieldsOf(f, route), ok: true });
+    return t3 + 0.15;
+  }
+  const T = toT;
+  ev.push({ t: 0.2, type: 'spawn', agent: 'coordinator', parent: null, text: 'Coordinator online · 28 trips filed' });
+
+  // scripted voice loop for SkyFlow 108 (index 7)
+  const f8 = flights[7];
+  const v0 = 10.5;
+  const c108 = `SkyFlow one zero eight, cleared Oakland via Whiskey, Whiskey-Echo, maintain one thousand two hundred.`;
+  const r108bad = `Cleared Oakland via Charlie-Echo, one thousand two hundred, SkyFlow one zero eight.`;
+  const n108 = `SkyFlow one zero eight, negative. Charlie-Echo is closed. Cleared via Whiskey, Whiskey-Echo. Read back.`;
+  const r108 = `Via Whiskey, Whiskey-Echo, Oakland, one thousand two hundred, SkyFlow one zero eight.`;
+  radio(v0, 'CTL', f8, c108, 1.9, 'BAY');
+  radio(v0 + 2.1, 'PLT', f8, r108bad, 1.6, 'BAY');
+  ev.push({ t: v0 + 3.8, type: 'hearback', cs: 108, cleared: fieldsOf(f8, f8.route), readback: { ...fieldsOf(f8, f8.route), route: 'C–E' }, ok: false, why: 'Route: read back C–E (closed) vs cleared W–E' });
+  ev.push({ t: v0 + 3.9, type: 'propose', agent: 'hearback', target: 'C-E', f: 7, text: 'Commit SkyFlow 108 as read back (C–E)', verdict: 'REJECT', reason: 'Readback C–E ≠ cleared W–E · C–E closed', ghost: { key: 'C-E', m0: f8.segsA.find(s => s.key === 'C-E').m0, m1: f8.segsA.find(s => s.key === 'C-E').m1 } });
+  radio(v0 + 4.2, 'CTL', f8, n108, 1.9, 'BAY');
+  radio(v0 + 6.3, 'PLT', f8, r108, 1.5, 'BAY');
+  ev.push({ t: v0 + 7.9, type: 'hearback', cs: 108, cleared: fieldsOf(f8, f8.route), readback: fieldsOf(f8, f8.route), ok: true, corrected: true });
+  f8.commitT = v0 + 8.05;
+
+  // storm
+  const tS = T(STORM[0]), tR = T(STORM[1]);
+  ev.push({ t: tS, type: 'storm', text: 'Unforecast cell over C–E · 45 dBZ, tops FL180, drifting NE' });
+  ev.push({ t: tS + 0.2, type: 'kernel', text: 'C–E CLOSED T+08 → T+24 (restrictive · auto-applied)' });
+  ev.push({ t: tS + 0.5, type: 'spawn', agent: 'sector.central', parent: 'coordinator', text: 'Coordinator spawned sector.central' });
+  ev.push({ t: tS + 0.7, type: 'spawn', agent: 'sector.east', parent: 'coordinator', text: 'Coordinator spawned sector.east' });
+  ev.push({ t: tS + 1.0, type: 'spawn', agent: 'pad.OAK', parent: 'sector.east', text: 'sector.east spawned pad.OAK' });
+  ev.push({ t: tS + 1.2, type: 'spawn', agent: 'pad.SF', parent: 'sector.central', text: 'sector.central spawned pad.SF' });
+  const f5 = flights[4];
+  const ce5 = f5.segsA.find(s => s.key === 'C-E');
+  ev.push({ t: tS + 1.5, type: 'propose', agent: 'sector.central', f: 4, text: `Keep SkyFlow 105 on C–E, cross at T+${ce5.m0.toFixed(0)}`, verdict: 'REJECT', reason: 'C–E closed T+08–T+24', ghost: { key: 'C-E', m0: ce5.m0, m1: ce5.m1 } });
+  ev.push({ t: tR, type: 'reopen', text: 'C–E REOPENED T+24 · metering 1 per 3 min' });
+
+  // commits: initial plans, re-plans
+  const desiredOf = f => Math.max(0.05 + f.i * 0.1, T(f.release - 5));
+  const agentOf = f => (f.from === 'OAK' || f.to === 'OAK') ? 'sector.east' : 'sector.central';
+  const voice = f => ((f.i === 12) || (f.affected && desiredOf(f) < tS)) && desiredOf(f) > 0.3;
+  function initial(f, desired, route, segs) {
+    if (voice(f)) { const t0 = exchange(desired, f, route, 'clear'); ev.push({ t: t0, type: 'commit', f: f.i, route, segs }); return t0; }
+    ev.push({ t: desired, type: 'datalink', cs: f.cs, text: `SkyFlow ${f.cs} ${f.from}→${f.to} ${viaShort(route)} · datalink clearance WILCO` });
+    ev.push({ t: desired + 0.3, type: 'commit', f: f.i, route, segs, datalink: true }); return desired + 0.3;
+  }
+  const pre = flights.filter(f => f.i !== 7 && desiredOf(f) < tS), post = flights.filter(f => f.i !== 7 && desiredOf(f) >= tS);
+  pre.forEach(f => { f.commitT = initial(f, desiredOf(f), f.affected ? f.A : f.route, f.affected ? f.segsA : f.segs); });
+  pre.filter(f => f.affected).forEach((f, k) => {
+    const tp = tS + 1.0 + k * 1.2;
+    ev.push({ t: tp, type: 'propose', agent: agentOf(f), f: f.i, text: `Reroute SkyFlow ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'no conflicts · pads within capacity' });
+    const t1 = exchange(tp + 0.2, f, f.route, 'reroute', 'EAST');
+    ev.push({ t: t1, type: 'commit', f: f.i, route: f.route, segs: f.segs, supersede: true });
+    f.recommitT = t1;
+  });
+  { const f = flights[7];
+    ev.push({ t: v0 - 0.4, type: 'propose', agent: 'sector.central', f: 7, text: `Plan SkyFlow 108 SF→OAK via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'pending readback' });
+    ev.push({ t: f.commitT, type: 'commit', f: 7, route: f.route, segs: f.segs, note: 'after corrected readback' }); }
+  post.forEach(f => {
+    const desired = desiredOf(f);
+    if (f.affected) ev.push({ t: desired - 0.3, type: 'propose', agent: agentOf(f), f: f.i, text: `Plan SkyFlow ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'C–E avoided · 0 conflicts' });
+    if (HOLD[f.i]) ev.push({ t: desired - 0.5, type: 'propose', agent: 'pad.OAK', f: f.i, text: `Ground hold SkyFlow ${f.cs} at ${f.from}, ${HOLD[f.i]} min`, verdict: 'ACCEPT', reason: f.i === 6 ? 'absorbs OAK pad peak' : 'medical priority to OAK pad 1' });
+    f.commitT = initial(f, desired, f.route, f.segs);
+  });
+  // rejected proposals with ghost bars
+  const f7 = flights[6], arr7 = f7.segsA[f7.segsA.length - 1];
+  ev.push({ t: flights[6].commitT - 1.4, type: 'propose', agent: 'pad.OAK', f: 6, text: `Land SkyFlow 107 OAK at T+${arr7.m0.toFixed(0)} as filed`, verdict: 'REJECT', reason: 'OAK pads 2/2 occupied in window', ghost: { key: 'OAK', m0: arr7.m0, m1: arr7.m1 } });
+  const f9 = flights[8], we9 = f9.segs.find(s => s.key === 'W-E');
+  ev.push({ t: flights[8].commitT + 1.2, type: 'propose', agent: 'sector.east', f: 8, text: 'Advance SkyFlow 109 two minutes on E–W', verdict: 'REJECT', reason: 'separation 50 s < 90 s behind SkyFlow 108', ghost: { key: 'W-E', m0: we9.m0 - 2, m1: we9.m1 - 2 } });
+
+  // human approvals (consequential / permissive actions)
+  const APPROVALS = [
+    { id: 'H-1', open: tR - 2.6, decide: tR - 0.6, title: 'Reopen corridor C–E', by: 'sector.central', why: 'Cell cleared corridor buffer 6 min ago · 2 PIREPs smooth', impact: 'Permissive action · metered 1 per 3 min for 15 min', },
+    { id: 'H-2', open: T(flights[15].release - 6.5), decide: T(flights[15].release - 6.5) + 2.2, title: 'Medical priority · SkyFlow 116', by: 'pad.OAK', why: 'Patient transfer MAR → OAK, requested by operator', impact: 'SkyFlow 117 ground-holds 2 min at OAK' },
+    { id: 'H-3', open: T(46), decide: T(46) + 2.4, title: 'Return C–E to full capacity', by: 'coordinator', why: '10 min nominal after reopen · no deviations', impact: 'Ends metering · restores filed routes' },
+  ];
+  APPROVALS.forEach(a => { ev.push({ t: a.open, type: 'approval-open', a }); ev.push({ t: a.decide, type: 'approval-decide', a }); });
+  ev.push({ t: T(46) + 2.5, type: 'kernel', text: 'C–E metering lifted · nominal ops' });
+
+  ev.sort((a, b) => a.t - b.t);
+  ev.forEach((e, k) => e.k = k);
+  const commitsOf = i => ev.filter(e => e.type === 'commit' && e.f === i);
+  flights.forEach(f => { f.firstCommitT = Math.min(...commitsOf(f.i).map(e => e.t)); });
+
+  function phase(t) {
+    if (t < tS) return { id: 'calm', label: 'NOMINAL' };
+    if (t < tR) return { id: 'storm', label: 'WX CELL · C–E CLOSED' };
+    if (t < T(46) + 2.5) return { id: 'recovery', label: 'RECOVERY · C–E METERED' };
+    return { id: 'done', label: 'NOMINAL · RECOVERED' };
+  }
+  function flightState(f, t) {
+    const m = toM(t);
+    if (t < f.firstCommitT) return 'pending';
+    if (m < f.dep) return 'cleared';
+    if (m < f.arr) return 'airborne';
+    return 'landed';
+  }
+  // position along route at sim minute m: returns {a,b,u} or null
+  function where(f, t) {
+    const m = toM(t); const route = (f.recommitT && t < tS + 1.2) ? f.A : f.route;
+    const sg = (route === f.A ? f.segsA : f.segs).filter(s => s.kind === 'corr');
+    const off = route === f.A ? f.release : 0;
+    for (const s of sg) if (m >= s.m0 && m < s.m1) return { a: s.a, b: s.b, u: (m - s.m0) / (s.m1 - s.m0), key: s.key };
+    return null;
+  }
+  function score(t) {
+    const m = toM(t); let landed = 0, ok = 0, st = 0, maxDelay = 0;
+    flights.forEach(f => { if (m >= f.arr) { landed++; if (f.delay < 5) ok++; if (f.staticOk) st++; maxDelay = Math.max(maxDelay, f.delay); } });
+    const human = APPROVALS.filter(a => t >= a.decide).length;
+    const radioN = ev.filter(e => e.type === 'radio' && e.t <= t).length;
+    return { landed, ok, st, maxDelay, human, radio: radioN, conflicts: 0 };
+  }
+  const totA = flights.reduce((s, f) => s + f.kmA, 0), totR = flights.reduce((s, f) => s + f.kmR, 0);
+  const clock = t => { const m = toM(t); const mm = Math.floor(m), ss = Math.floor((m - mm) * 60); return 'T+' + String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0'); };
+  return { LOOP, RATE, STORM, toT, toM, VP, JN, NODES, CORR, PADS, PADNAME, flights, events: ev, APPROVALS, phase, flightState, where, score, clock, tS, tR, key, viaShort,
+    HEADLINE: { staticOk: 10, agentOk: 28, distPct: 14.3, simDistPct: ((totR / totA - 1) * 100) } };
+})();
+
+// ---- playback clock (holds while the radio frequency is busy) ----
+const PLAY = (() => {
+  let t = 0, playing = true, last = performance.now(), cbs = [], holdT = Infinity, holdP = null;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (playing) { const prev = t; t += dt; if (t > holdT) t = Math.max(prev, holdT); if (t >= SIM.LOOP) { t = 0; clear(); cbs.forEach(c => c('restart')); } }
+    requestAnimationFrame(frame);
+  }
+  function clear() { holdT = Infinity; holdP = null; if (window.SkyRadio) SkyRadio.flush(); }
+  requestAnimationFrame(frame);
+  return {
+    get t() { return t; }, get playing() { return playing; }, get holding() { return holdP !== null && t >= holdT - 0.01; },
+    toggle() { playing = !playing; return playing; },
+    restart() { t = 0; clear(); cbs.forEach(c => c('restart')); }, on(c) { cbs.push(c); },
+    seek(x) { t = x; clear(); cbs.forEach(c => c('restart')); },
+    holdUntil(T, p) { holdT = T - 0.02; holdP = p; p.finally(() => { if (holdP === p) { holdT = Infinity; holdP = null; } }); },
+  };
+})();
+// ---- voice: every radio line goes through SkyRadio; the clock waits for it ----
+const VOICE = (() => {
+  const radioEv = SIM.events.filter(e => e.type === 'radio');
+  const spk = e => e.who === 'CTL' ? 'atc' : 'pilot';
+  const key = e => 'SKF' + e.cs;
+  function fire(e) {
+    if (!window.SkyRadio || !SkyRadio.enabled) return;
+    if (PLAY.t - e.t > 0.6) return;                      // fast-forward after a seek: stay silent
+    const p = SkyRadio.say(e.text, spk(e), key(e));
+    const next = SIM.events.find(x => x.t > e.t && (x.type === 'radio' || (x.type === 'hearback' && x.cs === e.cs)));
+    if (next) PLAY.holdUntil(next.t, Promise.resolve(p));
+  }
+  addEventListener('DOMContentLoaded', () => { if (window.SkyRadio) SkyRadio.prefetch(radioEv.map(e => ({ text: e.text, speaker: spk(e), key: key(e) }))); });
+  return { fire };
+})();
+// ?t=30 query param seeks for screenshots
+(() => { const q = new URLSearchParams(location.search).get('t'); if (q) setTimeout(() => PLAY.seek(+q), 50); })();
+
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const F = SIM.flights;
+const fmtM = m => 'T+' + String(Math.floor(m)).padStart(2, '0') + ':' + String(Math.floor((m % 1) * 60)).padStart(2, '0');
+const fmtT = t => fmtM(SIM.toM(t)).slice(2);
+const isArr = f => ['OAK', 'BER'].includes(f.to);
+
+// ---------- strips ----------
+const strips = {};
+F.forEach(f => {
+  const el = document.createElement('div');
+  el.className = 'strip' + (isArr(f) ? ' arr' : '');
+  el.innerHTML = `<div class="tab"></div>
+    <div class="c"><div class="cs">SKF${f.cs}</div><div class="sub">EVTL/L · A${String(f.alt).padStart(4,'0')}</div></div>
+    <div class="c"><div class="rt">${f.from} → ${f.to}</div><div class="sub via">via ${SIM.viaShort(f.affected ? f.A : f.route)}</div></div>
+    <div class="c"><div class="tm">${fmtM(f.dep).slice(2)}</div><div class="sub rid">R-${f.cs}·—</div></div>
+    <div class="c st"><div class="dot"></div><span class="sl">FILED</span></div>
+    <div class="prog"><i></i></div>`;
+  strips[f.cs] = { el, state: null, f, rev: 0 };
+});
+const RACK = { pending: 'sP', cleared: 'sC', airborne: 'sA', landed: 'sL' };
+const DOTC = { pending: 'transparent', cleared: '#f0b43c', airborne: '#3c6fb8', landed: '#46b981' };
+const LIMIT = { pending: 3, cleared: 3, airborne: 6, landed: 3 };
+function layoutStrips(t) {
+  const m = SIM.toM(t);
+  const groups = { pending: [], cleared: [], airborne: [], landed: [] };
+  F.forEach(f => groups[SIM.flightState(f, t)].push(f));
+  groups.landed.reverse();
+  const firstRects = {};
+  Object.values(strips).forEach(s => { if (s.el.isConnected) firstRects[s.f.cs] = s.el.getBoundingClientRect(); });
+  let moved = false;
+  for (const [st, list] of Object.entries(groups)) {
+    const cont = $(RACK[st]);
+    const shown = list.slice(0, LIMIT[st]);
+    const want = shown.map(f => strips[f.cs].el);
+    const cur = [...cont.children].filter(c => c.classList.contains('strip'));
+    if (want.length !== cur.length || want.some((w, k) => cur[k] !== w)) {
+      moved = true;
+      cur.forEach(c => { if (!want.includes(c)) c.remove(); });
+      want.forEach(w => cont.appendChild(w));
+    }
+    let more = cont.querySelector('.more');
+    const extra = list.length - shown.length;
+    if (extra > 0) { if (!more) { more = document.createElement('div'); more.className = 'more'; } more.textContent = `+${extra} more ${st === 'landed' ? 'landed' : 'filed'}`; cont.appendChild(more); } else if (more) more.remove();
+    $({ pending: 'nP', cleared: 'nC', airborne: 'nA', landed: 'nL' }[st]).textContent = list.length;
+    list.forEach(f => {
+      const s = strips[f.cs];
+      if (s.state !== st) {
+        s.state = st; s.el.querySelector('.dot').style.background = DOTC[st];
+        s.el.querySelector('.sl').textContent = { pending: 'FILED', cleared: 'CLRD', airborne: 'AIR', landed: 'LDG' }[st];
+        s.el.classList.toggle('landed', st === 'landed');
+        if (st !== 'pending') { s.el.classList.remove('flash'); void s.el.offsetWidth; s.el.classList.add('flash'); }
+      }
+      if (st === 'airborne') s.el.querySelector('.prog i').style.width = (100 * (m - f.dep) / (f.arr - f.dep)).toFixed(1) + '%';
+      else s.el.querySelector('.prog i').style.width = st === 'landed' ? '100%' : '0%';
+    });
+  }
+  if (moved) {
+    Object.values(strips).forEach(s => {
+      if (!s.el.isConnected) return; const a = firstRects[s.f.cs]; if (!a) { s.el.animate([{ opacity: 0, transform: 'translateX(-30px)' }, { opacity: 1, transform: 'none' }], { duration: 450, easing: 'ease-out' }); return; }
+      const b = s.el.getBoundingClientRect(); const dx = a.left - b.left, dy = a.top - b.top;
+      if (Math.abs(dx) + Math.abs(dy) > 1) s.el.animate([{ transform: `translate(${dx}px,${dy}px) rotate(${dy > 60 ? -1.5 : 0}deg)`, boxShadow: '0 12px 24px #000a' }, { transform: 'none' }], { duration: 650, easing: 'cubic-bezier(.2,.7,.2,1)' });
+    });
+  }
+}
+function stripRev(e) {
+  const s = strips[F[e.f].cs]; s.rev++;
+  s.el.querySelector('.rid').textContent = `R-${F[e.f].cs}·${s.rev}`;
+  s.el.querySelector('.via').textContent = 'via ' + SIM.viaShort(e.route);
+  if (e.supersede || (F[e.f].affected)) {
+    if (!s.el.querySelector('.stamp')) { const st = document.createElement('div'); st.className = 'stamp'; st.textContent = 'WX RR'; s.el.appendChild(st); }
+  }
+  if (F[e.f].i === 6 || F[e.f].i === 16) { if (!s.el.querySelector('.stamp')) { const st = document.createElement('div'); st.className = 'stamp'; st.style.color = st.style.borderColor = '#8a5a00'; st.textContent = 'HOLD ' + (F[e.f].i === 6 ? '1.5' : '2'); s.el.appendChild(st); } }
+}
+
+// ---------- ledger ----------
+const ROWS = [...SIM.CORR.map(k => ({ key: k, kind: 'corr', label: k.replace('-', '–') })), ...SIM.PADS.map(k => ({ key: k, kind: 'pad', label: k + ' pad', cap: 2 }))];
+const cv = $('ledger'), cx = cv.getContext('2d');
+let bars = [], ghosts = [];
+function resize() { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; cv.width = r.width * d; cv.height = r.height * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+addEventListener('resize', resize);
+function hatch(x, y, w, h, col, gap = 6) {
+  cx.save(); cx.beginPath(); cx.rect(x, y, w, h); cx.clip(); cx.strokeStyle = col; cx.lineWidth = 1.5;
+  for (let i = -h; i < w + h; i += gap) { cx.beginPath(); cx.moveTo(x + i, y + h); cx.lineTo(x + i + h, y); cx.stroke(); }
+  cx.restore();
+}
+function rr(x, y, w, h, r) { cx.beginPath(); cx.roundRect(x, y, w, h, r); }
+function drawLedger(t) {
+  const W = cv.clientWidth, H = cv.clientHeight, m = SIM.toM(t);
+  cx.clearRect(0, 0, W, H);
+  const LX = 78, TOP = 22, BOT = 8, rowH = (H - TOP - BOT) / ROWS.length;
+  const span = 40, m0 = m - 10, xs = mm => LX + (mm - m0) / span * (W - LX - 12);
+  // axis
+  cx.font = '10px IBM Plex Mono'; cx.textBaseline = 'middle';
+  for (let k = Math.ceil(m0 / 5) * 5; k <= m0 + span; k += 5) {
+    const x = xs(k); cx.strokeStyle = k % 10 ? '#1c2228' : '#242c34'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(x, TOP); cx.lineTo(x, H - BOT); cx.stroke();
+    if (x > LX + 10) { cx.fillStyle = '#5d6873'; cx.textAlign = 'center'; cx.fillText('T+' + String(k).padStart(2, '0'), x, 10); }
+  }
+  ROWS.forEach((r, i) => {
+    const y = TOP + i * rowH;
+    if (i === SIM.CORR.length) { cx.strokeStyle = '#3a444e'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+    else { cx.strokeStyle = '#1c2228'; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+    cx.textAlign = 'left'; cx.fillStyle = r.key === 'C-E' && t >= SIM.tS && t < SIM.tR ? '#ff8f87' : '#aab4bd';
+    cx.font = (r.kind === 'pad' ? '500 10.5px' : '600 11px') + ' IBM Plex Mono';
+    cx.fillText(r.label, 12, y + rowH / 2);
+    
+  });
+  // closure + metering
+  const ri = ROWS.findIndex(r => r.key === 'C-E'), ry = TOP + ri * rowH;
+  if (t >= SIM.tS) {
+    const a = xs(SIM.STORM[0]), b = xs(SIM.STORM[1]);
+    const live = t < SIM.tR;
+    cx.fillStyle = live ? '#e5534b22' : '#e5534b10'; cx.fillRect(a, ry + 1, b - a, rowH - 2);
+    hatch(a, ry + 1, b - a, rowH - 2, live ? '#e5534b99' : '#e5534b44');
+    const lx = Math.max(a, LX) + 6;
+    if (b > LX + 60) { cx.fillStyle = live ? '#ffb4ae' : '#a46a66'; cx.font = '700 10px IBM Plex Sans Condensed'; cx.textAlign = 'left'; cx.fillText(live ? 'CLOSED · WX CELL · T+08–24' : 'CLOSED T+08–24', lx, ry + rowH / 2); }
+    // whole-column wash during storm
+    if (live) { cx.fillStyle = '#e5534b0b'; cx.fillRect(a, TOP, b - a, H - TOP - BOT); }
+  }
+  if (t >= SIM.tR) {
+    const endM = t >= SIM.APPROVALS[2].decide ? SIM.toM(SIM.APPROVALS[2].decide) : m0 + span;
+    const a = xs(SIM.STORM[1]), b = xs(endM);
+    hatch(a, ry + 1, b - a, rowH - 2, '#f0b43c40', 10);
+    if (b > LX + 40) { cx.fillStyle = '#f0b43c'; cx.font = '600 10px IBM Plex Sans Condensed'; cx.fillText('METERED 1/3 min', Math.max(a, LX) + 6, ry + 7); }
+  }
+  // lanes
+  const lanes = {};
+  const vis = bars.filter(b => b.m1 > m0 && b.m0 < m0 + span && (!b.tSup || t - b.tSup < 3.5));
+  vis.sort((a, b) => a.m0 - b.m0);
+  vis.forEach(b => { const L = lanes[b.key] ||= []; let k = 0; while (L[k] !== undefined && L[k] > b.m0 + 0.05) k++; L[k] = b.m1; b.lane = k; });
+  vis.forEach(b => {
+    const i = ROWS.findIndex(r => r.key === b.key); if (i < 0) return;
+    const nl = Math.max(2, (lanes[b.key] || []).length), lh = (rowH - 6) / nl;
+    const x = xs(b.m0), w = Math.max(3, xs(b.m1) - x), y = TOP + i * rowH + 3 + b.lane * lh;
+    const age = t - b.tC, f = F[b.f];
+    let fill, stroke = null, text = '#0b1418', alpha = 1;
+    if (b.tSup) { alpha = Math.max(0, 1 - (t - b.tSup) / 3.5); fill = null; stroke = '#6d7782'; text = '#8b96a1'; }
+    else if (m >= b.m1) { fill = '#2b353e'; text = '#7d8994'; }
+    else if (m >= b.m0) { fill = '#7fd6e9'; }
+    else fill = '#2f6f80';
+    cx.globalAlpha = alpha;
+    rr(x, y, w, lh - 2, 2);
+    if (fill) { cx.fillStyle = fill; cx.fill(); if (!b.tSup && m < b.m0) { text = '#d6f3fa'; } }
+    if (stroke) { cx.setLineDash([3, 3]); cx.strokeStyle = stroke; cx.lineWidth = 1; cx.stroke(); cx.setLineDash([]); cx.strokeStyle = '#6d7782'; cx.beginPath(); cx.moveTo(x, y + (lh - 2) / 2); cx.lineTo(x + w, y + (lh - 2) / 2); cx.stroke(); }
+    if (age < 0.9 && !b.tSup) { cx.fillStyle = `rgba(255,255,255,${0.7 * (1 - age / 0.9)})`; rr(x - 2, y - 1, w + 4, lh, 3); cx.fill(); }
+    if (w > 22 && lh > 9) { cx.fillStyle = text; cx.font = `600 ${lh > 12 ? 10 : 9}px IBM Plex Mono`; cx.textAlign = 'left'; cx.fillText(String(f.cs), x + 3, y + (lh - 2) / 2 + 0.5); }
+    cx.globalAlpha = 1;
+  });
+  // ghosts
+  ghosts.forEach(g => {
+    const age = t - g.t; if (age < 0 || age > 7) return;
+    const i = ROWS.findIndex(r => r.key === g.key); if (i < 0) return;
+    const x = xs(g.m0), w = Math.max(14, xs(g.m1) - x), y = TOP + i * rowH + 2, h = rowH - 4;
+    const on = age < 3 ? (Math.floor(age * 4) % 2 === 0 ? 1 : 0.45) : Math.max(0, 1 - (age - 3) / 4);
+    cx.globalAlpha = on;
+    cx.fillStyle = '#e5534b26'; rr(x, y, w, h, 2); cx.fill();
+    cx.setLineDash([4, 3]); cx.strokeStyle = '#ff6b62'; cx.lineWidth = 1.5; cx.stroke(); cx.setLineDash([]);
+    cx.font = '600 10px IBM Plex Mono'; const lab = `✕ ${g.cs}  ${g.reason}`; const tw = cx.measureText(lab).width + 12;
+    let lx = Math.min(Math.max(x, LX + 4), W - tw - 8), ly = y - 15; if (ly < TOP) ly = y + h + 2;
+    cx.fillStyle = '#5a1d19'; rr(lx, ly, tw, 15, 2); cx.fill(); cx.fillStyle = '#ffd2cd'; cx.textAlign = 'left'; cx.fillText(lab, lx + 6, ly + 8);
+    cx.globalAlpha = 1;
+  });
+  // now
+  const nx = xs(m); cx.strokeStyle = '#f0b43c'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(nx, TOP - 4); cx.lineTo(nx, H - BOT); cx.stroke();
+  cx.fillStyle = '#f0b43c'; rr(nx - 26, 2, 52, 15, 2); cx.fill(); cx.fillStyle = '#16120a'; cx.textAlign = 'center'; cx.font = '600 10px IBM Plex Mono'; cx.fillText(fmtM(m).slice(2), nx, 10);
+  cx.fillStyle = '#10141855'; cx.fillRect(LX, TOP, nx - LX, H - TOP - BOT);
+}
+
+// ---------- agents ----------
+const TREE = [['coordinator', 0], ['sector.central', 1], ['pad.SF', 2], ['sector.east', 1], ['pad.OAK', 2], ['hearback', 1]];
+$('tree').innerHTML = TREE.map(([n, d]) => `<div class="node" data-n="${n}"><span class="br">${d ? '  '.repeat(d - 1) + '└ ' : ''}</span><span class="d"></span>${n}${n === 'hearback' ? ' <span style="color:var(--dim)">· voice verifier</span>' : ''}</div>`).join('') +
+  `<div class="kernel"><b>KERNEL · deterministic validator</b><span><span class="a" id="nAcc">0</span> accepted · <span class="r" id="nRej">0</span> rejected</span></div>`;
+const node = n => document.querySelector(`.node[data-n="${n}"]`);
+function ping(n) { const el = node(n); if (!el) return; el.classList.add('on', 'ping'); setTimeout(() => el.classList.remove('ping'), 700); }
+
+// ---------- state / events ----------
+let cur = 0, acc = 0, rej = 0, lastSeen = -1;
+function audit(t, v, who, text, rs) {
+  const el = document.createElement('div'); el.className = 'au new';
+  el.innerHTML = `<div class="t">${fmtT(t)}</div><div><span class="v ${v}">${v}</span><span class="who">${who}</span><div>${text}${rs ? ` <span class="rs">· ${rs}</span>` : ''}</div></div>`;
+  const a = $('audit'); a.prepend(el); while (a.children.length > 30) a.lastChild.remove();
+}
+const lineEls = [];
+function addLine(e) {
+  const el = document.createElement('div');
+  if (e.type === 'datalink') { el.className = 'ln dl'; el.innerHTML = `<span class="fq">DATALINK</span><span class="who">DL</span><span class="tx">${e.text}</span>`; }
+  else {
+    const bad = /Charlie-Echo, one thousand/.test(e.text) && e.cs === 108, neg = /negative/.test(e.text);
+    el.className = `ln ${e.who}${bad ? ' bad' : ''}${neg ? ' neg' : ''}`;
+    el.innerHTML = `<span class="fq">${e.freq} ${e.mhz}</span><span class="who">${e.who === 'CTL' ? 'ATC' : 'PILOT'}</span><span class="tx"></span>`;
+  }
+  el._e = e; $('lines').appendChild(el); lineEls.push(el);
+  while ($('lines').children.length > 7) $('lines').firstChild.remove();
+}
+function hearback(e) {
+  const rows = [['Callsign', 'callsign'], ['Route', 'route'], ['Destination', 'dest'], ['Altitude', 'alt']];
+  $('hbCs').textContent = 'SkyFlow ' + e.cs;
+  $('hbBody').innerHTML = rows.map(([l, k]) => { const ok = String(e.cleared[k]) === String(e.readback[k]); return `<tr class="${ok ? '' : 'badrow'}"><td>${l}</td><td>${e.cleared[k]}</td><td>${e.readback[k]}</td><td class="${ok ? 'ok' : 'x'}">${ok ? '✓' : '✕'}</td></tr>`; }).join('');
+  const r = $('hbRes');
+  if (e.ok) { r.className = 'hbres ok'; r.textContent = e.corrected ? '✓ CORRECTED READBACK MATCHES · reservation committed' : '✓ READBACK MATCHES · reservation committed'; $('hbSt').textContent = 'match'; $('hbSt').style.color = 'var(--green)'; }
+  else { r.className = 'hbres bad'; r.textContent = '✕ MISMATCH · ' + e.why + ' · commit blocked'; $('hbSt').textContent = 'mismatch'; $('hbSt').style.color = 'var(--red)'; }
+}
+const cards = {};
+function apply(e, t) {
+  switch (e.type) {
+    case 'radio': VOICE.fire(e); addLine(e); $('hbCs').textContent = 'SkyFlow ' + e.cs; $('hbSt').textContent = e.who === 'CTL' ? 'clearance issued' : 'comparing readback…'; $('hbSt').style.color = 'var(--amber)'; if (e.who === 'CTL') { $('hbBody').innerHTML = ''; $('hbRes').className = 'hbres'; $('hbRes').textContent = 'Awaiting pilot readback…'; } break;
+    case 'datalink': addLine(e); break;
+    case 'hearback': hearback(e); if (!e.ok) { audit(e.t, 'MISMATCH', 'hearback', `SkyFlow ${e.cs} readback route C–E`, 'controller to correct'); ping('hearback'); } break;
+    case 'commit': {
+      const f = F[e.f];
+      bars.forEach(b => { if (b.f === e.f && !b.tSup) b.tSup = e.t; });
+      e.segs.forEach(s => bars.push({ f: e.f, key: s.key, m0: s.m0, m1: s.m1, tC: e.t }));
+      stripRev(e);
+      audit(e.t, 'COMMIT', 'kernel', `R-${f.cs}·${strips[f.cs].rev} SkyFlow ${f.cs} ${f.from}→${f.to} via ${SIM.viaShort(e.route)}`, e.supersede ? 'supersedes prior reservation' : e.note || (e.datalink ? 'datalink' : 'readback verified'));
+      break; }
+    case 'propose':
+      ping(e.agent);
+      if (e.verdict === 'ACCEPT') { acc++; } else { rej++; }
+      if (e.ghost) ghosts.push({ ...e.ghost, t: e.t, cs: F[e.f].cs, reason: e.reason });
+      audit(e.t, e.verdict, e.agent, e.text, e.reason); break;
+    case 'spawn': ping(e.agent); audit(e.t, 'SPAWN', e.parent || 'system', e.text); break;
+    case 'storm': audit(e.t, 'WX', 'sensor.radar', e.text, 'not in forecast'); break;
+    case 'kernel': case 'reopen': audit(e.t, 'KERNEL', 'kernel', e.text); break;
+    case 'approval-open': {
+      const a = e.a, el = document.createElement('div'); el.className = 'card';
+      el.innerHTML = `<div class="lab"><span>${a.id} · REQUESTED BY ${a.by.toUpperCase()}</span><span class="wait">AWAITING HUMAN</span></div><h4>${a.title}</h4><p>${a.why}</p><p class="imp">${a.impact}</p><div class="btns"><button class="ap">APPROVE</button><button>DENY</button></div>`;
+      $('appr').prepend(el); cards[a.id] = el; ping(a.by);
+      audit(e.t, 'HUMAN', a.by, `Requested: ${a.title}`, 'awaiting duty supervisor');
+      [...$('appr').children].slice(3).forEach(c => c.remove());
+      break; }
+    case 'approval-decide': {
+      const el = cards[e.a.id]; if (!el) break;
+      const b = el.querySelector('.ap'); b.classList.add('press');
+      const fin = () => { el.classList.add('done'); el.querySelector('.lab').innerHTML = `<span>${e.a.id} · APPROVED · DUTY SUPERVISOR</span><span>${fmtT(e.t)}</span>`; };
+      if (t - e.t > 0.5) fin(); else setTimeout(fin, 450);
+      audit(e.t, 'APPROVED', 'duty supervisor', e.a.title); break; }
+  }
+}
+function reset() {
+  cur = 0; acc = rej = 0; bars = []; ghosts = [];
+  $('lines').innerHTML = ''; lineEls.length = 0; $('audit').innerHTML = ''; $('appr').innerHTML = '';
+  $('hbBody').innerHTML = ''; $('hbCs').textContent = '—'; $('hbRes').className = 'hbres'; $('hbRes').textContent = 'Waiting for transmission';
+  Object.values(strips).forEach(s => { s.rev = 0; s.state = null; s.el.querySelectorAll('.stamp').forEach(x => x.remove()); s.el.remove(); s.el.querySelector('.rid').textContent = `R-${s.f.cs}·—`; s.el.querySelector('.via').textContent = 'via ' + SIM.viaShort(s.f.affected ? s.f.A : s.f.route); });
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('on'));
+}
+PLAY.on(reset);
+// ---- sound: SkyRadio wiring ----
+(() => {
+  const b = document.getElementById('bSnd'), tx = document.getElementById('txl');
+  const paint = () => { const on = window.SkyRadio && SkyRadio.enabled; b.classList.toggle('snd-on', !!on); b.querySelector('span').textContent = on ? 'Sound on' : 'Sound off'; };
+  b.onclick = () => { if (!window.SkyRadio) return; SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); paint(); };
+  document.addEventListener('skyradio:enabled', paint);
+  if (window.SkyRadio) SkyRadio.onTransmit(x => { tx.classList.toggle('live', x.live); tx.innerHTML = x.live ? `<i></i>TX ${x.speaker === 'atc' ? 'ATC' : x.key}` : 'RX'; });
+  paint();
+})();
+
+
+function render() {
+  const t = PLAY.t;
+  while (cur < SIM.events.length && SIM.events[cur].t <= t) apply(SIM.events[cur++], t);
+  // typing lines
+  lineEls.forEach(el => { const e = el._e; if (!el.isConnected || e.type !== 'radio') return; const p = Math.min(1, (t - e.t) / e.dur); const tx = el.querySelector('.tx'); const n = Math.ceil(e.text.length * p);
+    if (el._n !== n) { el._n = n; tx.innerHTML = e.text.slice(0, n) + (p < 1 ? '<span class="wave"><i></i><i></i><i></i><i></i><i></i></span>' : ''); }
+    if (p >= 1 && t - e.t > e.dur + 5) el.classList.add('old'); });
+  layoutStrips(t);
+  drawLedger(t);
+  const ph = SIM.phase(t); const pe = $('phase'); pe.textContent = ph.label; pe.className = 'phase ' + ph.id;
+  $('clock').textContent = SIM.clock(t);
+  const sc = SIM.score(t);
+  $('kOk').textContent = sc.ok; $('kSt').textContent = sc.st; $('kDel').innerHTML = sc.maxDelay.toFixed(1) + '<i> min</i>'; $('kCon').textContent = sc.conflicts; $('kHum').textContent = sc.human; $('kRad').textContent = sc.radio;
+  $('nAcc').textContent = acc; $('nRej').textContent = rej;
+  $('end').style.display = t > 84 ? 'flex' : 'none';
+  requestAnimationFrame(render);
+}
+$('bPlay').onclick = () => { $('bPlay').textContent = PLAY.toggle() ? '❚❚ Pause' : '▶ Play'; };
+$('bRe').onclick = () => PLAY.restart();
+addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); $('bPlay').click(); } if (e.key === 'r') PLAY.restart(); });
+document.fonts.ready.then(() => { resize(); });
+resize(); requestAnimationFrame(render);
+</script>
+</body>
+</html>

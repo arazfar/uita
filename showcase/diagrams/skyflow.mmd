@@ -1,0 +1,18 @@
+flowchart LR
+  input["Scenario controls<br/>Policy · forecast · replay"]
+  demand["Synthetic demand<br/>28 fixed requests"]
+  planner["Route scheduler<br/>Fixed or coordinated"]
+  validator["Reservation validator<br/>Corridors · junctions · pads"]
+  schedule["Computed schedules<br/>Timings and outcomes"]
+  scene["3D control room<br/>Three.js + Bay geometry"]
+  input -->|recompute both policies| planner
+  demand -->|same requests and deadlines| planner
+  planner -->|routes and reservations| validator
+  planner -->|complete trip plans| schedule
+  validator -->|conflict result| scene
+  schedule -->|interpolated movement and metrics| scene
+  input -->|play and scrub| scene
+  classDef active fill:#e5f1e9,stroke:#72a889,color:#274939
+  classDef shared fill:#e6eff8,stroke:#769dbd,color:#294b65
+  class input,demand,planner,validator,schedule active
+  class scene shared

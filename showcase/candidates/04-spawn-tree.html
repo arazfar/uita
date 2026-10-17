@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyFlow Spawn Tree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f1ec; --panel:#ffffff; --panel2:#f7f5f0; --ink:#161c22; --ink2:#4a535d; --ink3:#8a929b; --line:#e2ddd2;
+  --teal:#0d7a6f; --teal-soft:#dcefeb; --amber:#c27610; --amber-soft:#faecd2; --red:#c13d2a; --red-soft:#f8e0da;
+  --blue:#2b67a8; --blue-soft:#dde8f5; --water:#d7e6ec; --land:#f6f3ec; --land-edge:#cfc6b5;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --shadow:0 1px 0 rgba(22,28,34,.04),0 8px 22px -12px rgba(22,28,34,.25);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font:13px/1.35 var(--sans);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+.top{height:52px;flex:0 0 52px;display:flex;align-items:center;gap:14px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px}
+.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--ink);display:grid;place-items:center}
+.brand small{font-weight:500;color:var(--ink3);font-size:12px;margin-left:4px}
+.chip{font:600 10.5px var(--mono);letter-spacing:.8px;padding:3px 7px;border-radius:5px;border:1px solid #ecd9a6;color:#7a5b10;background:#fbefd2;text-transform:uppercase}
+.phase{font:600 11px var(--mono);padding:4px 9px;border-radius:5px;border:1px solid var(--line);color:var(--ink2);background:var(--panel2);transition:.3s;text-transform:uppercase;letter-spacing:.5px}
+.phase.storm{color:var(--red);background:var(--red-soft);border-color:#ebbcb1}
+.phase.replan{color:var(--amber);background:var(--amber-soft);border-color:#ecd1a2}
+.phase.recover{color:var(--teal);background:var(--teal-soft);border-color:#a9d6cf}
+.spacer{flex:1}
+.clock{font:500 13px var(--mono);color:var(--ink2)} .clock b{color:var(--ink);font-weight:600}
+.btn{font:600 12px var(--sans);padding:6px 11px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn:hover{border-color:#c9c0ae} .btn svg{width:13px;height:13px}
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(500px,41%) 1fr;gap:12px;padding:12px 16px 16px}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);position:relative}
+.hd{display:flex;align-items:center;gap:8px;padding:10px 14px 6px;font:600 10.5px var(--mono);letter-spacing:.7px;color:var(--ink3);text-transform:uppercase}
+.hd .r{margin-left:auto;text-transform:none;letter-spacing:0;font:500 11px var(--sans)}
+/* map */
+.map{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.map svg{flex:1;min-height:0;width:100%}
+.map .credit{position:absolute;left:14px;bottom:8px;font:500 9.5px var(--mono);color:var(--ink3)}
+.map .leg{position:absolute;right:12px;bottom:8px;display:flex;gap:10px;font:500 10px var(--mono);color:var(--ink2)}
+.map .leg i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:4px;vertical-align:2px}
+svg text{font-family:var(--mono)}
+.cs{font-size:9.5px;font-weight:600;fill:var(--blue);paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
+.cs.sel{fill:var(--amber)}
+/* score strip */
+.score{display:grid;grid-template-columns:1.8fr repeat(4,1fr);align-items:center;padding:10px 14px;gap:12px}
+.score .l{font-size:11px;color:var(--ink2)} .score .n{font:600 18px var(--mono)}
+.ot .row{gap:8px;display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--ink2);white-space:nowrap} .ot .row b{color:var(--ink)}
+.bar{height:5px;border-radius:3px;background:#ece7dc;position:relative;overflow:hidden;margin:3px 0 5px}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:3px;transition:width .4s}
+/* radio */
+.radio{flex:0 0 212px;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+.tx-list{padding:0 4px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.tx{display:grid;grid-template-columns:36px 1fr;gap:7px;padding:3px 10px;font-size:12px;line-height:1.35}
+.tx .sp{font:600 9.5px var(--mono);border-radius:3px;text-align:center;height:17px;line-height:17px;margin-top:1px}
+.sp.c{background:var(--ink);color:#fff} .sp.p{background:var(--blue-soft);color:var(--blue)} .sp.h{background:var(--panel2);color:var(--ink2);border:1px solid var(--line);line-height:15px}
+.tx em{font-style:normal;background:var(--red-soft);color:var(--red);border-radius:3px;padding:0 2px}
+.tx strong{font-weight:600;color:var(--teal)}
+.txp{font:600 9.5px var(--mono);padding:1px 6px;border-radius:4px;border:1px solid var(--line);color:var(--ink3);letter-spacing:.5px}
+.txp.on{background:var(--red);border-color:var(--red);color:#fff;animation:txb .9s ease-in-out infinite alternate}
+.txp.on.p{background:var(--blue);border-color:var(--blue)}
+@keyframes txb{to{opacity:.55}}
+.btn.on{border-color:#a9d6cf;color:var(--teal)}
+.quiet{color:var(--ink3);font-size:12px;padding:6px 10px}
+.hbrow{display:flex;gap:5px;align-items:center;padding:7px 14px 10px;border-top:1px solid var(--line);flex-wrap:wrap}
+.hbrow .lb{font:600 10px var(--mono);color:var(--ink3);letter-spacing:.6px;margin-right:2px}
+.fld{font:500 10.5px var(--mono);padding:2px 6px;border-radius:4px;border:1px solid var(--line);color:var(--ink3);background:var(--panel2)}
+.fld.ok{color:var(--teal);background:var(--teal-soft);border-color:#b2dad3}
+.fld.bad{color:var(--red);background:var(--red-soft);border-color:#ebbcb1;font-weight:600}
+.commit{margin-left:auto;font:600 10.5px var(--mono);padding:3px 8px;border-radius:5px;border:1px dashed var(--line);color:var(--ink3)}
+.commit.ok{color:#fff;background:var(--teal);border:1px solid var(--teal)} .commit.bad{color:var(--red);background:var(--red-soft);border:1px solid #ebbcb1}
+/* tree */
+.tree{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.counters{display:flex;gap:0;border-bottom:1px solid var(--line)}
+.ctr{padding:9px 16px 10px;border-right:1px solid var(--line)}
+.ctr .k{font:600 10px var(--mono);letter-spacing:.6px;color:var(--ink3);text-transform:uppercase}
+.ctr .v{font:600 22px/1.1 var(--mono);margin-top:3px}
+.ctr .v small{font-size:12px;color:var(--ink3);font-weight:500}
+.ctr.human{background:linear-gradient(#f2faf8,#fff)}
+.ctr.human .v{color:var(--teal)}
+.ctr .v .ok{color:var(--teal)} .ctr .v .rej{color:var(--red)}
+.stage{position:relative;flex:1;min-height:0}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.node{position:absolute;width:212px;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px 9px;box-shadow:var(--shadow);transition:opacity .5s,border-color .3s,box-shadow .3s;font-size:11.5px}
+.node.hidden{opacity:0;pointer-events:none}
+.node.spawn{animation:spawn .6s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes spawn{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.node.ret{opacity:.42;border-style:dashed;box-shadow:none}
+.node.prop{border-color:#e3b45f;box-shadow:0 0 0 3px rgba(194,118,16,.14),var(--shadow)}
+.node.okf{border-color:#8fcbc1;box-shadow:0 0 0 3px rgba(13,122,111,.14),var(--shadow)}
+.node.rejf{border-color:#e39c8f;box-shadow:0 0 0 3px rgba(193,61,42,.16),var(--shadow)}
+.node .t{display:flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px}
+.node .d{font:600 9.5px var(--mono);padding:1px 4px;border-radius:3px;background:var(--panel2);border:1px solid var(--line);color:var(--ink2)}
+.node .st{margin-left:auto;font:600 9.5px var(--mono);text-transform:uppercase;letter-spacing:.5px}
+.st.work{color:var(--blue)} .st.prop{color:var(--amber)} .st.ok{color:var(--teal)} .st.rej{color:var(--red)} .st.ret{color:var(--ink3)} .st.watch{color:var(--ink2)}
+.node .task{color:var(--ink2);margin:4px 0 5px;line-height:1.28;min-height:15px}
+.node .bud{display:flex;align-items:center;gap:6px;font:500 10px var(--mono);color:var(--ink3)}
+.node .bud .bar{flex:1;margin:0;height:4px}
+.node .sent{margin-top:6px;padding-top:5px;border-top:1px dashed var(--line);font-size:11px;color:var(--ink2);line-height:1.28}
+.node .sent .arrow{font:600 9.5px var(--mono);color:var(--ink3);margin-right:3px}
+.vd{font:600 9.5px var(--mono);padding:1px 4px;border-radius:3px;margin-left:2px;white-space:nowrap}
+.vd.ok{background:var(--teal-soft);color:var(--teal)} .vd.rej{background:var(--red-soft);color:var(--red)} .vd.pend{background:var(--amber-soft);color:var(--amber)}
+.kernel{position:absolute;left:50%;transform:translateX(-50%);top:12px;width:min(560px,80%);background:var(--ink);color:#fff;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.kernel b{font:600 12.5px var(--sans)}
+.kernel .s{font:500 10.5px var(--mono);color:#aeb6bf}
+.kernel .last{margin-left:auto;font:600 10.5px var(--mono);padding:3px 7px;border-radius:5px;background:#28313a;color:#cfd6dc;transition:.3s;white-space:nowrap}
+.kernel .last.ok{background:var(--teal);color:#fff} .kernel .last.rej{background:var(--red);color:#fff}
+.cap{position:absolute;left:16px;right:16px;border-top:1.5px dashed #d2a29a;}
+.cap span{position:absolute;right:0;top:-10px;background:#fff;padding:0 6px;font:600 10px var(--mono);color:var(--red);letter-spacing:.5px}
+.ghost{position:absolute;transform:translate(-50%,-50%);border:1.5px dashed var(--red);border-radius:9px;padding:5px 9px;font:600 11px var(--mono);color:var(--red);background:#fff7f5;opacity:0;transition:opacity .4s;white-space:nowrap}
+.ghost.on{opacity:1}
+.pkt{font:600 10px var(--mono);fill:#fff}
+.narr{position:absolute;left:16px;bottom:12px;font:500 11.5px var(--sans);color:var(--ink2);max-width:36%}
+/* timeline */
+.tl{flex:0 0 64px;padding:10px 16px 0}
+.tl .track{position:relative;height:18px;margin-top:4px;border-radius:4px;background:var(--panel2);border:1px solid var(--line)}
+.tl .storm{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,#f6d9d2 0 6px,#fbeae6 6px 12px);border-left:1px solid #e3a597;border-right:1px solid #e3a597}
+.tl .cur{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);border-radius:1px}
+.tl .mk{position:absolute;top:3px;width:10px;height:10px;margin-left:-5px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.tl .lbls{position:relative;height:14px;font:500 10px var(--mono);color:var(--ink3)}
+.tl .lbls span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.tl .ttl{display:flex;justify-content:space-between;font:600 10px var(--mono);color:var(--ink3);letter-spacing:.6px;text-transform:uppercase}
+@media (max-width:1360px){.node{width:190px;font-size:11px}.ctr{padding:8px 11px}.ctr .v{font-size:19px}main{grid-template-columns:480px 1fr}.score{gap:8px}}
+</style>
+<script src="radio-audio.js?v=3"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 4v5M12 9l-6 5M12 9l6 5M6 14v4M18 14l-3 4M18 14l3 4"/></svg></div>SkyFlow<small>Recursive ATC · agent spawn tree</small></div>
+  <span class="chip">Simulation</span>
+  <span class="phase" id="phase">Calm</span>
+  <div class="spacer"></div>
+  <div class="clock">SIM <b id="clk">T+00:00</b> · <span id="loc">14:00</span>L</div>
+  <button class="btn" id="play"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg><span>Pause</span></button>
+  <button class="btn" id="snd" title="Radio audio"><svg viewBox="0 0 16 16"></svg><span>Muted</span></button>
+    <button class="btn" id="restart"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 8a5.5 5.5 0 1 0 1.7-4"/><path d="M2.5 2.5v3.5H6"/></svg>Restart</button>
+</header>
+<main>
+  <div class="col">
+    <section class="card map">
+      <div class="hd"><span>Bay sector · UAM corridors</span><span class="r" id="map-sub">28 trips · 1 released every 2.5 min</span></div>
+      <svg id="map" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="credit">Coastline: US Census cb_2023 · scripted traffic</div>
+      <div class="leg"><span><i style="background:#3a9e91"></i>open</span><span><i style="background:var(--red)"></i>closed</span><span><i style="background:var(--amber)"></i>SKF112</span></div>
+    </section>
+    <section class="card score">
+      <div class="ot">
+        <div class="row"><span>On time · static plan</span><b>10/28</b></div>
+        <div class="bar"><i style="width:35.7%;background:#bdb29e"></i></div>
+        <div class="row"><span>On time · agent team</span><b id="sc-ot">0/28</b></div>
+        <div class="bar"><i id="sc-otb" style="width:0;background:var(--teal)"></i></div>
+      </div>
+      <div><div class="l">Max delay</div><div class="n" id="sc-md">0.0</div></div>
+      <div><div class="l">Conflicts</div><div class="n">0</div></div>
+      <div><div class="l">Radio tx</div><div class="n" id="sc-tx">0</div></div>
+      <div><div class="l">Distance</div><div class="n" id="sc-dist">+0.0%</div></div>
+    </section>
+    <section class="card radio">
+      <div class="hd"><span>Voice loop · SkyFlow 112</span><span class="txp" id="txp">TX</span><span class="r">SkyFlow Control 122.850</span></div>
+      <div class="tx-list" id="tx"></div>
+      <div class="hbrow" id="hb"></div>
+    </section>
+  </div>
+  <div class="col">
+    <section class="card tree">
+      <div class="counters">
+        <div class="ctr human"><div class="k">Human interventions</div><div class="v" id="c-hum">0</div></div>
+        <div class="ctr"><div class="k">Depth</div><div class="v" id="c-depth">0<small> / cap 2</small></div></div>
+        <div class="ctr"><div class="k">Live agents</div><div class="v" id="c-live">1<small> peak 1</small></div></div>
+        <div class="ctr"><div class="k">Proposals</div><div class="v" id="c-prop">0</div></div>
+        <div class="ctr"><div class="k">Verdicts</div><div class="v" id="c-vd"><span class="ok">0</span><small> ok </small><span class="rej">0</span><small> rej</small></div></div>
+        <div class="ctr" style="border-right:none"><div class="k">Tokens</div><div class="v" id="c-tok">4<small>k</small></div></div>
+      </div>
+      <div class="stage" id="stage">
+        <svg id="edges"></svg>
+        <div class="kernel" id="kernel"><div><b>Deterministic kernel</b><div class="s">validator · commits reservations · rules R-1 to R-9</div></div><span class="last" id="k-last">idle</span></div>
+        <div class="cap" id="cap"><span>DEPTH CAP 2 · SPAWNS BELOW REFUSED</span></div>
+        <div class="ghost" id="ghost">D3 Gate OAK-2 · spawn refused</div>
+        <div class="narr" id="watch">Single-agent watch. Sub-agents are spawned only when a disruption needs local replanning, and retire when it clears.</div>
+      </div>
+    </section>
+    <section class="card tl">
+      <div class="ttl"><span>Scenario timeline</span><span id="tl-r">storm closes C–E 08–24</span></div>
+      <div class="track" id="track"><div class="storm" id="tl-storm"></div><div class="cur" id="tl-cur"></div></div>
+      <div class="lbls" id="tl-l"></div>
+    </section>
+  </div>
+</main>
+<script>
+window.COAST=[[[[-122.4929,37.7879],[-122.4858,37.7906],[-122.4803,37.8013],[-122.4782,37.8083],[-122.4768,37.8094],[-122.4707,37.8085],[-122.4638,37.8047],[-122.4203,37.8085],[-122.4095,37.8089],[-122.4009,37.8049],[-122.4011,37.8036],[-122.3877,37.7888],[-122.3877,37.7768],[-122.3852,37.7688],[-122.3868,37.7637],[-122.3823,37.7608],[-122.3813,37.7553],[-122.3831,37.7533],[-122.3766,37.7521],[-122.3762,37.7485],[-122.3678,37.7402],[-122.3682,37.7399],[-122.3738,37.7396],[-122.3759,37.7357],[-122.3752,37.7347],[-122.3746,37.7329],[-122.3733,37.7332],[-122.372,37.7342],[-122.3701,37.7328],[-122.3674,37.732],[-122.3662,37.7328],[-122.3593,37.7286],[-122.3637,37.7221],[-122.3629,37.7181],[-122.3648,37.7164],[-122.3793,37.7243],[-122.3832,37.7207],[-122.376,37.716],[-122.3801,37.7109],[-122.3788,37.7095],[-122.3794,37.7087],[-122.3915,37.7098],[-122.3942,37.7076],[-122.3876,37.6791],[-122.3817,37.6773],[-122.381,37.6724],[-122.381,37.6679],[-122.3743,37.6622],[-122.3762,37.6553],[-122.38,37.6477],[-122.3872,37.6473],[-122.3912,37.6464],[-122.3893,37.6402],[-122.3843,37.6404],[-122.3802,37.635],[-122.3651,37.6281],[-122.3679,37.621],[-122.3556,37.6153],[-122.3591,37.6093],[-122.3704,37.6144],[-122.3733,37.6138],[-122.3786,37.6056],[-122.3698,37.6027],[-122.3602,37.5925],[-122.3346,37.5918],[-122.3344,37.588],[-122.3289,37.5888],[-122.3251,37.5915],[-122.3149,37.5912],[-122.3157,37.5837],[-122.3059,37.5755],[-122.2843,37.5754],[-122.2736,37.5705],[-122.2629,37.5739],[-122.2519,37.5679],[-122.2434,37.5528],[-122.2358,37.552],[-122.2329,37.5526],[-122.2291,37.5513],[-122.2232,37.5432],[-122.2125,37.5402],[-122.2037,37.5402],[-122.1966,37.5372],[-122.1946,37.5326],[-122.2001,37.5266],[-122.195,37.5225],[-122.1866,37.5176],[-122.1835,37.5208],[-122.1796,37.5118],[-122.1621,37.5002],[-122.1557,37.5012],[-122.1496,37.5027],[-122.1397,37.507],[-122.1362,37.5068],[-122.131,37.5037],[-122.1277,37.5001],[-122.1241,37.4859],[-122.1205,37.4772],[-122.1231,37.474],[-122.1175,37.4676],[-122.1091,37.463],[-122.1018,37.4627],[-122.0963,37.4578],[-122.0887,37.4523],[-122.0685,37.4503],[-122.0676,37.45],[-122.445,37.45],[-122.446,37.4615],[-122.4521,37.4805],[-122.4596,37.4927],[-122.4679,37.4981],[-122.4724,37.5005],[-122.4859,37.4946],[-122.4938,37.4923],[-122.4954,37.4956],[-122.4993,37.4953],[-122.5007,37.498],[-122.4987,37.5008],[-122.5015,37.5046],[-122.5059,37.5071],[-122.5124,37.5141],[-122.5167,37.5213],[-122.5195,37.5373],[-122.5166,37.5449],[-122.5148,37.5461],[-122.5137,37.5522],[-122.5152,37.5663],[-122.5181,37.5676],[-122.5204,37.5753],[-122.518,37.5767],[-122.5172,37.5906],[-122.5208,37.5942],[-122.5153,37.5956],[-122.5147,37.5983],[-122.5076,37.5961],[-122.5014,37.5996],[-122.5004,37.6041],[-122.5021,37.6064],[-122.5023,37.6083],[-122.4982,37.6083],[-122.4968,37.6121],[-122.4982,37.6141],[-122.498,37.6208],[-122.4959,37.6228],[-122.4941,37.644],[-122.4968,37.6864],[-122.5065,37.7237],[-122.5145,37.7808],[-122.5053,37.7883],[-122.4929,37.7879]]],[[[-122.332,37.782],[-122.3309,37.7951],[-122.3342,37.8013],[-122.3415,37.8042],[-122.3423,37.8056],[-122.333,37.8108],[-122.3228,37.8101],[-122.3173,37.8163],[-122.3192,37.8191],[-122.3304,37.8206],[-122.3161,37.8273],[-122.3061,37.826],[-122.2966,37.8285],[-122.298,37.8364],[-122.3159,37.8368],[-122.3142,37.8423],[-122.2992,37.8405],[-122.3011,37.8463],[-122.3014,37.8555],[-122.3084,37.8629],[-122.3169,37.8588],[-122.3187,37.8664],[-122.3252,37.8743],[-122.3187,37.8753],[-122.3132,37.8702],[-122.3085,37.8709],[-122.3114,37.8798],[-122.3161,37.8849],[-122.3269,37.8887],[-122.3269,37.8925],[-122.3154,37.8922],[-122.3111,37.8904],[-122.3095,37.893],[-122.3114,37.8958],[-122.3148,37.8987],[-122.319,37.8979],[-122.3223,37.8954],[-122.3254,37.8978],[-122.3248,37.9019],[-122.3217,37.9051],[-122.3251,37.9081],[-122.3357,37.9103],[-122.3447,37.9072],[-122.3523,37.9076],[-122.3531,37.9096],[-122.3604,37.9095],[-122.3619,37.9174],[-122.3648,37.9179],[-122.3655,37.9158],[-122.3635,37.9056],[-122.3683,37.9046],[-122.3787,37.9072],[-122.3859,37.9081],[-122.3906,37.9091],[-122.3875,37.9205],[-122.3905,37.9225],[-122.3915,37.9254],[-122.3977,37.9294],[-122.4013,37.9284],[-122.402,37.9314],[-122.41,37.9324],[-122.4137,37.9373],[-122.411,37.9397],[-122.4141,37.9453],[-122.4226,37.9472],[-122.4193,37.9509],[-122.4207,37.9549],[-122.425,37.9569],[-122.4301,37.9631],[-122.4298,37.9654],[-122.4186,37.9648],[-122.4126,37.9633],[-122.4118,37.9605],[-122.4084,37.9575],[-122.4029,37.9549],[-122.3955,37.9599],[-122.4015,37.9657],[-122.401,37.9685],[-122.3817,37.9717],[-122.3676,37.9782],[-122.3619,37.99],[-122.363,37.9944],[-122.3669,37.9985],[-122.3689,38.008],[-122.3679,38.0125],[-122.3646,38.0129],[-122.362,38.0086],[-122.3555,38.0087],[-122.3401,38.0037],[-122.3325,38.0015],[-122.3245,38.0056],[-122.3154,38.0116],[-122.3008,38.0109],[-122.2939,38.0161],[-122.2894,38.0223],[-122.2835,38.0227],[-122.2768,38.0305],[-122.2751,38.0374],[-122.2714,38.0409],[-122.2669,38.0411],[-122.2629,38.0446],[-122.2629,38.05],[-122.0,38.05],[-122.0,37.45],[-122.0447,37.45],[-122.0386,37.4546],[-122.0386,37.462],[-122.0498,37.4661],[-122.0534,37.4733],[-122.0545,37.4873],[-122.0555,37.4952],[-122.0826,37.5016],[-122.0928,37.5006],[-122.1025,37.4972],[-122.1094,37.5003],[-122.1113,37.5076],[-122.112,37.5288],[-122.1287,37.5606],[-122.1339,37.5629],[-122.1362,37.5682],[-122.1444,37.5819],[-122.147,37.5884],[-122.1469,37.5994],[-122.1464,37.6074],[-122.1514,37.6205],[-122.153,37.6419],[-122.1604,37.6647],[-122.1676,37.6772],[-122.1777,37.6828],[-122.1841,37.691],[-122.1873,37.6903],[-122.1941,37.6955],[-122.2015,37.705],[-122.2042,37.7116],[-122.2125,37.709],[-122.2118,37.702],[-122.2147,37.6992],[-122.2265,37.7065],[-122.2522,37.7249],[-122.2484,37.7278],[-122.256,37.7357],[-122.261,37.7396],[-122.2617,37.7434],[-122.2522,37.7476],[-122.2449,37.7503],[-122.2439,37.7518],[-122.2719,37.7615],[-122.275,37.7657],[-122.2794,37.7681],[-122.2831,37.7639],[-122.289,37.7646],[-122.2888,37.7687],[-122.2999,37.7723],[-122.3064,37.7761],[-122.3154,37.7766],[-122.3178,37.7797],[-122.332,37.782]]],[[[-122.3588,37.8143],[-122.3608,37.8128],[-122.3611,37.808],[-122.3623,37.807],[-122.3671,37.8074],[-122.3717,37.8094],[-122.3728,37.8111],[-122.3713,37.8147],[-122.379,37.8269],[-122.3777,37.8305],[-122.3735,37.8323],[-122.3688,37.8313],[-122.3629,37.8227],[-122.3643,37.8189],[-122.3588,37.8143]]],[[[-122.4254,37.8273],[-122.4252,37.8286],[-122.4232,37.8287],[-122.4202,37.8265],[-122.4207,37.8252],[-122.4228,37.8253],[-122.4254,37.8273]]],[[[-122.4199,37.8565],[-122.42,37.855],[-122.4186,37.8533],[-122.4188,37.8528],[-122.4196,37.8527],[-122.4231,37.8545],[-122.4307,37.8557],[-122.4346,37.8537],[-122.4395,37.8556],[-122.4408,37.8554],[-122.4424,37.8562],[-122.4422,37.8583],[-122.445,37.8605],[-122.4451,37.8614],[-122.4412,37.8625],[-122.4395,37.8675],[-122.4383,37.8677],[-122.4365,37.8663],[-122.4344,37.8669],[-122.4346,37.8689],[-122.4338,37.87],[-122.4325,37.8704],[-122.4319,37.8715],[-122.431,37.8721],[-122.43,37.8721],[-122.427,37.8703],[-122.4247,37.8704],[-122.4232,37.8693],[-122.4231,37.8682],[-122.4219,37.8661],[-122.422,37.8641],[-122.4213,37.8633],[-122.4193,37.8629],[-122.4188,37.862],[-122.4214,37.8591],[-122.4199,37.8565]]],[[[-122.4978,38.0194],[-122.4946,38.0151],[-122.4875,38.0144],[-122.4815,38.0076],[-122.4628,38.0034],[-122.4507,37.9922],[-122.4484,37.9883],[-122.4473,37.9844],[-122.4561,37.9799],[-122.4637,37.9815],[-122.4666,37.9848],[-122.472,37.9818],[-122.4746,37.9776],[-122.4746,37.975],[-122.4772,37.9716],[-122.4844,37.9706],[-122.4925,37.9701],[-122.4955,37.9705],[-122.4965,37.9677],[-122.4903,37.9648],[-122.4903,37.9592],[-122.4865,37.9469],[-122.4805,37.9454],[-122.4795,37.9425],[-122.4865,37.9398],[-122.4899,37.9366],[-122.497,37.9389],[-122.4986,37.9415],[-122.5051,37.9428],[-122.5051,37.9364],[-122.5031,37.9288],[-122.4936,37.9219],[-122.4864,37.9219],[-122.4792,37.9164],[-122.4756,37.9169],[-122.4736,37.9125],[-122.473,37.9089],[-122.4761,37.9079],[-122.477,37.9057],[-122.4723,37.9026],[-122.4625,37.8974],[-122.4586,37.8941],[-122.4484,37.8934],[-122.4437,37.8867],[-122.4415,37.8846],[-122.4383,37.8824],[-122.4389,37.8806],[-122.4418,37.8809],[-122.4445,37.8788],[-122.444,37.8765],[-122.4482,37.8752],[-122.4499,37.8727],[-122.4552,37.873],[-122.458,37.8719],[-122.4607,37.874],[-122.4625,37.8733],[-122.4633,37.8718],[-122.4625,37.8687],[-122.4585,37.8656],[-122.4581,37.8633],[-122.4596,37.8627],[-122.4688,37.8689],[-122.4737,37.8749],[-122.4742,37.8774],[-122.4712,37.8808],[-122.4729,37.8848],[-122.4815,37.8899],[-122.489,37.8957],[-122.4934,37.8939],[-122.499,37.8939],[-122.5024,37.8954],[-122.5043,37.8941],[-122.5008,37.8867],[-122.4989,37.886],[-122.4965,37.8773],[-122.5005,37.8742],[-122.4963,37.8708],[-122.4946,37.8663],[-122.4877,37.8642],[-122.4784,37.8595],[-122.4788,37.8516],[-122.4799,37.8498],[-122.4797,37.8476],[-122.4775,37.8466],[-122.4769,37.8426],[-122.4756,37.8415],[-122.4723,37.8368],[-122.4721,37.8351],[-122.4726,37.833],[-122.4737,37.8329],[-122.4745,37.8338],[-122.4761,37.834],[-122.4778,37.8334],[-122.4791,37.8304],[-122.4785,37.8261],[-122.4791,37.8255],[-122.4835,37.8267],[-122.4909,37.8267],[-122.4955,37.8224],[-122.499,37.8224],[-122.4998,37.8221],[-122.5,37.8209],[-122.5045,37.8211],[-122.5057,37.8233],[-122.5111,37.825],[-122.5201,37.8257],[-122.5237,37.8248],[-122.5276,37.821],[-122.5289,37.8183],[-122.5296,37.8177],[-122.5307,37.818],[-122.5319,37.8212],[-122.535,37.8242],[-122.5341,37.8262],[-122.5373,37.8303],[-122.549,37.8362],[-122.559,37.8465],[-122.5615,37.8518],[-122.5735,37.8557],[-122.5754,37.8587],[-122.5797,37.8601],[-122.5818,37.857],[-122.6013,37.8751],[-122.6139,37.8784],[-122.6174,37.8772],[-122.6211,37.8788],[-122.6241,37.8811],[-122.6269,37.8807],[-122.6287,37.8817],[-122.6282,37.8845],[-122.642,37.8975],[-122.65,37.901],[-122.65,38.05],[-122.4928,38.05],[-122.4929,38.0484],[-122.4995,38.0322],[-122.4978,38.0194]]]];
+</script>
+<script>
+/* ---------------- scenario (shared with the other SkyFlow candidates) ---------------- */
+const P={SF:[-122.41,37.785],MAR:[-122.485,37.862],SFO:[-122.375,37.622],OAK:[-122.235,37.722],BER:[-122.275,37.865],W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77]};
+const PORTS=['SF','MAR','SFO','OAK','BER'],JX=['W','C','E'];
+const CORR=[['SF','MAR'],['SF','W'],['SF','C'],['C','BER'],['C','E'],['W','E'],['W','SFO'],['E','OAK'],['OAK','BER']];
+const COS=Math.cos(37.76*Math.PI/180);
+const XY=n=>[(P[n][0]+122.35)*COS,P[n][1]-37.76];
+const SPEED=0.03,SPM=1.05,END=82,STORM=[8,24],SEL=6;
+const ROUTES={'SF-OAK':{s:['SF','C','E','OAK'],a:['SF','W','E','OAK']},'BER-SFO':{s:['BER','C','SF','W','SFO']},'MAR-OAK':{s:['MAR','SF','C','E','OAK'],a:['MAR','SF','W','E','OAK']},'OAK-SF':{s:['OAK','E','C','SF'],a:['OAK','E','W','SF']},'SFO-BER':{s:['SFO','W','E','OAK','BER']},'BER-SF':{s:['BER','C','SF']},'MAR-SFO':{s:['MAR','SF','W','SFO']},'SF-BER':{s:['SF','C','BER']},'OAK-MAR':{s:['OAK','E','C','SF','MAR'],a:['OAK','BER','C','SF','MAR']},'SFO-OAK':{s:['SFO','W','E','OAK']}};
+const ORDER=['SF-OAK','BER-SFO','MAR-OAK','OAK-SF','SF-OAK','SFO-BER','SF-OAK','BER-SF','OAK-SF','MAR-SFO','SF-BER','OAK-MAR','SFO-OAK','BER-SFO','MAR-OAK','SF-BER','OAK-SF','SFO-BER','BER-SF','SF-OAK','MAR-SFO','OAK-MAR','SFO-OAK','SF-BER','BER-SFO','OAK-SF','MAR-OAK','SF-OAK'];
+const usesCE=p=>p.some((n,i)=>i&&((p[i-1]==='C'&&n==='E')||(p[i-1]==='E'&&n==='C')));
+function pathGeom(p){const pts=p.map(XY);const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));return{pts,cum,len:cum[cum.length-1]};}
+const FLIGHTS=ORDER.map((od,i)=>{const r=ROUTES[od],sched=2.5*i,cs=i===6?112:i===11?107:101+i;const st=pathGeom(r.s);let path=r.s,dep=sched,rr=false;
+  if(r.a&&usesCE(r.s)){const ci=r.s.findIndex((n,k)=>k&&usesCE([r.s[k-1],n]));const tIn=sched+st.cum[ci-1]/SPEED,tOut=sched+st.cum[ci]/SPEED;if(tOut>STORM[0]&&tIn<STORM[1]){path=r.a;rr=true;if(sched>=STORM[0]&&sched<11.5)dep=11.5;}}
+  if(i===SEL){path=r.a;rr=true;dep=17.2;}
+  const g=pathGeom(path);const schedArr=sched+st.len/SPEED,arr=dep+g.len/SPEED;
+  return{i,od,cs,sched,dep,path,rr,g,staticLen:st.len,schedArr,arr,delay:Math.max(0,arr-schedArr),from:path[0],to:path[path.length-1]};});
+function posOf(f,m){if(m<f.dep||m>f.arr)return null;const d=(m-f.dep)*SPEED,{pts,cum}=f.g;let k=1;while(k<cum.length-1&&cum[k]<d)k++;const t=(d-cum[k-1])/(cum[k]-cum[k-1]||1);const a=pts[k-1],b=pts[k];return{x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t,hd:Math.atan2(b[1]-a[1],b[0]-a[0])};}
+const fmt=m=>{m=Math.max(0,m);const mm=Math.floor(m),ss=Math.floor((m-mm)*60);return String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');};
+const loc=m=>{const t=14*60+Math.floor(m);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
+const $=id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;};
+
+/* ---------------- map ---------------- */
+const BB={lon0:-122.60,lon1:-122.11,lat0:37.595,lat1:37.905},S=1000;
+const px=(lon,lat)=>[(lon-BB.lon0)*COS*S,(BB.lat1-lat)*S];
+const pxN=n=>px(...P[n]);
+const map=$('map');const MW=(BB.lon1-BB.lon0)*COS*S,MH=(BB.lat1-BB.lat0)*S;
+map.setAttribute('viewBox',`0 0 ${MW} ${MH}`);
+const defs=el('defs',{},map);
+defs.innerHTML=`<radialGradient id="wx"><stop offset="0" stop-color="#c13d2a" stop-opacity=".42"/><stop offset=".6" stop-color="#c13d2a" stop-opacity=".22"/><stop offset="1" stop-color="#c13d2a" stop-opacity="0"/></radialGradient>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#c13d2a" stroke-width="1.2" opacity=".35"/></pattern>
+<clipPath id="mclip"><rect width="${MW}" height="${MH}" rx="0"/></clipPath>`;
+const root=el('g',{'clip-path':'url(#mclip)'},map);
+el('rect',{width:MW,height:MH,fill:'#d7e6ec'},root);
+// faint graticule
+for(let lo=-122.5;lo<-122.18;lo+=0.05){const[x]=px(lo,0);el('line',{x1:x,x2:x,y1:0,y2:MH,stroke:'#c4d8e0','stroke-width':.6},root);}
+for(let la=37.6;la<37.91;la+=0.05){const[,y]=px(0,la);el('line',{x1:0,x2:MW,y1:y,y2:y,stroke:'#c4d8e0','stroke-width':.6},root);}
+for(const rings of (window.COAST||[])){let d='';for(const r of rings){d+='M'+r.map(([lo,la])=>px(lo,la).map(v=>v.toFixed(1)).join(',')).join('L')+'Z';}
+  el('path',{d,fill:'#f6f3ec',stroke:'#c9bfad','stroke-width':1,'fill-rule':'evenodd'},root);}
+// sectors
+const secLine=el('path',{d:`M${px(-122.318,37.905).join(',')}L${px(-122.318,37.80).join(',')}L${px(-122.33,37.74).join(',')}L${px(-122.30,37.595).join(',')}`,fill:'none',stroke:'#9aa2ab','stroke-width':1.2,'stroke-dasharray':'2 5'},root);
+const secCen=el('path',{d:`M0,0L${px(-122.318,37.905)[0]},0L${px(-122.318,37.80).join(',')}L${px(-122.33,37.74).join(',')}L${px(-122.30,37.595).join(',')}L0,${MH}Z`,fill:'#2b67a8',opacity:0},root);
+const secEast=el('path',{d:`M${MW},0L${px(-122.318,37.905)[0]},0L${px(-122.318,37.80).join(',')}L${px(-122.33,37.74).join(',')}L${px(-122.30,37.595).join(',')}L${MW},${MH}Z`,fill:'#2b67a8',opacity:0},root);
+const secT=(t,x,y)=>{const e=el('text',{x,y,'font-size':10,'font-weight':600,fill:'#8a929b','letter-spacing':1.2},root);e.textContent=t;return e;};
+const tCen=secT('SECTOR CENTRAL',px(-122.585,0)[0],px(0,37.70)[1]),tEast=secT('SECTOR EAST',px(-122.25,0)[0],px(0,37.835)[1]);
+// storm
+const stormG=el('g',{opacity:0},root);
+const stormC=el('circle',{r:46,fill:'url(#wx)'},stormG);el('circle',{r:30,fill:'url(#hatch)'},stormG);
+const stormRing=el('circle',{r:30,fill:'none',stroke:'#c13d2a','stroke-width':1.4,'stroke-dasharray':'4 3'},stormG);
+const stormT=el('text',{y:-36,'text-anchor':'middle','font-size':10,'font-weight':600,fill:'#c13d2a'},stormG);stormT.textContent='CB · tops 9,000';
+// corridors
+const corrEl={};
+for(const[a,b]of CORR){const[x1,y1]=pxN(a),[x2,y2]=pxN(b);corrEl[a+'-'+b]=el('line',{x1,y1,x2,y2,stroke:'#3a9e91','stroke-width':2.4,'stroke-linecap':'round',opacity:.75},root);}
+const selPath=el('polyline',{fill:'none',stroke:'#c27610','stroke-width':4,'stroke-linejoin':'round','stroke-linecap':'round',opacity:.55},root);
+const ceLbl=el('text',{'font-size':10,'font-weight':700,fill:'#c13d2a','text-anchor':'middle',opacity:0},root);ceLbl.textContent='C–E CLOSED';
+{const[x1,y1]=pxN('C'),[x2,y2]=pxN('E');ceLbl.setAttribute('x',(x1+x2)/2+30);ceLbl.setAttribute('y',(y1+y2)/2+44);}
+for(const n of JX){const[x,y]=pxN(n);el('rect',{x:x-4,y:y-4,width:8,height:8,transform:`rotate(45 ${x} ${y})`,fill:'#161c22'},root);const t=el('text',{x:x+8,y:y-6,'font-size':10,'font-weight':600,fill:'#4a535d'},root);t.textContent=n;}
+const portEl={};
+for(const n of PORTS){const[x,y]=pxN(n);portEl[n]=el('circle',{cx:x,cy:y,r:8,fill:'#fff',stroke:'#161c22','stroke-width':2},root);el('circle',{cx:x,cy:y,r:3,fill:'#161c22'},root);
+  const t=el('text',{x:x+(n==='OAK'?-12:12),y:y+4,'font-size':11,'font-weight':700,fill:'#161c22','text-anchor':n==='OAK'?'end':'start',style:'paint-order:stroke;stroke:#f6f3ec;stroke-width:3px'},root);t.textContent=n;}
+const acLayer=el('g',{},root);
+const acEl=FLIGHTS.map(f=>{const g=el('g',{opacity:0},acLayer);
+  el('path',{d:'M7,0L-5,-4.5L-2.5,0L-5,4.5Z',fill:f.i===SEL?'#c27610':'#2b67a8',stroke:'#fff','stroke-width':1},g);
+  const t=el('text',{x:8,y:-6,class:'cs'+(f.i===SEL?' sel':'')},acLayer);t.textContent='SKF'+f.cs;return{g,t};});
+
+/* ---------------- tree ---------------- */
+const NODES={
+  coord:{name:'Coordinator',d:0,x:.5,y:.27,budget:60},
+  secC:{name:'Sector Central',d:1,x:.25,y:.5,parent:'coord',budget:30,sector:'cen'},
+  secE:{name:'Sector East',d:1,x:.72,y:.5,parent:'coord',budget:30,sector:'east'},
+  padSF:{name:'Pad SF',d:2,x:.25,y:.75,parent:'secC',budget:12},
+  padOAK:{name:'Pad OAK',d:2,x:.575,y:.75,parent:'secE',budget:12},
+  padBER:{name:'Pad BER',d:2,x:.865,y:.75,parent:'secE',budget:12},
+};
+const stage=$('stage'),svg=$('edges');
+const STL={work:'working',prop:'proposed',ok:'accepted',rej:'rejected',ret:'retired',watch:'watching'};
+for(const id in NODES){const n=NODES[id];const d=document.createElement('div');d.className='node hidden';d.id='n-'+id;stage.appendChild(d);n.el=d;}
+let geo={};
+function layout(){
+  const r=stage.getBoundingClientRect();geo={w:r.width,h:r.height};
+  svg.setAttribute('viewBox',`0 0 ${r.width} ${r.height}`);
+  for(const id in NODES){const n=NODES[id];n.px=n.x*r.width;n.py=n.y*r.height;n.el.style.left=n.px+'px';n.el.style.top=n.py+'px';}
+  $('cap').style.top=(r.height*.905)+'px';
+  const g=$('ghost');g.style.left=(NODES.padOAK.px)+'px';g.style.top=(r.height*.96)+'px';
+  buildEdges();
+}
+const edgeEl={};
+function edgeD(a,b){ // a parent -> b child (points: bottom of parent, top of child)
+  const x1=a.px,y1=a.py+(a.el.offsetHeight||90)/2,x2=b.px,y2=b.py-(b.el.offsetHeight||90)/2;const my=(y1+y2)/2;
+  return `M${x1},${y1}C${x1},${my} ${x2},${my} ${x2},${y2}`;
+}
+function buildEdges(){
+  svg.innerHTML='';
+  // kernel -> coord
+  const k=$('kernel').getBoundingClientRect(),sr=stage.getBoundingClientRect();
+  const ky=k.bottom-sr.top;const c=NODES.coord;
+  edgeEl.coord=el('path',{d:`M${c.px},${ky}L${c.px},${c.py-(c.el.offsetHeight||90)/2}`,fill:'none',stroke:'#161c22','stroke-width':1.6,opacity:.55},svg);
+  for(const id in NODES){const n=NODES[id];if(!n.parent)continue;
+    const p=el('path',{d:edgeD(NODES[n.parent],n),fill:'none',stroke:'#9aa2ab','stroke-width':1.6},svg);
+    const L=p.getTotalLength();p.style.strokeDasharray=L+'px';p.style.strokeDashoffset=(T&&T.nodes[id]&&T.nodes[id].on?0:L)+'px';p.style.transition='stroke-dashoffset .7s ease, opacity .5s';
+    if(T&&T.nodes[id]&&T.nodes[id].st==='ret')p.style.opacity=.3;
+    edgeEl[id]=p;}
+  pktLayer=el('g',{},svg);
+}
+let pktLayer;
+
+/* ---------------- state ---------------- */
+let T,playing=true;
+function reset(){
+  T={m:0,ev:0,nodes:{},tx:0,hum:0,prop:0,ok:0,rej:0,tok:4,peak:1,msgs:[],hb:null,commit:'awaiting readback',cc:'',phase:'Calm',pc:'',sel:ROUTES['SF-OAK'].s};
+  for(const id in NODES)T.nodes[id]={on:id==='coord',st:id==='coord'?'watch':'work',task:id==='coord'?'Watching the 28-trip plan. 0 conflicts projected.':'',used:id==='coord'?4:0,sent:null};
+  $('tx').innerHTML='<div class="quiet">Channel quiet. Routine clearances run on the controller agent.</div>';
+  $('k-last').textContent='idle';$('k-last').className='last';$('ghost').classList.remove('on');
+  for(const id in NODES)renderNode(id);
+  layout();renderHB();
+}
+function renderNode(id,flash){
+  const n=NODES[id],s=T.nodes[id],e=n.el;
+  const wasHidden=e.classList.contains('hidden');
+  e.className='node'+(s.on?'':' hidden')+(s.st==='ret'?' ret':'')+(s.st==='prop'?' prop':'')+(flash||'');
+  if(s.on&&wasHidden){e.classList.add('spawn');}
+  e.innerHTML=`<div class="t"><span class="d">D${n.d}</span>${n.name}<span class="st ${s.st}">${STL[s.st]||s.st}</span></div>
+  <div class="task">${s.task}</div>
+  <div class="bud"><span>budget</span><div class="bar"><i style="width:${Math.min(100,s.used/n.budget*100)}%;background:${s.used/n.budget>.75?'var(--amber)':'var(--ink2)'}"></i></div><span>${s.used}k/${n.budget}k</span></div>
+  ${s.sent?`<div class="sent"><span class="arrow">SENT ↑</span>${s.sent.text} ${s.sent.v?`<span class="vd ${s.sent.v==='ACCEPT'?'ok':s.sent.v==='REJECT'?'rej':'pend'}">${s.sent.v}${s.sent.why?' · '+s.sent.why:''}</span>`:''}</div>`:''}`;
+  if(edgeEl[id]&&n.parent){edgeEl[id].style.strokeDashoffset=(s.on?0:edgeEl[id].getTotalLength())+'px';edgeEl[id].style.opacity=s.st==='ret'?.3:1;}
+}
+function setNode(id,patch,flash){
+  const s=T.nodes[id],was=s.on;Object.assign(s,patch);renderNode(id,flash);
+  if(patch.on&&!was){const live=Object.values(T.nodes).filter(x=>x.on&&x.st!=='ret').length;T.peak=Math.max(T.peak,live);}
+  if(flash)setTimeout(()=>{if(T.nodes[id]===s)NODES[id].el.classList.remove(flash.trim());},1400);
+  // edges change height of nodes; rebuild edge geometry after layout settles
+  requestAnimationFrame(()=>refreshEdgeGeom());
+}
+function refreshEdgeGeom(){
+  for(const id in NODES){const n=NODES[id];if(!n.parent||!edgeEl[id])continue;const p=edgeEl[id];const d=edgeD(NODES[n.parent],n);if(p.getAttribute('d')!==d){p.setAttribute('d',d);const L=p.getTotalLength();p.style.strokeDasharray=L+'px';if(!T.nodes[id].on)p.style.strokeDashoffset=L+'px';}}
+  const k=$('kernel').getBoundingClientRect(),sr=stage.getBoundingClientRect(),c=NODES.coord;
+  edgeEl.coord.setAttribute('d',`M${c.px},${k.bottom-sr.top}L${c.px},${c.py-(c.el.offsetHeight||90)/2}`);
+}
+const chain=id=>{const out=[id];while(NODES[out[out.length-1]].parent)out.push(NODES[out[out.length-1]].parent);return out;}; // node .. coord
+// a proposal travels up the tree to the kernel; the verdict travels back down
+function propose(id,text,verdict,why,after){
+  T.prop++;const s=T.nodes[id];s.sent={text,v:'PENDING'};
+  setNode(id,{st:'prop',used:s.used+2});T.tok+=2;
+  const up=chain(id);
+  T.msgs.push({hops:[...up.map((n,i)=>[n,i<up.length-1?up[i+1]:'kernel'])],col:'#c27610',label:'PROPOSE',p:0,done:()=>{
+    $('k-last').textContent=verdict==='ACCEPT'?'ACCEPT · committed':'REJECT · '+why;$('k-last').className='last '+(verdict==='ACCEPT'?'ok':'rej');
+    if(verdict==='ACCEPT')T.ok++;else T.rej++;
+    const down=[...up].reverse();
+    T.msgs.push({hops:down.map((n,i)=>[i===0?'kernel':down[i-1],n]),col:verdict==='ACCEPT'?'#0d7a6f':'#c13d2a',label:verdict,p:0,done:()=>{
+      s.sent={text,v:verdict,why:verdict==='REJECT'?why:''};setNode(id,{st:verdict==='ACCEPT'?'ok':'rej'},verdict==='ACCEPT'?' okf':' rejf');after&&after();}});
+  }});
+}
+function hopPoint(a,b,f){ // edge a->b (either direction)
+  if(a==='kernel'||b==='kernel'){const p=edgeEl.coord,L=p.getTotalLength();return p.getPointAtLength(a==='kernel'?L*f:L*(1-f));}
+  const child=NODES[a].parent===b?a:b,p=edgeEl[child],L=p.getTotalLength();
+  return p.getPointAtLength(child===a?L*(1-f):L*f);
+}
+
+/* voice */
+/* ---------------- radio voice (shared SkyRadio module) ---------------- */
+const RL={
+ c0:['CTL','SkyFlow one zero one, San Francisco Control, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred.'],
+ p0:['PLT','Cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred, SkyFlow one zero one.','SKF101'],
+ wx:['CTL','All stations, San Francisco Control. Corridor Charlie Echo is <em>closed</em> for weather until one four two four. Expect reroute via Whiskey.'],
+ c1:['CTL','SkyFlow one one two, San Francisco Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one five.'],
+ p1:['PLT','Cleared to Oakland via <em>Charlie, Echo</em>, climb and maintain one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
+ c2:['CTL','SkyFlow one one two, <em>negative</em>. Charlie Echo is closed for weather. Cleared via <strong>Whiskey, Echo</strong>. Read back.'],
+ p2:['PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
+};
+const plainText=h=>h.replace(/<[^>]+>/g,'');
+let voiceBusy=0;
+// the frequency is single-file: hold the scenario clock while a line is on air
+const radioHold=()=>!!(window.SkyRadio&&SkyRadio.enabled&&voiceBusy>0);
+function voice(sp,html,key){
+  if(!window.SkyRadio||(sp!=='CTL'&&sp!=='PLT'))return;
+  voiceBusy++;let done=false;const fin=()=>{if(!done){done=true;voiceBusy=Math.max(0,voiceBusy-1);}};
+  SkyRadio.say(plainText(html),sp==='CTL'?'atc':'pilot',key).then(fin,fin);setTimeout(fin,15000);
+}
+if(window.SkyRadio)SkyRadio.prefetch(Object.values(RL).map(([sp,h,k])=>({text:plainText(h),speaker:sp==='CTL'?'atc':'pilot',key:k})));
+function soundBtn(){const b=document.getElementById('snd');if(!b||!window.SkyRadio)return;const on=SkyRadio.enabled;b.classList.toggle('on',on);b.querySelector('span').textContent=on?'Sound on':'Muted';
+  b.querySelector('svg').innerHTML=on?'<path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>':'<path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 6l4 4M15 6l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';}
+document.addEventListener('skyradio:enabled',soundBtn);
+function radio(sp,html,key){
+  voice(sp,html,key);T.tx++;const box=$('tx');box.querySelector('.quiet')?.remove();
+  const d=document.createElement('div');d.className='tx';d.innerHTML=`<span class="sp ${sp==='CTL'?'c':sp==='PLT'?'p':'h'}">${sp}</span><span>${html}</span>`;
+  box.append(d);while(box.children.length>5)box.firstChild.remove();
+}
+const HBF=[['CALLSIGN','SKF112'],['ROUTE','W–E'],['ALT','1,500'],['SQUAWK','4215'],['DEST','OAK']];
+function renderHB(){
+  $('hb').innerHTML='<span class="lb">HEARBACK</span>'+HBF.map(([k,exp],i)=>{const g=T.hb?T.hb[i]:null;const ok=g===null?null:g===exp;return `<span class="fld ${ok===null?'':ok?'ok':'bad'}">${k} ${g===null?exp:ok?g:g+'≠'+exp}</span>`;}).join('')+`<span class="commit ${T.cc}">${T.commit}</span>`;
+}
+
+/* ---------------- timeline ---------------- */
+const EV=[
+ [0.4,()=>radio(...RL.c0)],
+ [1.2,()=>radio(...RL.p0)],
+ [8.0,()=>radio(...RL.wx)],
+ [7.9,()=>{T.phase='Storm';T.pc='storm';setNode('coord',{st:'work',task:'Unforecast CB over C–E. Kernel closed C–E 08–24. 6 trips affected.',used:8});T.tok+=4;$('watch').textContent='Storm hit. The coordinator splits the problem by sector.';}],
+ [8.4,()=>{T.phase='Replan';T.pc='replan';setNode('secC',{on:true,st:'work',task:'Replanning SF and Marin flows off C–E.',used:2});setNode('secE',{on:true,st:'work',task:'Replanning OAK and BER flows.',used:2});T.tok+=4;}],
+ [9.0,()=>{setNode('padSF',{on:true,st:'work',task:'Sequencing SF departures onto W–E.',used:1});setNode('padOAK',{on:true,st:'work',task:'Sequencing OAK arrivals.',used:1});setNode('padBER',{on:true,st:'work',task:'Checking BER departures under outflow.',used:1});T.tok+=3;$('watch').textContent='Sector agents spawned pad agents. Depth 2 reached; nothing spawns below the cap.';}],
+ [9.5,()=>propose('padOAK','Hold SKF105 at SF +1.5 min, then W–E','ACCEPT')],
+ [10.4,()=>propose('secC','Reroute SKF103, 104, 112 via W–E (+14% dist)','ACCEPT','',()=>{T.sel=ROUTES['SF-OAK'].a;})],
+ [11.4,()=>propose('secE','Keep SKF109 on C–E at 800 ft, under the cell','REJECT','R-7 corridor closed',()=>{setNode('secE',{task:'Rejected by R-7. Replanning SKF109 via E–W.'});})],
+ [12.2,()=>{setNode('padOAK',{task:'Asked to spawn Gate OAK-2 for slot sequencing.'});$('ghost').classList.add('on');$('k-last').textContent='REFUSED · depth cap 2';$('k-last').className='last rej';setTimeout(()=>$('ghost').classList.remove('on'),3500);setNode('padOAK',{task:'Spawn refused at depth cap. Sequencing slots itself.'});}],
+ [12.9,()=>propose('padSF','Hold SKF112 on pad SF until W–E slot 14:17','ACCEPT')],
+ [13.4,()=>{radio(...RL.c1);}],
+ [13.9,()=>propose('secE','Revised: SKF109 via E–W–SF (+1.8 min)','ACCEPT','',()=>setNode('secE',{task:'SKF109 rerouted via E–W–SF.'}))],
+ [14.7,()=>{radio(...RL.p1);}],
+ [15.6,()=>{T.hb=['SKF112','C–E','1,500','4215','OAK'];T.commit='MISMATCH · not committed';T.cc='bad';renderHB();radio('HBK','Route mismatch: heard <em>C–E</em>, cleared W–E. Reservation held.');}],
+ [16.3,()=>{radio(...RL.c2);}],
+ [16.4,()=>propose('padBER','Meter BER departures 1 per 5 min for 8 min','ACCEPT')],
+ [17.3,()=>{radio(...RL.p2);}],
+ [18.1,()=>{T.hb=['SKF112','W–E','1,500','4215','OAK'];T.commit='COMMITTED · RSV-0112';T.cc='ok';renderHB();radio('HBK','All five fields match. Reservation <strong>RSV-0112</strong> committed by the kernel.');}],
+ [24.0,()=>{T.phase='Recovery';T.pc='recover';setNode('coord',{task:'C–E reopened 14:24L. Retiring sub-agents.'});$('watch').textContent='Storm cleared. Agents retire bottom-up and hand their state to the parent.';}],
+ [25.2,()=>{['padSF','padOAK','padBER'].forEach(id=>setNode(id,{st:'ret',task:'Retired. State handed to parent.'}));}],
+ [26.6,()=>{['secC','secE'].forEach(id=>setNode(id,{st:'ret',task:'Retired. Flows restored.'}));setNode('coord',{st:'watch',task:'Back to single-agent watch. 0 conflicts.'});}],
+ [30.0,()=>{for(const id of ['padSF','padOAK','padBER','secC','secE'])setNode(id,{on:false});$('watch').textContent='Single-agent watch. Whole disruption handled with zero human interventions.';}],
+];
+// timeline markers
+const MK=[[7.9,'var(--red)','storm'],[8.4,'var(--blue)','spawn'],[11.4,'var(--red)','reject'],[12.2,'var(--red)','cap'],[15.6,'var(--amber)','readback'],[18.1,'var(--teal)','commit'],[25.2,'var(--ink3)','retire']];
+function buildTL(){
+  const tr=$('track');$('tl-storm').style.left=(STORM[0]/END*100)+'%';$('tl-storm').style.width=((STORM[1]-STORM[0])/END*100)+'%';
+  for(const[t,c]of MK){const d=document.createElement('div');d.className='mk';d.style.left=(t/END*100)+'%';d.style.background=c;tr.appendChild(d);}
+  $('tl-l').innerHTML=[[0,'14:00'],[8,'storm'],[16,'replan'],[24,'reopen'],[40,'14:40'],[60,'15:00'],[80,'15:20']].map(([t,l])=>`<span style="left:${Math.min(97,Math.max(2,t/END*100))}%">${l}</span>`).join('');
+}
+buildTL();
+
+/* ---------------- controls & loop ---------------- */
+$('play').onclick=()=>{playing=!playing;$('play').querySelector('span').textContent=playing?'Pause':'Play';$('play').querySelector('svg').innerHTML=playing?'<rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/>':'<path d="M4 2.5v11l9-5.5z"/>';};
+$('restart').onclick=()=>{window.SkyRadio&&SkyRadio.flush();voiceBusy=0;reset();};
+addEventListener('resize',layout);
+let last=performance.now(),lastUI=0;
+const HOP=0.34; // seconds per tree hop
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000);last=now;
+  if(playing&&!radioHold()){T.m+=dt/SPM*(T.m>30?1.8:1);if(T.m>=END){window.SkyRadio&&SkyRadio.flush();voiceBusy=0;reset();}}
+  const m=T.m;
+  while(T.ev<EV.length&&EV[T.ev][0]<=m){EV[T.ev][1]();T.ev++;}
+  // packets
+  pktLayer.innerHTML='';
+  for(const msg of T.msgs){if(playing)msg.p+=dt/HOP;const hi=Math.floor(msg.p);
+    if(hi>=msg.hops.length){if(!msg.fired){msg.fired=true;msg.done&&msg.done();}continue;}
+    const[a,b]=msg.hops[hi],pt=hopPoint(a,b,msg.p-hi);
+    // highlight active edge
+    el('circle',{cx:pt.x,cy:pt.y,r:11,fill:msg.col,opacity:.18},pktLayer);
+    el('circle',{cx:pt.x,cy:pt.y,r:5.5,fill:msg.col,stroke:'#fff','stroke-width':2},pktLayer);
+    const w=msg.label.length*6.4+12;el('rect',{x:pt.x+10,y:pt.y-9,width:w,height:17,rx:4,fill:msg.col},pktLayer);
+    const t=el('text',{x:pt.x+16,y:pt.y+3.5,class:'pkt'},pktLayer);t.textContent=msg.label;}
+  T.msgs=T.msgs.filter(x=>!x.fired);
+  // map
+  let si=0;if(m>STORM[0]-.3&&m<STORM[1]+1.2)si=Math.min(1,(m-STORM[0]+.3)/1.2,(STORM[1]+1.2-m)/1.8);
+  const[cx1,cy1]=pxN('C'),[cx2,cy2]=pxN('E');const sx=(cx1+cx2)/2+(m-16)*1.6,sy=(cy1+cy2)/2-(m-16)*.9;
+  stormG.setAttribute('opacity',si);stormG.setAttribute('transform',`translate(${sx},${sy}) scale(${.6+.4*si})`);
+  stormRing.setAttribute('stroke-dashoffset',(now/60)%14);
+  const closed=m>=STORM[0]&&m<STORM[1];const ce=corrEl['C-E'];
+  ce.setAttribute('stroke',closed?'#c13d2a':'#3a9e91');ce.setAttribute('stroke-dasharray',closed?'5 4':'');ce.setAttribute('stroke-width',closed?3:2.4);ceLbl.setAttribute('opacity',closed?1:0);
+  const cOn=T.nodes.secC.on&&T.nodes.secC.st!=='ret',eOn=T.nodes.secE.on&&T.nodes.secE.st!=='ret';
+  secCen.setAttribute('opacity',cOn?.05:0);secEast.setAttribute('opacity',eOn?.05:0);tCen.setAttribute('fill',cOn?'#2b67a8':'#8a929b');tEast.setAttribute('fill',eOn?'#2b67a8':'#8a929b');
+  selPath.setAttribute('points',T.sel.map(n=>pxN(n).join(',')).join(' '));selPath.setAttribute('opacity',m<FLIGHTS[SEL].arr+1?.5:0);
+  FLIGHTS.forEach((f,i)=>{const o=acEl[i],p=posOf(f,m);
+    if(p){const[x,y]=px(p.x/COS-122.35,p.y+37.76);o.g.setAttribute('transform',`translate(${x},${y}) rotate(${-p.hd*180/Math.PI})`);o.g.setAttribute('opacity',1);o.t.setAttribute('x',x+8);o.t.setAttribute('y',y-7);o.t.setAttribute('opacity',1);}
+    else if(m>=f.sched&&m<f.dep){const[x,y]=pxN(f.from);o.g.setAttribute('transform',`translate(${x+10},${y+10})`);o.g.setAttribute('opacity',.9);o.t.setAttribute('x',x+18);o.t.setAttribute('y',y+22);o.t.setAttribute('opacity',1);o.t.textContent='SKF'+f.cs+' HOLD';}
+    else{o.g.setAttribute('opacity',0);o.t.setAttribute('opacity',0);}
+    if(p)o.t.textContent='SKF'+f.cs;});
+  if(now-lastUI>150){lastUI=now;ui(m);}
+  requestAnimationFrame(frame);
+}
+function ui(m){
+  $('clk').textContent='T+'+fmt(m);$('loc').textContent=loc(m);
+  const ph=$('phase');ph.textContent=T.phase;ph.className='phase '+T.pc;
+  const landed=FLIGHTS.filter(f=>f.arr<=m),ont=landed.filter(f=>f.delay<=5).length;
+  $('sc-ot').textContent=ont+'/28';$('sc-otb').style.width=(ont/28*100)+'%';
+  $('sc-md').innerHTML=landed.reduce((s,f)=>Math.max(s,f.delay),0).toFixed(1)+'<small style="font-size:11px;color:var(--ink3)"> min</small>';
+  const deps=FLIGHTS.filter(f=>f.dep<=m&&f.i!==SEL).length;$('sc-tx').textContent=deps*2+T.tx;
+  $('sc-dist').textContent='+'+(landed.length?(landed.reduce((s,f)=>s+f.g.len,0)/landed.reduce((s,f)=>s+f.staticLen,0)*100-100):0).toFixed(1)+'%';
+  $('c-hum').textContent=T.hum;
+  const live=Object.entries(T.nodes).filter(([,x])=>x.on&&x.st!=='ret');
+  const depth=live.reduce((d,[id])=>Math.max(d,NODES[id].d),0);
+  $('c-depth').innerHTML=depth+'<small> / cap 2</small>';
+  $('c-live').innerHTML=live.length+'<small> peak '+T.peak+'</small>';
+  $('c-prop').textContent=T.prop;
+  $('c-vd').innerHTML=`<span class="ok">${T.ok}</span><small> ok </small><span class="rej">${T.rej}</span><small> rej</small>`;
+  $('c-tok').innerHTML=T.tok+'<small>k</small>';
+  $('tl-cur').style.left=(m/END*100)+'%';
+}
+if(window.SkyRadio){SkyRadio.onTransmit(e=>{const t=$('txp');t.className='txp'+(e.live?' on'+(e.speaker==='pilot'?' p':''):'');t.textContent=e.live?(e.speaker==='atc'?'TX · CONTROL':'TX · '+(e.key||'PILOT')):'TX';});$('snd').onclick=()=>{SkyRadio.enabled?SkyRadio.disable():SkyRadio.enable();soundBtn();};soundBtn();}
+reset();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

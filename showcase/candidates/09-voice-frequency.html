@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Frequency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+:root{
+  --bg:#0a0e11; --panel:#10161a; --panel2:#0d1215; --line:#1e2a31; --line2:#2a3943;
+  --text:#d9e3e8; --dim:#7d8d97; --faint:#4a5a64;
+  --ctl:#3fd0bd; --pil:#f2b54a; --bad:#ff5a52; --ok:#5ed38c; --storm:#e2873f; --hold:#ff5a52;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;overflow:hidden}
+.app{display:grid;grid-template-rows:54px 1fr 64px;height:100vh;min-width:1240px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:18px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.brand{font-weight:600;letter-spacing:.02em;font-size:15px;display:flex;align-items:center;gap:8px}
+.brand i{width:9px;height:9px;border-radius:50%;background:var(--ctl);box-shadow:0 0 10px var(--ctl)}
+.brand span{color:var(--dim);font-weight:400}
+.sim{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--storm);border:1px solid #5a3a22;padding:3px 7px;border-radius:3px}
+.freq{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.freq b{color:var(--text);font-weight:500}
+.phase{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:4px 9px;border-radius:3px;border:1px solid var(--line2)}
+.phase.calm{color:var(--ok);border-color:#24503a}
+.phase.storm{color:var(--storm);border-color:#5a3a22;background:#1d140c}
+.phase.recover{color:var(--ctl);border-color:#1f4a45}
+.tl{flex:1;position:relative;height:22px;display:flex;align-items:center;cursor:pointer}
+.tl .track{position:absolute;left:0;right:0;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.tl .seg{position:absolute;top:0;bottom:0;background:#5a3a22}
+.tl .head{position:absolute;width:2px;height:16px;background:var(--text);top:3px}
+.tl .lab{position:absolute;top:-4px;font-family:var(--mono);font-size:9px;color:var(--faint);transform:translateX(-50%)}
+.clock{font-family:var(--mono);font-size:15px;font-weight:500;min-width:76px;text-align:right}
+.btns{display:flex;gap:6px}
+button{white-space:nowrap;font-family:var(--mono);font-size:11px;background:var(--panel);color:var(--text);border:1px solid var(--line2);padding:6px 10px;border-radius:3px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button.on{color:var(--ctl);border-color:#1f4a45}
+main{display:grid;grid-template-columns:1fr 410px;min-height:0}
+.left{display:grid;grid-template-rows:216px 1fr;min-height:0;border-right:1px solid var(--line)}
+.right{display:grid;grid-template-rows:270px 196px 1fr;min-height:0}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.ph em{font-style:normal;color:var(--faint);letter-spacing:.04em;text-transform:none}
+/* frequency band */
+.band{position:relative;border-bottom:1px solid var(--line);background:linear-gradient(#0c1114,#0a0e11)}
+.band canvas{position:absolute;left:0;top:34px;width:100%;height:calc(100% - 34px)}
+.txpill{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:none;color:var(--text)}
+.txpill .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.txpill.live .dot{background:var(--bad);box-shadow:0 0 8px var(--bad);animation:blink 1s infinite}
+.txpill .who{padding:2px 7px;border-radius:2px;background:var(--line);font-weight:600}
+@keyframes blink{50%{opacity:.35}}
+/* transcript */
+.trans{display:flex;flex-direction:column;min-height:0}
+.cards{flex:1;overflow-y:auto;padding:8px 14px 18px;scroll-behavior:smooth}
+.cards::-webkit-scrollbar{width:6px}.cards::-webkit-scrollbar-thumb{background:var(--line2)}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:4px;margin-top:10px;padding:10px 12px 10px;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.card.hot{border-color:#5a2724;box-shadow:0 0 0 1px #3a1715 inset}
+.card.done{border-color:#22483a}
+.ch{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.ch .k{color:var(--ctl);font-weight:600}
+.ch .to{color:var(--text)}
+.ch .st{margin-left:auto;padding:2px 7px;border-radius:2px;font-size:10.5px;letter-spacing:.06em}
+.st.wait{color:var(--pil);background:#2a200d}
+.st.held{color:var(--bad);background:#2c1312}
+.st.ok{color:var(--ok);background:#11281c}
+.phr{font-size:13px;line-height:1.45;margin:6px 0 8px;color:#b9c6cd}
+.phr .sp{font-family:var(--mono);font-size:10.5px;color:var(--ctl);margin-right:6px}
+.phr .typed{color:var(--text)}
+table.ft{width:100%;border-collapse:separate;border-spacing:3px 3px;font-family:var(--mono);font-size:12.5px;table-layout:fixed}
+.ft th{font-weight:500;font-size:9.5px;letter-spacing:.12em;color:var(--faint);text-align:left;padding:0 8px}
+.ft th:first-child{width:118px}
+.ft td{padding:6px 8px;border-radius:2px;background:#141c21;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ft td.rl{background:none;color:var(--dim);font-size:10.5px;padding-left:0}
+.ft tr.clr td:not(.rl){color:var(--ctl);background:#0f2422}
+.ft tr.rb td.c{color:var(--faint);transition:background .3s,color .3s}
+.ft tr.rb td.c.m{color:var(--ok);background:#10251a}
+.ft tr.rb td.c.m::after{content:' ✓';font-size:10px;opacity:.7}
+.ft tr.rb td.c.x{color:#fff;background:#4a1714;box-shadow:0 0 0 1px var(--bad) inset;animation:flash .3s 5 alternate}
+.ft tr.rb td.c.x::after{content:' ≠';font-weight:600}
+@keyframes flash{from{background:#a8231c}to{background:#4a1714}}
+.ft tr.note td{background:#1d1110;color:#ffb3ad;font-family:var(--sans);font-size:12.5px;white-space:normal;border-left:2px solid var(--bad)}
+.ft tr.note td b{font-family:var(--mono);font-size:10.5px;color:var(--bad);font-weight:600;margin-right:6px}
+.verdict{font-family:var(--mono);font-size:11px;margin-top:6px;color:var(--dim)}
+.verdict.bad{color:var(--bad)} .verdict.ok{color:var(--ok)}
+/* map */
+.map{border-bottom:1px solid var(--line);position:relative}
+.map svg{position:absolute;left:0;top:28px;width:100%;height:calc(100% - 28px)}
+/* ledger */
+.ledger{border-bottom:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.rows{padding:6px 14px;overflow:hidden}
+.res{display:grid;grid-template-columns:62px 1fr 58px 96px;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;padding:6px 8px;margin-top:4px;border-radius:3px;background:var(--panel);border-left:3px solid var(--faint);transition:all .35s}
+.res .s{font-size:10px;letter-spacing:.06em;text-align:right}
+.res.pending{border-left-color:var(--pil)} .res.pending .s{color:var(--pil)}
+.res.held{border-left-color:var(--bad);background:#1e1110} .res.held .s{color:var(--bad)}
+.res.committed{border-left-color:var(--ok);background:#0f1f17} .res.committed .s{color:var(--ok)}
+.res .d{color:var(--dim)}
+/* kernel log */
+.klog{display:flex;flex-direction:column;min-height:0}
+.log{flex:1;min-height:0;overflow:hidden;padding:6px 14px 10px;display:flex;flex-direction:column;justify-content:flex-start}
+.le{display:grid;grid-template-columns:44px 1fr;gap:8px;padding:5px 0;border-top:1px solid #151d22;animation:in .3s ease;font-size:12px;line-height:1.35}
+.le .t{font-family:var(--mono);font-size:10.5px;color:var(--faint);padding-top:1px}
+.le .ag{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.04em}
+.le .v{font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:2px;margin-left:6px}
+.v.acc{color:var(--ok);background:#11281c} .v.rej{color:var(--bad);background:#2c1312} .v.sys{color:var(--storm);background:#2a1a0d} .v.com{color:#0a0e11;background:var(--ok)}
+.le .why{color:var(--dim);font-size:11.5px}
+/* footer scoreboard */
+footer{display:flex;border-top:1px solid var(--line);background:var(--panel2)}
+.kpi{flex:1;padding:9px 16px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:0}
+.kpi .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+.kpi .n{font-family:var(--mono);font-size:19px;font-weight:500;margin-top:3px}
+.kpi .n small{white-space:nowrap;font-size:11px;color:var(--dim);font-weight:400;margin-left:6px}
+.kpi.g .n{color:var(--ok)}
+header{min-width:0;overflow:hidden}
+@media (max-width:1380px){.tl .lab{display:none}.txp{min-width:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><i></i>SkyFlow <span>/ Frequency</span></div>
+  <div class="sim">SIMULATION</div>
+  <div class="freq">BAY APPROACH <b>123.450</b> · controller agent</div>
+  <div class="phase calm" id="phase">CALM TRAFFIC</div>
+  <div class="tl" id="tl"><div class="track"><div class="seg" id="seg"></div></div><div class="head" id="head"></div></div>
+  <div class="clock" id="clock">14:00:00</div>
+  <div class="btns">
+    <button id="bPlay">❚❚ Pause</button>
+    <button id="bRestart">↺ Restart</button>
+    <button id="bSound">🔇 Radio muted</button>
+  </div>
+</header>
+<main>
+  <section class="left">
+    <div class="band">
+      <div class="ph"><span>Shared frequency · live</span><div class="txpill" id="tx"><span class="dot"></span><span class="who" id="txWho">— carrier idle —</span><span id="txTo" style="color:var(--dim)"></span></div></div>
+      <canvas id="wave"></canvas>
+    </div>
+    <div class="trans">
+      <div class="ph"><span>Clearances · hearback diff</span><em>each readback is parsed into fields and checked against the clearance before the kernel commits</em></div>
+      <div class="cards" id="cards"></div>
+    </div>
+  </section>
+  <section class="right">
+    <div class="map"><div class="ph"><span>Bay sector</span><em id="mapNote">all corridors open</em></div><svg id="map" viewBox="0 0 410 242"></svg></div>
+    <div class="ledger"><div class="ph"><span>Reservations</span><em>commit only after hearback</em></div><div class="rows" id="rows"></div></div>
+    <div class="klog"><div class="ph"><span>Agents propose · kernel commits</span><em>validator</em></div><div class="log" id="log"></div></div>
+  </section>
+</main>
+<footer>
+  <div class="kpi g"><div class="l">On time · agent team</div><div class="n" id="kOn">0/28</div></div>
+  <div class="kpi"><div class="l">On time · static plan</div><div class="n" id="kStatic">0/28</div></div>
+  <div class="kpi"><div class="l">Max delay</div><div class="n" id="kDelay">0 min<small>static 31</small></div></div>
+  <div class="kpi g"><div class="l">Conflicts</div><div class="n">0</div></div>
+  <div class="kpi"><div class="l">Human interventions</div><div class="n">0</div></div>
+  <div class="kpi"><div class="l">Radio transmissions</div><div class="n" id="kTx">0</div></div>
+  <div class="kpi"><div class="l">Hearback catches</div><div class="n" id="kCatch">0</div></div>
+</footer>
+</div>
+
+<script src="radio-audio.js?v=3"></script>
+<script>
+// stop() cuts the line on air; older cached copies of the module only have flush()
+const radioStop=()=>window.SkyRadio&&(SkyRadio.stop?SkyRadio.stop():SkyRadio.flush());
+const LOOP = 90;
+// piecewise sim clock: calm fast, storm slow-motion, recovery fast
+function simMin(t){ if(t<8) return t; if(t<60) return 8+(t-8)*16/52; return 24+(t-60)*46/30; }
+const STORM_A = 8, STORM_B = 60;
+const fmt = m => { const s=Math.floor(m*60); const h=14+Math.floor(s/3600); const mm=Math.floor(s/60)%60; const ss=s%60; return `${h}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; };
+
+const FIELDS = ['cs','route','band','pad','slot'];
+const LABEL = {cs:'CALLSIGN',route:'ROUTE',band:'BAND FT',pad:'PAD',slot:'SLOT'};
+const clr = {
+  c403:{cs:'SKF403',route:'SF·C·E·OAK',band:'1500',pad:'OAK-2',slot:'14:06'},
+  c412:{cs:'SKF412',route:'SF·W·E·OAK',band:'1500',pad:'OAK-3',slot:'14:18'},
+  c421:{cs:'SKF421',route:'BER·C·SF·MAR',band:'2000',pad:'MAR-1',slot:'14:26'},
+  c418:{cs:'SKF418',route:'SF·C·E·OAK',band:'1500',pad:'OAK-2',slot:'14:34'},
+};
+// spoken order: route, band, pad, slot, callsign last
+const ORDER = ['route','band','pad','slot','cs'];
+
+// transmissions
+const LINES = [
+ {t:1.0,d:6.0,who:'APP',to:'SKF403',kind:'clr',card:'c403',text:'SkyFlow four zero three, cleared San Francisco to Oakland via Charlie Echo, band one thousand five hundred, pad two, slot one four zero six.'},
+ {t:7.4,d:5.2,who:'SKF403',kind:'rb',card:'c403',fields:{...clr.c403},text:'Cleared San Francisco to Oakland via Charlie Echo, one thousand five hundred, pad two, slot one four zero six, SkyFlow four zero three.'},
+ {t:14.6,d:7.6,who:'APP',to:'SKF412',kind:'clr',card:'c412',text:'SkyFlow four one two, reroute, Charlie Echo closed. Cleared San Francisco to Oakland via Whiskey Echo, band one thousand five hundred, pad three, slot one four one eight.'},
+ {t:22.8,d:6.4,who:'SKF421',kind:'rb',card:'c412',fields:{...clr.c412,cs:'SKF421'},text:'Rerouting, cleared San Francisco to Oakland via Whiskey Echo, one thousand five hundred, pad three, slot one four one eight, SkyFlow four two one.'},
+ {t:30.0,d:5.4,who:'APP',to:'SKF421',kind:'neg',card:'c412',text:'SkyFlow four two one, negative, that clearance was for four one two, caution similar callsign.'},
+ {t:35.8,d:2.0,who:'SKF421',kind:'ack',card:'c412',text:'Wilco, SkyFlow four two one.'},
+ {t:38.4,d:6.2,who:'SKF412',kind:'rb',card:'c412',fields:{...clr.c412},text:'Cleared San Francisco to Oakland via Whiskey Echo, one thousand five hundred, pad three, slot one four one eight, SkyFlow four one two.'},
+ {t:46.6,d:6.4,who:'APP',to:'SKF421',kind:'clr',card:'c421',text:'SkyFlow four two one, cleared Berkeley to Marin via Charlie, band two thousand, pad one, slot one four two six.'},
+ {t:53.4,d:5.2,who:'SKF421',kind:'rb',card:'c421',fields:{...clr.c421},text:'Cleared Berkeley to Marin via Charlie, two thousand, pad one, slot one four two six, SkyFlow four two one.'},
+ {t:62.0,d:7.0,who:'APP',to:'SKF418',kind:'clr',card:'c418',text:'SkyFlow four one eight, Charlie Echo now open. Cleared San Francisco to Oakland via Charlie Echo, band one thousand five hundred, pad two, slot one four three four.'},
+ {t:69.4,d:5.4,who:'SKF418',kind:'rb',card:'c418',fields:{...clr.c418},text:'Cleared San Francisco to Oakland via Charlie Echo, one thousand five hundred, pad two, slot one four three four, SkyFlow four one eight.'},
+];
+const KLOG = [
+ {t:4.0,ag:'PAD-OAK',v:'acc',p:'Reserve OAK-2 at 14:06 for SKF403',why:'pending hearback'},
+ {t:8.0,ag:'KERNEL',v:'sys',p:'Unforecast cell over Central–East. Close corridor C–E, 14:08 to 14:24',why:'weather input'},
+ {t:9.2,ag:'COORDINATOR',v:'acc',p:'Spawn SECTOR-EAST and SECTOR-CENTRAL; spawn PAD-OAK replanner',why:'3 agents live'},
+ {t:10.4,ag:'SECTOR-CENTRAL',v:'rej',p:'Keep SKF408 on C–E, climb to 2000',why:'corridor C–E closed 14:08–14:24 at all bands'},
+ {t:11.6,ag:'SECTOR-EAST',v:'acc',p:'Reroute SKF408, 410, 412 via W–E',why:'+14.3% distance, separation holds'},
+ {t:12.8,ag:'PAD-OAK',v:'rej',p:'SKF412 to OAK-3 at 14:16',why:'OAK-3 occupied by SKF409 until 14:17'},
+ {t:13.8,ag:'PAD-OAK',v:'acc',p:'SKF412 to OAK-3 at 14:18',why:'held until hearback'},
+ {t:29.4,ag:'HEARBACK',v:'rej',p:'Readback from SKF421 on SKF412 clearance',why:'callsign 421 ≠ 412. Reservation not committed'},
+ {t:44.8,ag:'KERNEL',v:'com',p:'COMMIT SKF412 · W–E · OAK-3 · 14:18',why:'5/5 fields match'},
+ {t:59.0,ag:'KERNEL',v:'com',p:'COMMIT SKF421 · BER–MAR · MAR-1 · 14:26',why:'5/5 fields match'},
+ {t:60.0,ag:'KERNEL',v:'sys',p:'Cell has cleared. Reopen corridor C–E',why:'weather input'},
+ {t:61.0,ag:'COORDINATOR',v:'acc',p:'Restore C–E routing for SKF414 and later',why:'saves 6.1 km per trip'},
+ {t:75.2,ag:'KERNEL',v:'com',p:'COMMIT SKF418 · C–E · OAK-2 · 14:34',why:'5/5 fields match'},
+ {t:80.0,ag:'COORDINATOR',v:'acc',p:'Despawn SECTOR-EAST and PAD-OAK replanner',why:'recovered, 28/28 on time'},
+];
+// reservation state timeline
+const RES = [
+ {t:4.0,id:'SKF403',d:'OAK-2 · C–E',slot:'14:06',s:'pending'},
+ {t:12.6,id:'SKF403',s:'committed'},
+ {t:14.0,id:'SKF412',d:'OAK-3 · W–E',slot:'14:18',s:'pending'},
+ {t:29.4,id:'SKF412',s:'held'},
+ {t:44.8,id:'SKF412',s:'committed'},
+ {t:46.8,id:'SKF421',d:'MAR-1 · C',slot:'14:26',s:'pending'},
+ {t:59.0,id:'SKF421',s:'committed'},
+ {t:62.2,id:'SKF418',d:'OAK-2 · C–E',slot:'14:34',s:'pending'},
+ {t:75.2,id:'SKF418',s:'committed'},
+];
+
+// ---------- state ----------
+let t=0, playing=true, last=performance.now();
+let fired;
+const $ = id => document.getElementById(id);
+function reset(){
+  t=0; fired={lines:new Set(),klog:new Set(),res:new Set(),fin:new Set()};
+  $('cards').innerHTML=''; $('log').innerHTML=''; $('rows').innerHTML='';
+  cards={}; resEl={}; txCount=0; catches=0; wave.fill(0); waveCol.fill(0); marks=[];
+  if(window.SkyRadio){ radioStop(); radio.gen++; radio.busy=false; radio.live=null; }
+}
+let cards={}, resEl={}, txCount=0, catches=0;
+
+// ---------- transcript cards ----------
+function makeCard(key, line){
+  const c = clr[key];
+  const el = document.createElement('div'); el.className='card';
+  el.innerHTML = `<div class="ch"><span class="k">APP</span><span>→</span><span class="to">${c.cs}</span><span>${fmt(simMin(line.t))}</span><span class="st wait">AWAITING READBACK</span></div>
+  <div class="phr"><span class="sp">APP</span><span class="typed"></span></div>
+  <table class="ft"><thead><tr><th></th>${FIELDS.map(f=>`<th>${LABEL[f]}</th>`).join('')}</tr></thead>
+  <tbody><tr class="clr"><td class="rl">CLEARANCE</td>${FIELDS.map(f=>`<td>${c[f]}</td>`).join('')}</tr></tbody></table>
+  <div class="verdict"></div>`;
+  $('cards').appendChild(el);
+  cards[key] = {el, typed:el.querySelector('.typed'), tbody:el.querySelector('tbody'), st:el.querySelector('.st'), verdict:el.querySelector('.verdict'), line, rbs:[]};
+  scrollCards();
+}
+function addReadback(line){
+  const card = cards[line.card]; if(!card) return;
+  const tr = document.createElement('tr'); tr.className='rb';
+  tr.innerHTML = `<td class="rl">READBACK · ${line.who.slice(3)}</td>`+FIELDS.map(f=>`<td class="c" data-f="${f}">···</td>`).join('');
+  card.tbody.appendChild(tr);
+  card.rbs.push({tr,line,shown:new Set()});
+  card.verdict.className='verdict'; card.verdict.textContent='hearback: parsing readback…';
+  scrollCards();
+}
+function addNote(line){
+  const card = cards[line.card]; if(!card) return;
+  const tr = document.createElement('tr'); tr.className='note';
+  tr.innerHTML = `<td colspan="6"><b>${line.who}${line.kind==='neg'?' → '+line.to:''}</b><span class="typed"></span></td>`;
+  card.tbody.appendChild(tr);
+  card.noteTyped = card.noteTyped||[]; card.noteTyped.push({el:tr.querySelector('.typed'),line});
+  scrollCards();
+}
+function scrollCards(){ const c=$('cards'); requestAnimationFrame(()=>c.scrollTop=c.scrollHeight); }
+
+function updateCards(){
+  for(const key in cards){
+    const card = cards[key], L=card.line;
+    const p = prog(L);
+    card.typed.textContent = L.text.slice(0, Math.ceil(L.text.length*p));
+    (card.noteTyped||[]).forEach(n=>{ const q=prog(n.line); n.el.textContent='“'+n.line.text.slice(0,Math.ceil(n.line.text.length*q))+(q>=1?'”':''); });
+    card.rbs.forEach(rb=>{
+      const q=prog(rb.line);
+      ORDER.forEach((f,i)=>{
+        if(q >= (i+0.8)/ORDER.length && !rb.shown.has(f)){
+          rb.shown.add(f);
+          const td = rb.tr.querySelector(`[data-f="${f}"]`);
+          td.textContent = rb.line.fields[f];
+          const ok = rb.line.fields[f]===clr[key][f];
+          td.classList.add(ok?'m':'x');
+        }
+      });
+      if(q>=1 && !rb.done){
+        rb.done=true;
+        const bad = FIELDS.filter(f=>rb.line.fields[f]!==clr[key][f]);
+        if(bad.length){
+          card.el.classList.add('hot'); card.st.className='st held'; card.st.textContent='HELD · MISMATCH';
+          card.verdict.className='verdict bad'; card.verdict.textContent=`hearback ${5-bad.length}/5 · callsign ${rb.line.fields.cs.slice(3)} ≠ ${clr[key].cs.slice(3)} · reservation stays red · controller corrects`;
+          catches++;
+        } else {
+          card.el.classList.remove('hot'); card.el.classList.add('done'); card.st.className='st ok'; card.st.textContent='COMMITTED';
+          card.verdict.className='verdict ok'; card.verdict.textContent=`hearback 5/5 · reservation committed by kernel`;
+        }
+      }
+    });
+  }
+}
+
+// ---------- ledger & log ----------
+function applyRes(r){
+  let el = resEl[r.id];
+  if(!el){ el=document.createElement('div'); el.className='res'; el.innerHTML=`<span>${r.id}</span><span class="d">${r.d}</span><span class="d">${r.slot}</span><span class="s"></span>`; $('rows').appendChild(el); resEl[r.id]=el;
+    const rows=$('rows'); while(rows.children.length>4) rows.removeChild(rows.firstChild); }
+  el.className='res '+r.s;
+  el.querySelector('.s').textContent = {pending:'PENDING',held:'HELD · NO COMMIT',committed:'COMMITTED'}[r.s];
+}
+function addLog(k){
+  const el=document.createElement('div'); el.className='le';
+  const vt={acc:'ACCEPT',rej:'REJECT',sys:'EVENT',com:'COMMIT'}[k.v];
+  el.innerHTML=`<span class="t">${fmt(simMin(k.t)).slice(0,5)}</span><div><span class="ag">${k.ag}</span><span class="v ${k.v}">${vt}</span><div>${k.p}</div><div class="why">${k.v==='rej'?'reason: ':''}${k.why}</div></div>`;
+  const log=$('log'); log.appendChild(el); while(log.children.length>4) log.removeChild(log.firstChild);
+}
+
+// ---------- waveform ----------
+const cv=$('wave'), cx=cv.getContext('2d');
+const N=520; const wave=new Float32Array(N), waveCol=new Uint8Array(N); let marks=[];
+const COLORS=['#2a3943','#3fd0bd','#f2b54a','#ff5a52'];
+// with the radio on, the real transmission drives TX state; muted, the script timing does
+function activeLine(){ if(window.SkyRadio&&SkyRadio.enabled) return radio.live; return LINES.find(l=>t>=l.t && t<l.t+l.d); }
+function speakerColor(l){ if(!l) return 0; if(l.who==='APP') return 1; if(l.who==='SKF421' && l.card==='c412') return 3; return 2; }
+let phaseAcc=0, lastPush=0;
+function pushWave(){
+  const l=activeLine();
+  let a=0.03+Math.random()*0.03;
+  if(l){
+    const isLive=l===radio.live, lt=isLive?(performance.now()-radio.start)/1000:t-l.t;
+    const syl=Math.abs(Math.sin(lt*Math.PI*4.3+Math.sin(lt*1.7)*2));
+    const word=0.55+0.45*Math.sin(lt*1.3+l.t);
+    const edge=isLive?Math.min(1,lt*6):Math.min(1,lt*6,(l.d-lt)*6);
+    a=Math.max(0.06,(0.25+0.75*syl*word)*(0.7+Math.random()*0.3)*edge);
+  }
+  wave.copyWithin(0,1); waveCol.copyWithin(0,1);
+  wave[N-1]=a; waveCol[N-1]=speakerColor(l);
+  marks.forEach(m=>m.x--); marks=marks.filter(m=>m.x>-200);
+}
+function drawWave(){
+  const dpr=devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==W*dpr){cv.width=W*dpr;cv.height=H*dpr;}
+  cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,W,H);
+  const histW=W*0.74, scopeX=histW+14, mid=H/2+4, amp=H*0.36;
+  // grid
+  cx.strokeStyle='#141d22'; cx.lineWidth=1;
+  for(let y=-2;y<=2;y++){cx.beginPath();cx.moveTo(0,mid+y*amp/2);cx.lineTo(histW,mid+y*amp/2);cx.stroke();}
+  for(let x=0;x<histW;x+=histW/12){cx.beginPath();cx.moveTo(x,mid-amp);cx.lineTo(x,mid+amp);cx.stroke();}
+  // history envelope
+  const bw=histW/N;
+  for(let i=0;i<N;i++){
+    const a=wave[i]; if(!a) continue;
+    cx.fillStyle=COLORS[waveCol[i]];
+    cx.globalAlpha = waveCol[i]?0.92:0.6;
+    const h=a*amp; cx.fillRect(i*bw,mid-h,Math.max(1,bw-0.6),h*2);
+  }
+  cx.globalAlpha=1;
+  // speaker marks
+  cx.font='600 11px IBM Plex Mono, monospace';
+  marks.forEach(m=>{
+    const x=m.x*bw; if(x<-150) return;
+    cx.fillStyle=COLORS[m.c]; cx.fillRect(x,mid-amp-16,2,12);
+    cx.fillText(m.label,x+6,mid-amp-6);
+  });
+  // time ticks
+  cx.fillStyle='#4a5a64'; cx.font='10px IBM Plex Mono, monospace';
+  cx.fillText('−20 s',2,H-6); cx.fillText('now',histW-24,H-6);
+  // live scope
+  const l=activeLine(); const c=COLORS[speakerColor(l)];
+  const sw=W-scopeX-14;
+  cx.strokeStyle='#1e2a31'; cx.strokeRect(scopeX,mid-amp,sw,amp*2);
+  cx.beginPath(); cx.moveTo(scopeX,mid); cx.lineTo(scopeX+sw,mid); cx.stroke();
+  cx.strokeStyle=l?c:'#2a3943'; cx.lineWidth=1.6; cx.beginPath();
+  const a=wave[N-1]; phaseAcc+=0.25;
+  for(let x=0;x<=sw;x+=2){
+    const u=x/sw*Math.PI*2;
+    const y = l ? a*amp*0.95*(0.55*Math.sin(u*3+phaseAcc)+0.3*Math.sin(u*7.3-phaseAcc*1.7)+0.15*Math.sin(u*13.1+phaseAcc*2.3)+(Math.random()-.5)*0.15)
+                : (Math.random()-.5)*4;
+    x?cx.lineTo(scopeX+x,mid+y):cx.moveTo(scopeX+x,mid+y);
+  }
+  cx.stroke(); cx.lineWidth=1;
+  cx.fillStyle='#4a5a64'; cx.fillText('SCOPE',scopeX+4,mid-amp+12);
+  if(l){ cx.fillStyle=c; cx.font='600 12px IBM Plex Mono, monospace'; cx.fillText(l.who==='APP'?'APP (controller agent)':l.who.replace('SKF','SkyFlow ')+' (pilot)',scopeX+4,mid+amp-6); }
+}
+
+// ---------- map ----------
+const P={SF:[-122.41,37.785],MAR:[-122.485,37.862],SFO:[-122.375,37.622],OAK:[-122.235,37.722],BER:[-122.275,37.865],W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77]};
+const CORR=[['SF','MAR'],['SF','W'],['SF','C'],['C','BER'],['C','E'],['W','E'],['W','SFO'],['E','OAK'],['OAK','BER']];
+const proj=([lo,la])=>[ (lo+122.52)/(0.32)*410, (37.885-la)/(0.28)*242 ];
+const svg=$('map');
+function el(tag,attrs,parent=svg){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent.appendChild(e);return e;}
+// rough shorelines (stylised)
+el('path',{d:'M0,0 L160,0 L150,40 L120,62 L104,58 L0,30 Z',fill:'#11191d'});
+el('path',{d:'M0,96 L118,82 L124,110 L130,160 L150,200 L178,242 L0,242 Z',fill:'#11191d'});
+el('path',{d:'M410,0 L300,0 L292,40 L318,88 L352,140 L410,170 Z',fill:'#11191d'});
+const defs=el('defs',{});
+const pat=el('pattern',{id:'hatch',width:6,height:6,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
+el('rect',{width:3,height:6,fill:'#e2873f',opacity:.35},pat);
+const storm=el('ellipse',{cx:proj(P.C)[0]*0.5+proj(P.E)[0]*0.5,cy:proj(P.C)[1]*0.5+proj(P.E)[1]*0.5+4,rx:44,ry:30,fill:'url(#hatch)',stroke:'#e2873f','stroke-width':1.2,'stroke-dasharray':'3 3',opacity:0});
+const corrEl={};
+CORR.forEach(([a,b])=>{const A=proj(P[a]),B=proj(P[b]);corrEl[a+b]=el('line',{x1:A[0],y1:A[1],x2:B[0],y2:B[1],stroke:'#2d3d47','stroke-width':2.2});});
+const r412=el('polyline',{points:['SF','W','E','OAK'].map(k=>proj(P[k]).join(',')).join(' '),fill:'none',stroke:'#f2b54a','stroke-width':2.6,opacity:0,'stroke-dasharray':'5 4'});
+const ceX=el('text',{x:0,y:0,'font-size':10,'font-family':'IBM Plex Mono',fill:'#e2873f',opacity:0});ceX.textContent='C–E CLOSED';
+{const A=proj(P.C),B=proj(P.E);ceX.setAttribute('x',(A[0]+B[0])/2-28);ceX.setAttribute('y',(A[1]+B[1])/2-34);}
+Object.entries(P).forEach(([k,v])=>{const [x,y]=proj(v);const port=k.length>1;
+  if(port){el('rect',{x:x-5,y:y-5,width:10,height:10,fill:'#0a0e11',stroke:'#7d8d97','stroke-width':1.4,rx:2});}
+  else el('circle',{cx:x,cy:y,r:3,fill:'#7d8d97'});
+  const tx=el('text',{x:x+(port?8:6),y:y+(k==='SFO'?4:-6),'font-size':port?10.5:9.5,'font-family':'IBM Plex Mono',fill:port?'#d9e3e8':'#7d8d97'});tx.textContent=k;});
+// flights on map
+const FL=[
+ {cs:'403',route:['SF','C','E','OAK'],t0:1,t1:12},
+ {cs:'408',route:['SF','W','E','OAK'],t0:11,t1:30},
+ {cs:'410',route:['SF','W','E','OAK'],t0:16,t1:38},
+ {cs:'412',route:['SF','W','E','OAK'],t0:44.8,t1:62,hero:true},
+ {cs:'421',route:['BER','C','SF','MAR'],t0:59,t1:76},
+ {cs:'409',route:['SFO','W','E','OAK'],t0:6,t1:26},
+ {cs:'414',route:['SF','C','E','OAK'],t0:61,t1:74},
+ {cs:'418',route:['SF','C','E','OAK'],t0:75.2,t1:88},
+ {cs:'405',route:['MAR','SF','W','SFO'],t0:2,t1:20},
+ {cs:'416',route:['OAK','BER'],t0:40,t1:52},
+];
+FL.forEach(f=>{f.g=el('g',{opacity:0});f.dot=el('circle',{r:f.hero?4.5:3,fill:f.hero?'#f2b54a':'#3fd0bd',stroke:'#0a0e11','stroke-width':1},f.g);
+  const tx=el('text',{x:6,y:-5,'font-size':9,'font-family':'IBM Plex Mono',fill:f.hero?'#f2b54a':'#7d8d97'},f.g);tx.textContent=f.cs;
+  const pts=f.route.map(k=>proj(P[k]));let L=0;f.seg=[];for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);f.seg.push([pts[i-1],pts[i],L,d]);L+=d;}f.L=L;});
+function updateMap(){
+  const storming=t>=STORM_A&&t<STORM_B;
+  storm.setAttribute('opacity',storming?0.95:(t>=STORM_B?Math.max(0,1-(t-STORM_B)):0));
+  ceX.setAttribute('opacity',storming?1:0);
+  corrEl.CE.setAttribute('stroke',storming?'#e2873f':'#2d3d47');
+  corrEl.CE.setAttribute('stroke-dasharray',storming?'2 4':'');
+  const r=t>=14.6&&t<62; r412.setAttribute('opacity',r?(t<44.8?0.45:0.95):0);
+  r412.setAttribute('stroke',t>=29.2&&t<44.8?'#ff5a52':'#f2b54a');
+  $('mapNote').textContent=storming?'storm · C–E closed · reroute via W–E':(t>=STORM_B?'C–E reopened · recovering':'all corridors open');
+  FL.forEach(f=>{const q=(t-f.t0)/(f.t1-f.t0);if(q<0||q>1){f.g.setAttribute('opacity',0);return;}
+    const d=q*f.L;const s=f.seg.find(s=>d<=s[2]+s[3])||f.seg[f.seg.length-1];const u=(d-s[2])/s[3];
+    const x=s[0][0]+(s[1][0]-s[0][0])*u,y=s[0][1]+(s[1][1]-s[0][1])*u;f.g.setAttribute('transform',`translate(${x},${y})`);f.g.setAttribute('opacity',1);});
+}
+
+// ---------- radio (shared SkyRadio module: baked TTS through a VHF chain) ----------
+// The scripted clock may not pass the next line's start while the frequency is busy,
+// so voice, transcript and waveform stay in step even when a clip runs long.
+const spk=l=>l.who==='APP'?'atc':'pilot';
+const radio={busy:false,gen:0,live:null,start:0,line:null};
+SkyRadio.prefetch(LINES.map(l=>({text:l.text,speaker:spk(l),key:l.who})));
+SkyRadio.onTransmit(e=>{
+  radio.live = e.live ? LINES.find(l=>l.text===e.text) : null;
+  radio.start = performance.now();
+});
+function radioSay(l){
+  if(silent||!SkyRadio.enabled) return;
+  const g=radio.gen; radio.busy=true; radio.line=l;
+  SkyRadio.say(l.text,spk(l),l.who).finally(()=>{ if(g===radio.gen) radio.busy=false; });
+}
+// hold point while busy: end of the current line's scripted slot (never past the next line)
+function holdT(){ const n=LINES.find(l=>l.t>t+1e-6), nt=n?n.t:LOOP; return radio.line?Math.min(nt,radio.line.t+radio.line.d):nt; }
+// progress of a line; while its audio is still on air, stop short of the last field (the callsign)
+function prog(L){ const q=Math.min(1,(t-L.t)/L.d); return radio.busy&&radio.line===L?Math.min(q,0.95):q; }
+let silent=false;
+function syncSoundBtn(){ const on=SkyRadio.enabled; $('bSound').textContent=on?'🔊 Radio on':'🔇 Radio muted'; $('bSound').classList.toggle('on',on); }
+document.addEventListener('skyradio:enabled',syncSoundBtn);
+
+// ---------- header / footer ----------
+function updateHeader(){
+  const m=simMin(t);
+  $('clock').textContent=fmt(m);
+  const ph=$('phase');
+  if(t<STORM_A){ph.className='phase calm';ph.textContent='CALM TRAFFIC';}
+  else if(t<STORM_B){ph.className='phase storm';ph.textContent=t<14?'STORM · C–E CLOSED':'STORM · AGENTS REPLANNING';}
+  else {ph.className='phase recover';ph.textContent=t<80?'RECOVERY':'RECOVERED';}
+  $('head').style.left=(t/LOOP*100)+'%';
+  const l=activeLine();
+  const tx=$('tx');
+  if(l){tx.classList.add('live');$('txWho').textContent='TX  '+(l.who==='APP'?'APP · controller agent':l.who.replace('SKF','SkyFlow '));
+    $('txWho').style.color=COLORS[speakerColor(l)];$('txTo').textContent=l.to?'→ '+l.to.replace('SKF','SkyFlow '):(l.card==='c412'&&l.who==='SKF421'?'answering a clearance for SkyFlow 412':'');}
+  else{tx.classList.remove('live');$('txWho').textContent='carrier idle';$('txWho').style.color='';$('txTo').textContent='';}
+  // scoreboard
+  const arrived=Math.max(0,Math.min(28,Math.floor((m-9)/2.2)+1));
+  $('kOn').textContent=`${arrived}/28`;
+  $('kStatic').innerHTML=`${Math.min(10,arrived)}/28<small>${arrived>10?(arrived-10)+' late':''}</small>`;
+  const md=t<STORM_A?0:Math.min(6,Math.round((t-STORM_A)/4));
+  $('kDelay').innerHTML=`${md} min<small>static 31</small>`;
+  $('kTx').textContent=txCount; $('kCatch').textContent=catches;
+  $('kCatch').style.color=catches?'var(--bad)':'';
+}
+(function initTL(){const tl=$('tl');$('seg').style.left=(STORM_A/LOOP*100)+'%';$('seg').style.width=((STORM_B-STORM_A)/LOOP*100)+'%';
+  [['storm C–E',STORM_A+8],['recovery',STORM_B+5]].forEach(([n,x])=>{const s=document.createElement('span');s.className='lab';s.style.left=(x/LOOP*100+3)+'%';s.textContent=n;tl.appendChild(s);});
+  tl.onclick=e=>{const r=tl.getBoundingClientRect();const target=(e.clientX-r.left)/r.width*LOOP;reset();fastForward(target);};})();
+
+// ---------- tick ----------
+function step(){
+  LINES.forEach((l,i)=>{ if(t>=l.t && !fired.lines.has(i)){ fired.lines.add(i); txCount++; radioSay(l);
+      marks.push({x:N-1,c:speakerColor(l),label:l.who==='APP'?'APP':l.who.replace('SKF','')});
+      if(l.kind==='clr') makeCard(l.card,l); else if(l.kind==='rb') addReadback(l); else addNote(l);} });
+  KLOG.forEach((k,i)=>{ if(t>=k.t && !fired.klog.has(i)){fired.klog.add(i);addLog(k);} });
+  RES.forEach((r,i)=>{ if(t>=r.t && !fired.res.has(i)){fired.res.add(i);applyRes(r);} });
+  updateCards(); updateMap(); updateHeader();
+}
+function fastForward(target){ silent=true; while(t<target){t=Math.min(target,t+1/24);pushWave();step();} silent=false; }
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  if(playing){ const nt=t+dt; t = radio.busy ? Math.min(nt, Math.max(t, holdT()-0.02)) : nt; if(t>=LOOP-0.03 && !radio.busy){reset();}
+    lastPush+=dt; while(lastPush>1/26){lastPush-=1/26;pushWave();} step(); }
+  drawWave();
+  requestAnimationFrame(frame);
+}
+$('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'❚❚ Pause':'▶ Play';if(!playing){radioStop();radio.gen++;radio.busy=false;radio.live=null;}};
+$('bRestart').onclick=()=>{reset();playing=true;$('bPlay').textContent='❚❚ Pause';};
+$('bSound').onclick=()=>{ if(SkyRadio.enabled){SkyRadio.disable();radioStop();radio.busy=false;radio.live=null;} else SkyRadio.enable(); syncSoundBtn(); };
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();$('bPlay').click();}});
+const q=new URLSearchParams(location.search);
+reset(); if(q.get('t')) fastForward(+q.get('t'));
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

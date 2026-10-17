@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyFlow · Three-Way Race</title>
+<style>
+:root{
+  --bg:#080b0e; --panel:#0d1115; --line:#1c232a; --line2:#29323b;
+  --ink:#e7eaed; --dim:#8b959f; --faint:#56616b;
+  --amber:#f0a83a; --red:#ff554a; --teal:#33d1ae; --blue:#7ab0ff; --storm:#ff7a3d; --violet:#b9a3ff;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+body{display:flex;flex-direction:column;min-width:1240px}
+header{height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid var(--line)}
+.brand b{font:700 14px var(--mono);letter-spacing:.16em}
+.brand span{font:500 11px var(--mono);color:var(--dim);letter-spacing:.1em;margin-left:8px}
+.headline{flex:1;font:500 13.5px var(--sans);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.headline em{font-style:normal;color:var(--ink)}
+.simtag{font:600 10px var(--mono);letter-spacing:.16em;color:var(--amber);border:1px solid #5a4320;padding:4px 7px;border-radius:3px}
+.clock{font:600 18px var(--mono);min-width:92px;text-align:right;font-variant-numeric:tabular-nums}
+.clock small{font-size:10px;color:var(--dim);letter-spacing:.14em;margin-right:5px}
+.ctl{display:flex;gap:6px}
+.ctl button{background:#131820;border:1px solid var(--line2);color:var(--ink);font:600 10.5px var(--mono);letter-spacing:.08em;height:28px;padding:0 11px;border-radius:4px;cursor:pointer}
+.ctl button:hover{border-color:#46525e}
+.ctl button.on{border-color:var(--teal);color:var(--teal)}
+.ribbon{height:50px;flex:none;border-bottom:1px solid var(--line);position:relative;background:#0a0e12}
+.ribbon canvas{position:absolute;inset:0;width:100%;height:100%;cursor:pointer}
+main{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 188px;gap:1px;background:var(--line);min-height:0;position:relative}
+.col{background:var(--panel);display:grid;grid-template-rows:50px minmax(0,1fr) auto 178px;min-height:0;overflow:hidden}
+.col-h{display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line)}
+.col-h .tag{font:700 12px var(--mono);letter-spacing:.14em}
+.col-h .sub{font:500 11.5px/1.25 var(--sans);color:var(--dim)}
+.rank{margin-left:auto;font:700 11px var(--mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.rank.r1{color:#08241d;background:var(--teal);border-color:var(--teal)}
+.fcfs .tag{color:var(--amber)} .opt .tag{color:var(--blue)} .agent .tag{color:var(--teal)} .oracle .tag{color:var(--violet)}
+.mapwrap{position:relative;min-height:0}
+.mapwrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.hbpop{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(8,11,14,.94);border:1px solid #2c3742;border-radius:6px;padding:8px 10px;display:none}
+.hbpop.on{display:block;animation:in .25s}
+.hbpop .h{font:700 9.5px var(--mono);letter-spacing:.14em;color:var(--dim);display:flex;justify-content:space-between}
+.hbpop .chips{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.chip{font:700 10px var(--mono);padding:3px 6px;border-radius:3px;border:1px solid var(--line2);color:var(--dim)}
+.chip.ok{color:var(--teal);border-color:#1d5a4c;background:#0b1f1a}.chip.bad{color:#ffb3ad;border-color:#6a2a26;background:#2a1412}
+.hbpop .v{font:700 10.5px var(--mono);letter-spacing:.1em;margin-top:6px}
+.counters{border-top:1px solid var(--line);padding:10px 14px 10px}
+.ot{display:flex;align-items:baseline;gap:10px}
+.ot .l{font:600 9.5px var(--mono);letter-spacing:.14em;color:var(--faint)}
+.ot .n{font:700 40px/1 var(--mono);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.ot .n small{font-size:18px;color:var(--faint)}
+.ot .late{margin-left:auto;font:600 11px var(--mono);color:var(--dim);text-align:right}
+.strip{display:grid;grid-template-columns:repeat(28,1fr);gap:2px;margin:8px 0 10px}
+.strip i{height:9px;border-radius:1px;background:#1a2129;transition:background .3s}
+.strip i.air{background:#3a4652}.strip i.airlate{background:#7a3a1c}
+.strip i.ok{background:var(--teal)}.strip i.late{background:var(--red)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.stat{background:#0f1419;padding:6px 8px}
+.stat .l{font:600 9px var(--mono);letter-spacing:.12em;color:var(--faint)}
+.stat .v{font:700 17px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.stat .v small{font-size:10px;color:var(--faint);margin-left:2px;font-weight:600}
+.v.red{color:var(--red)}.v.teal{color:var(--teal)}.v.amber{color:var(--amber)}
+.logwrap{border-top:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.logwrap h4{font:600 9.5px var(--mono);letter-spacing:.14em;color:var(--faint);padding:7px 14px 3px;display:flex;justify-content:space-between}
+.log{flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:0 10px 8px;-webkit-mask-image:linear-gradient(transparent 0,#000 26px);mask-image:linear-gradient(transparent 0,#000 26px)}
+.ev{font:500 11px/1.35 var(--mono);color:#c2cad1;padding:3px 6px;border-left:2px solid transparent;margin-top:2px;animation:in .3s ease-out}
+.ev .t{color:var(--faint);margin-right:6px}
+.ev.wx{border-color:var(--storm);color:#ffc6a8}.ev.hold{border-color:var(--amber)}.ev.late{border-color:var(--red);color:#ffb3ad}
+.ev.rp{border-color:var(--blue)}.ev.ok{border-color:var(--teal)}.ev.k{border-color:var(--teal);color:#a8f0de}.ev.rej{border-color:var(--red);color:#ffb3ad}
+.ev.voice{background:#10171e;border-color:#4f7fae;font-family:var(--sans);font-size:12px;color:#eef2f5}
+.ev.voice b{font:700 9.5px var(--mono);letter-spacing:.08em;color:#9fb3c8;margin-right:6px}
+.ev.voice.bad{border-color:var(--red);background:#1c1110}
+.ev.voice.live{box-shadow:inset 0 0 0 1px #3a5a7a}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.col.oracle{grid-template-rows:50px 1fr}
+.oracle .body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;border-top:0}
+.oracle .big{font:700 34px/1 var(--mono);color:var(--violet)}
+.oracle .big small{font-size:16px;color:var(--faint)}
+.orow{border-top:1px solid var(--line);padding-top:7px}
+.orow .l{font:600 9px var(--mono);letter-spacing:.12em;color:var(--faint)}
+.orow .v{font:700 16px var(--mono);font-variant-numeric:tabular-nums}
+.oracle .note{margin-top:auto;font:500 11.5px/1.45 var(--sans);color:var(--dim)}
+.oracle .note b{color:#cfc4ff;font-weight:600}
+.tx-dot{width:7px;height:7px;border-radius:50%;background:#33404c;display:inline-block;margin-left:auto}
+.tx-dot.on{background:var(--red);box-shadow:0 0 8px var(--red);animation:blink .45s steps(1) infinite}
+@keyframes blink{50%{opacity:.3}}
+.verdict{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,8,11,.74);backdrop-filter:blur(3px);z-index:5}
+.verdict.on{display:flex;animation:in .5s}
+.vcard{width:860px;background:#0f1419;border:1px solid #2a333d;border-radius:10px;padding:24px 30px 22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.vcard h2{font:600 11px var(--mono);letter-spacing:.2em;color:var(--dim)}
+.vcard .hl{font:600 24px/1.3 var(--sans);margin:10px 0 16px;letter-spacing:-.01em}
+.vcard .hl em{font-style:normal;color:var(--teal)}
+.vt{width:100%;border-collapse:collapse;font:600 13px var(--mono);font-variant-numeric:tabular-nums}
+.vt th{font:700 10px var(--mono);letter-spacing:.14em;text-align:right;padding:6px 8px;color:var(--dim)}
+.vt th:first-child{text-align:left}
+.vt td{padding:7px 8px;border-top:1px solid #1e252d;text-align:right}
+.vt td:first-child{text-align:left;color:var(--dim);font-weight:500}
+.vt td.best{color:var(--teal)} .vt td.worst{color:#ff9d95}
+.vt th.agent{color:var(--teal)} .vt th.fcfs{color:var(--amber)} .vt th.opt{color:var(--blue)} .vt th.oracle{color:var(--violet)}
+.vt td.ag{background:#0c1d19}
+.vfoot{margin-top:14px;font:500 12px/1.5 var(--sans);color:var(--dim)}
+</style>
+<script src="radio-audio.js?v=3"></script>
+</head>
+<body>
+<header>
+  <div class="brand"><b>SKYFLOW</b><span>THREE-WAY · SAME STORM</span></div>
+  <div class="headline">28 trips, one released every 2.5 min. An unforecast storm closes <em>C–E</em> from T+08 to T+24. Three ways to run the same sky.</div>
+  <span class="simtag">SIMULATION</span>
+  <div class="clock"><small>T+</small><span id="clock">00:00</span></div>
+  <div class="ctl"><button id="snd">SOUND OFF</button><button id="play">PAUSE</button><button id="restart">RESTART</button></div>
+</header>
+<div class="ribbon"><canvas id="rib"></canvas></div>
+<main id="main">
+  <section class="col fcfs" data-p="fcfs">
+    <div class="col-h"><div><div class="tag">FCFS · STATIC PLAN</div><div class="sub">Filed routes, first come first served. Holds until it reopens.</div></div><span class="rank" id="rk-fcfs">—</span></div>
+    <div class="mapwrap"><canvas id="map-fcfs"></canvas></div>
+    <div class="counters" id="ct-fcfs"></div>
+    <div class="logwrap"><h4><span>CONTROL LOG · TEXT</span></h4><div class="log" id="log-fcfs"></div></div>
+  </section>
+  <section class="col opt" data-p="opt">
+    <div class="col-h"><div><div class="tag">CENTRAL OPTIMIZER</div><div class="sub">One global solve every 5 min. Re-clears everyone it touches.</div></div><span class="rank" id="rk-opt">—</span></div>
+    <div class="mapwrap"><canvas id="map-opt"></canvas></div>
+    <div class="counters" id="ct-opt"></div>
+    <div class="logwrap"><h4><span>SOLVER LOG · TEXT</span></h4><div class="log" id="log-opt"></div></div>
+  </section>
+  <section class="col agent" data-p="agent">
+    <div class="col-h"><div><div class="tag">AGENT TEAM</div><div class="sub">Sector agents propose locally; the kernel validates and commits.</div></div><span class="rank" id="rk-agent">—</span></div>
+    <div class="mapwrap"><canvas id="map-agent"></canvas>
+      <div class="hbpop" id="hbpop"><div class="h"><span>KERNEL HEARBACK · SKF104</span><span id="hbst">COMPARING</span></div><div class="chips" id="hbchips"></div><div class="v" id="hbv"></div></div>
+    </div>
+    <div class="counters" id="ct-agent"></div>
+    <div class="logwrap"><h4><span>FREQUENCY + KERNEL · VOICE</span><i class="tx-dot" id="txdot"></i></h4><div class="log" id="log-agent"></div></div>
+  </section>
+  <section class="col oracle">
+    <div class="col-h"><div><div class="tag">ORACLE</div><div class="sub">Knew the storm in advance</div></div></div>
+    <div class="body" id="ct-oracle"></div>
+  </section>
+  <div class="verdict" id="verdict"><div class="vcard" id="vcard"></div></div>
+</main>
+<script>
+// ================= scenario + simulation =================
+const N={SF:[-122.41,37.785],MAR:[-122.485,37.862],SFO:[-122.375,37.622],OAK:[-122.235,37.722],BER:[-122.275,37.865],W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77]};
+const EDGES=[["SF","MAR"],["SF","W"],["SF","C"],["C","BER"],["C","E"],["W","E"],["W","SFO"],["E","OAK"],["OAK","BER"]];
+const PADS=["SF","MAR","SFO","OAK","BER"];
+const km=(a,b)=>Math.hypot((a[0]-b[0])*88.0,(a[1]-b[1])*111.0);
+const ADJ={};for(const[a,b]of EDGES){(ADJ[a]??=[]).push(b);(ADJ[b]??=[]).push(a)}
+const SPEED=3.0, SEP=1.0, ST0=8, ST1=24, CE_SEP=2.8, ONTIME=5, END=76;
+const SOLVES=[2.5,7.5,12.5,17.5,22.5,27.5];
+const isCE=(a,b)=>(a=="C"&&b=="E")||(a=="E"&&b=="C");
+const hasCE=r=>r.some((v,i)=>i&&isCE(r[i-1],v));
+function path(s,t,avoid){const d={},p={},q=new Set(Object.keys(N));for(const k of q)d[k]=1e9;d[s]=0;
+  while(q.size){let u=null;for(const k of q)if(u==null||d[k]<d[u])u=k;q.delete(u);if(u==t)break;
+    for(const v of ADJ[u]){if(avoid&&isCE(u,v))continue;const nd=d[u]+km(N[u],N[v]);if(nd<d[v]){d[v]=nd;p[v]=u}}}
+  const r=[t];while(r[0]!=s)r.unshift(p[r[0]]);return r}
+const plen=r=>r.slice(1).reduce((s,v,i)=>s+km(N[r[i]],N[v]),0);
+const OD=[["SF","OAK"],["SFO","BER"],["OAK","SF"],["OAK","SF"],["SF","OAK"],["MAR","OAK"],["SF","OAK"],["OAK","MAR"],["SF","OAK"],["OAK","SF"],["SFO","SF"],["SF","OAK"],["OAK","SF"],["MAR","OAK"],["SF","OAK"],["OAK","BER"],["OAK","SF"],["SF","OAK"],["SF","SFO"],["OAK","SF"],["SF","OAK"],["BER","SF"],["OAK","SF"],["SF","OAK"],["MAR","SF"],["OAK","SF"],["SF","OAK"],["OAK","SF"]];
+const CS=i=>"SKF"+(101+i);
+const mm=t=>{const m=Math.floor(t),s=Math.floor((t-m)*60);return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")};
+const RB_FLIGHT=3; // SKF104, rerouted mid-air: the readback catch
+
+function simulate(policy){
+  const res={},flights=[],ev=[];
+  const know=policy=="agent"?8.5:policy=="opt"?12.5:policy=="oracle"?-1:1e9;
+  OD.forEach(([o,d],i)=>{
+    const rel=i*2.5,nominal=plen(path(o,d))/SPEED;
+    let route=path(o,d),t=rel,legs=[],k=0,rp=0,legStart=rel,pre=false;
+    const note=(tt,kind,text,cls)=>ev.push({t:tt,kind,text,cls,i});
+    note(rel,"tx",null);note(rel+0.05,"tx",null);
+    const reroute=(u,why)=>{const old=route.slice(k).join("-");route=[...route.slice(0,k),...path(u,d,true)];
+      const atT=(k>0||t>rel)?(legStart<know&&t>know&&policy=="agent"?know:t):t;
+      if(k==0&&t<=rel+1e-6&&policy!="fcfs"){pre=true;note(atT,"log",`${CS(i)} filed around storm: ${route.join("–")}`,"rp");if(policy!="oracle")note(atT,"replan",null);return}
+      rp++;note(atT,"replan",`${CS(i)} re-cleared ${route.slice(k).join("–")} ${why||""}`,"rp");note(atT+0.02,"tx",null);note(atT+0.04,"tx",null)};
+    while(route[k]!=d){
+      let u=route[k],v=route[k+1];
+      const closed=t>=ST0&&t<ST1;
+      if(policy=="oracle"){const cur=route.slice(k);let tt=t,hit=false;for(let j=1;j<cur.length;j++){if(isCE(cur[j-1],cur[j])&&tt>=ST0&&tt<ST1){hit=true;tt=ST1}tt+=km(N[cur[j-1]],N[cur[j]])/SPEED}
+        if(hit&&t+plen(path(u,d,true))/SPEED<tt){reroute(u);v=route[k+1]}}
+      else if(closed&&t>=know&&hasCE(route.slice(k))){reroute(u);v=route[k+1]}
+      if(policy!="fcfs"&&t>=ST1&&t<ST1+40&&hasCE(route.slice(k))&&(policy!="opt"||k==0)){
+        const alt=path(u,d,true),cur=route.slice(k);let tt=t;
+        for(let j=1;j<cur.length;j++){if(isCE(cur[j-1],cur[j]))tt=Math.max(tt,(res.CE??-1e9)+CE_SEP);tt+=km(N[cur[j-1]],N[cur[j]])/SPEED}
+        if(t+plen(alt)/SPEED<tt-0.3){reroute(u,"· C–E queue");v=route[k+1]}}
+      if(isCE(u,v)&&closed){const until=policy=="opt"?12.5:ST1;
+        note(t,"hold",policy=="opt"?`${CS(i)} holding at ${u} · plan stale until solve`:`${CS(i)} holding at ${u} · C–E closed`,"hold");
+        if(policy=="fcfs"){note(t+0.02,"tx",null);note(t+0.04,"tx",null)}
+        legs.push({t0:t,t1:until,a:u,b:u,hold:1});t=until;continue}
+      const te0=t,key=isCE(u,v)?"CE":u+">"+v,last=res[key]??-1e9,sp=isCE(u,v)&&te0>=ST1&&te0<ST1+40?CE_SEP:SEP;
+      const te=Math.max(t,last+sp);
+      if(te>t+1e-6){if(te-t>1.5)note(t,"hold",`${CS(i)} ${k==0?"ground hold":"holding"} at ${u} · ${isCE(u,v)?"C–E queue":"slot"} +${(te-t).toFixed(1)} min`,"hold");legs.push({t0:t,t1:te,a:u,b:u,hold:1,gnd:k==0});t=te}
+      res[key]=te;const t1=te+km(N[u],N[v])/SPEED;legs.push({t0:te,t1,a:u,b:v});legStart=te;t=t1;k++}
+    // the agent column's readback catch costs SKF104 one extra exchange (~0.4 min)
+    if(policy=="agent"&&i==RB_FLIGHT){const x=0.4;legs.forEach(l=>{if(l.t0>8.7){l.t0+=x;l.t1+=x}else if(l.t1>8.7)l.t1+=x});t+=x}
+    note(t-0.6,"tx",null);note(t-0.55,"tx",null);
+    const delay=t-rel-nominal;
+    note(t,"arr",`${CS(i)} landed ${d} ${delay>ONTIME?`+${delay.toFixed(1)} min LATE`:"on time"}`,delay>ONTIME?"late":"ok");
+    flights.push({i,o,d,rel,arr:t,sched:rel+nominal,delay,legs,route,dist:plen(route),nomDist:plen(path(o,d)),rp,pre});
+  });
+  if(policy=="opt")for(const s of SOLVES){const act=flights.filter(f=>f.rel<=s&&f.arr>s);
+    const churn=s>=12.5&&s<=27.5?act.length:0;
+    ev.push({t:s,kind:"log",text:`Global solve · ${flights.filter(f=>f.rel<=s+5&&f.arr>s).length} flights · ${churn} re-clearances`,cls:churn?"rp":""});
+    for(let j=0;j<churn;j++){ev.push({t:s+0.01*j,kind:"replan"});ev.push({t:s+0.01*j,kind:"tx"});ev.push({t:s+0.01*j+0.005,kind:"tx"})}}
+  if(policy=="fcfs"){ev.push({t:ST0,kind:"log",text:"WX · C–E closed · static plan has no reroute",cls:"wx"});ev.push({t:ST1,kind:"log",text:`C–E reopened · backlog at ${CE_SEP} min spacing`,cls:"wx"})}
+  if(policy=="opt"){ev.push({t:ST0,kind:"log",text:"WX · C–E closed · next solve T+12:30",cls:"wx"});ev.push({t:ST1,kind:"log",text:"C–E reopened · waiting for next solve",cls:"wx"})}
+  if(policy=="agent"){ev.push({t:8.5,kind:"log",text:"Sector-Central agent: C–E blocked → 7 reroute proposals",cls:"rp"});
+    const n=ev.filter(e=>e.kind=="replan"&&e.t<ST1).length+ev.filter(e=>e.kind=="log"&&e.cls=="rp"&&/filed/.test(e.text||"")&&e.t<ST1).length;
+    ev.find(e=>e.t==8.5&&e.kind=="log").text=`Sector-Central agent: C–E blocked → ${n} reroute proposals`;
+    ev.push({t:8.52,kind:"log",text:`Kernel: ${n}/${n} accepted · W–E slots re-spaced 1.0 min`,cls:"k"})}
+  ev.sort((a,b)=>a.t-b.t);
+  return {policy,flights,ev};
+}
+const POL=["fcfs","opt","agent","oracle"];
+const SIM={};for(const p of POL)SIM[p]=simulate(p);
+function finals(p){const f=SIM[p].flights,ev=SIM[p].ev;
+  const on=f.filter(x=>x.delay<=ONTIME).length,maxD=Math.max(0,...f.map(x=>x.delay)),tot=f.reduce((s,x)=>s+Math.max(0,x.delay),0);
+  const dist=(f.reduce((s,x)=>s+x.dist,0)/f.reduce((s,x)=>s+x.nomDist,0)-1)*100;
+  return {on,maxD,tot,rep:ev.filter(e=>e.kind=="replan").length,tx:ev.filter(e=>e.kind=="tx").length+(p=="agent"?VOICE_TX_EXTRA:0),dist}}
+
+// ================= agent-team voice (spoken) =================
+const lastF=SIM.agent.flights[27];
+const VOICE=[
+  {t:0.4, who:"atc", text:"SkyFlow one zero one, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred."},
+  {t:0.5, who:"pilot",cs:"SKF101", text:"Cleared to Oakland via Charlie, Echo, one thousand five hundred, SkyFlow one zero one."},
+  {t:8.5, who:"atc", text:"All stations, SkyFlow Bay. Corridor Charlie Echo closed, convective cell. Expect reroute via Whiskey, Echo.", beat:"storm"},
+  {t:8.6, who:"atc", text:"SkyFlow one zero four, reroute. After Echo, proceed via Whiskey, then San Francisco. Maintain one thousand five hundred.", fx:"hb0"},
+  {t:8.7, who:"pilot",cs:"SKF104", text:"After Echo, via Charlie, then San Francisco, one thousand five hundred, SkyFlow one zero four.", fx:"hbBad", bad:true},
+  {t:8.8, who:"atc", text:"SkyFlow one zero four, negative. Charlie Echo is closed. After Echo, proceed via Whiskey.", bad:true},
+  {t:8.9, who:"pilot",cs:"SKF104", text:"Negative Charlie, via Whiskey, then San Francisco, SkyFlow one zero four.", fx:"hbOk"},
+  {t:24.0,who:"atc", text:"All stations, SkyFlow Bay. Corridor Charlie Echo open. Resume normal routing."},
+  {t:+(lastF.arr-0.8).toFixed(2), who:"atc", text:"SkyFlow one two eight, San Francisco pad one, cleared to land."},
+  {t:+(lastF.arr-0.7).toFixed(2), who:"pilot",cs:"SKF128", text:"Cleared to land, pad one, SkyFlow one two eight."},
+];
+const VOICE_TX_EXTRA=4; // two broadcasts + the corrective exchange
+SkyRadio.prefetch(VOICE.map(v=>({text:v.text,speaker:v.who,key:v.cs})));
+const BEATS=[{t:8.0,label:"STORM",c:"#ff7a3d"},{t:8.5,label:"REPLAN",c:"#7ab0ff"},{t:8.7,label:"READBACK CATCH",c:"#ff554a"},{t:24.0,label:"RECOVERY",c:"#33d1ae"},{t:END-1.5,label:"VERDICT",c:"#e7eaed"}];
+
+// ================= time warp: real seconds ↔ sim minutes =================
+const SEG=[[0,7.8,0.9],[7.8,9.25,0.075],[9.25,23.7,1.55],[23.7,24.5,0.3],[24.5,END,1.55]];
+const realOf=m=>{let r=0;for(const[a,b,k]of SEG){if(m<=a)break;r+=(Math.min(m,b)-a)/k}return r};
+const rateAt=m=>{for(const[a,b,k]of SEG)if(m<b)return k;return 1.5};
+const REAL_END=realOf(END);
+
+// ================= map =================
+const BB={lon0:-122.53,lon1:-122.205,lat0:37.598,lat1:37.888};
+let LAND=null;fetch("data/bay-coastline.geojson").then(r=>r.ok?r.json():null).then(j=>LAND=j).catch(()=>{});
+function proj(w,h){const k=Math.cos(37.74*Math.PI/180),gw=(BB.lon1-BB.lon0)*k,gh=BB.lat1-BB.lat0,sc=Math.min(w/gw,h/gh),ox=(w-gw*sc)/2,oy=(h-gh*sc)/2;
+  return p=>[ox+(p[0]-BB.lon0)*k*sc,oy+(BB.lat1-p[1])*sc]}
+function posOf(f,t){
+  if(t<f.rel||t>f.arr+0.4)return null;
+  for(const l of f.legs){if(t>=l.t0&&t<l.t1){
+    if(l.hold)return{p:N[l.a],hold:true,gnd:l.gnd||l.a==f.o,a:l.a};
+    const x=(t-l.t0)/(l.t1-l.t0),A=N[l.a],B=N[l.b];return{p:[A[0]+(B[0]-A[0])*x,A[1]+(B[1]-A[1])*x],dir:[B[0]-A[0],B[1]-A[1]]}}}
+  return{p:N[f.d],landed:true}}
+function drawMap(p,t,now){
+  const cv=document.getElementById("map-"+p),dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
+  const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);const pr=proj(w,h);
+  g.fillStyle="#0a1219";g.fillRect(0,0,w,h);
+  if(LAND){g.fillStyle="#131a20";g.strokeStyle="#212a32";g.lineWidth=1;
+    for(const f of LAND.features){const polys=f.geometry.type==="Polygon"?[f.geometry.coordinates]:f.geometry.coordinates;
+      for(const poly of polys){g.beginPath();for(const ring of poly){ring.forEach((q,i)=>{const z=pr(q);i?g.lineTo(z[0],z[1]):g.moveTo(z[0],z[1])});g.closePath()}g.fill("evenodd");g.stroke()}}}
+  const closed=t>=ST0&&t<ST1;
+  // storm cell
+  const sa=t<7.6||t>24.6?0:Math.min(1,(t-7.6)/0.4,(24.6-t)/0.6);
+  if(sa>0){const c=pr([-122.315,37.782]);const r=34+4*Math.sin(now*1.7);
+    const gr=g.createRadialGradient(c[0],c[1],2,c[0],c[1],r);gr.addColorStop(0,`rgba(255,122,61,${.42*sa})`);gr.addColorStop(.6,`rgba(255,122,61,${.16*sa})`);gr.addColorStop(1,"rgba(255,122,61,0)");
+    g.fillStyle=gr;g.beginPath();g.arc(c[0],c[1],r,0,7);g.fill()}
+  // corridor load (agent/opt reroutes light up W–E)
+  for(const[a,b]of EDGES){const A=pr(N[a]),B=pr(N[b]),ce=isCE(a,b);
+    g.strokeStyle=ce&&closed?"rgba(255,85,74,.9)":"rgba(150,170,190,.26)";g.lineWidth=ce&&closed?2:1.3;g.setLineDash(ce&&closed?[4,3]:[]);
+    g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke()}
+  g.setLineDash([]);
+  if(closed){const m=pr([(N.C[0]+N.E[0])/2,(N.C[1]+N.E[1])/2]);g.font="700 9.5px ui-monospace,Menlo,monospace";g.fillStyle="#ff8a80";g.fillText("C–E CLOSED",m[0]-28,m[1]-8)}
+  for(const[k,q]of Object.entries(N)){const z=pr(q),pad=PADS.includes(k);
+    g.fillStyle=pad?"#0a1219":"#5d6a77";g.strokeStyle="#aeb9c3";g.lineWidth=1.2;g.beginPath();
+    if(pad){g.rect(z[0]-4,z[1]-4,8,8);g.fill();g.stroke()}else{g.arc(z[0],z[1],2.5,0,7);g.fill()}
+    g.font=(pad?"700 10px ":"600 9.5px ")+"ui-monospace,Menlo,monospace";g.fillStyle=pad?"#d5dce2":"#77838f";g.fillText(k,z[0]+7,z[1]-6)}
+  // flights
+  const holds={};
+  for(const f of SIM[p].flights){const s=posOf(f,t);if(!s||s.landed)continue;
+    const z=pr(s.p),curDelay=Math.max(0,t-f.sched),late=curDelay>ONTIME&&!s.landed,rer=f.rp>0||f.pre;
+    let col=late?"#ff554a":s.hold?"#f0a83a":rer&&p!=="fcfs"?"#33d1ae":"#dfe6ec";
+    if(s.hold){holds[s.a]=(holds[s.a]||0)+1;if(s.gnd)continue;
+      const n=holds[s.a],ang=now*2+n*1.3,r=7+n*2.2;g.strokeStyle="rgba(240,168,58,.25)";g.beginPath();g.arc(z[0],z[1],r,0,7);g.stroke();
+      g.fillStyle=col;g.beginPath();g.arc(z[0]+Math.cos(ang)*r,z[1]+Math.sin(ang)*r,2.6,0,7);g.fill();continue}
+    // trail
+    const tr=[];for(let j=0;j<6;j++){const q=posOf(f,t-j*0.12);if(q&&!q.hold&&!q.landed)tr.push(pr(q.p))}
+    if(tr.length>1){g.strokeStyle=col+"55";g.lineWidth=1.4;g.beginPath();tr.forEach((q,j)=>j?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
+    const hl=(p==="agent"&&f.i===RB_FLIGHT&&t>8.5&&t<10.5);
+    g.fillStyle=col;g.beginPath();g.arc(z[0],z[1],hl?4.2:3,0,7);g.fill();
+    if(hl){g.strokeStyle="#ff554a";g.lineWidth=1.5;g.beginPath();g.arc(z[0],z[1],10+2*Math.sin(now*8),0,7);g.stroke()}
+    if(hl||late){g.font="700 9.5px ui-monospace,Menlo,monospace";g.fillStyle=col;g.fillText(CS(f.i)+(late?` +${curDelay.toFixed(0)}`:""),z[0]+6,z[1]+12)}
+  }
+  for(const[k,n]of Object.entries(holds)){const z=pr(N[k]);g.font="700 10px ui-monospace,Menlo,monospace";const s=`HOLD ×${n}`,tw=g.measureText(s).width;
+    g.fillStyle="rgba(40,26,6,.9)";g.fillRect(z[0]-tw/2-5,z[1]+12,tw+10,15);g.fillStyle="#f0a83a";g.fillText(s,z[0]-tw/2,z[1]+23)}
+  g.font="500 9.5px ui-monospace,Menlo,monospace";g.fillStyle="#4a555f";g.fillText("Simulation · same 28 trips, same storm",8,h-8);
+}
+
+// ================= counters =================
+function live(p,t){const f=SIM[p].flights,ev=SIM[p].ev;let on=0,late=0,maxD=0,tot=0;const cells=[];
+  for(const x of f){let c="";if(t>=x.arr){const okk=x.delay<=ONTIME;okk?on++:late++;c=okk?"ok":"late";const d=Math.max(0,x.delay);maxD=Math.max(maxD,d);tot+=d}
+    else if(t>=x.rel){const d=Math.max(0,t-x.sched);maxD=Math.max(maxD,d);tot+=d;c=d>ONTIME?"airlate":"air"}cells.push(c)}
+  let rep=0,tx=0;for(const e of ev){if(e.t>t)break;if(e.kind=="replan")rep++;if(e.kind=="tx")tx++}
+  if(p=="agent")tx+=[8.5,8.8,8.9,24].filter(x=>x<=t).length;
+  return{on,late,maxD,tot,rep,tx,cells}}
+function buildCounters(p){const el=document.getElementById("ct-"+p);
+  el.innerHTML=`<div class="ot"><span class="l">ON TIME</span><span class="n" id="on-${p}">0<small>/28</small></span><span class="late" id="late-${p}"></span></div>
+  <div class="strip" id="strip-${p}">${"<i></i>".repeat(28)}</div>
+  <div class="stats">
+   <div class="stat"><div class="l">MAX DELAY</div><div class="v" id="mx-${p}">0</div></div>
+   <div class="stat"><div class="l">TOTAL DELAY</div><div class="v" id="td-${p}">0</div></div>
+   <div class="stat"><div class="l">CONFLICTS</div><div class="v teal" id="cf-${p}">0</div></div>
+   <div class="stat"><div class="l">REPLANS</div><div class="v" id="rp-${p}">0</div></div>
+   <div class="stat"><div class="l">RADIO TX</div><div class="v" id="tx-${p}">0</div></div>
+   <div class="stat"><div class="l">DISTANCE</div><div class="v" id="ds-${p}">+0%</div></div>
+  </div>`}
+function buildOracle(){document.getElementById("ct-oracle").innerHTML=`
+  <div><div class="orow" style="border:0;padding:0"><div class="l">ON TIME</div></div><div class="big" id="on-oracle">0<small>/28</small></div></div>
+  <div class="orow"><div class="l">MAX DELAY</div><div class="v" id="mx-oracle">0</div></div>
+  <div class="orow"><div class="l">TOTAL DELAY</div><div class="v" id="td-oracle">0</div></div>
+  <div class="orow"><div class="l">CONFLICTS</div><div class="v" style="color:var(--teal)">0</div></div>
+  <div class="orow"><div class="l">REPLANS</div><div class="v" id="rp-oracle">0</div></div>
+  <div class="orow"><div class="l">RADIO TX</div><div class="v" id="tx-oracle">0</div></div>
+  <div class="note">The yardstick, not a contender: it <b>files every route around the storm before take-off</b>. No real system gets this.</div>`}
+const fmtMin=x=>x<0.05?"0":x.toFixed(1)+"<small>min</small>";
+function updateCounters(t){const L={};
+  for(const p of POL){const v=live(p,t);L[p]=v;
+    const on=document.getElementById("on-"+p);on.innerHTML=`${v.on}<small>/28</small>`;on.style.color=p=="oracle"?"":v.late?"var(--ink)":"";
+    document.getElementById("mx-"+p).innerHTML=fmtMin(v.maxD);
+    document.getElementById("mx-"+p).className="v "+(v.maxD>ONTIME?"red":"");
+    document.getElementById("td-"+p).innerHTML=fmtMin(v.tot);
+    document.getElementById("rp-"+p).textContent=v.rep;
+    document.getElementById("tx-"+p).textContent=v.tx;
+    if(p!="oracle"){document.getElementById("late-"+p).innerHTML=v.late?`<span style="color:var(--red)">${v.late} late</span>`:`${v.on+v.late} landed`;
+      const cells=document.getElementById("strip-"+p).children;v.cells.forEach((c,i)=>{if(cells[i].className!==c)cells[i].className=c});
+      const fin=finals(p);const ds=document.getElementById("ds-"+p);ds.textContent=t>ST0?(fin.dist>0.05?"+"+fin.dist.toFixed(1)+"%":"+0%"):"+0%"}}
+  // race rank by (on time desc, total delay asc)
+  const sc=p=>Math.round(((L[p].on-L[p].late*3)*1000-L[p].tot)*10);
+  ["fcfs","opt","agent"].forEach(p=>{const i=["fcfs","opt","agent"].filter(q=>sc(q)>sc(p)).length,tied=["fcfs","opt","agent"].every(q=>sc(q)===sc(p));
+    const lab=tied?"EVEN":["1ST","2ND","3RD"][i];const e=document.getElementById("rk-"+p);if(e.textContent!==lab){e.textContent=lab;e.className="rank"+(i==0&&!tied?" r1":"")}});
+}
+
+// ================= logs =================
+const logPtr={fcfs:0,opt:0,agent:0};
+function pushLog(p,html,cls){const box=document.getElementById("log-"+p),d=document.createElement("div");d.className="ev "+(cls||"");d.innerHTML=html;box.append(d);while(box.children.length>12)box.firstChild.remove();return d}
+function flushLogs(t){for(const p of ["fcfs","opt","agent"]){const ev=SIM[p].ev;
+  while(logPtr[p]<ev.length&&ev[logPtr[p]].t<=t){const e=ev[logPtr[p]++];if(!e.text)continue;
+    if(p=="agent"&&e.kind=="arr"&&e.cls=="ok"&&e.i%3)continue;
+    if(p!="agent"&&e.kind=="arr"&&e.cls=="ok")continue;
+    pushLog(p,`<span class="t">${mm(e.t)}</span>${e.text}`,e.cls)}}}
+
+// ================= hearback popup =================
+function hb(state){const pop=document.getElementById("hbpop"),ch=document.getElementById("hbchips"),v=document.getElementById("hbv"),st=document.getElementById("hbst");
+  const F=(a,b,ok)=>`<span class="chip ${ok===undefined?"":ok?"ok":"bad"}">${a} ${b}</span>`;
+  if(state=="hb0"){pop.classList.add("on");st.textContent="CLEARANCE SENT";ch.innerHTML=F("CALLSIGN","SKF104")+F("ROUTE","E–W–SF")+F("ALT","1500");v.textContent="";v.style.color=""}
+  if(state=="hbBad"){st.textContent="MISMATCH";ch.innerHTML=F("CALLSIGN","SKF104",true)+F("ROUTE","heard E–C–SF · C–E CLOSED",false)+F("ALT","1500",true);v.textContent="REJECTED · NOT COMMITTED · CONTROLLER CORRECTS";v.style.color="#ff9d95"}
+  if(state=="hbOk"){st.textContent="MATCH";ch.innerHTML=F("CALLSIGN","SKF104",true)+F("ROUTE","E–W–SF",true)+F("ALT","1500",true);v.textContent="ALL FIELDS MATCH · E–W SLOT COMMITTED";v.style.color="var(--teal)";setTimeout(()=>pop.classList.remove("on"),5200)}
+}
+
+// ================= ribbon =================
+function drawRibbon(t){
+  const cv=document.getElementById("rib"),dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
+  const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const L=92,R=w-20,X=m=>L+(R-L)*realOf(m)/REAL_END,y=30;
+  g.font="600 9.5px ui-monospace,Menlo,monospace";g.fillStyle="#56616b";g.fillText("SCENARIO",20,y+3);
+  g.fillStyle="#141a20";g.fillRect(L,y-2,R-L,4);
+  g.fillStyle="rgba(255,122,61,.22)";g.fillRect(X(ST0),y-7,X(ST1)-X(ST0),14);
+  g.fillStyle="#2c6b5c";g.fillRect(L,y-2,X(t)-L,4);
+  for(const m of [0,10,20,30,40,50,60,70]){const x=X(m);g.fillStyle="#3a444e";g.fillRect(x,y+6,1,4);g.fillStyle="#4a555f";g.fillText("T+"+m,x-9,y+19)}
+  let lastEnd=-1e9;BEATS.forEach((b,i)=>{const x=X(b.t),past=t>=b.t;g.fillStyle=past?b.c:"#3a444e";g.beginPath();g.moveTo(x,y-9);g.lineTo(x+5,y-4);g.lineTo(x,y+1);g.lineTo(x-5,y-4);g.closePath();g.fill();
+    g.font="700 9.5px ui-monospace,Menlo,monospace";const tw=g.measureText(b.label).width;let lx=x-tw/2;lx=Math.min(Math.max(lx,L,lastEnd+10),R-tw);lastEnd=lx+tw;
+    g.fillStyle=past?b.c:"#56616b";g.fillText(b.label,lx,y-13)});
+  const px=X(t);g.fillStyle="#e7eaed";g.fillRect(px-1,y-10,2,20);
+}
+
+// ================= verdict =================
+function verdict(){
+  const F={};for(const p of POL)F[p]=finals(p);
+  const cols=["fcfs","opt","agent","oracle"],names={fcfs:"FCFS",opt:"OPTIMIZER",agent:"AGENT TEAM",oracle:"ORACLE"};
+  const rows=[["On time",p=>`${F[p].on}/28`,p=>-F[p].on],["Max delay",p=>F[p].maxD.toFixed(1)+" min",p=>F[p].maxD],["Total delay",p=>F[p].tot.toFixed(1)+" min",p=>F[p].tot],
+    ["Conflicts",()=>"0",()=>0],["Replans",p=>F[p].rep,p=>F[p].rep],["Radio transmissions",p=>F[p].tx,p=>F[p].tx],["Extra distance",p=>"+"+F[p].dist.toFixed(1)+"%",p=>F[p].dist],["Readback errors caught",p=>p=="agent"?"1":p=="oracle"?"—":"not checked",()=>0]];
+  const real=["fcfs","opt","agent"];
+  const body=rows.map(([lab,fmt,key])=>{const ks=real.map(key),best=Math.min(...ks),worst=Math.max(...ks);
+    return `<tr><td>${lab}</td>${cols.map(p=>{let c=p=="agent"?"ag ":"";if(real.includes(p)&&best!==worst){if(key(p)===best)c+="best";else if(key(p)===worst)c+="worst"}return `<td class="${c}">${fmt(p)}</td>`}).join("")}</tr>`}).join("");
+  const gap=(F.agent.tot-F.oracle.tot);
+  document.getElementById("vcard").innerHTML=`<h2>VERDICT · SAME 28 TRIPS · SAME STORM · SIMULATION</h2>
+   <div class="hl"><em>Agent team: ${F.agent.on}/28 on time</em>, zero conflicts, ${gap>0.05?gap.toFixed(1)+" min of total delay above the oracle":"total delay level with the oracle"}. FCFS landed ${F.fcfs.on}/28 on time; the optimizer ${F.opt.on}/28 after ${F.opt.rep} re-clearances.</div>
+   <table class="vt"><tr><th></th>${cols.map(p=>`<th class="${p}">${names[p]}</th>`).join("")}</tr>${body}</table>
+   <div class="vfoot">FCFS holds everyone behind the closure and then drains a backlog. The optimizer reacts only at its next 5-minute solve and re-clears every airborne flight each cycle. The agent team re-plans only the ${SIM.agent.flights.filter(f=>f.rp||f.pre).length} affected flights within 30 s, and the kernel commits nothing until the readback matches.</div>`;
+  document.getElementById("verdict").classList.add("on");
+}
+
+// ================= clock, audio sync, loop =================
+let t=0,playing=true,last=performance.now(),vIdx=0,busy=null,vEls=[],verdictAt=null;
+function fireVoice(v){
+  const d=pushLog("agent",`<b>${v.who==="atc"?"BAY":v.cs}</b>${v.text}`,"voice"+(v.bad?" bad":""));d.classList.add("live");
+  if(v.fx)hb(v.fx);
+  busy=SkyRadio.say(v.text,v.who,v.cs).then(()=>{d.classList.remove("live");busy=null});
+}
+SkyRadio.onTransmit(({live})=>document.getElementById("txdot").classList.toggle("on",live));
+function reset(){
+  SkyRadio.flush();busy=null;t=0;vIdx=0;verdictAt=null;
+  for(const p of ["fcfs","opt","agent"]){logPtr[p]=0;document.getElementById("log-"+p).innerHTML=""}
+  document.getElementById("hbpop").classList.remove("on");document.getElementById("verdict").classList.remove("on");
+}
+function tick(now){
+  const dt=Math.max(0,Math.min(.1,(now-last)/1000));last=now;
+  if(playing&&verdictAt===null){
+    let nt=t+dt*rateAt(t);
+    const nextV=vIdx<VOICE.length?VOICE[vIdx].t:1e9;
+    if(busy&&nt>=nextV)nt=Math.max(t,nextV-1e-4);
+    t=Math.min(nt,END);
+    while(vIdx<VOICE.length&&t>=VOICE[vIdx].t&&!busy){fireVoice(VOICE[vIdx++])}
+    flushLogs(t);
+    if(t>=END&&!busy){verdict();verdictAt=now}
+  }
+  if(verdictAt!==null&&playing&&now-verdictAt>11000)reset();
+  document.getElementById("clock").textContent=mm(t);
+  updateCounters(t);drawRibbon(t);
+  for(const p of ["fcfs","opt","agent"])drawMap(p,t,now/1000);
+  requestAnimationFrame(tick);
+}
+const $=id=>document.getElementById(id);
+$("play").onclick=()=>{playing=!playing;$("play").textContent=playing?"PAUSE":"PLAY"};
+$("restart").onclick=reset;
+$("snd").onclick=()=>{SkyRadio.enabled?SkyRadio.disable():SkyRadio.enable();sndUI()};
+function sndUI(){$("snd").textContent=SkyRadio.enabled?"SOUND ON":"SOUND OFF";$("snd").classList.toggle("on",SkyRadio.enabled)}
+document.addEventListener("skyradio:enabled",sndUI);
+addEventListener("keydown",e=>{if(e.key===" "){e.preventDefault();$("play").click()}if(e.key==="r")reset()});
+$("rib").onclick=e=>{const r=e.target.getBoundingClientRect(),x=e.clientX-r.left,L=92,R=r.width-20;const want=Math.max(0,Math.min(1,(x-L)/(R-L)))*REAL_END;
+  let m=0;while(m<END&&realOf(m)<want)m+=0.02;reset();t=m;vIdx=VOICE.findIndex(v=>v.t>=m);if(vIdx<0)vIdx=VOICE.length;flushLogs(t)};
+for(const p of ["fcfs","opt","agent"])buildCounters(p);buildOracle();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

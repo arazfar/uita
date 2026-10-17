@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyFlow · Learning Lab</title>
+<style>
+:root{
+  --bg:#0a0d11; --panel:#0f1318; --line:#1f262e; --line2:#2a333d;
+  --ink:#e6e9ec; --dim:#8a949e; --faint:#56606a;
+  --amber:#f2a93b; --red:#ff5a4e; --teal:#35d0b0; --blue:#6aa8ff; --storm:#ff7a3d;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+body{display:flex;flex-direction:column;min-width:1200px}
+header{height:54px;display:flex;align-items:center;gap:18px;padding:0 20px;border-bottom:1px solid var(--line);flex:none}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font:700 15px var(--mono);letter-spacing:.14em}
+.brand span{font:500 12px var(--mono);color:var(--dim);letter-spacing:.08em}
+.headline{flex:1;font:500 14px var(--sans);color:var(--dim)}
+.headline em{font-style:normal;color:var(--ink)}
+.simtag{font:600 10px var(--mono);letter-spacing:.16em;color:var(--amber);border:1px solid #5a4320;padding:4px 7px;border-radius:3px}
+.gen{font:600 20px var(--mono);min-width:120px;text-align:right}
+.gen small{font-size:10px;color:var(--dim);letter-spacing:.14em;margin-right:6px}
+.ctl{display:flex;gap:6px}
+.ctl button{background:#151a20;border:1px solid var(--line2);color:var(--ink);font:600 11px var(--mono);letter-spacing:.08em;height:30px;padding:0 12px;border-radius:4px;cursor:pointer}
+main{flex:1;display:grid;grid-template-columns:400px 1fr;gap:1px;background:var(--line);min-height:0}
+.col{background:var(--panel);min-height:0;display:flex;flex-direction:column}
+.sec-h{display:flex;align-items:center;gap:10px;padding:12px 18px 8px;font:600 10px var(--mono);letter-spacing:.16em;color:var(--faint)}
+.sec-h b{color:var(--dim);font-weight:600}
+.sec-h .r{margin-left:auto}
+/* proposals */
+#cards{flex:1;min-height:0;overflow:hidden;padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.card{border:1px solid var(--line2);border-radius:7px;background:#11161c;padding:14px 14px 12px;position:relative}
+.card.cur{border-color:#3a4652;box-shadow:0 0 0 1px rgba(106,168,255,.08),0 12px 30px rgba(0,0,0,.35)}
+.card .top{display:flex;align-items:center;gap:8px;white-space:nowrap;font:600 10px var(--mono);letter-spacing:.12em;color:var(--dim)}
+.card .top .ag{color:var(--blue)}
+.card .knob{margin-left:auto;color:var(--faint)}
+.card .why{font:500 13px/1.45 var(--sans);color:#d5dbe0;margin:9px 0 10px;min-height:56px}
+.card .why .cursor{display:inline-block;width:7px;height:13px;background:var(--blue);vertical-align:-2px;animation:blink .8s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.diff{font:500 12px/1.55 var(--mono);background:#0b0f13;border:1px solid #1c232a;border-radius:5px;padding:7px 0;overflow:hidden}
+.diff div{padding:0 10px;white-space:pre}
+.diff .f{color:var(--faint);padding-bottom:3px}
+.diff .m{color:#ff9d95;background:rgba(255,90,78,.08)}
+.diff .p{color:#8ff0d6;background:rgba(53,208,176,.08)}
+.stamp{position:absolute;right:12px;top:-12px;font:800 13px var(--mono);letter-spacing:.18em;padding:5px 9px;border:2px solid;border-radius:4px;transform:rotate(-6deg);background:rgba(10,13,17,.85);animation:stamp .35s cubic-bezier(.2,1.6,.4,1)}
+.stamp.keep{color:var(--teal);border-color:var(--teal)} .stamp.rej{color:var(--red);border-color:var(--red)}
+.stamp small{display:block;font:600 9px var(--mono);letter-spacing:.08em;margin-top:2px;opacity:.85}
+@keyframes stamp{from{transform:rotate(-6deg) scale(1.8);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:1}}
+.hist{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:500 11.5px var(--mono);color:#b8c0c8;animation:in .35s}
+.hist .g{color:var(--faint);font-weight:600}
+.hist .res{font-weight:700;letter-spacing:.08em;font-size:10.5px}
+.hist .res.keep{color:var(--teal)} .hist .res.rej{color:var(--red)}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pol{padding:12px 14px 16px;border-top:1px solid var(--line)}
+#pol div{transition:background .4s}
+#pol .hl{color:#8ff0d6;background:rgba(53,208,176,.1)}
+.ctl button.on{border-color:var(--teal);color:var(--teal)}
+.voice{display:none;margin-top:8px;font:500 12px/1.4 var(--sans);color:#cfe3f5;border-left:2px solid var(--blue);padding:4px 8px;background:#0d141b}
+.voice.on{display:block}
+.voice.tx{border-color:var(--red)}
+/* pipeline */
+.pipe{display:flex;align-items:center;gap:0;padding:10px 18px 4px}
+.st{white-space:nowrap;font:600 10.5px var(--mono);letter-spacing:.1em;color:var(--faint);padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:#0d1115;transition:all .2s}
+.st.on{color:var(--ink);border-color:#4a5866;background:#151b22;box-shadow:0 0 0 1px rgba(255,255,255,.04)}
+.st.done{color:var(--dim)}
+.arrow{width:22px;height:1px;background:var(--line2);position:relative}
+.arrow:after{content:"";position:absolute;right:-1px;top:-3px;border-left:5px solid var(--line2);border-top:3.5px solid transparent;border-bottom:3.5px solid transparent}
+.rule{margin-left:auto;font:500 11px var(--mono);color:var(--dim)}
+.rule b{color:var(--ink);font-weight:600}
+/* minis */
+.minis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:6px 18px 0}
+.mini{border:1px solid var(--line2);border-radius:6px;background:#0b141c;overflow:hidden;transition:border-color .2s}
+.mini.viol{border-color:var(--red);box-shadow:0 0 0 1px var(--red),0 0 24px rgba(255,90,78,.25)}
+.mini .mh{white-space:nowrap;overflow:hidden;gap:6px;display:flex;justify-content:space-between;padding:7px 9px 0;font:600 10px var(--mono);letter-spacing:.08em;color:var(--dim)}
+.mini .mh .wx{color:var(--storm)}
+.mini canvas{display:block;width:100%;height:178px}
+.mini .mf{white-space:nowrap;gap:6px;display:flex;align-items:baseline;justify-content:space-between;padding:4px 9px 8px;border-top:1px solid #172029}
+.mini .ot{font:700 22px var(--mono);font-variant-numeric:tabular-nums}
+.mini .ot small{font-size:12px;color:var(--faint)}
+.mini .dl{font:600 11px var(--mono)}
+.dl.up{color:var(--teal)} .dl.dn{color:var(--red)} .dl.eq{color:var(--faint)}
+.mini .vi{font:600 10px var(--mono);letter-spacing:.06em;color:var(--faint)}
+.mini .vi.bad{color:var(--red)}
+/* verifier */
+.verif{display:grid;grid-template-columns:150px repeat(4,1fr) 210px;gap:8px;align-items:stretch;padding:12px 18px 0}
+.vh{font:600 10px var(--mono);letter-spacing:.14em;color:var(--faint);display:flex;flex-direction:column;justify-content:center;gap:3px}
+.vh b{color:var(--ink);font-size:12px;letter-spacing:.12em}
+.chk{border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:500 11px var(--mono);color:var(--faint);background:#0d1115;transition:all .2s}
+.chk .n{font:700 18px var(--mono);margin-top:3px;color:var(--faint)}
+.chk.ok{color:var(--dim);border-color:#1d4a40} .chk.ok .n{color:var(--teal)}
+.chk.bad{color:#ffb4ad;border-color:#7a2d28;background:#1d1110} .chk.bad .n{color:var(--red)}
+.obj{border:1px solid var(--line2);border-radius:5px;padding:8px 12px;background:#0d1115}
+.obj .l{font:600 10px var(--mono);letter-spacing:.12em;color:var(--faint)}
+.obj .v{font:700 22px var(--mono);margin-top:2px}
+.obj .v small{font-size:12px;margin-left:6px}
+@media (max-width:1400px){
+  main{grid-template-columns:360px 1fr}
+  .rule{display:none}
+  .mini .dl{font-size:10px}.mini .vi{font-size:9px}.mini .vi:not(.bad){display:none}.mini .ot{font-size:19px}
+  .legend{gap:10px;font-size:10px}
+  .chartwrap .sec-h{flex-wrap:nowrap}
+  .verif{grid-template-columns:120px repeat(4,1fr) 190px}
+  .headline{font-size:13px}
+}
+/* chart */
+.chartwrap{flex:1;min-height:0;display:flex;flex-direction:column;padding:4px 18px 14px}
+.chartwrap .sec-h{padding-left:0;padding-right:0}
+.cbox{flex:1;min-height:0;position:relative}
+#chart{position:absolute;inset:0;width:100%;height:100%}
+.legend{white-space:nowrap;display:flex;gap:16px;font:500 11px var(--mono);color:var(--dim)}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.final{position:absolute;right:30px;top:12px;font:600 12px var(--mono);color:var(--teal);opacity:0;transition:opacity .4s}
+</style>
+<script src="radio-audio.js?v=3"></script>
+</head>
+<body>
+<header>
+  <div class="brand"><b>SKYFLOW</b><span>LEARNING LAB</span></div>
+  <div class="headline">After the storm, a debrief agent rewrites the controllers' policy. <em>Only changes that pass a hard verifier on unseen storms survive.</em></div>
+  <span class="simtag">SIMULATION</span>
+  <div class="gen"><small>GEN</small><span id="gen">1/6</span></div>
+  <div class="ctl"><button id="snd">SOUND OFF</button><button id="play">PAUSE</button><button id="restart">RESTART</button></div>
+</header>
+<main>
+  <section class="col">
+    <div class="sec-h"><b>DEBRIEF AGENT</b> · POLICY PROPOSALS<span class="r" id="ver">CHAMPION v0</span></div>
+    <div id="cards"></div>
+    <div class="pol"><div class="sec-h" style="padding:0 0 8px"><b>CHAMPION POLICY</b><span class="r" id="polv">v0</span></div><div class="diff" id="pol"></div></div>
+  </section>
+  <section class="col" style="position:relative">
+    <div class="pipe" id="pipe"></div>
+    <div class="sec-h" style="padding-top:8px"><b>HELD-OUT REPLAY</b> · 5 STORM SEEDS NEVER SEEN IN TRAINING · 28 FLIGHTS EACH<span class="r" id="phaseTxt"></span></div>
+    <div class="minis" id="minis"></div>
+    <div class="verif" id="verif"></div>
+    <div class="chartwrap">
+      <div class="sec-h"><b>GENERATIONS</b> · HELD-OUT ON-TIME RATE (140 FLIGHTS)
+        <span class="r legend"><span><i style="border-color:var(--teal)"></i>champion policy</span><span><i style="border-color:#7d8894;border-top-style:dashed"></i>frozen baseline v0</span><span style="color:var(--red)">○ rejected candidate</span></span></div>
+      <div class="cbox"><canvas id="chart"></canvas></div>
+    </div>
+  </section>
+</main>
+<script>
+// ---------------- scripted data (simulation) ----------------
+const BASE=[17,18,16,19,16];
+const SEEDS=[{id:'2207',wx:'C–E',edges:[['C','E']]},{id:'4416',wx:'W–SFO',edges:[['W','SFO']]},{id:'5130',wx:'SF–C',edges:[['SF','C']]},{id:'7781',wx:'C–E + E–OAK',edges:[['C','E'],['E','OAK']]},{id:'9052',wx:'OAK–BER',edges:[['OAK','BER']]}];
+const GENS=[
+ {say:'Generation one kept. Lookahead ten minutes. Plus nine point three points.',knob:'lookahead',why:'Gen 0 debrief: 9 of 14 late flights were released into a corridor that closed less than 6 minutes later. Look further ahead.',
+  file:'policy/sector.yaml',diff:[['m','lookahead_min: 6'],['p','lookahead_min: 10']],seeds:[19,21,18,22,19],viol:null},
+ {say:'Generation two kept. Earlier reroute trigger. Plus nine point three points.',knob:'reroute trigger',why:'Sector agents waited for certainty before rerouting. Each affected flight lost 4.1 minutes on average. Trigger earlier.',
+  file:'policy/sector.yaml',diff:[['m','reroute_trigger: p_close >= 0.70'],['p','reroute_trigger: p_close >= 0.45']],seeds:[22,23,21,24,22],viol:null},
+ {say:'Generation three rejected. One separation violation at Echo.',knob:'ground-hold buffer',why:'Ground holds are now the largest source of residual delay. Trim the safety buffer on every pad.',
+  file:'policy/pad.yaml',diff:[['m','ground_hold_buffer_s: 60'],['p','ground_hold_buffer_s: 20']],seeds:[25,26,24,25,25],
+  viol:{seed:3,check:0,txt:'SkyFlow 117 / 118 at E · 0.31 nm'}},
+ {say:'Generation four kept. Load scaled hold buffer. Plus four point three points.',knob:'ground-hold buffer',why:'Retry the buffer cut, but only where the corridor is quiet. Busy corridors keep the full 60 s.',
+  file:'policy/pad.yaml',diff:[['m','ground_hold_buffer_s: 60'],['p','ground_hold_buffer_s: 45'],['p','buffer_scale_by: corridor_load']],seeds:[23,24,22,25,24],viol:null},
+ {say:'Generation five rejected. No gain. Minus two point nine points.',knob:'reroute trigger',why:'Allow longer detours so fewer flights wait on the ground.',
+  file:'policy/sector.yaml',diff:[['m','max_reroute_detour: 1.25'],['p','max_reroute_detour: 1.60']],seeds:[22,23,23,24,22],viol:null},
+ {say:'Generation six kept. Pad resequencing. Plus seven point one points. Policy version four promoted.',knob:'lookahead',why:'Pads still release in a fixed order. Let PAD agents resequence departures inside a longer lookahead window.',
+  file:'policy/pad.yaml',diff:[['m','lookahead_min: 10'],['p','lookahead_min: 14'],['p','pad_resequence: true']],seeds:[25,26,25,27,25],viol:null},
+];
+const CHECKS=['Separation ≥ 0.5 nm','Closed corridors entered','Pad capacity ≤ 2','Energy reserve ≥ 20%'];
+const total=a=>a.reduce((s,x)=>s+x,0);
+const pct=a=>total(a)/140*100;
+// evaluate keep/reject + champion history
+(function(){let champ=BASE;GENS.forEach((g,i)=>{g.prev=champ;g.obj=pct(g.seeds);g.champObj=pct(champ);
+  g.keep=!g.viol&&g.obj>g.champObj;g.reason=g.viol?'1 separation violation':g.keep?`+${(g.obj-g.champObj).toFixed(1)} pts`:`${(g.obj-g.champObj).toFixed(1)} pts · no gain`;
+  if(g.keep)champ=g.seeds;g.after=champ;g.ver=null;});let v=0;GENS.forEach(g=>{if(g.keep)v++;g.ver=v;});})();
+
+// ---------------- timing ----------------
+const GEN_T=12, FINAL_T=8, LOOP=GENS.length*GEN_T+FINAL_T;
+const PH={debrief:[0,2.4],replay:[2.4,8],verify:[8,9.8],decide:[9.8,12]};
+function phaseOf(u){for(const k in PH)if(u>=PH[k][0]&&u<PH[k][1])return k;return 'decide';}
+
+// ---------------- geography (simplified) ----------------
+const N={SF:[-122.41,37.785],MAR:[-122.485,37.862],SFO:[-122.375,37.622],OAK:[-122.235,37.722],BER:[-122.275,37.865],W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77]};
+const EDGES=[['SF','MAR'],['SF','W'],['SF','C'],['C','BER'],['C','E'],['W','E'],['W','SFO'],['E','OAK'],['OAK','BER']];
+const PADS=['SF','MAR','SFO','OAK','BER'];
+const LAND=[
+ [[-122.70,37.55],[-122.70,37.789],[-122.515,37.787],[-122.48,37.808],[-122.43,37.807],[-122.405,37.807],[-122.39,37.797],[-122.385,37.785],[-122.388,37.765],[-122.375,37.73],[-122.365,37.715],[-122.385,37.70],[-122.38,37.66],[-122.36,37.632],[-122.355,37.612],[-122.37,37.596],[-122.30,37.55]],
+ [[-122.70,37.95],[-122.70,37.822],[-122.53,37.818],[-122.478,37.832],[-122.474,37.848],[-122.48,37.858],[-122.46,37.875],[-122.455,37.888],[-122.47,37.905],[-122.50,37.95]],
+ [[-122.34,37.98],[-122.31,37.90],[-122.305,37.86],[-122.31,37.84],[-122.30,37.825],[-122.315,37.815],[-122.30,37.795],[-122.265,37.782],[-122.255,37.77],[-122.248,37.752],[-122.252,37.735],[-122.25,37.72],[-122.232,37.704],[-122.17,37.66],[-122.12,37.58],[-121.90,37.55],[-121.90,37.98]],
+];
+const KMX=88,KMY=111;
+const ROUTES=[['SF','C','E','OAK'],['MAR','SF','W','SFO'],['BER','C','SF'],['OAK','E','W','SFO'],['SFO','W','SF','MAR'],['OAK','BER'],['SF','C','BER'],['BER','C','E','OAK'],['SFO','W','E','OAK'],['MAR','SF','C','E','OAK']];
+const isEdge=(a,b,[x,y])=>(a===x&&b===y)||(a===y&&b===x);
+
+function setupCanvas(cv){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;if(cv.width!==Math.round(r.width*d)||cv.height!==Math.round(r.height*d)){cv.width=r.width*d;cv.height=r.height*d;}const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);return [c,r.width,r.height];}
+const MONO=getComputedStyle(document.documentElement).getPropertyValue('--mono');
+
+function routePos(r,u){ // u in [0,1]
+  const L=[];let tot=0;for(let i=1;i<r.length;i++){const a=N[r[i-1]],b=N[r[i]];const l=Math.hypot((a[0]-b[0])*KMX,(a[1]-b[1])*KMY);L.push(l);tot+=l;}
+  let d=u*tot;for(let i=0;i<L.length;i++){if(d<=L[i]){const a=N[r[i]],b=N[r[i+1]],k=d/L[i];return [a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k];}d-=L[i];}
+  return N[r[r.length-1]];}
+
+function drawMini(cv,seed,si,prog,onTime,violOn,t){
+  const [c,W,H]=setupCanvas(cv);
+  const lon=[-122.50,-122.22],lat=[37.61,37.88];const s=Math.min((W-14)/((lon[1]-lon[0])*KMX),(H-10)/((lat[1]-lat[0])*KMY));
+  const cx=(lon[0]+lon[1])/2,cy=(lat[0]+lat[1])/2;const P=ll=>[W/2+(ll[0]-cx)*KMX*s,H/2-(ll[1]-cy)*KMY*s];
+  c.fillStyle='#0a1824';c.fillRect(0,0,W,H);
+  c.fillStyle='#171c21';c.strokeStyle='#2a343e';c.lineWidth=1;
+  for(const poly of LAND){c.beginPath();poly.forEach((ll,i)=>{const [x,y]=P(ll);i?c.lineTo(x,y):c.moveTo(x,y)});c.closePath();c.fill();c.stroke();}
+  for(const [a,b] of EDGES){const [x1,y1]=P(N[a]),[x2,y2]=P(N[b]);const wx=seed.edges.some(e=>isEdge(a,b,e));
+    c.strokeStyle=wx?'rgba(255,90,78,.85)':'rgba(150,175,200,.28)';c.setLineDash(wx?[3,3]:[]);c.lineWidth=wx?1.4:1;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();c.setLineDash([]);
+    if(wx){const mx=(x1+x2)/2,my=(y1+y2)/2,R=16;const g=c.createRadialGradient(mx,my,0,mx,my,R);g.addColorStop(0,'rgba(255,122,61,.45)');g.addColorStop(1,'rgba(255,122,61,0)');c.fillStyle=g;c.beginPath();c.arc(mx,my,R+2*Math.sin(t*2+si),0,7);c.fill();}}
+  for(const p of PADS){const [x,y]=P(N[p]);c.fillStyle='#0f151b';c.strokeStyle='#9aa7b3';c.lineWidth=1.2;c.beginPath();c.arc(x,y,3.5,0,7);c.fill();c.stroke();}
+  // flights: 10 representative tracks; share that are late = (28-onTime)/28
+  const lateN=Math.round((28-onTime)/28*ROUTES.length);
+  ROUTES.forEach((r,k)=>{
+    const late=k<lateN;const off=(k*0.137)%1;
+    let u=((prog*1.6+off)%1);let pos,col;
+    if(prog<=0){return;}
+    if(late&&u<0.35){pos=N[r[0]];col='#ff5a4e';const [x,y]=P(pos);c.strokeStyle='rgba(255,90,78,.5)';c.beginPath();c.arc(x,y,6+k%3,0,7);c.stroke();}
+    else{const uu=late?(u-0.35)/0.65:u;pos=routePos(r,uu);col=late?'#f2a93b':'#e6edf3';}
+    const [x,y]=P(pos);c.fillStyle=col;c.beginPath();c.arc(x,y,2.3,0,7);c.fill();
+  });
+  if(violOn){const [x,y]=P(N.E);const pulse=.5+.5*Math.sin(t*10);c.strokeStyle=`rgba(255,90,78,${.5+.5*pulse})`;c.lineWidth=2;c.beginPath();c.arc(x,y,10+pulse*3,0,7);c.stroke();
+    c.fillStyle='#ff5a4e';c.beginPath();c.arc(x-3,y-1,2.6,0,7);c.arc(x+3,y+1,2.6,0,7);c.fill();
+    c.font='700 9px '+MONO;c.textAlign='right';c.fillStyle='#ffb4ad';c.fillText('SEP 0.31 nm',x-12,y-10);}
+}
+
+// ---------------- DOM ----------------
+const minisEl=document.getElementById('minis');
+const minis=SEEDS.map((sd,i)=>{const d=document.createElement('div');d.className='mini';
+  d.innerHTML=`<div class="mh"><span>SEED ${sd.id}</span><span class="wx">⛈ ${sd.wx}</span></div><canvas></canvas><div class="mf"><span class="ot">0<small>/28</small></span><span class="dl eq"></span><span class="vi">0 VIOL</span></div>`;
+  minisEl.appendChild(d);return {el:d,cv:d.querySelector('canvas'),ot:d.querySelector('.ot'),dl:d.querySelector('.dl'),vi:d.querySelector('.vi')};});
+const pipeEl=document.getElementById('pipe');
+const STAGES=[['debrief','DEBRIEF'],['propose','PROPOSE DIFF'],['replay','REPLAY × 5 SEEDS'],['verify','HARD VERIFIER'],['decide','KEEP / REJECT']];
+pipeEl.innerHTML=STAGES.map(([k,l],i)=>`${i?'<span class="arrow"></span>':''}<span class="st" data-k="${k}">${l}</span>`).join('')+`<span class="rule">keep iff <b>violations = 0</b> and <b>on-time ↑</b></span>`;
+const verifEl=document.getElementById('verif');
+verifEl.innerHTML=`<div class="vh"><b>HARD VERIFIER</b>deterministic · all 5 seeds</div>`+CHECKS.map((c,i)=>`<div class="chk" data-i="${i}">${c}<div class="n">–</div></div>`).join('')+
+ `<div class="obj"><div class="l">CANDIDATE vs CHAMPION</div><div class="v" id="objv">–</div></div>`;
+const chkEls=[...verifEl.querySelectorAll('.chk')],objv=document.getElementById('objv');
+
+function typed(str,frac){const n=Math.floor(str.length*Math.min(1,frac));return str.slice(0,n);}
+function cardHTML(g,i,u,showStamp){
+  const why=u<PH.debrief[1]?typed(g.why,u/(PH.debrief[1]*0.8))+'<span class="cursor"></span>':g.why;
+  const showDiff=u>=PH.debrief[1]*0.8;
+  return `<div class="card cur"><div class="top"><span class="ag">DEBRIEF-AGENT</span><span>· GEN ${i+1}</span><span class="knob">${g.knob.toUpperCase()}</span></div>
+  <div class="why">${why}</div>
+  ${showDiff?`<div class="diff"><div class="f">${g.file}</div>${g.diff.map(([k,l])=>`<div class="${k}">${k==='m'?'- ':'+ '}${l}</div>`).join('')}</div>`:''}
+  ${showStamp?`<div class="voice on" id="vline">DEBRIEF-AGENT ▸ “${g.say}”</div>`:''}
+  ${showStamp?`<div class="stamp ${g.keep?'keep':'rej'}">${g.keep?'KEPT':'REJECTED'}<small>${g.reason}</small></div>`:''}</div>`;}
+function histHTML(g,i){return `<div class="hist"><span class="g">GEN ${i+1}</span><span>${g.diff.filter(d=>d[0]==='p').map(d=>d[1]).join(', ')}</span><span class="res ${g.keep?'keep':'rej'}">${g.keep?'KEPT':'REJECTED'}</span></div>`;}
+
+let cardsKey='';
+function renderCards(gi,u,final){
+  const stamp=final||u>=PH.decide[0];
+  const key=final?'final':`${gi}:${Math.floor(Math.min(u,PH.debrief[1])*20)}:${stamp}`;
+  if(key===cardsKey)return;cardsKey=key;
+  const el=document.getElementById('cards');
+  if(final){const champ=GENS.filter(g=>g.keep);
+    el.innerHTML=`<div class="card cur"><div class="top"><span class="ag">PROMOTED</span><span>· POLICY v${champ.length}</span></div>
+    <div class="why">${champ.length} of ${GENS.length} proposals survived. The two rejected ones looked good on a score alone. One broke separation on an unseen storm.</div>
+    <div class="diff"><div class="f">policy/*.yaml · v0 → v${champ.length}</div>
+    <div class="m">- lookahead_min: 6</div><div class="p">+ lookahead_min: 14</div><div class="m">- reroute_trigger: p_close >= 0.70</div><div class="p">+ reroute_trigger: p_close >= 0.45</div>
+    <div class="m">- ground_hold_buffer_s: 60</div><div class="p">+ ground_hold_buffer_s: 45 (load-scaled)</div><div class="p">+ pad_resequence: true</div></div></div>`+
+    GENS.map((g,i)=>histHTML(g,i)).reverse().join('');return;}
+  el.innerHTML=cardHTML(GENS[gi],gi,u,stamp)+GENS.slice(0,gi).map((g,i)=>histHTML(g,i)).reverse().join('');
+}
+
+// ---------------- chart ----------------
+const chartCv=document.getElementById('chart');
+function drawChart(gi,u,final,t){
+  const [c,W,H]=setupCanvas(chartCv);c.clearRect(0,0,W,H);
+  const L=44,R=W-150,T=14,B=H-26;const ymin=55,ymax=95;
+  const X=g=>L+(R-L)*g/6,Y=v=>B-(B-T)*(v-ymin)/(ymax-ymin);
+  c.font='500 10px '+MONO;c.textAlign='right';c.fillStyle='#56606a';c.strokeStyle='#1a2129';c.lineWidth=1;
+  for(let v=60;v<=90;v+=10){c.beginPath();c.moveTo(L,Y(v));c.lineTo(R,Y(v));c.stroke();c.fillText(v+'%',L-8,Y(v)+3);}
+  c.textAlign='center';for(let g=0;g<=6;g++)c.fillText(g===0?'v0':'GEN '+g,X(g),B+16);
+  // baseline
+  const b=pct(BASE);c.setLineDash([5,5]);c.strokeStyle='#7d8894';c.lineWidth=1.5;c.beginPath();c.moveTo(X(0),Y(b));c.lineTo(R,Y(b));c.stroke();c.setLineDash([]);
+  c.textAlign='left';c.fillStyle='#8a949e';c.fillText(`frozen baseline ${b.toFixed(1)}%`,R+8,Y(b)+3);
+  // how many generations are "revealed"
+  const done=final?6:gi+(u>=PH.decide[0]?1:0);const frac=final?1:(u>=PH.decide[0]?Math.min(1,(u-PH.decide[0])/1.2):1);
+  // champion step line
+  const pts=[[0,b]];for(let i=0;i<done;i++)pts.push([i+1,pct(GENS[i].after)]);
+  c.strokeStyle='#35d0b0';c.lineWidth=2.2;c.beginPath();
+  pts.forEach(([g,v],k)=>{let x=X(g),y=Y(v);if(k===pts.length-1&&k>0&&!final){const [pg,pv]=pts[k-1];x=X(pg)+(x-X(pg))*frac;y=Y(pv)+(y-Y(pv))*frac;}k?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();
+  // area
+  c.fillStyle='rgba(53,208,176,.06)';c.beginPath();pts.forEach(([g,v],k)=>{const x=X(g),y=Y(v);k?c.lineTo(x,y):c.moveTo(x,y)});c.lineTo(X(pts[pts.length-1][0]),Y(b));c.lineTo(X(0),Y(b));c.closePath();if(frac>=1)c.fill();
+  // points
+  pts.forEach(([g,v],k)=>{if(k===pts.length-1&&frac<1&&k>0)return;c.fillStyle='#0f1318';c.strokeStyle='#35d0b0';c.lineWidth=2;c.beginPath();c.arc(X(g),Y(v),4,0,7);c.fill();c.stroke();
+    if(k>0&&GENS[g-1].keep&&!(final&&g===6)){c.fillStyle='#9ff0dc';c.textAlign='center';c.fillText(v.toFixed(1)+'%',X(g),Y(v)-10);}});
+  // rejected candidates
+  for(let i=0;i<done;i++){const g=GENS[i];if(g.keep)continue;if(i===done-1&&frac<1&&!final)continue;
+    const x=X(i+1),y=Y(g.obj);c.strokeStyle='#ff5a4e';c.lineWidth=1.6;c.beginPath();c.arc(x,y,5,0,7);c.stroke();
+    c.setLineDash([2,3]);c.beginPath();c.moveTo(x,y+5);c.lineTo(x,Y(pct(g.after))-5);c.stroke();c.setLineDash([]);
+    c.fillStyle='#ff9d95';c.textAlign='left';c.fillText(`${g.obj.toFixed(1)}% · ${g.viol?'1 violation':'no gain'}`,x+9,y+3);}
+  // live candidate marker during replay
+  if(!final&&u>=PH.replay[0]&&u<PH.decide[0]){const g=GENS[gi];const p=Math.min(1,(u-PH.replay[0])/(PH.replay[1]-PH.replay[0]));
+    const v=pct(g.prev)+(g.obj-pct(g.prev))*p;const x=X(gi+1),y=Y(v);c.strokeStyle='rgba(106,168,255,.9)';c.setLineDash([3,3]);c.beginPath();c.moveTo(X(gi),Y(pct(g.prev)));c.lineTo(x,y);c.stroke();c.setLineDash([]);
+    c.fillStyle='#6aa8ff';c.beginPath();c.arc(x,y,3.5+Math.sin(t*8),0,7);c.fill();c.textAlign='left';c.fillText('candidate '+v.toFixed(1)+'%',x+8,y+3);}
+  // final callout
+  if(done>0){const last=pts[pts.length-1];if(frac>=1){c.textAlign='left';c.font='700 12px '+MONO;c.fillStyle='#35d0b0';c.fillText(`champion ${last[1].toFixed(1)}%`,R+8,Y(last[1])+4);
+    c.font='500 10px '+MONO;c.fillStyle='#8a949e';c.fillText(`+${(last[1]-b).toFixed(1)} pts vs v0`,R+8,Y(last[1])+18);}}
+}
+
+// ---------------- champion policy ----------------
+const POL0={lookahead_min:'6',reroute_trigger:'p_close >= 0.70',ground_hold_buffer_s:'60',buffer_scale_by:'none',max_reroute_detour:'1.25',pad_resequence:'false'};
+let polKey='';
+function renderPolicy(nKept,lastKeptIdx){
+  const key=nKept+':'+lastKeptIdx;if(key===polKey)return;polKey=key;
+  const pol={...POL0},changed=new Set();
+  GENS.forEach((g,i)=>{if(!g.keep||i>lastKeptIdx)return;g.diff.filter(d=>d[0]==='p').forEach(([,l])=>{const [k,...v]=l.split(': ');pol[k]=v.join(': ');if(i===lastKeptIdx)changed.add(k);});});
+  document.getElementById('pol').innerHTML=`<div class="f">policy/*.yaml</div>`+Object.entries(pol).map(([k,v])=>`<div class="${changed.has(k)?'hl':''}" style="color:${changed.has(k)?'':'#b8c0c8'}">${k}: ${v}</div>`).join('');
+  document.getElementById('polv').textContent='v'+nKept;
+}
+// ---------------- radio audio ----------------
+const SR=window.SkyRadio;
+if(SR){SR.prefetch(GENS.map(g=>({text:g.say,speaker:'atc'})));
+  SR.onTransmit(x=>{const v=document.getElementById('vline');if(v)v.classList.toggle('tx',!!x.live);});}
+const snd=document.getElementById('snd');
+function syncSnd(){const on=SR&&SR.enabled;snd.textContent=on?'SOUND ON':'SOUND OFF';snd.classList.toggle('on',!!on);}
+snd.onclick=()=>{if(!SR)return;SR.enabled?SR.disable():SR.enable();syncSnd();};
+setInterval(syncSnd,500);
+let lastU=-1,lastGi=-1,radioBusy=false,radioGen=0;
+function radioTick(gi,u,final){
+  if(final){lastGi=-1;return;}
+  if(gi!==lastGi){if(gi<lastGi&&SR){SR.flush();radioBusy=false;}lastGi=gi;lastU=-1;}
+  if(lastU<PH.decide[0]&&u>=PH.decide[0]&&SR){
+    if(SR.enabled){radioBusy=true;const gen=++radioGen;SR.say(GENS[gi].say,'atc').then(()=>{if(gen===radioGen)radioBusy=false;});setTimeout(()=>{if(gen===radioGen)radioBusy=false;},2500+GENS[gi].say.split(' ').length*600);}
+    else SR.say(GENS[gi].say,'atc');}
+  lastU=u;
+}
+// ---------------- frame ----------------
+let realT=0,playing=true,last=performance.now();
+const playBtn=document.getElementById('play');
+playBtn.onclick=()=>{playing=!playing;playBtn.textContent=playing?'PAUSE':'PLAY';};
+document.getElementById('restart').onclick=()=>{realT=0;cardsKey='';};
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();playBtn.click();}if(e.key==='r')document.getElementById('restart').click();});
+const genEl=document.getElementById('gen'),verEl=document.getElementById('ver'),phaseTxt=document.getElementById('phaseTxt');
+function frame(now){
+  const dt=Math.max(0,Math.min(0.1,(now-last)/1000));last=now;if(playing&&!radioBusy)realT+=dt;if(realT>=LOOP){realT=0;cardsKey='';}
+  const final=realT>=GENS.length*GEN_T;const gi=final?GENS.length-1:Math.floor(realT/GEN_T);const u=final?GEN_T:realT-gi*GEN_T;
+  const g=GENS[gi];const ph=final?'done':phaseOf(u);
+  radioTick(gi,u,final);
+  genEl.textContent=final?'6/6':`${gi+1}/6`;
+  const champV=final?GENS[5].ver:(u>=PH.decide[0]?g.ver:(gi?GENS[gi-1].ver:0));verEl.textContent=`CHAMPION v${champV}`;
+  // pipeline
+  const stageIdx=final?5:ph==='debrief'?(u<PH.debrief[1]*0.8?0:1):ph==='replay'?2:ph==='verify'?3:4;
+  pipeEl.querySelectorAll('.st').forEach((el,i)=>{el.classList.toggle('on',i===stageIdx);el.classList.toggle('done',i<stageIdx);});
+  phaseTxt.textContent=final?'LOOP COMPLETE':ph==='replay'?'REPLAYING CANDIDATE…':ph==='verify'?'VERIFYING…':ph==='decide'?(g.keep?'PROMOTED TO CHAMPION':'DISCARDED'):'WAITING FOR PROPOSAL';
+  renderCards(gi,u,final);
+  {let li=-1,nk=0;GENS.forEach((x,i)=>{const revealed=final||i<gi||(i===gi&&u>=PH.decide[0]);if(revealed&&x.keep){li=i;nk++;}});renderPolicy(nk,li);}
+  // minis
+  const prog=final?1:Math.max(0,Math.min(1,(u-PH.replay[0])/(PH.replay[1]-PH.replay[0])));
+  SEEDS.forEach((sd,i)=>{const m=minis[i];
+    const showVals=final?GENS[5].after:(u<PH.replay[0]?g.prev:g.seeds);
+    const val=final?showVals[i]:(u<PH.replay[0]?showVals[i]:Math.round(g.seeds[i]*Math.min(1,prog*1.05)));
+    const vOn=!final&&g.viol&&g.viol.seed===i&&u>=PH.replay[0]+(PH.replay[1]-PH.replay[0])*0.55;
+    drawMini(m.cv,sd,i,final?((realT*0.12)%1):(u<PH.replay[0]?0.0001:prog),final?showVals[i]:(u<PH.replay[0]?g.prev[i]:g.seeds[i]),vOn,realT);
+    m.ot.innerHTML=`${val}<small>/28</small>`;
+    const d=final||u<PH.replay[0]?null:(prog>=1?g.seeds[i]-g.prev[i]:null);
+    m.dl.className='dl '+(d===null?'eq':d>0?'up':d<0?'dn':'eq');m.dl.textContent=d===null?(u<PH.replay[0]&&!final?'champion':''):(d>0?'+':'')+d+' vs champ';
+    m.vi.className='vi'+(vOn?' bad':'');m.vi.textContent=vOn?'1 VIOL':'0 VIOL';
+    m.el.classList.toggle('viol',vOn);});
+  // verifier
+  chkEls.forEach((el,i)=>{const n=el.querySelector('.n');
+    const reveal=final||ph==='decide'||(ph==='verify'&&u>=PH.verify[0]+i*0.4);
+    if(!reveal){el.className='chk';n.textContent='–';return;}
+    const bad=!final&&g.viol&&g.viol.check===i;el.className='chk '+(bad?'bad':'ok');n.textContent=bad?'1 ✗':'0 ✓';
+    if(bad)n.innerHTML=`1 ✗ <span style="font-size:10px;font-weight:500">${g.viol.txt}</span>`;});
+  if(final){objv.innerHTML=`${pct(GENS[5].after).toFixed(1)}%<small style="color:var(--teal)">+${(pct(GENS[5].after)-pct(BASE)).toFixed(1)} vs v0</small>`;}
+  else if(u>=PH.replay[1]){const dd=g.obj-g.champObj;objv.innerHTML=`${g.obj.toFixed(1)}%<small style="color:${dd>0?'var(--teal)':'var(--red)'}">${dd>0?'+':''}${dd.toFixed(1)} vs ${g.champObj.toFixed(1)}</small>`;}
+  else objv.innerHTML=`<span style="color:var(--faint)">champion ${g.champObj.toFixed(1)}%</span>`;
+  drawChart(gi,u,final,realT);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.__seekReal=r=>{realT=r;cardsKey='';};
+</script>
+</body>
+</html>

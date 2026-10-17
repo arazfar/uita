@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Bay Scope</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030507; --panel:#081016; --panel2:#0b151c; --rule:#16232d; --rule2:#1f303c;
+  --text:#c8d3da; --dim:#6f8290; --faint:#41525e;
+  --green:#5fe38a; --amber:#ffb340; --red:#ff4a4a; --cyan:#62c6e3; --white:#e9f1f5;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; --sans:"IBM Plex Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;overflow:hidden}
+#app{display:grid;grid-template-rows:46px 1fr 78px;grid-template-columns:1fr 410px;height:100vh;min-width:1180px}
+header{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:0 16px;border-bottom:1px solid var(--rule);background:var(--panel)}
+.brand{font-family:var(--sans);font-weight:600;font-size:14px;letter-spacing:.04em;color:var(--white)}
+.brand small{color:var(--dim);font-weight:400;margin-left:8px;letter-spacing:.02em}
+.sim{border:1px solid var(--amber);color:var(--amber);padding:2px 7px;font-size:10px;letter-spacing:.14em}
+.phase{font-size:11px;letter-spacing:.1em;padding:3px 9px;border:1px solid var(--rule2);color:var(--green)}
+.phase.wx{color:var(--amber);border-color:var(--amber)}
+.phase.rec{color:var(--cyan);border-color:var(--cyan)}
+.spacer{flex:1}
+.clock{font-size:13px;color:var(--white);letter-spacing:.06em}
+.rate{color:var(--dim);font-size:11px;min-width:96px}
+.ctl{display:flex;gap:6px}
+.ctl button{font-family:var(--mono);font-size:11px;background:transparent;color:var(--text);border:1px solid var(--rule2);padding:5px 10px;cursor:pointer;letter-spacing:.06em}
+.ctl button:hover{border-color:var(--dim);color:var(--white)}
+.ctl button.on{border-color:var(--green);color:var(--green)}
+.txled{display:inline-block;width:7px;height:7px;border-radius:50%;background:#26343c;vertical-align:middle}
+.txled.on{background:var(--red);box-shadow:0 0 8px var(--red)}
+#scopeWrap{position:relative;border-right:1px solid var(--rule);overflow:hidden}
+#scope{position:absolute;inset:0;width:100%;height:100%;display:block}
+#scrub{position:absolute;left:14px;right:14px;bottom:10px;height:16px;cursor:pointer}
+#scrub .track{position:absolute;left:0;right:0;top:7px;height:2px;background:var(--rule2)}
+#scrub .wx{position:absolute;top:5px;height:6px;background:rgba(255,179,64,.35);border-left:1px solid var(--amber);border-right:1px solid var(--amber)}
+#scrub .head{position:absolute;top:2px;width:2px;height:12px;background:var(--white)}
+aside{display:flex;flex-direction:column;background:var(--panel);min-height:0}
+section{border-bottom:1px solid var(--rule);display:flex;flex-direction:column;min-height:0}
+section h2{font-family:var(--sans);font-size:10.5px;font-weight:600;letter-spacing:.16em;color:var(--dim);padding:9px 14px 6px;display:flex;justify-content:space-between}
+section h2 span{font-family:var(--mono);font-weight:400;letter-spacing:.04em;color:var(--faint)}
+#tree{padding:0 14px 8px;font-size:11.5px;line-height:1.55}
+.node{display:flex;gap:6px;align-items:baseline;white-space:nowrap;transition:color .3s}
+.node .br{color:var(--faint)}
+.node .nm{color:var(--text);min-width:92px}
+.node .st{color:var(--dim);overflow:hidden;text-overflow:ellipsis;flex:1;font-size:10.5px}
+.node .ct{color:var(--faint);font-size:10.5px}
+.node.hidden{display:none}
+.node.new .nm{color:var(--cyan)}
+.node.active .nm{color:var(--green)}
+.node.veto .nm{color:var(--red)}
+.node.retired .nm,.node.retired .st{color:var(--faint);text-decoration:line-through}
+.node .tag{font-size:9.5px;color:var(--cyan);border:1px solid rgba(98,198,227,.5);padding:0 4px}
+#log{padding:0 14px 8px;font-size:11px;overflow:hidden;flex:1}
+.ln{display:grid;grid-template-columns:44px 1fr 58px;gap:6px;padding:3px 0;border-bottom:1px dashed var(--rule);align-items:start}
+.ln .id{color:var(--faint)}
+.ln .tx{color:var(--text)}
+.ln .tx i{font-style:normal;color:var(--dim);display:block;font-size:10.5px}
+.ln .vd{text-align:right;font-weight:600;letter-spacing:.06em}
+.ln.ok .vd{color:var(--green)}
+.ln.rej{background:rgba(255,74,74,.08)}
+.ln.rej .vd,.ln.rej .tx i{color:var(--red)}
+.ln.sys .vd{color:var(--amber)}
+.ln.note .vd{color:var(--cyan)}
+#radio{padding:0 14px 6px;font-size:11.5px;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:flex-end}
+.tx{line-height:1.45}
+.rl{padding:3px 0;display:grid;grid-template-columns:42px 1fr;gap:6px}
+.rl .who{font-size:10px;letter-spacing:.08em;padding-top:1px}
+.rl.ctl .who{color:var(--cyan)}
+.rl.plt .who{color:var(--white)}
+.rl.bad .t{color:var(--red)}
+.rl .t{color:var(--text)}
+.rl.old{opacity:.5}
+#hb{margin:4px 14px 10px;border:1px solid var(--rule2);font-size:11px}
+#hb .hd{display:flex;justify-content:space-between;padding:5px 8px;border-bottom:1px solid var(--rule2);color:var(--dim);letter-spacing:.1em;font-size:10px}
+#hb .hd b{font-weight:600}
+#hb table{width:100%;border-collapse:collapse}
+#hb td{padding:3px 8px;border-bottom:1px solid var(--rule)}
+#hb td:first-child{color:var(--dim);width:70px;font-size:10px;letter-spacing:.08em}
+#hb td.m{width:24px;text-align:center;font-weight:600}
+#hb tr.okr td.m{color:var(--green)}
+#hb tr.bad td{color:var(--red)}
+footer{grid-column:1/3;display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--rule);background:var(--panel)}
+.k{padding:10px 16px;border-right:1px solid var(--rule);display:flex;flex-direction:column;justify-content:center;gap:3px}
+.k:last-child{border-right:0}
+.k .l{font-family:var(--sans);font-size:10px;letter-spacing:.14em;color:var(--dim)}
+.k .v{font-size:24px;color:var(--white);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.k .v small{font-size:13px;color:var(--dim)}
+.k.g .v{color:var(--green)} .k.a .v{color:var(--amber)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">SKYFLOW<small>Bay TRACON · Recursive ATC scope</small></div>
+    <div class="sim">SIMULATION</div>
+    <div class="phase" id="phase">CALM</div>
+    <div class="spacer"></div>
+    <div class="rate" id="rate">SIM 60×</div>
+    <div class="clock" id="clock">2300/00Z</div>
+    <div class="ctl">
+      <button id="bPlay">PAUSE</button>
+      <button id="bRestart">RESTART</button>
+      <button id="bAudio" title="Radio sound" aria-pressed="false">SOUND OFF</button>
+    </div>
+  </header>
+  <div id="scopeWrap">
+    <canvas id="scope"></canvas>
+    <div id="scrub"><div class="track"></div><div class="wx" id="scrubWx"></div><div class="head" id="scrubHead"></div></div>
+  </div>
+  <aside>
+    <section style="flex:0 0 auto"><h2>AGENT SPAWN TREE <span id="treeCount">0 live</span></h2><div id="tree"></div></section>
+    <section style="flex:1 1 0"><h2>PROPOSALS → VALIDATOR KERNEL <span>deterministic commit</span></h2><div id="log"></div></section>
+    <section style="flex:1.15 1 0;border-bottom:0"><h2>RADIO · BAY APPROACH 124.35 <span><i id="txLed" class="txled" aria-hidden="true"></i> <span id="txCount">0 tx</span></span></h2><div id="radio"></div>
+      <div id="hb"><div class="hd"><span>HEARBACK CHECK <b id="hbCs">—</b></span><b id="hbRes">IDLE</b></div><table id="hbT"></table></div>
+    </section>
+  </aside>
+  <footer>
+    <div class="k g"><div class="l">ON TIME · AGENT TEAM</div><div class="v" id="kAgent">0<small>/28</small></div></div>
+    <div class="k a"><div class="l">ON TIME · STATIC PLAN</div><div class="v" id="kStatic">0<small>/28</small></div></div>
+    <div class="k"><div class="l">MAX DELAY</div><div class="v" id="kDelay">0.0<small> min</small></div></div>
+    <div class="k g"><div class="l">CONFLICTS</div><div class="v" id="kConf">0</div></div>
+    <div class="k g"><div class="l">HUMAN INTERVENTIONS</div><div class="v" id="kHuman">0</div></div>
+    <div class="k"><div class="l">RADIO TRANSMISSIONS</div><div class="v" id="kTx">0</div></div>
+    <div class="k"><div class="l">DISTANCE VS STATIC</div><div class="v" id="kDist">+0.0<small>%</small></div></div>
+  </footer>
+</div>
+<script src="radio-audio.js?v=3"></script>
+<script>
+"use strict";
+// ---------- geography (lon, lat) -> NM ----------
+const LON0=-122.352, LAT0=37.748, KX=Math.cos(LAT0*Math.PI/180)*60, KY=60;
+const nm=([lon,lat])=>[(lon-LON0)*KX,(lat-LAT0)*KY];
+const N={SF:[-122.41,37.785],MAR:[-122.485,37.862],SFO:[-122.375,37.622],OAK:[-122.235,37.722],BER:[-122.275,37.865],
+         W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77]};
+const P={}; for(const k in N) P[k]=nm(N[k]);
+const PADS=["SF","MAR","SFO","OAK","BER"], JUNC=["W","C","E"];
+const CORR=[["SF","MAR"],["SF","W"],["SF","C"],["C","BER"],["C","E"],["W","E"],["W","SFO"],["E","OAK"],["OAK","BER"]];
+const COAST=[
+ // SF peninsula, ocean side
+ [[-122.478,37.811],[-122.492,37.789],[-122.513,37.781],[-122.511,37.760],[-122.507,37.735],[-122.500,37.705],[-122.495,37.675],[-122.497,37.640],[-122.505,37.600]],
+ // SF bay side to SFO and south
+ [[-122.478,37.811],[-122.465,37.806],[-122.447,37.806],[-122.430,37.808],[-122.412,37.809],[-122.399,37.806],[-122.389,37.795],[-122.387,37.780],[-122.384,37.763],[-122.380,37.745],[-122.360,37.729],[-122.378,37.712],[-122.389,37.695],[-122.384,37.672],[-122.388,37.650],[-122.362,37.636],[-122.355,37.612],[-122.330,37.598],[-122.300,37.580]],
+ // East Bay shoreline
+ [[-122.165,37.600],[-122.185,37.650],[-122.200,37.690],[-122.222,37.706],[-122.250,37.712],[-122.262,37.735],[-122.295,37.757],[-122.320,37.775],[-122.330,37.800],[-122.300,37.828],[-122.310,37.850],[-122.312,37.870],[-122.322,37.890],[-122.345,37.905],[-122.385,37.912]],
+ // Alameda island
+ [[-122.250,37.733],[-122.270,37.760],[-122.300,37.768],[-122.318,37.783],[-122.290,37.790],[-122.255,37.770],[-122.240,37.748],[-122.250,37.733]],
+ // Marin
+ [[-122.545,37.822],[-122.512,37.826],[-122.480,37.830],[-122.478,37.845],[-122.476,37.858],[-122.488,37.873],[-122.470,37.879],[-122.452,37.873],[-122.440,37.880],[-122.452,37.896],[-122.470,37.905],[-122.500,37.915]],
+ // Yerba Buena / Treasure Is.
+ [[-122.372,37.807],[-122.360,37.806],[-122.360,37.815],[-122.365,37.829],[-122.375,37.830],[-122.374,37.814],[-122.372,37.807]],
+ // Angel Island
+ [[-122.440,37.855],[-122.425,37.857],[-122.418,37.866],[-122.432,37.872],[-122.446,37.866],[-122.440,37.855]],
+].map(l=>l.map(nm));
+// closed land polygons (fill only)
+const LAND=[
+ [...COAST[0], nm([-122.60,37.58]), nm([-122.60,37.55]), nm([-122.28,37.55]), ...COAST[1].slice().reverse()],
+ [nm([-122.10,37.40]), ...COAST[2], nm([-121.90,37.95]), nm([-121.90,37.40])],
+ [...COAST[4], nm([-122.56,37.97]), nm([-122.60,37.97]), nm([-122.60,37.81])],
+ COAST[3], COAST[5], COAST[6],
+];
+
+// ---------- scenario ----------
+const SPEED=2.0;            // NM per sim-minute (120 kt)
+const STORM=[8,24];         // C-E closed, sim minutes
+const SIM_END=84, LOOP_TAIL=6;
+// piecewise sim-rate: [simStart, simEnd, simMinPerRealSec]
+const RATE=[[0,8,1.0],[8,14,0.35],[14,23.5,1.2],[23.5,26,0.5],[26,SIM_END,2.0]];
+const SEGS=[]; {let r=0; for(const [a,b,k] of RATE){SEGS.push({a,b,k,r0:r,r1:r+(b-a)/k}); r+=(b-a)/k;}}
+const REAL_SIM=SEGS[SEGS.length-1].r1, LOOP=REAL_SIM+LOOP_TAIL;
+function simAt(real){ for(const s of SEGS) if(real<=s.r1) return s.a+(real-s.r0)*s.k; return SIM_END; }
+function realAt(sim){ for(const s of SEGS) if(sim<=s.b) return s.r0+(sim-s.a)/s.k; return REAL_SIM; }
+function rateAt(sim){ for(const s of SEGS) if(sim<s.b) return s.k; return 2; }
+
+const OD=[
+ {o:"SF",d:"OAK",path:["SF","C","E","OAK"],alt:["SF","W","E","OAK"]},
+ {o:"SFO",d:"BER",path:["SFO","W","E","OAK","BER"]},
+ {o:"MAR",d:"OAK",path:["MAR","SF","C","E","OAK"],alt:["MAR","SF","W","E","OAK"]},
+ {o:"OAK",d:"SF",path:["OAK","E","C","SF"],alt:["OAK","E","W","SF"]},
+ {o:"SF",d:"OAK",path:["SF","C","E","OAK"],alt:["SF","W","E","OAK"]},
+ {o:"BER",d:"SFO",path:["BER","C","SF","W","SFO"]},
+ {o:"OAK",d:"MAR",path:["OAK","E","C","SF","MAR"],alt:["OAK","E","W","SF","MAR"]},
+ {o:"SFO",d:"BER",path:["SFO","W","E","OAK","BER"]},
+];
+const dist=(a,b)=>Math.hypot(P[a][0]-P[b][0],P[a][1]-P[b][1]);
+const pathLen=p=>{let s=0;for(let i=1;i<p.length;i++)s+=dist(p[i-1],p[i]);return s;};
+const usesCE=(p,i)=>(p[i]==="C"&&p[i+1]==="E")||(p[i]==="E"&&p[i+1]==="C");
+// static plan: flights that would have arrived on time without an agent team (replayed offline)
+const STATIC_ONTIME=new Set([0,1,2,5,7,13,21,23,25,27]);
+
+const F=[];
+for(let i=0;i<28;i++){
+  const od=OD[i%8], cs=101+i, sched=2.5*i;
+  let path=od.path.slice(), release=sched, holds={}, rerouted=false, note="";
+  // will the static route traverse C-E while it is closed?
+  let t=sched, hit=false;
+  for(let k=0;k<path.length-1;k++){const dt=dist(path[k],path[k+1])/SPEED; if(usesCE(path,k)&&t+dt>STORM[0]&&t<STORM[1])hit=true; t+=dt;}
+  if(cs===103){path=["MAR","SF","C","BER","OAK"];rerouted=true;}
+  else if(cs===104){path=["OAK","E","W","SF"];holds={E:1.0};rerouted=true;}
+  else if(cs===105){path=od.alt.slice();release=13.5;rerouted=true;}
+  else if(hit&&od.alt){path=od.alt.slice();rerouted=true;}
+  if(cs===108)release+=0.5;
+  // build timed legs
+  const legs=[]; let tt=release;
+  for(let k=0;k<path.length-1;k++){
+    const a=path[k],b=path[k+1];
+    if(k>0&&holds[a]){legs.push({hold:true,at:a,t0:tt,t1:tt+holds[a]});tt+=holds[a];}
+    const dt=dist(a,b)/SPEED; legs.push({a,b,t0:tt,t1:tt+dt}); tt+=dt;
+  }
+  const nominal=sched+pathLen(od.path)/SPEED;
+  F.push({i,cs,od,path,release,sched,legs,arr:tt,delay:Math.max(0,tt-nominal),rerouted,
+          len:pathLen(path),staticLen:pathLen(od.path),staticOn:STATIC_ONTIME.has(i),lead:(i%4)});
+}
+function posAt(f,t){
+  if(t<f.release||t>f.arr) return null;
+  for(const L of f.legs){ if(t<=L.t1){
+    if(L.hold){ const ph=(t-L.t0)/0.5*Math.PI*2, c=P[L.at]; return {x:c[0]+0.45*Math.sin(ph),y:c[1]+0.45-0.45*Math.cos(ph),hold:true,leg:L}; }
+    const u=(t-L.t0)/(L.t1-L.t0), A=P[L.a], B=P[L.b]; return {x:A[0]+(B[0]-A[0])*u,y:A[1]+(B[1]-A[1])*u,leg:L};
+  }}
+  return null;
+}
+function altAt(f,t){ const e=(t-f.release), r=(f.arr-t); return Math.max(0,Math.min(12, e*9, r*9)); }
+
+// ---------- agents ----------
+const AG=[
+ {id:"COORD",nm:"COORDINATOR",par:null,sp:0.0,role:"bay-wide flow"},
+ {id:"SEC-N",nm:"SECTOR NORTH",par:"COORD",sp:0.3,role:"SF-MAR · C-BER · OAK-BER"},
+ {id:"PAD-MAR",nm:"PAD MAR",par:"SEC-N",sp:0.9,role:"Marin vertiport"},
+ {id:"PAD-BER",nm:"PAD BER",par:"SEC-N",sp:1.05,role:"Berkeley vertiport"},
+ {id:"SEC-C",nm:"SECTOR CENTRAL",par:"COORD",sp:0.45,role:"SF-C · C-E · SF-W"},
+ {id:"PAD-SF",nm:"PAD SF",par:"SEC-C",sp:1.2,role:"San Francisco vertiport"},
+ {id:"REPLAN-CE",nm:"REPLAN C–E",par:"SEC-C",sp:8.08,rt:24.3,role:"spawned on C–E closure",dyn:true},
+ {id:"SEC-S",nm:"SECTOR SOUTH",par:"COORD",sp:0.6,role:"W-E · W-SFO · E-OAK"},
+ {id:"PAD-SFO",nm:"PAD SFO",par:"SEC-S",sp:1.35,role:"SFO vertiport"},
+ {id:"PAD-OAK",nm:"PAD OAK",par:"SEC-S",sp:1.5,role:"Oakland vertiport"},
+ {id:"OAK-SEQ",nm:"OAK ARR SEQ",par:"PAD-OAK",sp:8.6,rt:34,role:"spawned for arrival surge",dyn:true},
+];
+const depth=a=>a.par?1+depth(AG.find(x=>x.id===a.par)):0;
+
+// ---------- event script (sim minutes) ----------
+const LOG=[], VOICE=[], ADV=[];
+let pn=0;
+const prop=(t,ag,txt,ok,why,extra={})=>LOG.push({t,ag,id:"P-"+String(++pn).padStart(2,"0"),txt,kind:ok?"ok":"rej",vd:ok?"ACCEPT":"REJECT",why,...extra});
+const sys=(t,txt,why,vd="KERNEL")=>LOG.push({t,ag:"KERNEL",id:"SYS",txt,kind:"sys",vd,why});
+const note=(t,ag,txt,why)=>LOG.push({t,ag,id:"NOTE",txt,kind:"note",vd:"INFO",why});
+const say=(t,who,cs,text,dur,bad=false)=>VOICE.push({t,who,cs,text,dur,bad});
+const adv=(t,dur,at,text,col,box=false)=>ADV.push({t,dur,at,text,col,box});
+const HB=[];
+const hb=(t,cs,rows,ok)=>HB.push({t,cs,rows,ok});
+
+// calm
+prop(0.15,"PAD-SF","SEQ DEP SKF101 SF→OAK via C–E",true,"slot 2300–2305 free, sep ≥ 1.5 NM");
+say(0.35,"CTL",101,"SkyFlow one zero one, San Francisco pad, cleared to Oakland via Charlie, Charlie-Echo, climb and maintain one thousand two hundred.",0.9);
+say(1.35,"PLT",101,"Cleared Oakland via Charlie-Echo, climb and maintain one thousand two hundred, SkyFlow one zero one.",0.8);
+hb(2.2,"SKF101",[["CALLSIGN","SKF101","SKF101"],["ROUTE","C–E","C–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
+sys(2.25,"COMMIT RES-101 SF·C·E·OAK","hearback 4/4 match","COMMIT");
+prop(1.9,"PAD-SFO","SEQ DEP SKF102 SFO→BER via W–E",true,"slot 2302–2310 free");
+prop(4.4,"PAD-MAR","SEQ DEP SKF103 MAR→OAK via C–E",true,"slot 2305–2313 free");
+note(6.1,"SEC-C","WX returns near C–E, level 2 building","not in forecast");
+adv(6.1,1.9,{node:"CE"},"SEC-C ▸ WX LVL2 BUILDING NEAR C–E","cyan");
+prop(7.0,"PAD-OAK","SEQ DEP SKF104 OAK→SF via E–C",true,"slot 2307–2312 free");
+// disruption
+sys(8.0,"CLOSE CORRIDOR C–E 2308–2324","WX level 4 on centerline","CLOSED");
+say(8.12,"CTL",0,"All stations, Bay Approach, corridor Charlie-Echo is closed, weather. Expect reroutes.",0.45);
+prop(8.3,"REPLAN-CE","REROUTE SKF103 at C → BER → OAK (+7.7 NM)",true,"C–BER free, ETA +3.9 min");
+adv(8.3,1.6,{f:103},"REPLAN-CE ▸ P-06 SKF103 VIA BER · ACCEPT","green");
+say(8.6,"CTL",103,"SkyFlow one zero three, reroute, at Charlie proceed Charlie-Berkeley, then Oakland.",0.5);
+say(9.1,"PLT",103,"At Charlie, Charlie-Berkeley then Oakland, SkyFlow one zero three.",0.4);
+hb(9.55,"SKF103",[["CALLSIGN","SKF103","SKF103"],["ROUTE","C–BER","C–BER"],["DEST","OAK","OAK"]],true);
+sys(9.6,"COMMIT RES-103 C·BER·OAK","hearback 3/3 match","COMMIT");
+prop(8.9,"SEC-S","HOLD SKF104 at E 1.0 min, then E–W–SF",true,"W–E slot 2310 after SKF102");
+adv(8.9,1.6,{node:"E"},"SEC-S ▸ P-07 HOLD SKF104 AT E · ACCEPT","green");
+prop(9.35,"REPLAN-CE","DEP SKF105 SF→OAK via C–E · cell exiting east by 2312",false,"C–E closed 2308–2324 · no partial release");
+adv(9.35,2.6,{node:"CE"},"VALIDATOR ✕ REJECT P-08|SKF105 VIA C–E|C–E CLOSED 2308–2324 · NO PARTIAL RELEASE","red",true);
+prop(9.75,"REPLAN-CE","DEP SKF105 SF→OAK via W–E (+2.7 NM), hold on pad",true,"W–E slot 2313–2318 free · readback required");
+adv(9.9,3.5,{node:"SF",dy:-1.6},"SKF105 ON PAD · AWAITING READBACK","amber");
+// voice loop with mismatch
+say(10.0,"CTL",105,"SkyFlow one zero five, San Francisco pad, cleared to Oakland via Whiskey, Whiskey-Echo, climb and maintain one thousand two hundred.",0.85);
+say(10.95,"PLT",105,"Cleared Oakland via Charlie-Echo, one thousand two hundred, SkyFlow one zero five.",0.65);
+hb(11.65,"SKF105",[["CALLSIGN","SKF105","SKF105"],["ROUTE","W–E","C–E ✕ closed"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],false);
+sys(11.7,"HOLD RES-105 · hearback ROUTE mismatch","read back closed corridor C–E","BLOCK");
+adv(11.7,1.6,{node:"SF",dy:1.6},"HEARBACK ✕ SKF105 ROUTE C–E ≠ W–E","red");
+say(11.85,"CTL",105,"SkyFlow one zero five, negative. Charlie-Echo is closed. Cleared to Oakland via Whiskey-Echo.",0.75);
+say(12.65,"PLT",105,"Negative Charlie-Echo, via Whiskey-Echo to Oakland, one thousand two hundred, SkyFlow one zero five.",0.65);
+hb(13.35,"SKF105",[["CALLSIGN","SKF105","SKF105"],["ROUTE","W–E","W–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
+sys(13.4,"COMMIT RES-105 SF·W·E·OAK 2313–2318","hearback 4/4 match after correction","COMMIT");
+adv(13.4,1.4,{node:"SF",dy:1.6},"RES-105 COMMITTED · SF–W–E–OAK","green");
+prop(14.3,"REPLAN-CE","REROUTE SKF107 OAK→E→W→SF→MAR (+3.1 NM)",true,"W–E slot 2317 free");
+prop(15.4,"OAK-SEQ","SEQ OAK ARR: SKF103 #1, SKF105 #2",true,"spacing 1.6 min ≥ 1.0");
+prop(17.0,"SEC-S","METER SKF108 DEP +0.5 min (W–E load 4/6)",true,"keeps W–E ≤ capacity");
+prop(19.2,"REPLAN-CE","REROUTE SKF109 SF→W→E→OAK (+2.7 NM)",true,"W–E slot 2322 free");
+note(21.0,"SEC-C","WX decaying to level 1, cell east of E","");
+prop(23.55,"COORD","REOPEN C–E 2324 · restore static routing from SKF111",true,"WX clear ≥ 2 NM for 3 min");
+adv(23.55,1.3,{node:"CE"},"COORD ▸ P-13 REOPEN C–E 2324 · ACCEPT","green");
+sys(24.0,"OPEN CORRIDOR C–E","closure 16 min · 0 conflicts","OPEN");
+say(24.05,"CTL",0,"All stations, Bay Approach, corridor Charlie-Echo is open.",0.3);
+say(24.4,"CTL",111,"SkyFlow one one one, Marin pad, cleared to Oakland via San Francisco, Charlie-Echo, climb and maintain one thousand two hundred.",0.4);
+say(24.8,"PLT",111,"Cleared Oakland via San Francisco, Charlie-Echo, one thousand two hundred, SkyFlow one one one.",0.35);
+hb(25.15,"SKF111",[["CALLSIGN","SKF111","SKF111"],["ROUTE","SF–C–E","SF–C–E"],["ALT","1,200","1,200"],["DEST","OAK","OAK"]],true);
+sys(25.2,"COMMIT RES-111 MAR·SF·C·E·OAK","hearback 4/4 match","COMMIT");
+// routine departures after recovery
+for(const f of F){ if(f.cs>=112){ const pad="PAD-"+f.od.o;
+  prop(f.release-0.6,pad,`SEQ DEP SKF${f.cs} ${f.od.o}→${f.od.d} via ${f.path.slice(1,-1).join("–")}`,true,"slot free, sep ≥ 1.5 NM");
+}}
+LOG.sort((a,b)=>a.t-b.t);
+const AGLOG={}; for(const l of LOG){(AGLOG[l.ag]=AGLOG[l.ag]||[]).push(l);}
+
+// ---------- canvas ----------
+const cv=document.getElementById("scope"), cx=cv.getContext("2d");
+let W=0,H=0,DPR=1,S=40,OX=0,OY=0;
+function resize(){
+  const r=cv.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1);
+  W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0);
+  S=Math.min(W/18.5,(H-30)/19.0); OX=W/2+S*0.6; OY=(H-24)/2;
+}
+const X=p=>OX+p[0]*S, Y=p=>OY-p[1]*S;
+const C={green:"#5fe38a",amber:"#ffb340",red:"#ff4a4a",cyan:"#62c6e3",white:"#e9f1f5",map:"#38505f",ring:"#1b2a33",dim:"#6f8290"};
+const FONT='"IBM Plex Mono", Menlo, monospace';
+// stipple pattern for heavy WX
+const stip=document.createElement("canvas"); stip.width=stip.height=6;
+{const s=stip.getContext("2d"); s.fillStyle="rgba(120,190,230,.55)"; s.fillRect(0,0,1.5,1.5); s.fillRect(3,3,1.5,1.5);}
+let stipPat=null;
+
+function wxIntensity(t){ if(t<5)return 0; if(t<8)return (t-5)/3; if(t<20.5)return 1; if(t<24.5)return 1-(t-20.5)/4; return 0; }
+function wxCenter(t){ const u=Math.max(0,Math.min(1,(t-5)/20)); return nm([-122.335+u*0.06, 37.797-u*0.035]); }
+
+function drawScope(t){
+  cx.fillStyle="#020406"; cx.fillRect(0,0,W,H);
+  const c0=[X([0,0]),Y([0,0])];
+  // range rings around scope center (2 NM spacing)
+  cx.lineWidth=1;
+  for(let r=2;r<=14;r+=2){ cx.strokeStyle=r%10===0?"#24363f":C.ring; cx.beginPath(); cx.arc(c0[0],c0[1],r*S,0,Math.PI*2); cx.stroke();
+    if(r%4===0||r===10){ cx.fillStyle="#3b4c56"; cx.font=`10px ${FONT}`; cx.fillText(r+"",c0[0]+r*S*0.707+3,c0[1]-r*S*0.707-3); } }
+  // compass ticks
+  cx.strokeStyle="#22333d"; for(let a=0;a<360;a+=10){ const rr=14*S, q=a*Math.PI/180, l=a%30===0?10:5;
+    cx.beginPath(); cx.moveTo(c0[0]+Math.sin(q)*rr,c0[1]-Math.cos(q)*rr); cx.lineTo(c0[0]+Math.sin(q)*(rr-l),c0[1]-Math.cos(q)*(rr-l)); cx.stroke(); }
+  // weather
+  const I=wxIntensity(t);
+  if(I>0){
+    const wc=wxCenter(t), bx=X(wc), by=Y(wc), blobs=[[0,0,1.9],[0.9,-0.5,1.3],[-0.8,0.4,1.2],[0.4,0.9,1.0],[-0.3,-0.9,0.9]];
+    cx.save(); cx.globalAlpha=Math.min(1,I*1.1);
+    cx.fillStyle="rgba(30,70,110,.42)";
+    cx.beginPath(); for(const [dx,dy,r] of blobs){ cx.moveTo(bx+dx*S+r*S*1.3,by+dy*S); cx.arc(bx+dx*S,by+dy*S,r*S*1.3,0,Math.PI*2);} cx.fill();
+    if(I>0.5){ stipPat=stipPat||cx.createPattern(stip,"repeat"); cx.fillStyle=stipPat; cx.globalAlpha=(I-0.5)*2;
+      cx.beginPath(); for(const [dx,dy,r] of blobs.slice(0,3)){ cx.moveTo(bx+dx*S+r*S*0.75,by+dy*S); cx.arc(bx+dx*S,by+dy*S,r*S*0.75,0,Math.PI*2);} cx.fill(); }
+    cx.restore();
+  }
+  // land fill + coastline
+  cx.fillStyle="rgba(24,44,54,.5)";
+  for(const l of LAND){ cx.beginPath(); l.forEach((p,i)=>i?cx.lineTo(X(p),Y(p)):cx.moveTo(X(p),Y(p))); cx.closePath(); cx.fill(); }
+  cx.strokeStyle=C.map; cx.lineWidth=1.1;
+  for(const l of COAST){ cx.beginPath(); l.forEach((p,i)=>i?cx.lineTo(X(p),Y(p)):cx.moveTo(X(p),Y(p))); cx.stroke(); }
+  // corridors
+  const closed=t>=STORM[0]&&t<STORM[1];
+  for(const [a,b] of CORR){
+    const ce=(a==="C"&&b==="E"); const A=P[a],B=P[b];
+    cx.save();
+    if(ce&&closed){ const fl=t-STORM[0]<0.6?(Math.floor((t-STORM[0])*10)%2?1:.35):1;
+      cx.strokeStyle=C.amber; cx.globalAlpha=fl; cx.lineWidth=3; cx.setLineDash([8,5]); }
+    else { cx.strokeStyle="#2c4656"; cx.lineWidth=ce?1.6:1.3; cx.setLineDash([]); }
+    cx.beginPath(); cx.moveTo(X(A),Y(A)); cx.lineTo(X(B),Y(B)); cx.stroke(); cx.restore();
+    if(!ce){ const mx=(X(A)+X(B))/2, my=(Y(A)+Y(B))/2; cx.fillStyle="#2f4655"; cx.font=`9.5px ${FONT}`; cx.fillText(a+"-"+b,mx+4,my-4); }
+  }
+  // C-E label
+  { const mx=(X(P.C)+X(P.E))/2, my=(Y(P.C)+Y(P.E))/2;
+    cx.font=`600 11px ${FONT}`; cx.fillStyle=closed?C.amber:"#4c6b7c"; cx.fillText(closed?"C–E CLSD 2308–2324":"C–E",mx-60,my+26); }
+  // junctions
+  for(const j of JUNC){ const x=X(P[j]),y=Y(P[j]); cx.strokeStyle="#6d8a9a"; cx.lineWidth=1.2;
+    cx.beginPath(); cx.moveTo(x,y-6); cx.lineTo(x+5.5,y+4); cx.lineTo(x-5.5,y+4); cx.closePath(); cx.stroke();
+    cx.fillStyle="#8fa8b6"; cx.font=`600 11px ${FONT}`; cx.fillText(j,x+8,y+4); }
+  // vertiports
+  for(const p of PADS){ const x=X(P[p]),y=Y(P[p]); cx.strokeStyle=C.white; cx.lineWidth=1.3; cx.strokeRect(x-5,y-5,10,10);
+    cx.beginPath(); cx.moveTo(x-2.5,y-3); cx.lineTo(x-2.5,y+3); cx.moveTo(x+2.5,y-3); cx.lineTo(x+2.5,y+3); cx.moveTo(x-2.5,y); cx.lineTo(x+2.5,y); cx.stroke();
+    cx.fillStyle=C.white; cx.font=`600 11px ${FONT}`; cx.fillText(p,x-6,y+18); }
+  // remaining rerouted path (amber dashed)
+  for(const f of F){ const q=posAt(f,t); if(!q||!f.rerouted) continue;
+    cx.save(); cx.strokeStyle="rgba(255,179,64,.45)"; cx.setLineDash([3,4]); cx.lineWidth=1.2; cx.beginPath(); cx.moveTo(X([q.x,q.y]),Y([q.x,q.y]));
+    let on=false; for(const L of f.legs){ if(L.hold) continue; if(on||L===q.leg){ on=true; cx.lineTo(X(P[L.b]),Y(P[L.b])); } } cx.stroke(); cx.restore(); }
+  // targets
+  for(const f of F){
+    const q=posAt(f,t); if(!q) continue;
+    const col=f.rerouted&&t<36?C.amber:C.green;
+    // history trail
+    for(let k=6;k>=1;k--){ const h=posAt(f,t-k*0.22); if(!h) continue; cx.fillStyle=`rgba(98,198,227,${0.55-k*0.07})`;
+      cx.beginPath(); cx.arc(X([h.x,h.y]),Y([h.x,h.y]),2.1,0,Math.PI*2); cx.fill(); }
+    const x=X([q.x,q.y]), y=Y([q.x,q.y]);
+    const sec=q.y>2.6?"N":(q.y<-1.2?"S":"C");
+    cx.fillStyle=col; cx.font=`600 12px ${FONT}`; cx.textAlign="center"; cx.textBaseline="middle"; cx.fillText(sec,x,y+0.5);
+    cx.textAlign="left"; cx.textBaseline="alphabetic";
+    // leader + data block
+    const dirs=[[1,-1],[1,1],[-1,-1],[1,-1]], d=dirs[f.lead]; const lx=x+d[0]*22, ly=y+d[1]*16;
+    cx.strokeStyle=col; cx.lineWidth=1; cx.beginPath(); cx.moveTo(x+d[0]*7,y+d[1]*6); cx.lineTo(lx,ly); cx.stroke();
+    const alt=String(Math.round(altAt(f,t))).padStart(3,"0"), gs=q.hold?"060":"120";
+    const share=Math.floor(t*0.9)%2===0? (f.od.d) : (q.hold?"HLD":q.leg.a+"-"+q.leg.b);
+    const tx=d[0]>0?lx+3:lx-62, ty=d[1]>0?ly+11:ly-20;
+    cx.fillStyle=col; cx.font=`500 11.5px ${FONT}`; cx.fillText("SKF"+f.cs,tx,ty);
+    cx.fillText(alt+" "+gs.slice(0,2)+" "+share,tx,ty+13);
+  }
+  // pads on ground with queued flights (SKF105)
+  // advisories
+  for(const a of ADV){ if(t<a.t||t>a.t+a.dur) continue; drawAdv(a,t); }
+  // SSA (system status area)
+  drawSSA(t,closed);
+}
+function anchor(a,t){
+  if(a.at.f){ const f=F.find(z=>z.cs===a.at.f), q=posAt(f,t)||{x:P[f.od.o][0],y:P[f.od.o][1]}; return [X([q.x,q.y]),Y([q.x,q.y])]; }
+  if(a.at.node==="CE") return [(X(P.C)+X(P.E))/2,(Y(P.C)+Y(P.E))/2];
+  const p=P[a.at.node]; return [X(p),Y([0,p[1]+(a.at.dy||0)])];
+}
+function drawAdv(a,t){
+  const [ax,ay]=anchor(a,t), lines=a.text.split("|"), col=C[a.col];
+  const fade=Math.min(1,(t-a.t)*6,(a.t+a.dur-t)*4);
+  cx.save(); cx.globalAlpha=Math.max(0,fade);
+  if(a.box){
+    cx.font=`600 13px ${FONT}`; const w=Math.max(...lines.map(l=>cx.measureText(l).width))+24, h=lines.length*19+14;
+    const bx=ax+150, by=ay-210;
+    cx.strokeStyle=col; cx.lineWidth=1.2; cx.beginPath(); cx.moveTo(ax,ay); cx.lineTo(bx,by+h); cx.stroke();
+    cx.fillStyle="rgba(40,4,4,.88)"; cx.fillRect(bx,by,w,h); cx.lineWidth=2; cx.strokeRect(bx,by,w,h);
+    lines.forEach((l,i)=>{ cx.fillStyle=i===0?col:"#ffb3b3"; cx.font=i===0?`600 13px ${FONT}`:`500 12px ${FONT}`; cx.fillText(l,bx+12,by+22+i*19); });
+    // X across the corridor
+    cx.strokeStyle=col; cx.lineWidth=2.5; cx.beginPath(); cx.moveTo(ax-9,ay-9); cx.lineTo(ax+9,ay+9); cx.moveTo(ax+9,ay-9); cx.lineTo(ax-9,ay+9); cx.stroke();
+  } else {
+    cx.font=`500 11.5px ${FONT}`; const w=cx.measureText(lines[0]).width;
+    const bx=ax+16, by=ay-26;
+    cx.strokeStyle=col; cx.globalAlpha*=.7; cx.beginPath(); cx.moveTo(ax+4,ay-4); cx.lineTo(bx,by+4); cx.stroke(); cx.globalAlpha/=.7;
+    cx.fillStyle="rgba(2,4,6,.82)"; cx.fillRect(bx-4,by-9,w+8,18);
+    cx.fillStyle=col; cx.fillText(lines[0],bx,by+4);
+  }
+  cx.restore();
+}
+function zulu(t){ const s=Math.floor(t*60), m=Math.floor(s/60); return `${String(23+Math.floor(m/60)).padStart(2,"0").replace("24","00")}${String(m%60).padStart(2,"0")}/${String(s%60).padStart(2,"0")}`; }
+function drawSSA(t,closed){
+  const x=16,y=22; cx.font=`500 12px ${FONT}`; cx.fillStyle=C.green;
+  const air=F.filter(f=>posAt(f,t)).length;
+  const L=[[zulu(t)+"  A2991",C.green],["NCT-BAY  EVTOL  RR 2NM",C.green],[`TRK ${air}  DEP ${F.filter(f=>f.release<=t).length}/28`,C.green],
+           [closed?"WX  C–E CLSD":"WX  "+(t>=5&&t<8?"LVL2 C–E":"NIL"),closed||t>=5&&t<8?C.amber:C.green],
+           ["SIMULATION",C.amber]];
+  L.forEach((l,i)=>{ cx.fillStyle=l[1]; cx.fillText(l[0],x,y+i*16); });
+  // legend bottom-left
+  const ly=H-58; cx.font=`10.5px ${FONT}`;
+  [["C/N/S","target · owning sector",C.green],["• • •","history trail",C.cyan],["SKF1xx","amber = rerouted / held",C.amber]].forEach((r,i)=>{
+    cx.fillStyle=r[2]; cx.fillText(r[0],x,ly+i*14); cx.fillStyle=C.dim; cx.fillText(r[1],x+62,ly+i*14); });
+  // end card
+  if(t>=SIM_END-0.01){ const w=520,h=120,bx=W/2-w/2,by=H/2-h/2-20; cx.fillStyle="rgba(4,10,12,.92)"; cx.fillRect(bx,by,w,h);
+    cx.strokeStyle=C.green; cx.lineWidth=1.5; cx.strokeRect(bx,by,w,h); cx.fillStyle=C.green; cx.font=`600 18px ${FONT}`;
+    cx.fillText("RECOVERY COMPLETE · 28/28 ON TIME",bx+24,by+40); cx.font=`12px ${FONT}`; cx.fillStyle=C.white;
+    cx.fillText("static plan 10/28 · 0 conflicts · 0 human interventions",bx+24,by+68);
+    cx.fillStyle=C.dim; cx.fillText("one veto · one hearback mismatch caught · loop restarts",bx+24,by+90); }
+}
+
+// ---------- panels ----------
+const $=id=>document.getElementById(id);
+let lastKey="";
+function esc(s){return s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function updatePanels(t){
+  const logV=LOG.filter(l=>l.t<=t), voV=VOICE.filter(v=>v.t<=t), hbV=HB.filter(h=>h.t<=t);
+  const key=logV.length+"|"+voV.length+"|"+hbV.length+"|"+Math.floor(t*8);
+  if(key===lastKey) return; lastKey=key;
+  // tree
+  let live=0; const rows=[];
+  for(const a of AG){
+    const vis=t>=a.sp; if(!vis){continue;}
+    const ret=a.rt!=null&&t>=a.rt; if(!ret) live++;
+    const mine=(AGLOG[a.id]||[]).filter(l=>l.t<=t), last=mine[mine.length-1];
+    let cls="node"; if(ret) cls+=" retired"; else if(t-a.sp<0.8) cls+=" new";
+    if(!ret&&last&&t-last.t<1.0) cls+=last.kind==="rej"?" veto":" active";
+    const d=depth(a), br=d===0?"":"&nbsp;".repeat((d-1)*3)+"└─ ";
+    const st=ret?"retired":(last?esc(last.txt):esc(a.role));
+    rows.push(`<div class="${cls}"><span class="br">${br}</span><span class="nm">${a.nm}</span>${a.dyn&&!ret?'<span class="tag">SPAWNED</span>':''}<span class="st">${st}</span><span class="ct">${mine.length||""}</span></div>`);
+  }
+  $("tree").innerHTML=rows.join(""); $("treeCount").textContent=live+" live";
+  // log
+  $("log").innerHTML=logV.slice(-9).reverse().map(l=>`<div class="ln ${l.kind}"><span class="id">${l.id}</span><span class="tx">${l.ag==="KERNEL"?"":`<b style="color:var(--dim);font-weight:500">${l.ag}</b> `}${esc(l.txt)}<i>${esc(l.why)}</i></span><span class="vd">${l.vd}</span></div>`).join("");
+  // radio
+  $("radio").innerHTML=voV.slice(-3).map((v,i,arr)=>{ const u=Math.min(1,(t-v.t)/v.dur), txt=v.text.slice(0,Math.ceil(v.text.length*u));
+    return `<div class="rl ${v.who==="CTL"?"ctl":"plt"} ${v.bad?"bad":""} ${i<arr.length-1?"old":""}"><span class="who">${v.who==="CTL"?"BAY APP":"SKF"+v.cs}</span><span class="t">${esc(txt)}</span></div>`;}).join("");
+  $("txCount").textContent=voV.length+" tx";
+  // hearback
+  const h=hbV[hbV.length-1];
+  if(h){ $("hbCs").textContent=h.cs; const r=$("hbRes"); r.textContent=h.ok?"MATCH · COMMIT":"MISMATCH · NEGATIVE"; r.style.color=h.ok?"var(--green)":"var(--red)";
+    $("hbT").innerHTML=`<tr><td></td><td style="color:var(--faint);font-size:10px">CLEARED</td><td style="color:var(--faint);font-size:10px">READ BACK</td><td class="m"></td></tr>`+
+      h.rows.map(([f,a,b])=>{const ok=a===b; return `<tr class="${ok?"okr":"bad"}"><td>${f}</td><td>${a}</td><td>${b}</td><td class="m">${ok?"✓":"✕"}</td></tr>`;}).join(""); }
+  else { $("hbCs").textContent="—"; $("hbRes").textContent="IDLE"; $("hbRes").style.color=""; $("hbT").innerHTML=""; }
+  // scoreboard
+  const landed=F.filter(f=>f.arr<=t);
+  $("kAgent").innerHTML=landed.filter(f=>f.delay<=5).length+"<small>/28</small>";
+  $("kStatic").innerHTML=landed.filter(f=>f.staticOn).length+"<small>/28</small>";
+  $("kDelay").innerHTML=(landed.reduce((m,f)=>Math.max(m,f.delay),0)).toFixed(1)+"<small> min</small>";
+  $("kTx").textContent=voV.length;
+  const dl=landed.reduce((a,f)=>a+f.len,0), ds=landed.reduce((a,f)=>a+f.staticLen,0); $("kDist").innerHTML="+"+(ds?(dl/ds-1)*100:0).toFixed(1)+"<small>%</small>";
+  // phase
+  const ph=$("phase");
+  if(t<5){ph.textContent="CALM TRAFFIC";ph.className="phase";}
+  else if(t<8){ph.textContent="UNFORECAST WX BUILDING";ph.className="phase wx";}
+  else if(t<24){ph.textContent="C–E CLOSED · AGENTS REPLANNING";ph.className="phase wx";}
+  else if(t<40){ph.textContent="RECOVERY";ph.className="phase rec";}
+  else {ph.textContent="NOMINAL · STATIC ROUTING RESTORED";ph.className="phase";}
+  $("clock").textContent=zulu(t)+"Z";
+  $("rate").textContent=t>=SIM_END?"END":"SIM "+Math.round(rateAt(t)*60)+"×";
+}
+
+// ---------- playback ----------
+let real=0, playing=true, lastNow=performance.now(), spoken=0;
+// radio voice via shared SkyRadio; the scripted clock holds while the frequency is busy
+const R=window.SkyRadio; let radioBusy=0, radioGen=0;
+const spk=v=>v.who==="CTL"?"atc":"pilot", key=v=>v.who==="CTL"?undefined:"SKF"+v.cs;
+function speak(v){ if(!R) return; const g=radioGen; radioBusy++; R.say(v.text,spk(v),key(v)).finally(()=>{ if(g===radioGen) radioBusy=Math.max(0,radioBusy-1); }); }
+function radioCut(){ radioGen++; radioBusy=0; $("txLed").classList.remove("on"); try{ R&&R.stop(); }catch(e){} }
+function markSound(){ const on=!!(R&&R.enabled), b=$("bAudio"); b.textContent=on?"SOUND ON":"SOUND OFF"; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); }
+if(R){ R.onTransmit(e=>$("txLed").classList.toggle("on",e.live)); R.prefetch(VOICE.map(v=>({text:v.text,speaker:spk(v),key:key(v)}))); document.addEventListener("skyradio:enabled",()=>{ markSound(); radioCut(); real=0; spoken=0; lastKey=""; playing=true; $("bPlay").textContent="PAUSE"; }); }
+function frame(now){
+  const dt=Math.min(0.1,(now-lastNow)/1000); lastNow=now;
+  if(playing){
+    const nx=VOICE[spoken], hold=radioBusy>0 && nx && simAt(real+dt)>=nx.t;
+    if(!hold){ real+=dt; if(real>=LOOP){ radioCut(); real=0; spoken=0; lastKey=""; } } }
+  const t=simAt(real);
+  drawScope(t); updatePanels(t);
+  $("scrubHead").style.left=(real/LOOP*100)+"%";
+  while(spoken<VOICE.length&&VOICE[spoken].t<=t){ if(playing) speak(VOICE[spoken]); spoken++; }
+  requestAnimationFrame(frame);
+}
+$("bPlay").onclick=()=>{playing=!playing;$("bPlay").textContent=playing?"PAUSE":"PLAY";if(!playing)radioCut();};
+$("bRestart").onclick=()=>{radioCut();real=0;spoken=0;lastKey="";};
+$("bAudio").onclick=()=>{ if(!R) return; if(R.enabled){ R.disable(); radioCut(); } else R.enable(); markSound(); };
+document.addEventListener("keydown",e=>{ if(e.code==="Space"){e.preventDefault();$("bPlay").click();} if(e.key==="r")$("bRestart").click(); });
+$("scrub").onclick=e=>{ const r=e.currentTarget.getBoundingClientRect(); radioCut(); real=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*LOOP; spoken=VOICE.filter(v=>v.t<=simAt(real)).length; lastKey=""; };
+{ const a=realAt(STORM[0])/LOOP*100, b=realAt(STORM[1])/LOOP*100; $("scrubWx").style.left=a+"%"; $("scrubWx").style.width=(b-a)+"%"; }
+window.addEventListener("resize",resize); resize();
+// optional deep link: #t=30 starts at 30 real seconds
+{ const m=location.hash.match(/t=([\d.]+)/); if(m){ real=+m[1]; spoken=VOICE.filter(v=>v.t<=simAt(real)).length; } }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
