@@ -31,6 +31,8 @@ export default function Inspector({ ds, id, t, fmt, onClose }: Props) {
     ['Runway', flight.runway || 'Unknown'],
     [flight.kind === 'arr' ? 'Arrival' : 'Departure', `${fmt.day(flight.t)} ${fmt.hms(flight.t)}`],
     ['Track points', track ? track.n.toLocaleString() : 'No map path'],
+    ['Path source', flight.track_source || (track ? 'SFO Museum' : 'No matched path')],
+    ['ICAO address', flight.icao24 || 'Not recorded'],
     ['Reported altitude now', sample && Number.isFinite(sample.alt) ? `${Math.round(sample.alt).toLocaleString()} ft` : '—'],
     ['Derived speed now', sample && Number.isFinite(sample.spd) ? `${Math.round(sample.spd)} kt` : '—'],
   ]

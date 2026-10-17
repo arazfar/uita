@@ -15,7 +15,8 @@ the delivered JSON and checks it against the original roster and source points.
 
 The full DataSF roster supplies throughput, runway use, and spacing between recorded
 arrival operations. Operation time is not independently verified touchdown or
-wheels-up time. Museum paths supply observed map positions. Missing paths stay
+wheels-up time. Matched ADSB.lol airborne legs supply map positions, with Museum
+paths as fallback. Missing paths stay
 missing; those operations remain in the feed and roster metrics.
 
 Museum's scheduled timestamp exists for matched arrivals only. The schedule offset
@@ -34,12 +35,14 @@ samples is a replay interpolation, not an additional observed point.
 We considered two altitude methods. Converting every numeric altitude produces many
 more candidate events, but bare SWIM values can be assigned heights. Treating them
 as measured heights would invent evidence of physical climbs and vertical spacing.
-The chosen method converts only explicit `C`-suffixed beacon heights. Other heights
-remain null, including in the map. The publisher documents these suffixes in the
+Museum heights therefore use only explicit `C`-suffixed beacon values. ADSB.lol
+uses reported barometric heights from the readsb trace format. Ground, stale and
+geometric observations do not supply physical heights. Other heights remain null,
+including in the map. The publisher documents these suffixes in the
 [August source README](https://github.com/sfomuseum-data/sfomuseum-data-flights-2026-08).
 
 Separation candidates require under 3 NM horizontally and under 1,000 ft vertically.
-The scanner samples every 10 seconds between consecutive beacon heights, within
+The scanner samples every 10 seconds between consecutive reported heights, within
 120 seconds, below 700 knots, and below 6,000 ft/min vertical change. A missing
 height or long gap prevents comparison across that interval. Pair hits separated
 by at most 20 seconds form one candidate event. Sparse samples can miss events.
@@ -72,11 +75,14 @@ categories are not established. It does not prove the pair had visual separation
 Existing runway display polygons carry October static-source metadata; historical
 runway availability is unknown.
 
-A go-around candidate requires a measured height under 1,500 ft within 6 NM of SFO,
+A go-around candidate requires at least 100 ft of measured descent to a height
+under 1,500 ft within 6 NM of SFO,
 then two consecutive measured points at least 1,000 ft higher, within five minutes.
 The high points must span at least ten seconds. A gap, unknown height, or implausible
 vertical jump resets the candidate. One high terminal point cannot create an event.
-The eligible-arrival denominator requires at least two follow-up points after a
+Candidates enter the count when the sustained climb is confirmed. A second
+candidate on the same arrival requires a fresh low approach after at least a
+1,000-foot descent. The eligible-arrival denominator requires at least two follow-up points after a
 usable low observation. A zero denominator means unavailable, not zero go-arounds.
 
 `kpis.json` preserves `sep_events` and `go_arounds`, with added `coverage` and
@@ -86,7 +92,7 @@ this limited scope. `coverage.go_around_evaluable_arrivals` controls the unavail
 state. Throughput retains the user-selected reference of 54 arrivals/hour; that
 reference is not verified capacity for the historical week.
 
-## Verification snapshot: October 17, 2026
+## Baseline before ADS-B backfill: October 17, 2026
 
 The real-data audit passed full roster identities and fields, source point lineage,
 finite and chronological track tuples, measured-height provenance, schedule lineage,
@@ -120,5 +126,7 @@ rejected; altitude provenance enforced. These checks exercised branches absent f
 the sparse real-data candidate set. They do not validate the heuristic operationally.
 
 Source attribution and licenses remain in `bundle/` and `departures-bundle/`.
-Additional ADS-B data can improve path and height coverage, but must be matched and
-verified before changing these counts.
+The baseline above describes the earlier Museum-only replay. The current
+[backfill audit](adsb-backfill/audit.json) records the rebuilt coverage and safety
+counts. See [the extraction and matching methods](ADSB_LOL.md). The accepted
+ADSB.lol supplement and its attribution remain separate from the Museum bundles.

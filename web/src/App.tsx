@@ -149,7 +149,7 @@ export default function App() {
       {!data && !error && <div className="msg" role="status">Loading flights and tracks...</div>}
       {data && <Live {...data} />}
       <footer className="app-footer">
-        <span><span className="footer-label">Source</span> DataSF / SFO Museum</span>
+        <span><span className="footer-label">Source</span> DataSF / SFO Museum{data?.kpis.coverage.adsb_paths !== undefined && ' / ADSB.lol'}</span>
         <span>Full roster in feed and throughput. Map shows available tracks; gaps over 2 minutes stay empty.</span>
         <span className="research-label">Research use only</span>
       </footer>

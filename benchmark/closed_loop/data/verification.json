@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "byte_identical_rebuild": true,
+  "held_out_split_rejected": true,
+  "checks": [
+    "date-restricted source only",
+    "no recorded outcomes queried",
+    "artifact/schema checks",
+    "all spawns causal and emitted once",
+    "weather matches causal adapter every60seconds",
+    "no source operation shared across episode windows"
+  ],
+  "splits": {
+    "train": {
+      "episodes": 24,
+      "spawned_once": 572,
+      "causal_weather_frames": 1824,
+      "position_strata": {
+        "synthetic_training_template": 290,
+        "observed": 282
+      }
+    },
+    "validation": {
+      "episodes": 6,
+      "spawned_once": 136,
+      "causal_weather_frames": 456,
+      "position_strata": {
+        "synthetic_training_template": 61,
+        "observed": 75
+      }
+    }
+  },
+  "manifest_sha256": "ccf75056759516237547d5bf8c2c95fea6d9a0e7195fe3e3899b9a42a62fe171",
+  "loader_sha256": "710b255c327cada60bf9a8717ed54770ea7bf62ecd19754d218fbdb2d07ba6e7"
+}

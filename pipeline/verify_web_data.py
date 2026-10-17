@@ -6,6 +6,7 @@ it does not establish source completeness or certify flight safety.
 from collections import Counter
 from datetime import datetime
 import json
+import gzip
 import math
 from pathlib import Path
 import statistics
@@ -43,9 +44,14 @@ def main():
     assert set(sources) == set(by_id), "roster members were added or removed"
     assert set(tracks) == {f["id"] for f in flights if f["has_track"]}, "path coverage mismatch"
     counts = Counter()
+    supplement_path = HERE / 'adsb-backfill/tracks.json.gz'
+    supplement = json.loads(gzip.decompress(supplement_path.read_bytes()))['tracks'] if supplement_path.exists() else {}
     for fid, points in tracks.items():
         assert len(points) >= 2, "path cannot animate"
-        original = {point[0]: point for point in raw_tracks[fid]["points"]}
+        is_adsb = by_id[fid].get('track_source') == 'adsb.lol'
+        assert is_adsb == (fid in supplement), 'Wrong path source selected'
+        original = {point[0]: point for point in (supplement[fid]['points'] if is_adsb else raw_tracks[fid]["points"])}
+        counts['adsb_paths' if is_adsb else 'museum_fallback_paths'] += 1
         last_time = -math.inf
         for point in points:
             assert len(point) == 5 and all(math.isfinite(value) for value in point[:3]), "invalid track tuple"
@@ -54,8 +60,13 @@ def main():
             source = original[timestamp]
             assert lon == round(source[1], 5) and lat == round(source[2], 5), "invented position"
             if height is not None:
-                assert str(source[3]).endswith("C") and height == int(str(source[3])[:-1]) * 100, "unmeasured altitude"
-                counts["beacon_points"] += 1
+                if is_adsb:
+                    assert height == source[3], 'Changed barometric altitude'
+                else:
+                    assert str(source[3]).endswith("C") and height == int(str(source[3])[:-1]) * 100, "unmeasured altitude"
+                counts["measured_altitude_points"] += 1
+            else:
+                assert not is_adsb or source[3] is None, 'Lost reported altitude'
             if speed is not None:
                 assert math.isfinite(speed) and 0 <= speed <= 701, "implausible derived speed"
             counts["gap_intervals_over_120_seconds"] += last_time != -math.inf and timestamp - last_time > 120
@@ -71,13 +82,16 @@ def main():
     for event in kpis["sep_events"]:
         assert event["a"] != event["b"] and {event["a"], event["b"]} <= set(tracks), "invalid separation pair"
         assert event["t_start"] <= event["t_end"] and 0 <= event["min_nm"] <= 3 and 0 <= event["min_ft"] < 1000
+        assert week['start_utc'] <= event['t_start'] <= event['t_end'] < week['end_utc'], 'Safety event outside week'
+        assert by_id[event['a']]['reg'] != by_id[event['b']]['reg'], 'Aircraft paired with itself'
     for event in kpis["go_arounds"]:
         assert event["id"] in tracks and by_id[event["id"]]["kind"] == "arr", "invalid go-around candidate"
     coverage = kpis["coverage"]
     for kind, name in (("arr", "arrivals"), ("dep", "departures")):
         assert coverage[f"roster_{name}"] == sum(f["kind"] == kind for f in flights)
         assert coverage[f"tracked_{name}"] == sum(f["kind"] == kind and f["has_track"] for f in flights)
-    assert coverage["beacon_points"] == counts["beacon_points"] and coverage["total_points"] == counts["points"]
+    assert coverage["measured_altitude_points"] == counts["measured_altitude_points"] and coverage["total_points"] == counts["points"]
+    assert coverage['adsb_paths'] == counts['adsb_paths'] and coverage['museum_fallback_paths'] == counts['museum_fallback_paths']
     assert all(isinstance(value, int) and value >= 0 for value in coverage.values())
     print(json.dumps(dict(status="pass", roster_operations=len(flights), paths=len(tracks), **counts,
         scheduled_arrivals=len(offsets), median_schedule_offset_minutes=round(statistics.median(offsets), 2)), indent=2))

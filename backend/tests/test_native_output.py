@@ -57,8 +57,8 @@ def test_native_crusoe_wire_uses_guided_output_and_auto_tools(monkeypatch):
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             sdk=AsyncOpenAI(api_key='mock-only',base_url='https://api.inference.crusoecloud.com/v1',http_client=client,max_retries=0)
             provider=CrusoeProvider(openai_client=sdk)
-            profile=OpenAIModelProfile(**{**provider.model_profile('nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B'),'openai_chat_supports_max_completion_tokens':False,'openai_supports_strict_tool_definition':False})
-            model=CrusoeModel('nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B',provider=provider,profile=profile)
+            profile=OpenAIModelProfile(**{**provider.model_profile('nvidia/NVIDIA-Nemotron-3.5-Super-VL'),'openai_chat_supports_max_completion_tokens':False,'openai_supports_strict_tool_definition':False})
+            model=CrusoeModel('nvidia/NVIDIA-Nemotron-3.5-Super-VL',provider=provider,profile=profile)
             result=await build_agent(model,AgentLimits()).run('Mock native response')
             assert result.output.observations==['gate_ready']
     asyncio.run(run())

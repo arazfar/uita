@@ -107,7 +107,7 @@ from pathlib import Path
 import httpx
 from uita.agent_contracts import AgentLimits
 from uita.agent_provider import ReservedTransport
-from uita.provider import SpendLedger, BASE, MODEL
+from uita.provider import SpendLedger, BASE, MODEL, THINKING
 from uita.storage import Store
 async def main():
     store=Store('sqlite:///'+sys.argv[1])
@@ -127,7 +127,7 @@ async def main():
         return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'role':'assistant','content':'{}'}}],'usage':{'prompt_tokens':10,'completion_tokens':5,'total_tokens':15}})
     transport=ReservedTransport(httpx.MockTransport(response_lost),SpendLedger(sys.argv[2],cap=.05),'killed',AgentLimits(),(.05/1e6,.20/1e6),emit)
     async with httpx.AsyncClient(transport=transport) as client:
-        await client.post(BASE+'/chat/completions',json={'model':MODEL,'max_tokens':1000})
+        await client.post(BASE+'/chat/completions',json={'model':MODEL,'max_tokens':1000,'chat_template_kwargs':THINKING})
 asyncio.run(main())
 ''')
     env = {**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[1])}

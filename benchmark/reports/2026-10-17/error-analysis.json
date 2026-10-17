@@ -1,0 +1,743 @@
+{
+  "source_comparison_sha256": "5678854a2fe7564307ed964e36f653b7e1d51fe8cd6dcca20d9556c1b89e7a74",
+  "scope": "Existing validation calls only. No new inference or held-out test access.",
+  "models": {
+    "nvidia/Nemotron-3.5-Lightning-30B-A3B": {
+      "correct": 26,
+      "wrong_valid_answer": 72,
+      "http_429": 39,
+      "transport_failure": 4,
+      "invalid_response_or_action": 0,
+      "valid_responses": 98,
+      "valid_response_accuracy": 0.2653061224489796,
+      "all_case_accuracy": 0.18439716312056736,
+      "free_flow_correct_on_own_valid": 59,
+      "changes_from_free_flow": 63,
+      "helpful_changes": 15,
+      "harmful_changes": 48,
+      "strict_newer_first": 93,
+      "strict_older_first": 2,
+      "age_ties": 3,
+      "response_reasoning_text_present": 0,
+      "reasoning_token_usage_reports": 0,
+      "reported_reasoning_token_sum": 0,
+      "generation": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        },
+        "max_tokens": 1024,
+        "paid_retries": 0,
+        "response_format": {
+          "type": "json_object"
+        },
+        "seed": 17,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "summary_sha256": "0a4afab48e935f386b4579be9c54aa4fd10535de2afbe495360f4e071628769e"
+    },
+    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+      "correct": 47,
+      "wrong_valid_answer": 90,
+      "http_429": 0,
+      "transport_failure": 4,
+      "invalid_response_or_action": 0,
+      "valid_responses": 137,
+      "valid_response_accuracy": 0.34306569343065696,
+      "all_case_accuracy": 0.3333333333333333,
+      "free_flow_correct_on_own_valid": 88,
+      "changes_from_free_flow": 75,
+      "helpful_changes": 17,
+      "harmful_changes": 58,
+      "strict_newer_first": 114,
+      "strict_older_first": 18,
+      "age_ties": 5,
+      "response_reasoning_text_present": 0,
+      "reasoning_token_usage_reports": 0,
+      "reported_reasoning_token_sum": 0,
+      "generation": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        },
+        "max_tokens": 1024,
+        "paid_retries": 0,
+        "response_format": {
+          "type": "json_object"
+        },
+        "seed": 17,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "summary_sha256": "116782643dfa0534220cc8ca6331d25156622be8dfc4931ff07e9fc972420c88"
+    },
+    "nvidia/NVIDIA-Nemotron-3.5-Super-VL": {
+      "correct": 76,
+      "wrong_valid_answer": 60,
+      "http_429": 0,
+      "transport_failure": 5,
+      "invalid_response_or_action": 0,
+      "valid_responses": 136,
+      "valid_response_accuracy": 0.5588235294117647,
+      "all_case_accuracy": 0.5390070921985816,
+      "free_flow_correct_on_own_valid": 87,
+      "changes_from_free_flow": 15,
+      "helpful_changes": 2,
+      "harmful_changes": 13,
+      "strict_newer_first": 54,
+      "strict_older_first": 77,
+      "age_ties": 5,
+      "response_reasoning_text_present": 0,
+      "reasoning_token_usage_reports": 136,
+      "reported_reasoning_token_sum": 0,
+      "generation": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        },
+        "max_tokens": 1024,
+        "paid_retries": 0,
+        "response_format": {
+          "type": "json_object"
+        },
+        "seed": 17,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "summary_sha256": "9e4a450dc9eb4a1400e4467736dd2b896672ce10ed41cb246dbf7102e0db4f99"
+    },
+    "openai/gpt-oss-120b": {
+      "correct": 91,
+      "wrong_valid_answer": 46,
+      "http_429": 0,
+      "transport_failure": 4,
+      "invalid_response_or_action": 0,
+      "valid_responses": 137,
+      "valid_response_accuracy": 0.6642335766423357,
+      "all_case_accuracy": 0.6453900709219859,
+      "free_flow_correct_on_own_valid": 89,
+      "changes_from_free_flow": 8,
+      "helpful_changes": 5,
+      "harmful_changes": 3,
+      "strict_newer_first": 35,
+      "strict_older_first": 97,
+      "age_ties": 5,
+      "response_reasoning_text_present": 137,
+      "reasoning_token_usage_reports": 101,
+      "reported_reasoning_token_sum": 6327,
+      "generation": {
+        "max_tokens": 1024,
+        "paid_retries": 0,
+        "reasoning_effort": "low",
+        "response_format": {
+          "type": "json_object"
+        },
+        "seed": 17,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "summary_sha256": "05880d42a3f7cf74e313d02b567076bd8d04131625781595abbc1a65ca8c1c6f"
+    },
+    "Qwen/Qwen3.8-27B": {
+      "correct": 79,
+      "wrong_valid_answer": 57,
+      "http_429": 0,
+      "transport_failure": 5,
+      "invalid_response_or_action": 0,
+      "valid_responses": 136,
+      "valid_response_accuracy": 0.5808823529411765,
+      "all_case_accuracy": 0.5602836879432624,
+      "free_flow_correct_on_own_valid": 86,
+      "changes_from_free_flow": 7,
+      "helpful_changes": 0,
+      "harmful_changes": 7,
+      "strict_newer_first": 46,
+      "strict_older_first": 85,
+      "age_ties": 5,
+      "response_reasoning_text_present": 0,
+      "reasoning_token_usage_reports": 0,
+      "reported_reasoning_token_sum": 0,
+      "generation": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        },
+        "max_tokens": 1024,
+        "paid_retries": 0,
+        "response_format": {
+          "type": "json_object"
+        },
+        "seed": 17,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "summary_sha256": "7801f2b09e42541aeae026dc2f12658b5bc2d12642064c0656b270e45cb0e204"
+    }
+  },
+  "super_vs_gpt_shared_valid": {
+    "cases": 133,
+    "both_correct": 70,
+    "both_wrong": 42,
+    "gpt_only_correct": 17,
+    "super_only_correct": 4,
+    "case_ids": [
+      "seq-adca704e5bffadd0139a",
+      "seq-7162526691ae83ed98c4",
+      "seq-bb2dd4b5fb3c84dcb02d",
+      "seq-a2edc094b2f2a0f094dd",
+      "seq-cd51ac125714301195c9",
+      "seq-ee1c212b5beefb656927",
+      "seq-2792567f837e35ad9159",
+      "seq-22cb9e82152096ad2435",
+      "seq-6d47a0224a200a91802d",
+      "seq-3878a78cfdcf3bd70a20",
+      "seq-ae18c5b761c2998aee25",
+      "seq-6b479aa6089f33b588dc",
+      "seq-a588cbe48d28bba5620b",
+      "seq-a2ce51c03a5ffbb0d3c3",
+      "seq-2dd7da7ed5ba71fc69ae",
+      "seq-666e7b8b7c13a2d68d86",
+      "seq-905f0e60d119afb6fc53",
+      "seq-ca5f7f7e39f7c6bab5b2",
+      "seq-a7dbc15cb874980b92fa",
+      "seq-cbeacd325d34eb0bbf87",
+      "seq-26874eb5137667c95eb3",
+      "seq-f09b1e68627c77526f53",
+      "seq-f274fec840547afd812a",
+      "seq-26d57db7df70d03daa20",
+      "seq-b7157d43b348b95c96c7",
+      "seq-9b4da158a119502b424d",
+      "seq-31a81103a5ea643114bf",
+      "seq-e0b3cf805085f8ddec14",
+      "seq-e8edf292631bebb5f326",
+      "seq-d6002b3c4a6538c6f9e1",
+      "seq-551b565de6ae0973f4be",
+      "seq-d84627688907b2c3bd0f",
+      "seq-be1d288f197da0485fba",
+      "seq-477f57899b38fb6f4edf",
+      "seq-3589122104996b717634",
+      "seq-f0738f539bf128a489ff",
+      "seq-55246b974b31f782c7a6",
+      "seq-78001326e98d72867656",
+      "seq-2ba9e96822e376063076",
+      "seq-cdb1e3cf5957fc7102dc",
+      "seq-5cf83310a3d26ac0d2e5",
+      "seq-c5987facd076e04682b7",
+      "seq-f8b57984e2cc2c4c0f77",
+      "seq-728cb9beab7476e6a13b",
+      "seq-e0a956828333ac768b9d",
+      "seq-423d3d456c476bae8a54",
+      "seq-6f87b313cbebf1764db7",
+      "seq-3c97420242ad92fba54e",
+      "seq-d54bc6fa25f66142e0f5",
+      "seq-ae75696a8e297ce1749f",
+      "seq-a2f00445a932d86e1a13",
+      "seq-c93dbc061f2fbdaaf88a",
+      "seq-48345a6d4d1534800800",
+      "seq-aeb8fecbeea664359206",
+      "seq-2d0feabe40f591e81dd0",
+      "seq-4970821a548907da0991",
+      "seq-91dbad2ab4153f16eab5",
+      "seq-2321f5a00c2a609a8079",
+      "seq-d81c0a510e166e8aa5be",
+      "seq-c69b498c058a3a9f7cb8",
+      "seq-6d4e6b76be841c38b204",
+      "seq-96b7b056236a1bb7a7f9",
+      "seq-9d8a5e570a2214e10308",
+      "seq-a6bf8708a53ff6a96afc",
+      "seq-9e4a71647e3fe323e18e",
+      "seq-f34e55118e1b5afcb92f",
+      "seq-84e2f2cba4b13b6c9011",
+      "seq-d821fc8b6e10cbacd8c1",
+      "seq-cfeebc12544d37e82609",
+      "seq-4ed96b485cecb7b40560",
+      "seq-ee072a51085c1dc12970",
+      "seq-2085bebc7415f653fb91",
+      "seq-1b57c200cdf469b19078",
+      "seq-ce4e2d4b0893d6b009ab",
+      "seq-5767ed493585f849157d",
+      "seq-724ab077c64e97f9bafc",
+      "seq-63c5d327a38d6029d961",
+      "seq-52cecb907fb27cdf2535",
+      "seq-eb6c4b9f7ac7066a7b0a",
+      "seq-808b933701a7231565f5",
+      "seq-48407eee5e20be43537d",
+      "seq-b830dfd1b5089b966d68",
+      "seq-4929438164ca9378bb3f",
+      "seq-f8a8c02ac33fbce46cf8",
+      "seq-8df996df868f11910bbd",
+      "seq-7399a50c51dc229ad557",
+      "seq-44c3ba3064bcf25799f0",
+      "seq-b8b19b24698152deddf7",
+      "seq-44df3881484f626466da",
+      "seq-354b30b5e986e783e1ed",
+      "seq-3612b63f0cc6ad0d20ac",
+      "seq-17bc04095533ac515b37",
+      "seq-9f5be9f20ac68d87c1dd",
+      "seq-ade0fbc69873d4728910",
+      "seq-a7d7ec678dab64de1811",
+      "seq-14c37c09374477bed47e",
+      "seq-482729adca3d7618bae0",
+      "seq-331186d43c156fbe7376",
+      "seq-620bb5938d26fae5340e",
+      "seq-e958fdcb1e0a641f26c6",
+      "seq-299e6510552ea10e0f4a",
+      "seq-a909e45781eca38272ae",
+      "seq-75f2f0a1cb0a91551cf9",
+      "seq-e83f3bd5855cd94b5d40",
+      "seq-826c3fa6c4fd3ed0551c",
+      "seq-619b17b70448f583e0a7",
+      "seq-57d0ed31c4727a0deda6",
+      "seq-d792feb980b4fc380e71",
+      "seq-0f136ffa7fe7d2276793",
+      "seq-f8ac3b2c8c2c7a3075d8",
+      "seq-f6692bb2ec1cd3f6c468",
+      "seq-1889d0fcb84d9004c100",
+      "seq-1cb4821b4c1d8acc70e3",
+      "seq-965705df5d9cb4e60f01",
+      "seq-4fee59199af71afe0cb9",
+      "seq-350032880f91712ff4e1",
+      "seq-d5cc5335510791c08bad",
+      "seq-49f8813f0e7f141769d9",
+      "seq-0b1a7732cb2731ee8ca4",
+      "seq-19807ecf361eee2a3ef0",
+      "seq-318043dc709981979290",
+      "seq-02c324f51892ea3343c5",
+      "seq-9212c739822a8a54d48d",
+      "seq-8f04f33fd54cc784c6c8",
+      "seq-144b128786d5eccb0c1a",
+      "seq-3d02ef6cd80d2be3fca4",
+      "seq-3d36defdac42a818abd4",
+      "seq-a76f2daa14222045c60e",
+      "seq-77116d78f928388be85b",
+      "seq-b11a2efb66bcfdba5ad9",
+      "seq-fd0c969e66d067d8eb02",
+      "seq-74cbfad7f3f9b171d231",
+      "seq-36c7abab1712c5ca44c1"
+    ],
+    "exploratory_paired_p_value": 0.007197380065917969
+  },
+  "examples": [
+    {
+      "case_id": "seq-eb6c4b9f7ac7066a7b0a",
+      "input": {
+        "aircraft": [
+          {
+            "age_seconds": 0.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 87.99385,
+            "distance_nm": 74.66753,
+            "free_flow_seconds": 843.06577,
+            "groundspeed_kt": 318.84,
+            "id": "A2",
+            "position_source": "observed_entry",
+            "track_deg_true": 276.31,
+            "wake_category": "medium"
+          },
+          {
+            "age_seconds": 115.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 88.03228,
+            "distance_nm": 70.9687,
+            "free_flow_seconds": 476.43322,
+            "groundspeed_kt": 431.98,
+            "id": "A1",
+            "position_source": "observed_entry",
+            "track_deg_true": 262.06,
+            "wake_category": "medium"
+          }
+        ],
+        "rules": {
+          "completion_horizon_seconds": 3600,
+          "heavy_leader_spacing_seconds": 150,
+          "medium_leader_spacing_seconds": 90,
+          "unfinished_penalty_seconds": 3600
+        },
+        "runway": {
+          "available_in_seconds": 0,
+          "resource": "shared_arrival_runway"
+        },
+        "task": "sequence_arrivals_v1"
+      },
+      "recorded_order": [
+        "A1",
+        "A2"
+      ],
+      "models": {
+        "nvidia/Nemotron-3.5-Lightning-30B-A3B": {
+          "action": {
+            "order": [
+              "A2",
+              "A1"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 2.682396082993364
+        },
+        "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+          "action": {
+            "order": [
+              "A2",
+              "A1"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 1.184143332997337
+        },
+        "nvidia/NVIDIA-Nemotron-3.5-Super-VL": {
+          "action": {
+            "order": [
+              "A2",
+              "A1"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 1.8036902910098433
+        },
+        "openai/gpt-oss-120b": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": true,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 2.023275542014744
+        },
+        "Qwen/Qwen3.8-27B": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": true,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 0.496963167010108
+        }
+      }
+    },
+    {
+      "case_id": "seq-f0738f539bf128a489ff",
+      "input": {
+        "aircraft": [
+          {
+            "age_seconds": 0.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 90.95082,
+            "distance_nm": 54.81156,
+            "free_flow_seconds": 470.14921,
+            "groundspeed_kt": 419.7,
+            "id": "A1",
+            "position_source": "observed_entry",
+            "track_deg_true": 260.44,
+            "wake_category": "medium"
+          },
+          {
+            "age_seconds": 204.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 154.43659,
+            "distance_nm": 71.72137,
+            "free_flow_seconds": 668.22805,
+            "groundspeed_kt": 296.02,
+            "id": "A2",
+            "position_source": "observed_entry",
+            "track_deg_true": 325.39,
+            "wake_category": "medium"
+          }
+        ],
+        "rules": {
+          "completion_horizon_seconds": 3600,
+          "heavy_leader_spacing_seconds": 150,
+          "medium_leader_spacing_seconds": 90,
+          "unfinished_penalty_seconds": 3600
+        },
+        "runway": {
+          "available_in_seconds": 0,
+          "resource": "shared_arrival_runway"
+        },
+        "task": "sequence_arrivals_v1"
+      },
+      "recorded_order": [
+        "A1",
+        "A2"
+      ],
+      "models": {
+        "nvidia/Nemotron-3.5-Lightning-30B-A3B": {
+          "action": null,
+          "correct": false,
+          "status": "http_failure",
+          "http_status": 429,
+          "latency_seconds": 0.8469737079867627
+        },
+        "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": true,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 2.0157537079940084
+        },
+        "nvidia/NVIDIA-Nemotron-3.5-Super-VL": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": true,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 2.3632332499837503
+        },
+        "openai/gpt-oss-120b": {
+          "action": {
+            "order": [
+              "A2",
+              "A1"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 1.2401717079919763
+        },
+        "Qwen/Qwen3.8-27B": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": true,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 1.1236297499854118
+        }
+      }
+    },
+    {
+      "case_id": "seq-a588cbe48d28bba5620b",
+      "input": {
+        "aircraft": [
+          {
+            "age_seconds": 0.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 88.83432,
+            "distance_nm": 69.37238,
+            "free_flow_seconds": 583.72419,
+            "groundspeed_kt": 427.84,
+            "id": "A1",
+            "position_source": "observed_entry",
+            "track_deg_true": 261.07,
+            "wake_category": "medium"
+          },
+          {
+            "age_seconds": 229.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 87.86041,
+            "distance_nm": 75.95196,
+            "free_flow_seconds": 1873.47643,
+            "groundspeed_kt": 130.05,
+            "id": "A2",
+            "position_source": "observed_entry",
+            "track_deg_true": 299.17,
+            "wake_category": "medium"
+          }
+        ],
+        "rules": {
+          "completion_horizon_seconds": 3600,
+          "heavy_leader_spacing_seconds": 150,
+          "medium_leader_spacing_seconds": 90,
+          "unfinished_penalty_seconds": 3600
+        },
+        "runway": {
+          "available_in_seconds": 0,
+          "resource": "shared_arrival_runway"
+        },
+        "task": "sequence_arrivals_v1"
+      },
+      "recorded_order": [
+        "A2",
+        "A1"
+      ],
+      "models": {
+        "nvidia/Nemotron-3.5-Lightning-30B-A3B": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 1.5827109169913456
+        },
+        "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 0.8537365419906564
+        },
+        "nvidia/NVIDIA-Nemotron-3.5-Super-VL": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 0.951312292017974
+        },
+        "openai/gpt-oss-120b": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 1.729711124993628
+        },
+        "Qwen/Qwen3.8-27B": {
+          "action": {
+            "order": [
+              "A1",
+              "A2"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 1.2483309579838533
+        }
+      }
+    },
+    {
+      "case_id": "seq-2b2fbc274422140bcd73",
+      "input": {
+        "aircraft": [
+          {
+            "age_seconds": 78.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 164.55332,
+            "distance_nm": 10.51407,
+            "free_flow_seconds": 79.60601,
+            "groundspeed_kt": 240.16,
+            "id": "A2",
+            "position_source": "observed_entry",
+            "track_deg_true": 180.0,
+            "wake_category": "medium"
+          },
+          {
+            "age_seconds": 0.0,
+            "altitude_ft": null,
+            "altitude_source": "unknown",
+            "bearing_deg_true": 129.73065,
+            "distance_nm": 15.77863,
+            "free_flow_seconds": 244.95692,
+            "groundspeed_kt": 231.89,
+            "id": "A1",
+            "position_source": "observed_entry",
+            "track_deg_true": 29.33,
+            "wake_category": "medium"
+          }
+        ],
+        "rules": {
+          "completion_horizon_seconds": 3600,
+          "heavy_leader_spacing_seconds": 150,
+          "medium_leader_spacing_seconds": 90,
+          "unfinished_penalty_seconds": 3600
+        },
+        "runway": {
+          "available_in_seconds": 0,
+          "resource": "shared_arrival_runway"
+        },
+        "task": "sequence_arrivals_v1"
+      },
+      "recorded_order": [
+        "A1",
+        "A2"
+      ],
+      "models": {
+        "nvidia/Nemotron-3.5-Lightning-30B-A3B": {
+          "action": null,
+          "correct": false,
+          "status": "http_failure",
+          "http_status": 429,
+          "latency_seconds": 5.585158166999463
+        },
+        "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+          "action": {
+            "order": [
+              "A2",
+              "A1"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 6.625737416004995
+        },
+        "nvidia/NVIDIA-Nemotron-3.5-Super-VL": {
+          "action": null,
+          "correct": false,
+          "status": "ambiguous_failure",
+          "http_status": null,
+          "latency_seconds": 65.00938699999824
+        },
+        "openai/gpt-oss-120b": {
+          "action": null,
+          "correct": false,
+          "status": "ambiguous_failure",
+          "http_status": null,
+          "latency_seconds": 11.231241207977291
+        },
+        "Qwen/Qwen3.8-27B": {
+          "action": {
+            "order": [
+              "A2",
+              "A1"
+            ]
+          },
+          "correct": false,
+          "status": "completed",
+          "http_status": 200,
+          "latency_seconds": 2.577575250004884
+        }
+      }
+    }
+  ],
+  "guidance_sources": [
+    "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-BF16/blob/main/README.md",
+    "https://developer.nvidia.com/blog/nvidia-nemotron-3-5-super-vl-powers-specialized-agents-with-multimodal-reasoning/"
+  ]
+}

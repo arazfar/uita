@@ -7,13 +7,13 @@ from .agent_contracts import AgentEvent,AgentLimits,GRAMMAR_VERSION,PROMPT_VERSI
 from .investigator import investigate,fixture_model,STRONG_STATIC,BudgetExhausted,InvestigationStopped
 from .learning import evaluate,TRAIN_SEEDS,VALIDATION_SEEDS,HELDOUT_SEEDS,CRITERIA,CONFIG_HASH,program_hash,validate_candidate
 from .models import Policy
-from .provider import ProviderError
+from .provider import ProviderError, MODEL, THINKING
 from .planner import BASELINE
 from .storage import Store,Record
 from sqlalchemy import update
 
 AGENT_EVALUATOR_VERSION='frozen-investigator-1'
-AGENT_CONFIG_HASH=hashlib.sha256(json.dumps({'legacy_config':CONFIG_HASH,'grammar':GRAMMAR_VERSION,'strong_static':program_hash(STRONG_STATIC),'criteria':CRITERIA,'protocol':AGENT_EVALUATOR_VERSION,'prompt_version':PROMPT_VERSION,'live_output_mode':'native-json-schema','model_settings':{'temperature':0,'parallel_tool_calls':False,'paid_retries':0}},sort_keys=True).encode()).hexdigest()
+AGENT_CONFIG_HASH=hashlib.sha256(json.dumps({'legacy_config':CONFIG_HASH,'grammar':GRAMMAR_VERSION,'strong_static':program_hash(STRONG_STATIC),'criteria':CRITERIA,'protocol':AGENT_EVALUATOR_VERSION,'prompt_version':PROMPT_VERSION,'live_output_mode':'native-json-schema','model_settings':{'model':MODEL,'temperature':1.0,'top_p':.95,'chat_template_kwargs':THINKING,'parallel_tool_calls':False,'paid_retries':0}},sort_keys=True).encode()).hexdigest()
 TERMINAL={'complete','failed','cancelled','budget_exhausted','provider_failure','interrupted'}
 
 

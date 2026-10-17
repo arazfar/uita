@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "safe_historical_development_plan_passes": true,
+  "unsafe_proposal_rejected": true,
+  "executed_unsafe_motion_detected": true,
+  "test_split_rejected": true,
+  "private_field_rejected": true,
+  "negative_control_findings": {
+    "separation_violation_episodes": 1,
+    "runway_violation_episodes": 1,
+    "surface_violation_episodes": 1,
+    "wake_violations": 1,
+    "performance_violations": 0,
+    "checked_segment_pairs": 16,
+    "minimum_lateral_nm_when_vertical_under_1000_ft": 0.0,
+    "findings": {
+      "separation": [
+        {
+          "aircraft": [
+            "A001",
+            "A002"
+          ],
+          "interval": [
+            1177.0,
+            1472.9552992069214
+          ]
+        }
+      ],
+      "runway": [
+        {
+          "aircraft": [
+            "A001",
+            "A002"
+          ],
+          "interval": [
+            1457,
+            1656
+          ]
+        }
+      ],
+      "surface": [
+        {
+          "aircraft": [
+            "A001",
+            "A002"
+          ],
+          "interval": [
+            1622,
+            1706
+          ]
+        }
+      ],
+      "wake": [
+        {
+          "aircraft": [
+            "A001",
+            "A002"
+          ],
+          "gap_seconds": 0
+        }
+      ],
+      "performance": []
+    },
+    "scope": "Existing fixed synthetic approach, shared runway and taxi resource; upstream feeder/queue not safety-modeled"
+  }
+}

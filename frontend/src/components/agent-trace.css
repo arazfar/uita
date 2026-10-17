@@ -1,0 +1,30 @@
+.agent-trace { margin: 16px 0; padding: 12px; border: 1px solid var(--atc-rule-strong); border-radius: 2px; background: var(--atc-screen); color: var(--atc-text); }
+.trace-instrument-label { margin-bottom: 8px; color: var(--atc-cyan); font: 500 12px/1.5 var(--atc-font-data); letter-spacing: .06em; text-transform: uppercase; }
+.trace-mode { display: flex; gap: 8px 16px; flex-wrap: wrap; justify-content: space-between; align-items: baseline; }
+.trace-mode strong { font-size: 15px; overflow-wrap: anywhere; }
+.trace-mode > span { color: var(--atc-amber); font: 12px/1.5 var(--atc-font-data); }
+.trace-notice, .trace-boundary { margin: 8px 0; color: var(--atc-text-secondary); font-size: 13px; line-height: 1.5; }
+.trace-boundary { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--atc-rule); }
+.chain-of-thought-header { display: flex; width: 100%; min-height: 44px; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--atc-rule); border-radius: 2px; color: var(--atc-text); background: var(--atc-screen-raised); text-align: left; }
+.chain-of-thought-header > span { flex: 1; }
+.chain-of-thought-header:hover { background: var(--atc-screen-hover); }
+.chain-of-thought-header:focus-visible, .reasoning-detail summary:focus-visible { outline: 2px solid var(--atc-focus-dark); outline-offset: 3px; }
+.chain-chevron { transition: transform 160ms ease; flex-shrink: 0; }
+.chain-of-thought-header[data-state="open"] .chain-chevron { transform: rotate(180deg); }
+.trace-count { display: inline-block; margin-left: 8px; color: var(--atc-text-secondary); font: 12px/1.5 var(--atc-font-data); }
+.chain-of-thought-content { max-height: 520px; overflow: auto; padding: 12px 4px 0; scrollbar-color: var(--atc-rule-strong) var(--atc-screen); }
+.chain-of-thought-step { display: flex; gap: 8px; padding-bottom: 16px; min-width: 0; }
+.chain-step-marker { position: relative; flex: 0 0 16px; padding-top: 3px; color: var(--atc-cyan); }
+.chain-step-marker::after { content: ''; position: absolute; top: 26px; bottom: -8px; left: 7px; width: 1px; background: var(--atc-rule); }
+.chain-of-thought-step:last-child .chain-step-marker::after { display: none; }
+.chain-step-body { flex: 1; min-width: 0; }
+.chain-step-label { font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.chain-step-description { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font: 12px/1.5 var(--atc-font-data); color: var(--atc-text-secondary); }
+.chain-of-thought-step[data-status="active"] .chain-step-marker, .chain-of-thought-step[data-status="active"] .chain-step-label { color: var(--atc-amber); }
+.chain-of-thought-step[data-status="pending"] .chain-step-label { color: var(--atc-text-secondary); }
+.reasoning-detail { margin-top: 8px; padding: 0 8px; border: 1px solid var(--atc-rule); background: var(--atc-screen-raised); }
+.reasoning-detail summary { display: list-item; min-height: 44px; padding: 12px 0; color: var(--atc-cyan); font-size: 13px; cursor: pointer; }
+.reasoning-detail pre { max-height: 300px; overflow: auto; margin: 0 0 12px; padding: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--atc-text); background: transparent; font: 12px/1.65 var(--atc-font-data); }
+.trace-explanation { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--atc-text-secondary); }
+@media (prefers-reduced-motion: reduce) { .chain-chevron { transition: none; } }
+@media (forced-colors: active) { .agent-trace, .chain-of-thought-header, .reasoning-detail { border-color: CanvasText; } }

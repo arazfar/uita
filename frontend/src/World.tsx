@@ -4,7 +4,9 @@ import { Line, OrbitControls, PerspectiveCamera, useGLTF } from '@react-three/dr
 import { ArrowUpRight } from 'lucide-react';
 import * as THREE from 'three';
 import type { ReactNode } from 'react';
-import type { Aircraft, State } from './types';
+import type { Aircraft as SimulationAircraft, State as SimulationState } from './types';
+type Aircraft = Pick<SimulationAircraft, 'id' | 'callsign' | 'type' | 'wake' | 'operation' | 'status' | 'x' | 'y' | 'altitude' | 'heading' | 'speed' | 'emergency' | 'trajectory'>;
+type State = {aircraft: Aircraft[]; runways: SimulationState['runways']};
 
 const S=2.8;
 class SceneBoundary extends Component<{children:ReactNode},{failed:boolean}>{state={failed:false};static getDerivedStateFromError(){return {failed:true}}render(){return this.state.failed?<div className="world-fallback"><strong>3D view unavailable</strong><p>Use the Traffic tab or open the traffic table to inspect aircraft.</p></div>:this.props.children}}
@@ -47,7 +49,7 @@ function LabelProjector({state,onUpdate,onNorthAngle}:{state:State;onUpdate:(lab
   const northX=projectedNorth.x-projectedCenter.x,northY=projectedNorth.y-projectedCenter.y;
   if(Math.hypot(northX,northY)>.001)onNorthAngle?.(Math.atan2(northX,-northY)*180/Math.PI);
   state.runways.forEach(r=>{const p=project(new THREE.Vector3(r.start[0]*S,.15,-r.start[1]*S));if(p.outside)return;points.push({id:r.id,kind:'runway',x:p.x+(r.id==='01L'?-18:r.id==='01R'?18:0),y:p.y+(r.id.endsWith('L')?21:-9),outside:false,text:r.id,detail:r.closed?'CLOSED':'',closed:r.closed})});
-  state.aircraft.filter(a=>!['pending','complete','diverted'].includes(a.status)).forEach(a=>{const p=project(new THREE.Vector3(...pos(a)).add(new THREE.Vector3(0,.55,0)));points.push({id:a.id,kind:'flight',x:Math.max(60,Math.min(size.width-65,p.x)),y:Math.max(30,Math.min(size.height-120,p.y)),outside:p.outside,text:a.callsign,detail:p.outside?`${Math.hypot(a.x,a.y).toFixed(1)} NM · ${a.operation==='arrival'?'INBOUND':'OUTBOUND'}`:`${Math.round(a.altitude).toLocaleString()} FT · ${Math.round(a.speed)} KT`})});
+  state.aircraft.filter(a=>!['pending','complete','diverted'].includes(a.status)).forEach(a=>{const p=project(new THREE.Vector3(...pos(a)).add(new THREE.Vector3(0,.55,0)));points.push({id:a.id,kind:'flight',x:Math.max(60,Math.min(size.width-65,p.x)),y:Math.max(30,Math.min(size.height-120,p.y)),outside:p.outside,text:a.callsign,detail:p.outside?`${Math.hypot(a.x,a.y).toFixed(1)} NM · ${a.operation==='arrival'?'INBOUND':a.operation==='departure'?'OUTBOUND':'OBSERVED'}`:`${Math.round(a.altitude).toLocaleString()} FT · ${Math.round(a.speed)} KT`})});
   const canvasRect=gl.domElement.getBoundingClientRect();
   const headingRect=gl.domElement.closest('.scene-wrap')?.querySelector('.scene-heading')?.getBoundingClientRect();
   const world=gl.domElement.closest('.world-container');

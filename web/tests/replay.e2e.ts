@@ -112,3 +112,38 @@ test('keeps aircraft and roster KPIs available when the basemap request fails', 
   await expect(throughput).toContainText('All roster operations')
   await app.screenshot('sfo-replay-basemap-unavailable')
 })
+
+test('replays a recovered SkyWest arrival and counts its go-around only after confirmation', async ({ app, screen, browser }) => {
+  const kpis = await (await fetch(new URL('/data/kpis.json', app.baseUrl))).json()
+  const flightData = await (await fetch(new URL('/data/flights.json', app.baseUrl))).json()
+  const flight = flightData.flights.find((f: { id: string }) => f.id === '45881479')
+  const event = kpis.go_arounds.find((e: { id: string }) => e.id === flight.id)
+  expect(flight.track_source).toBe('adsb.lol')
+  expect(flight.icao24).toBe('ada6b9')
+  expect(event.low_ft).toBe(400)
+  expect(event.t).toBeGreaterThan(event.low_t)
+  await app.open('/')
+  await expect(screen.getByRole('slider', 'Replay timeline')).toBeVisible()
+  // Drive the native range input at exact timestamps, without changing app data.
+  const seek = async (timestamp: number) => browser.evaluate((value) => {
+    const input = document.querySelector<HTMLInputElement>('input[aria-label="Replay timeline"]')!
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, String(value))
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+    return true
+  }, timestamp)
+  const count = browser.locator('.safety .metric-pair > div').nth(1).locator('b')
+  await seek(Math.floor(event.t))
+  await expect(count).toHaveText(String(kpis.go_arounds.filter((e: { t: number }) => e.t <= Math.floor(event.t)).length))
+  await seek(Math.ceil(event.t))
+  await expect(count).toHaveText(String(kpis.go_arounds.filter((e: { t: number }) => e.t <= Math.ceil(event.t)).length))
+  await seek(flight.t)
+  await screen.getByRole('list', 'Recent roster operations, newest first').getByRole('button', /SKW5737, arrival.*path available/).tap()
+  const inspector = screen.getByRole('region', 'Flight details for SKW5737')
+  await expect(inspector).toContainText('adsb.lol')
+  await expect(inspector).toContainText('ada6b9')
+  await seek(Math.ceil(event.t))
+  await expect(inspector).toContainText('Observed path at the replay time.')
+  await expect(browser.locator('canvas#deckgl-overlay')).toBeVisible()
+  await app.screenshot('sfo-recovered-skywest-go-around')
+})

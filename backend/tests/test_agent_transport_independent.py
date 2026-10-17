@@ -8,7 +8,7 @@ import pytest
 
 from uita.agent_contracts import AgentLimits
 from uita.agent_provider import ReservedTransport
-from uita.provider import BASE, MODEL, ProviderError, SpendLedger
+from uita.provider import BASE, MODEL, ProviderError, SpendLedger, THINKING
 
 
 def paid_rows(path):
@@ -32,7 +32,7 @@ def make_transport(tmp_path, handler, limits=None):
 async def post(transport, limits=None, url=None, body=None):
     limits = limits or AgentLimits()
     async with httpx.AsyncClient(transport=transport) as client:
-        return await client.post(url or BASE+'/chat/completions', json=body or {'model': MODEL, 'max_tokens': limits.request_output_tokens, 'messages': [{'role': 'user', 'content': 'development only'}]})
+        return await client.post(url or BASE+'/chat/completions', json=body or {'model': MODEL, 'max_tokens': limits.request_output_tokens, 'chat_template_kwargs': THINKING, 'messages': [{'role': 'user', 'content': 'development only'}]})
 
 
 def test_request_is_reserved_durably_before_wire_dispatch_and_usage_is_settled(tmp_path):
@@ -51,7 +51,7 @@ def test_request_is_reserved_durably_before_wire_dispatch_and_usage_is_settled(t
     assert len(received) == 1
     assert paid_rows(path)[0][1] == pytest.approx(1.5e-6)
     assert transport.usage['calls'] == 1
-    assert [event[0] for event in events] == ['inference_reserved', 'inference_metadata', 'inference_received']
+    assert [event[0] for event in events] == ['inference_reserved', 'inference_metadata', 'inference_received', 'reasoning_unavailable']
 
 
 @pytest.mark.parametrize('response', [
@@ -73,7 +73,7 @@ def test_invalid_response_keeps_reservation_and_is_not_retried(tmp_path, respons
         # Rejected output may still have valid billable usage. Settle the actual
         # amount while retaining its original conservative reservation.
         assert paid_rows(path)[0][1] == pytest.approx(1.5e-6)
-        assert events[-1][0] == 'inference_received'
+        assert any(event[0] == 'inference_received' for event in events)
         assert transport.usage['cost_estimate_known'] is True
     else:
         assert paid_rows(path)[0][1] is None
@@ -154,7 +154,7 @@ def test_request_budget_blocks_second_dispatch_before_new_reservation(tmp_path):
 
     async def run():
         async with httpx.AsyncClient(transport=transport) as client:
-            body = {'model': MODEL, 'max_tokens': limits.request_output_tokens}
+            body = {'model': MODEL, 'max_tokens': limits.request_output_tokens, 'chat_template_kwargs': THINKING}
             await client.post(BASE+'/chat/completions', json=body)
             with pytest.raises(ProviderError):
                 await client.post(BASE+'/chat/completions', json=body)
@@ -189,7 +189,7 @@ def test_configured_sdk_does_not_retry_ambiguous_or_rate_limited_paid_requests(t
 
     def discovery(request):
         assert request.method == 'GET'
-        return httpx.Response(200, json={'data': [{'id': MODEL, 'supported_parameters': ['temperature', 'max_tokens', 'tools'], 'context_length': 262144, 'is_billed_by_token': True, 'pricing': {'prompt': '.05', 'completion': '.20'}}]})
+        return httpx.Response(200, json={'data': [{'id': MODEL, 'supported_parameters': ['temperature', 'top_p', 'max_tokens', 'tools', 'chat_template_kwargs'], 'context_length': 262144, 'is_billed_by_token': True, 'pricing': {'prompt': '.05', 'completion': '.20'}}]})
 
     def generation(request):
         calls.append(request)
@@ -214,7 +214,7 @@ def test_configured_sdk_does_not_retry_ambiguous_or_rate_limited_paid_requests(t
         try:
             assert sdk.max_retries == 0
             with pytest.raises(Exception):
-                await sdk.chat.completions.create(model=MODEL, max_tokens=1000, messages=[{'role': 'user', 'content': 'mock development evidence'}])
+                await sdk.chat.completions.create(model=MODEL, max_tokens=1000, extra_body={'chat_template_kwargs': THINKING}, messages=[{'role': 'user', 'content': 'mock development evidence'}])
         finally:
             await sdk.close()
 
