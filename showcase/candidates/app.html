@@ -91,7 +91,7 @@
     </div>
     <script>
       const frames = { dash: document.getElementById("dash"), cab: document.getElementById("cab") };
-      const src = { dash: "11-photoreal-sfo.html", cab: "19-tower-cab-interior.html" };
+      const src = { dash: "/candidates/11-photoreal-sfo.html", cab: "/candidates/19-tower-cab-interior.html" };
       // Load the tower simulation only on request, keeping recorded replay isolated.
       let view = location.hash === "#cab" ? "cab" : "dash";
       document.body.dataset.view = view;
@@ -125,7 +125,7 @@
         view = next;
         document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
         document.body.dataset.view = view;
-        history.replaceState(null, "", view === "cab" ? "#cab" : location.pathname);
+        history.replaceState(null, "", view === "cab" ? "#cab" : location.pathname + location.search);
       }
       document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
       const toggle = () => show(view === "dash" ? "cab" : "dash");

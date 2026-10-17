@@ -256,10 +256,11 @@ function voiceApi(env) {
         });
       }
       server.middlewares.use((req, res, next) => {
-        if (req.url === "/") {
-          res.statusCode = 302;
-          res.setHeader("location", "/candidates/app.html");
-          return res.end();
+        // The app lives at the site root; old /candidates/app.html links still work.
+        if (req.url === "/" || req.url.startsWith("/?")) {
+          res.setHeader("content-type", "text/html; charset=utf-8");
+          res.setHeader("cache-control", "no-cache");
+          return res.end(readFileSync(resolve("candidates/app.html")));
         }
         next();
       });
