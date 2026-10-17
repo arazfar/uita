@@ -79,7 +79,7 @@ def test_authenticated_discovery_prices_use_documented_million_token_units():
 
 def fake_network(monkeypatch,tmp_path,*,supported=None,finish='stop',content=None):
     requests=[]
-    supported=['temperature','max_tokens','response_format','chat_template_kwargs'] if supported is None else supported
+    supported=['temperature','top_p','max_tokens','response_format','chat_template_kwargs'] if supported is None else supported
     def handler(request):
         requests.append(request)
         if request.url.path.endswith('/models'):
@@ -101,7 +101,9 @@ def test_provider_uses_discovered_identity_and_fixed_grammar(monkeypatch,tmp_pat
     assert usage['cost_usd']<usage['reserved_usd']<.05
     body=json.loads(requests[-1].content)
     assert body['model']==provider.MODEL
-    assert body['max_tokens']==512
+    assert body['max_tokens']==4096
+    assert body['chat_template_kwargs']=={'enable_thinking':True,'medium_effort':True}
+    assert body['temperature']==1.0 and body['top_p']==.95
     assert body['response_format']=={'type':'json_object'}
 
 

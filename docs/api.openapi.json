@@ -5,6 +5,67 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/history/catalog": {
+      "get": {
+        "tags": [
+          "Recorded SFO replay"
+        ],
+        "summary": "Catalog",
+        "operationId": "catalog_api_history_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/history/window": {
+      "get": {
+        "tags": [
+          "Recorded SFO replay"
+        ],
+        "summary": "Window",
+        "operationId": "window_api_history_window_get",
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1787554800,
+              "exclusiveMaximum": 1788159600,
+              "title": "Start"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Health",
@@ -624,7 +685,7 @@
           },
           "request_output_tokens": {
             "type": "integer",
-            "maximum": 1500.0,
+            "maximum": 4096.0,
             "minimum": 256.0,
             "title": "Request Output Tokens",
             "default": 1000
