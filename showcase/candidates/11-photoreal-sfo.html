@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preload" as="script" href="/vendor/cesium/Cesium.js" />
 <title>UITA Tower SFO</title>
-<script>if (new URLSearchParams(location.search).get('mode') !== 'simulation') document.documentElement.dataset.traffic = 'recorded';</script>
+<script>if (new URLSearchParams(location.search).get('mode') === 'recorded') document.documentElement.dataset.traffic = 'recorded';</script>
 <link rel="stylesheet" href="sfo-history.css">
 <script>window.CESIUM_BASE_URL = '/vendor/cesium/';</script>
 <link rel="stylesheet" href="/vendor/cesium/Widgets/widgets.css">
@@ -54,6 +54,9 @@ html,body{margin:0;height:100%;background:#0b0f13;color:var(--ink);font-family:v
 .hb{margin-top:3px;font:600 10px/1.3 var(--mono);color:var(--green)}
 .hb .bad{color:var(--red)}
 #live{display:none;color:var(--green)}
+#recchip{display:none;color:#ff8a80}
+#banner .meta span{white-space:nowrap}
+body.rec #live,body.rec #simtag{display:none!important}
 #bPVC{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:9px;background:rgba(79,220,138,.16);color:var(--green)}
 #bPVC:disabled{opacity:.45;cursor:default}
 .live-sep{font:600 9.5px/1 var(--mono);color:var(--green);letter-spacing:.1em;margin-top:2px}
@@ -137,7 +140,7 @@ body.details .details{display:block}
 <div id="cesium"></div>
 <div id="loading">LOADING SFO…</div>
 
-<div id="banner" class="panel"><div class="meta"><span id="bfreq">SFO TWR 120.500</span><span id="clk">T+00:00</span><span id="stormflag">C–E CLOSED</span><span class="sp"></span><span id="simtag">UITA · SIMULATION</span><span id="live">● LIVE · UITA server</span></div><div id="bmsg">Standing by.</div></div>
+<div id="banner" class="panel"><div class="meta"><span id="bfreq">SFO TWR 120.500</span><span id="clk">T+00:00</span><span id="stormflag">C–E CLOSED</span><span class="sp"></span><span id="recchip">REC · ADS-B</span><span id="simtag">UITA · SIMULATION</span><span id="live">● LIVE · UITA server</span></div><div id="bmsg">Standing by.</div></div>
 
 <div id="feedp" class="panel"><div class="ph"><span>Radio · agents <i id="txlive"></i></span><b id="feedcount"></b></div><div class="feed" id="feed"></div><button id="bPVC" disabled title="Live UITA server required">Agents propose → Kernel verify → Commit</button></div>
 
@@ -192,7 +195,7 @@ body.details .details{display:block}
 const Cesium = window.Cesium;
 (async () => {
 const C = Cesium;
-const RECORDED = new URLSearchParams(location.search).get('mode') !== 'simulation';
+const RECORDED = new URLSearchParams(location.search).get('mode') === 'recorded'; // simulation is the default
 let details = false; // declared early: labels built before the recorded-mode return read it
 const LOOP = 90;                 // seconds per scripted loop
 const SIMRATE = 0.85;            // sim minutes per wall second (eVTOL timeline)
@@ -413,6 +416,92 @@ if (RECORDED) {
   hideLoading();
   return;
 }
+
+// ---------- recorded traffic layer: real ADS-B week replayed inside the simulation ----------
+// /uita/api/history (ADSB.lol, ODbL). Replaces the scripted airliners; falls back to them if the API fails.
+const REC = { ok: false, hour: 0, acc: 0, data: new Map(), ents: new Map(), lastWall: 0, pick: null };
+const REC_RATE = 20, REC_KM = 60;
+const HEAVY_RE = /^(B77|B74|A35|B78|A38|A34|B76|MD11)/;
+const recFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+function recWindow(start) {
+  if (!REC.data.has(start)) {
+    const p = fetch(`/uita/api/history/window?start=${start}`, { signal: AbortSignal.timeout(25000) }).then(r => { if (!r.ok) throw Error('history ' + r.status); return r.json(); });
+    p.catch(() => REC.data.delete(start));
+    REC.data.set(start, p);
+    p.then(w => { p.value = w; });
+  }
+  return REC.data.get(start);
+}
+function recLatest(points, t) { let lo = 0, hi = points.length; while (lo < hi) { const m = (lo + hi) >>> 1; if (points[m][0] <= t) lo = m + 1; else hi = m; } return lo - 1; }
+const recNow = () => REC.hour + (REC.acc % 3600);
+// state of one flight at recorded time t: interpolated lon/lat/alt, track, speed, ground flag
+function recState(f, t) {
+  const i = recLatest(f.points, t), p = f.points[i];
+  if (!p || t - p[0] > 15) return null;
+  if (p[6] !== true && !Number.isFinite(p[3])) return null;
+  const q = f.points[i + 1];
+  let lat = p[1], lon = p[2], alt = p[3] ?? 0;
+  if (q && q[0] - p[0] <= 60) {
+    const k = (t - p[0]) / ((q[0] - p[0]) || 1);
+    lat += (q[1] - lat) * k; lon += (q[2] - lon) * k;
+    if (Number.isFinite(q[3])) alt += (q[3] - alt) * k;
+  }
+  const prev = f.points[Math.max(0, i - 3)];
+  const vs = prev && p[0] > prev[0] && Number.isFinite(prev[3]) ? (alt - prev[3]) / (p[0] - prev[0]) * 60 : 0; // ft/min
+  return { lat, lon, alt, gs: p[4], trk: p[5] ?? 0, gnd: p[6] === true, vs, reg: p[9] || f.registration, type: p[10] || f.type, cs: (p[8] || f.callsign || f.id).trim() };
+}
+function recEntity(f) {
+  let r = REC.ents.get(f.id);
+  if (r) return r;
+  r = { f, st: null };
+  const heavy = HEAVY_RE.test(f.type || ''), uri = heavy ? 'assets/boeing747-mihalunar/model.glb' : 'assets/airplane-google/model.glb';
+  const pos = () => r.st && C.Cartesian3.fromDegrees(r.st.lon, r.st.lat, r.st.gnd ? GROUND : Math.max(GROUND, r.st.alt * 0.3048 + VOFF));
+  r.entity = viewer.entities.add({
+    position: new C.CallbackProperty(pos, false),
+    orientation: new C.CallbackProperty(() => { const p = pos(); return p && C.Transforms.headingPitchRollQuaternion(p, new C.HeadingPitchRoll(((r.st.trk || 0) - 90 + (yawFix[uri] ?? 0)) * D2R, 0, 0)); }, false),
+    model: { uri, scale: heavy ? 46 : 0.4, minimumPixelSize: 22, maximumScale: 4000 },
+    label: callsignLabel(new C.CallbackProperty(() => r.st ? r.st.cs : '', false), { show: nearOrPicked(() => r.entity, () => pos()) }),
+  });
+  REC.ents.set(f.id, r);
+  if (REC.pick) REC.pick(r);
+  return r;
+}
+function recTick() {
+  if (!REC.ok) return;
+  const w = performance.now(), dt = REC.lastWall ? Math.min(0.25, (w - REC.lastWall) / 1000) : 0; REC.lastWall = w;
+  if (!extPaused && !userPaused) REC.acc += dt * REC_RATE;
+  const t = recNow(), off = t - REC.hour, ws = REC.hour + Math.floor(off / 900) * 900;
+  const cur = recWindow(ws);
+  if (off % 900 > 600) recWindow(off + 900 >= 3600 ? REC.hour : ws + 900); // prefetch next (loops within the hour)
+  const win = cur.value;
+  const seen = new Set();
+  if (win) for (const f of win.flights) {
+    const st = recState(f, t);
+    if (!st) continue;
+    if (Math.hypot((st.lon - SFO_LL[0]) * mPerLon, (st.lat - SFO_LL[1]) * mPerLat) > REC_KM * 1000) continue;
+    const r = recEntity(f); r.f = f; r.st = st; r.entity.show = true; seen.add(f.id);
+  }
+  if (win) for (const [id, r] of REC.ents) if (!seen.has(id)) { r.entity.show = false; r.st = null; }
+  $('recchip').textContent = `REC · ${recFmt.format(new Date(t * 1000))} PDT · ADS-B`;
+}
+const SFO_LL = [-122.375, 37.618];
+(async function initRec(attempt = 0) {
+  try {
+    const cat = await (await fetch('/uita/api/history/catalog', { signal: AbortSignal.timeout(20000) })).json();
+    let hour = cat.start + 16 * 3600; // Aug 24, 16:00 PDT
+    let w = await recWindow(hour);
+    for (let k = 0; k < 6 && w.flights.length <= 250; k++) { hour += 3600; w = await recWindow(hour); }
+    REC.hour = hour; REC.ok = true;
+    for (const a of airliners) a.entity.show = false; // recorded traffic replaces the scripted airliners
+    document.getElementById('recchip').style.display = 'inline'; document.body.classList.add('rec');
+    viewer.creditDisplay.addStaticCredit(new C.Credit('Recorded traffic: ADSB.lol (ODbL)', true));
+    for (const r of liveEnts.values()) r.entity.show = false;
+  } catch (e) {
+    console.warn('recorded traffic unavailable; scripted airliners stay', e);
+    if (attempt < 5) setTimeout(() => initRec(attempt + 1), 8000); // slow history API: retry quietly
+  }
+})();
+scene.preRender.addEventListener(recTick);
 
 // ---------- UITA eVTOL network (fleet callsign "UITA") ----------
 const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
@@ -941,7 +1030,7 @@ UitaLive.on('online', () => { liveOn = true; $('live').style.display = 'inline';
     live = s; setScoreMode(true);
     const ids = new Set();
     for (const a of s.aircraft) {
-      if (HIDDEN_STATUS.has(a.status)) continue;
+      if (HIDDEN_STATUS.has(a.status) || REC.ok) continue;
       ids.add(a.id); const r = liveEntity(a); r.a = a; r.entity.show = true;
     }
     for (const [id, r] of liveEnts) if (!ids.has(id)) r.entity.show = false;
@@ -990,6 +1079,8 @@ UitaLive.start({ intervalMs: 1000 });
 // ---------- click an aircraft: data block + flight card (Squawk pattern) ----------
 const PICK = new Map(); // entity -> {kind, ref}
 for (const a of airliners) PICK.set(a.entity, { kind: 'air', ref: a });
+REC.pick = r => PICK.set(r.entity, { kind: 'rec', ref: r });
+for (const r of REC.ents.values()) REC.pick(r);
 for (const f of flights) PICK.set(f.entity, { kind: 'evtol', ref: f });
 let cineEndedAt = -1e9;
 const DIG = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
@@ -1011,6 +1102,17 @@ function clearanceOf(cs) {
 const STEPS = { arr: ['Descend', 'Hold', 'Approach', 'Land', 'Vacate'], dep: ['Pushback', 'Taxi', 'Takeoff', 'Climb', 'Handoff'], evtol: ['Request', 'Hold', 'Cleared', 'Airborne', 'Land'] };
 function describe(p) {
   const t = tNow(), now = clock.currentTime;
+  if (p.kind === 'rec') {
+    const st = p.ref.st || {}, nearSfo = Math.hypot(((st.lon ?? 0) - SFO_LL[0]) * mPerLon, ((st.lat ?? 0) - SFO_LL[1]) * mPerLat) < 15000;
+    let steps = STEPS.arr, step = 0;
+    if (st.gnd) { if ((st.gs || 0) < 40) { steps = STEPS.dep; step = 1; } else if (st.vs < 0) step = 3; else { steps = STEPS.dep; step = 2; } }
+    else if (st.vs > 300) { steps = STEPS.dep; step = st.alt > 10000 ? 4 : st.alt < 3000 && nearSfo ? 2 : 3; }
+    else if (st.vs < -300 && st.alt < 3000) step = st.alt < 300 ? 3 : 2;
+    const status = st.gnd ? ((st.gs || 0) < 40 ? 'Taxiing' : 'On runway') : st.vs > 300 ? 'Climbing' : st.vs < -300 ? 'Descending' : 'Level';
+    return { cs: st.cs || p.ref.f.id, type: st.type || 'Unknown type', op: 'Recorded ADS-B', route: `Reg ${st.reg || '—'} · ${recFmt.format(new Date(recNow() * 1000))} PDT`, status,
+      alt: st.gnd ? 0 : st.alt, spd: st.gs, hdg: st.trk, cell4: ['On ground', st.gnd ? 'Yes' : 'No'], steps, step,
+      clr: { txt: 'Recorded traffic · no voice data', check: `ADS-B · ${Math.round(st.vs || 0).toLocaleString('en-US')} ft/min`, bad: false } };
+  }
   if (p.kind === 'air') {
     const a = p.ref, q = a.prof(t), q2 = a.prof(Math.min(a.show[1], t + 0.5)) || q, g = rwyGeo(a.rwy);
     const v = Math.hypot(q2.s - q.s, (q2.lat || 0) - (q.lat || 0), q2.h - q.h) / 0.5;
@@ -1041,13 +1143,13 @@ function describe(p) {
 function renderCard() {
   if (!picked) return;
   const gone = picked.kind === 'evtol' ? !picked.ref.visible.getValue(clock.currentTime)
-    : picked.kind === 'live' ? !picked.entity.show : !picked.entity.isAvailable(clock.currentTime);
+    : picked.kind === 'live' || picked.kind === 'rec' ? !picked.entity.show : !picked.entity.isAvailable(clock.currentTime) || !picked.entity.show;
   if (gone) return closeCard();
   const d = describe(picked);
   $('fcCs').textContent = d.cs; $('fcType').textContent = `${d.type} · ${d.op}`; $('fcRoute').textContent = d.route;
   $('fcStatus').textContent = d.status; $('fcStatus').classList.toggle('emg', !!d.emergency);
   const cells = [['Altitude', `${fmt(d.alt)} ft`], ['Speed', `${fmt(d.spd || 0)} kt`], ['Heading', `${String(Math.round(d.hdg || 0) % 360).padStart(3, '0')}°`],
-    d.battery != null ? ['Battery', `${d.battery}%`] : ['Delay', `${(d.delay || 0).toFixed(1)} min`]];
+    d.cell4 || (d.battery != null ? ['Battery', `${d.battery}%`] : ['Delay', `${(d.delay || 0).toFixed(1)} min`])];
   $('fcGrid').innerHTML = cells.map(([k, v]) => `<div><i>${k}</i><b>${v}</b></div>`).join('');
   $('fcClr').innerHTML = d.clr ? `<div class="q">${esc(d.clr.txt)}</div><div class="${d.clr.bad ? 'bad' : 'ok'}">${esc(d.clr.check)}</div>` : '<div class="q">No clearance issued yet</div>';
   $('fcSteps').innerHTML = d.steps.map((s, i) => `<li class="${i < d.step ? 'done' : i === d.step ? 'cur' : ''}"><span></span>${s}</li>`).join('');
@@ -1069,7 +1171,18 @@ viewer.entities.add({
     show: new C.CallbackProperty(() => !!picked, false) },
 });
 viewer.screenSpaceEventHandler.setInputAction(click => {
-  const hit = scene.pick(click.position), e = hit && hit.id;
+  const hit = scene.pick(click.position);
+  let e = hit && hit.id;
+  if (!(e && PICK.has(e))) { // forgiving pick: nearest aircraft within 28 px (recorded traffic moves at 20x)
+    let best = 28 * 28; e = null;
+    for (const ent of PICK.keys()) {
+      if (ent.show === false || (ent.availability && !ent.isAvailable(clock.currentTime))) continue;
+      const p = ent.position && ent.position.getValue(clock.currentTime), w = p && w2w(scene, p);
+      if (!w) continue;
+      const d = (w.x - click.position.x) ** 2 + (w.y - click.position.y) ** 2;
+      if (d < best) { best = d; e = ent; }
+    }
+  }
   if (e && PICK.has(e)) selectAircraft(e, performance.now() - cineEndedAt < 1500);
   else closeCard();
 }, C.ScreenSpaceEventType.LEFT_CLICK);
@@ -1103,7 +1216,7 @@ scene.preRender.addEventListener(() => {
   }
 });
 
-window.__sky = { viewer, airliners, select: (e, chase) => selectAircraft(e, chase), picked: () => picked && describe(picked), w2w: p => w2w(scene, p), setPhotoreal, buildings: () => buildings, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
+window.__sky = { rec: REC, viewer, airliners, select: (e, chase) => selectAircraft(e, chase), picked: () => picked && describe(picked), w2w: p => w2w(scene, p), setPhotoreal, buildings: () => buildings, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
 })();
 </script>
 </body>
