@@ -38,6 +38,9 @@ are written under `.e2e/` and stay ignored.
 Basemap tiles need internet access. A status message identifies slow or missing
 tiles; aircraft paths, range rings, controls, and KPIs continue to work.
 
+See the [verification record](../docs/SFO_REPLAY_VERIFICATION.md) for observed
+results, coverage, and remaining limits.
+
 The optional [ADSB.lol candidate importer](../pipeline/ADSB_LOL.md) supports a later
 backfill. It does not change the replay or claim complete coverage.
 
