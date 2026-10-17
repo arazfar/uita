@@ -1,4 +1,4 @@
-// Shared radio voice for SkyFlow candidates.
+// Shared radio voice for UITA candidates.
 //   <script src="radio-audio.js"></script>
 //   SkyRadio.say("SkyFlow one zero five, negative...", "atc")      // controller
 //   SkyRadio.say("Via Whiskey, Echo...", "pilot", "SKF105")         // pilot, voice per callsign

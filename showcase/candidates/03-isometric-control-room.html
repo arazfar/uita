@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SkyFlow Control Room</title>
+<title>UITA Control Room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -193,7 +193,7 @@ body.cine .lbox{height:34px}
 <div id="labels"></div>
 
 <header class="top">
-  <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 15c4-1 6-5 9-5s5 4 9 5"/><circle cx="12" cy="10" r="2"/></svg></div>SkyFlow<small>Bay Sector UAM-1 · Recursive ATC</small></div>
+  <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 15c4-1 6-5 9-5s5 4 9 5"/><circle cx="12" cy="10" r="2"/></svg></div>UITA<small>Bay Sector UAM-1 · Recursive ATC</small></div>
   <span class="chip sim">Simulation</span>
   <div class="phase" id="phase"><span data-p="calm">Calm</span><span data-p="storm" class="">Storm</span><span data-p="replan">Replan</span><span data-p="recover">Recovery</span></div>
   <div class="spacer"></div>
@@ -578,7 +578,7 @@ let S;
 function resetState(){
   S={m:0,ev:0,ag:{},tx:0,hum:0,alerts:0,log:[],step:-1,stepT:[],kiosk:null,radio:[],hb:null,commit:'awaiting readback',commitCls:'',phase:'calm',minSep:Infinity,sel:{rt:'SF → OAK · filed via C–E'},wave:false};
   for(const a of AGENTS)S.ag[a.id]={on:a.id==='coord',st:a.id==='coord'?'work':'idle',task:a.id==='coord'?'Monitoring 28-trip plan. 0 conflicts projected.':'',used:a.id==='coord'?4:0,isnew:false};
-  $('p-log').innerHTML='';$('p-alerts').innerHTML='<div class="idle" style="padding:10px 12px;color:var(--ink3)">No active alerts.</div>';$('tx').innerHTML='<div class="quiet" style="color:var(--ink3);padding:8px 12px;font-size:12px">SkyFlow Control · 122.850 · channel quiet. Routine clearances are handled by the controller agent.</div>';
+  $('p-log').innerHTML='';$('p-alerts').innerHTML='<div class="idle" style="padding:10px 12px;color:var(--ink3)">No active alerts.</div>';$('tx').innerHTML='<div class="quiet" style="color:var(--ink3);padding:8px 12px;font-size:12px">UITA Control · 122.850 · channel quiet. Routine clearances are handled by the controller agent.</div>';
   renderAgents();renderKiosk();renderHB();renderStepper();drawSel(ROUTES['SF-OAK'].s);
   ce.material.color.set(0x3aa395);ce.material.opacity=.55;
   setBadge();

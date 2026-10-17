@@ -1,6 +1,6 @@
-# SkyFlow showcase
+# UITA showcase
 
-The demo frontend for Uita's recursive-agent ATC: a photoreal SFO dashboard with a Tower! Simulator-style cab view, an agent radio loop with voice, and 20 visualization candidates. **Research simulation only; not operational ATC.** Traffic, agent decisions and scores are scripted or mocked unless a page says otherwise.
+The demo frontend for UITA's recursive-agent ATC: a photoreal SFO dashboard with a Tower! Simulator-style cab view, an agent radio loop with voice, and 20 visualization candidates. **Research simulation only; not operational ATC.** Traffic, agent decisions and scores are scripted or mocked unless a page says otherwise.
 
 ## Run
 
