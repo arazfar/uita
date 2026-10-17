@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-17",
+  "scope": "Hackathon demo; early-August frozen data and explicitly synthetic metered variant",
+  "tests": {
+    "passed": 262,
+    "warnings": [
+      "Starlette/AnyIO test-client deprecation"
+    ]
+  },
+  "builds": {
+    "research_frontend": "passed",
+    "legacy_frontend": "passed",
+    "docker_image": "not run; local daemon unavailable"
+  },
+  "browser": {
+    "vertical_flow": "passed",
+    "run_export": "passed",
+    "comparison_export": "passed",
+    "model_failure_fixture": "passed",
+    "budget_exhaustion_fixture": "passed",
+    "offline_reconnect": "passed after cursor-resume/status fix",
+    "failed_scenario_reporting": "passed; 151 seconds; 1.350698905 NM, 850 ft",
+    "narrow_layout": "passed; 390x844, no horizontal overflow",
+    "keyboard": "focus traverses controls"
+  },
+  "postgres": {
+    "schema": "uita_validation_2f7f625051d8",
+    "checks": [
+      "migration",
+      "concurrent_idempotency",
+      "lease_takeover_and_checkpoint_recovery",
+      "concurrent_budget_cap",
+      "logical_checkpoint_restore"
+    ],
+    "passed": true,
+    "temporary_schema_removed": true
+  },
+  "worker_process_recovery": {
+    "run_id": "88587ea1-2282-4bc9-af50-0b74672cd4b0",
+    "clock_before": 1786053614.0,
+    "fence_before": 1,
+    "revision_before": 16,
+    "passed": true,
+    "clock_after": 1786053615.0,
+    "fence_after": 2,
+    "revision_after": 17,
+    "method": "SIGKILL and process restart; real lease expiry; local SQLite"
+  },
+  "cold_start": {
+    "migration": "passed",
+    "bootstrap_checksums": "passed",
+    "bundled_scenarios": 3,
+    "readiness_status": 200,
+    "anonymous_scenarios_status": 401
+  },
+  "comparison": {
+    "elapsed_simulated_seconds": 1200,
+    "closure_at_elapsed_seconds": 90,
+    "baseline_completed": 3,
+    "fixture_completed": 2,
+    "baseline_violations": 0,
+    "fixture_violations": 0,
+    "fixture_diversions": 1,
+    "improvement_claim": false
+  },
+  "inference": {
+    "actual_usd": 0.00039475,
+    "reserved_usd": 0.0014585000000000002,
+    "fixture_cost_usd": 0,
+    "live_probes": 3,
+    "further_live_calls_required": false
+  },
+  "staging": "configuration only, as requested; environment creation denied; production unchanged",
+  "remaining_gates": [
+    "Docker image build",
+    "isolated hosted staging acceptance",
+    "hosted backup restoration and monitoring"
+  ]
+}
