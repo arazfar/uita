@@ -1,11 +1,14 @@
 .git
 .venv
 .venv-agent
+.venv-demo
 node_modules
 frontend/node_modules
 frontend/dist
 *.db
 *.sqlite3
 .env
+.env.*
+!.env.example
 output
 tests
