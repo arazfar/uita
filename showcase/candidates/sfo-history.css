@@ -444,3 +444,6 @@ body[data-view="dash"] .switch::before {
     content: "UITA";
   }
 }
+body[data-view="sim"] .switch::before {
+  content: "UITA / SFO · 3D SIMULATION";
+}

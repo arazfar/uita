@@ -83,52 +83,53 @@
   </head>
   <body>
     <div class="loading" id="loading">Loading SFO…</div>
-    <iframe id="dash" title="UITA dashboard" allow="autoplay; microphone"></iframe>
+    <iframe id="dash" title="UITA recorded week" allow="autoplay; microphone"></iframe>
+    <iframe id="sim" title="UITA 3D simulation" hidden allow="autoplay; microphone"></iframe>
     <iframe id="cab" title="UITA tower cab" hidden allow="autoplay; microphone"></iframe>
     <div class="switch" role="group" aria-label="View">
       <button data-view="dash" aria-pressed="true">Recorded week<kbd>T</kbd></button
-      ><button data-view="cab" aria-pressed="false">Tower simulation</button>
+      ><button data-view="sim" aria-pressed="false">3D simulation</button
+      ><button data-view="cab" aria-pressed="false">Tower cab</button>
     </div>
     <script>
-      const frames = { dash: document.getElementById("dash"), cab: document.getElementById("cab") };
-      const src = { dash: "/candidates/11-photoreal-sfo.html", cab: "/candidates/19-tower-cab-interior.html" };
-      // Load the tower simulation only on request, keeping recorded replay isolated.
-      let view = location.hash === "#cab" ? "cab" : "dash";
-      document.body.dataset.view = view;
-      const other = view === "cab" ? "dash" : "cab";
+      // Three views, one live at a time: recorded August traffic, the scripted 3D
+      // simulation (same page in simulation mode), and the tower cab. Others load
+      // on first use and are paused + display:none while hidden.
+      const ORDER = ["dash", "sim", "cab"];
+      const frames = Object.fromEntries(ORDER.map((k) => [k, document.getElementById(k)]));
+      const src = {
+        dash: "/candidates/11-photoreal-sfo.html",
+        sim: "/candidates/11-photoreal-sfo.html?mode=simulation",
+        cab: "/candidates/19-tower-cab-interior.html",
+      };
+      const fromHash = { "#sim": "sim", "#cab": "cab" };
+      let view = fromHash[location.hash] || "dash";
       const clearLoading = () => document.getElementById("loading")?.remove();
-      frames[view].hidden = false;
-      frames[other].hidden = true;
+      for (const k of ORDER) frames[k].hidden = k !== view;
       frames[view].src = src[view];
-      frames[view].addEventListener(
-        "load",
-        () => {
-          clearLoading();
-
-        },
-        { once: true },
-      );
+      frames[view].addEventListener("load", clearLoading, { once: true });
       setTimeout(clearLoading, 1500);
-      document
-        .querySelectorAll("[data-view]")
-        .forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
+      const mark = () => {
+        document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
+        document.body.dataset.view = view;
+      };
+      mark();
       function show(next) {
         if (next === view) return;
         const prev = frames[view];
         prev.contentWindow?.postMessage({ uita: "pause" }, "*");
         prev.hidden = true;
         const f = frames[next];
-        if (!f.src) f.src = src[next]; // lazy: the cab loads on first toggle
+        if (!f.src) f.src = src[next];
         else f.contentWindow?.postMessage({ uita: "resume" }, "*");
         f.hidden = false;
         f.focus();
         view = next;
-        document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
-        document.body.dataset.view = view;
-        history.replaceState(null, "", view === "cab" ? "#cab" : location.pathname + location.search);
+        mark();
+        history.replaceState(null, "", view === "dash" ? location.pathname + location.search : "#" + view);
       }
       document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
-      const toggle = () => show(view === "dash" ? "cab" : "dash");
+      const toggle = () => show(ORDER[(ORDER.indexOf(view) + 1) % ORDER.length]);
       addEventListener("keydown", (e) => e.key.toLowerCase() === "t" && !e.repeat && toggle());
       // Iframes forward their T presses here so the shortcut works wherever focus is.
       addEventListener("message", (e) => e.data?.uita === "toggle" && toggle());

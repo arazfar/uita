@@ -193,6 +193,7 @@ const Cesium = window.Cesium;
 (async () => {
 const C = Cesium;
 const RECORDED = new URLSearchParams(location.search).get('mode') !== 'simulation';
+let details = false; // declared early: labels built before the recorded-mode return read it
 const LOOP = 90;                 // seconds per scripted loop
 const SIMRATE = 0.85;            // sim minutes per wall second (eVTOL timeline)
 const GEOID = -32.2;             // EGM96 undulation at SFO (m): ellipsoid = MSL + GEOID
@@ -307,16 +308,6 @@ async function setPhotoreal(on) {
 setPhotoreal(true);
 setTimeout(() => { if (photoreal && !tilesSeen) { console.warn('photoreal: no tiles in 6 s, offline SFO pack'); setPhotoreal(false); } }, 6000);
 
-// Historical replay owns its clock, traffic and UI. Return before creating any
-// scripted aircraft, radio, weather, scores, or shared simulation connection.
-if (RECORDED) {
-  const { mountHistory } = await import('./sfo-history.js');
-  mountHistory({ C, viewer, altitudeOffset: () => VOFF, ground: () => GROUND,
-    setPhotoreal, isPhotoreal: () => photoreal });
-  hideLoading();
-  return;
-}
-
 // ---------- clock ----------
 const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');
 const T1 = C.JulianDate.addSeconds(T0, LOOP, new C.JulianDate());
@@ -412,6 +403,16 @@ for (const a of airliners) {
 // The 747 glTF models its nose along -Z, the Poly airplane along +Z.
 yawFix['assets/boeing747-mihalunar/model.glb'] = 180;
 yawFix['assets/airplane-google/model.glb'] = 0;
+
+// Historical replay owns its clock, traffic and UI. Return before creating any
+// scripted aircraft, radio, weather, scores, or shared simulation connection.
+if (RECORDED) {
+  const { mountHistory } = await import('./sfo-history.js');
+  mountHistory({ C, viewer, altitudeOffset: () => VOFF, ground: () => GROUND,
+    setPhotoreal, isPhotoreal: () => photoreal });
+  hideLoading();
+  return;
+}
 
 // ---------- UITA eVTOL network (fleet callsign "UITA") ----------
 const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
@@ -578,7 +579,7 @@ const AGENTS = [
 const STATIC_ON_TIME = new Set([0, 1, 2, 7, 8, 9, 10, 11, 12, 13].map(i => 101 + i)); // static plan: 10/28
 
 const feedEl = document.getElementById('feed');
-let shownRadio = -1, shownAgents = -1, details = false;
+let shownRadio = -1, shownAgents = -1;
 // One concise feed: the latest radio calls and kernel decisions, readback check inline.
 function radioItem(r) {
   let hb = '';
