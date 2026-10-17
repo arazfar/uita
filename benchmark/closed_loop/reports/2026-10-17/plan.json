@@ -1,0 +1,66 @@
+{
+  "version": "historical-admission-loop-v1",
+  "split": "validation",
+  "episodes": [
+    "2026-08-07-0600",
+    "2026-08-07-0900",
+    "2026-08-07-1200",
+    "2026-08-07-1500",
+    "2026-08-07-1800",
+    "2026-08-07-2100"
+  ],
+  "controllers": [
+    "scripted",
+    "deterministic",
+    "ai"
+  ],
+  "config": {
+    "version": "historical-admission-loop-v1",
+    "decision_interval_seconds": 300,
+    "approach_seconds": 360,
+    "feeder_speed_min_kt": 140,
+    "feeder_speed_max_kt": 280,
+    "source_center_lon_lat": [
+      -122.379,
+      37.6213
+    ],
+    "synthetic_approach_entry_nm": [
+      14.75,
+      -7.41
+    ],
+    "occupancy_min_seconds": 45,
+    "occupancy_max_seconds": 140,
+    "reservation_extra_seconds": 240,
+    "unfinished_penalty_seconds": 3600,
+    "computation_time": "Logical clock pauses during controller computation; wall latency is reported separately",
+    "scenario_variants": [
+      "nominal"
+    ],
+    "seeds": [
+      17
+    ],
+    "safety_scope": "Existing fixed synthetic approach, shared runway and taxi resource; upstream feeder/queue not safety-modeled",
+    "objective": "zero executed violations and unresolved decisions; then unfinished aircraft; then all-demand censored added delay plus unfinished penalty"
+  },
+  "source_hashes": {
+    "benchmark/closed_loop/traffic.py": "710b255c327cada60bf9a8717ed54770ea7bf62ecd19754d218fbdb2d07ba6e7",
+    "benchmark/closed_loop/controllers.py": "71af9bd21e2ad5421a8953fe63a6caafe70e82d8fc2843915d7278981a011fcb",
+    "benchmark/closed_loop/engine.py": "1e89a176399d4c9378e9b8f54df79d80a2a6d4d84b72741d9b1d8dbf690ac71d",
+    "benchmark/closed_loop/ai.py": "da4c28855596417ba83ee2cc03037e79a4b77494b7d2630c10129026ef32c8b3",
+    "benchmark/closed_loop/run.py": "b647323360692aec780c882841390202f1ff200f401ad6489e0f233db76b658a",
+    "backend/uita/airport.py": "70aba9142b0a432938a25b61b33bff1bf586bd98810fb20f43884e5eb1fe4b21",
+    "backend/uita/simulator.py": "c88b274462cf790c1eb783cd1e2fef0fa045b8c22926a9ad001e0f1ba38d3052",
+    "backend/uita/verifier.py": "7ec7eae2a9026b939b60de4b77dee30119a62189b3a79523a55b75440bf5d439",
+    "backend/uita/objectives.py": "0d92c1f3cf0ccaa11302002a521c520e67eeb135e82dbbd80189f70c9136b9a6",
+    "benchmark/provider.py": "ea7a8267b2f0df26faad9f7d5efc6cf38ef22572a72aa056ca0f3277b395b225"
+  },
+  "traffic_sha256": "7a174f3aa780e161f87ab1e663e12d58c00e9fd31a615757ada7393e7e709537",
+  "traffic_manifest_sha256": "ccf75056759516237547d5bf8c2c95fea6d9a0e7195fe3e3899b9a42a62fe171",
+  "inference_cap_usd": 1.0,
+  "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+  "final_test": "August 8\u20139 excluded from traffic loader, runner and model calls",
+  "runtime": {
+    "python": "3.12.11",
+    "ortools": "9.11.4210"
+  }
+}

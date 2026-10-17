@@ -32,7 +32,8 @@ FLIGHT_FIELDS = {"id", "source_flight_id", "position_provenance", "known_since_s
 PLAN_FIELDS = {"version", "split", "episodes", "controllers", "config", "source_hashes", "traffic_sha256",
                "traffic_manifest_sha256", "inference_cap_usd", "model", "final_test", "runtime"}
 SUMMARY_FIELDS = {"status", "plan_sha256", "split", "controllers", "paired_reference", "paired",
-                  "elapsed_wall_seconds", "ai_usage", "source_hashes", "artifacts", "limits"}
+                  "ai_usage", "source_hashes", "artifacts", "limits"}
+SUMMARY_EXECUTION_FIELDS = {"execution", "elapsed_wall_seconds"}
 
 
 def no_raw_records(value):
@@ -80,7 +81,20 @@ def prepare(results):
     traffic, traffic_manifest = json.loads(traffic_bytes), json.loads(traffic_manifest_bytes)
     plan, summary, runs = json.loads(plan_bytes), json.loads(summary_bytes), json.loads(runs_bytes)
     verification = json.loads(verification_bytes)
-    require(set(plan) == PLAN_FIELDS and set(summary) == SUMMARY_FIELDS, "Unknown protocol or summary field")
+    require(set(plan) == PLAN_FIELDS and SUMMARY_FIELDS <= set(summary)
+            and set(summary) <= SUMMARY_FIELDS | SUMMARY_EXECUTION_FIELDS,
+            "Unknown protocol or summary field")
+    require(bool(set(summary) & SUMMARY_EXECUTION_FIELDS), "Missing execution provenance")
+    if "execution" in summary:
+        execution = summary["execution"]
+        require(set(execution) == {"independent_episode_workers", "worker_sha256", "unused_partial_audit_records"}
+                and execution["independent_episode_workers"] is True
+                and isinstance(execution["worker_sha256"], str) and len(execution["worker_sha256"]) == 64
+                and type(execution["unused_partial_audit_records"]) is int and execution["unused_partial_audit_records"] >= 0,
+                "Unknown independent-worker execution metadata")
+    if "elapsed_wall_seconds" in summary:
+        elapsed = summary["elapsed_wall_seconds"]
+        require(type(elapsed) in (int, float) and math.isfinite(elapsed) and elapsed >= 0, "Invalid wall runtime")
     for value in (plan, summary, verification):
         no_raw_records(value)
     require(verification.get("passed") is True, "Report verification must pass before archiving")

@@ -64,6 +64,8 @@ Always report completion, backlog, nominally due traffic, all-demand delay and p
 
 AI failures trigger a separately recorded deterministic fallback. A rejected plan can trigger a separately checked scripted fallback. Results therefore describe the **AI controller plus counted safety fallbacks**. Report AI failures, rejected proposals, fallbacks and unresolved decisions alongside efficiency. A fallback is not a successful AI response.
 
+Simulation time pauses during computation. API wall latency is recorded separately and is not added to flight time. This experiment does not test a real-time controller deadline.
+
 ## Run locally
 
 From the repository root, prepare the lightweight simulator runtime:
@@ -110,10 +112,45 @@ benchmark/results/closed-loop-venv/bin/python -m benchmark.closed_loop.run \
 
 Use a unique output directory for a new experiment. Completed runs are immutable. Partial validation and final-test selection are forbidden. `--episode` is available only with `--split train` for development QA. No fine-tuning is performed or authorized by these filenames.
 
+Independent AI windows can finish an interrupted complete validation plan with `benchmark.closed_loop.worker`. Stop the main runner before assigning its unfinished windows to workers; each window must have one owner. Worker audits live under `workers/<episode>/`. All workers share the same pacing and budget ledger. `--finalize` requires all eighteen controller/window outcomes; it cannot publish a selected subset.
+
+```sh
+benchmark/results/closed-loop-venv/bin/python -m benchmark.closed_loop.worker \
+  --master benchmark/results/closed-loop-validation-local \
+  --episode 2026-08-07-1200 --execute
+benchmark/results/closed-loop-venv/bin/python -m benchmark.closed_loop.worker \
+  --master benchmark/results/closed-loop-validation-local --finalize
+```
+
 ## Inspect results
 
 Each run writes `plan.json`, `runs.json`, `summary.json`, `comparison.md`, per-episode results and frozen source copies. AI runs also preserve exact requests, responses, failures, usage and their AI plan. Raw run folders stay local and are ignored by Git.
 
 Read per-episode matched differences before interpreting aggregates. Inspect solver statuses, executed safety findings, source strata, all-flight outcomes and fallback counts. Six validation windows cover only one historical day; repeated decisions do not create independent days.
 
-The published result location is [reports/2026-10-17/comparison.md](reports/2026-10-17/comparison.md). The live comparison is still being run when this guide is written; its results must come from completed run artifacts. No human-performance, operational-safety or airborne-holding claim follows from this benchmark.
+The [completed comparison](reports/2026-10-17/comparison.md) covers all eighteen controller/window runs. The planner and AI-plus-fallback system each completed 63/136 arrivals, versus 62/136 for the scripted baseline. All three had zero executed violations in the checked model. AI required 50 fallbacks in 83 decisions and did not beat the deterministic planner. Tail delay worsened for both planner and AI, despite small reductions in mean accrued delay. No controller was promoted.
+
+No human-performance, operational-safety or airborne-holding claim follows from this benchmark. Read [verification](reports/2026-10-17/verification.json) and [independent review](review.md) with the results.
+
+## Verify and archive
+
+The independent verifier reconstructs causal state, checks every accepted action, and recomputes safety, delay and aggregates. It also binds each AI decision to its exact local request and response. Verification makes no provider calls:
+
+```sh
+benchmark/results/closed-loop-venv/bin/python -m benchmark.closed_loop.verify \
+  --run benchmark/results/closed-loop-validation-final-20261017 \
+  --output benchmark/results/closed-loop-validation-final-20261017/reverification.json
+```
+
+Use the original raw run directory, including worker audits and frozen sources. The compact published report alone cannot reproduce raw-response verification. Keep the recorded Python and optimizer versions; changed source hashes fail clearly.
+
+Railway holds only six compact artifacts under `sfo-historical-closed-loop-validation-2026-08-07-v1`. They contain validation traffic, protocol, aggregate results, per-flight outcomes, verification and a manifest. The upload excludes raw API logs, internal decision lists, development data and final test data. [Database verification](reports/2026-10-17/railway-verification.json) confirms all 228,796 bytes matched after download.
+
+Validate archive bytes locally before an authorized upload:
+
+```sh
+pipeline/.venv/bin/python -m benchmark.closed_loop.archive \
+  --results benchmark/closed_loop/reports/2026-10-17
+```
+
+Adding `--execute` writes the immutable dataset through the server-side `DATABASE_URL` and verifies downloaded bytes. A conflicting existing version fails instead of overwriting it.

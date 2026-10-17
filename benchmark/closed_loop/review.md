@@ -89,3 +89,35 @@ Source hashes at runtime review:
 | `traffic.py` | `710b255c327cada60bf9a8717ed54770ea7bf62ecd19754d218fbdb2d07ba6e7` |
 | `ai.py` | `da4c28855596417ba83ee2cc03037e79a4b77494b7d2630c10129026ef32c8b3` |
 | `run.py` | `b647323360692aec780c882841390202f1ff200f401ad6489e0f233db76b658a` |
+
+## Final validation trace replay: passed
+
+The complete nominal validation matrix passed the new independent `verify.py` replay. It reconstructed all **249 decisions across 18 controller/window results**, using the same **136 source requests per controller**. It rebuilt causal releases and available weather, reproduced public views, checked ordered decoders, checked optimizer resource constraints and recorded objectives, and independently verified every accepted commit. Admitted trajectories remained unchanged. Recomputed flight outcomes, executed safety, censored delays, and controller aggregates exactly matched the stored results.
+
+The replay matched all **83 selected AI decisions** to exact prompt, generation settings, public-view and payload hashes, and strict raw response parsing. The audit files contained 87 records with four repeated identities carrying the same payload. Their selected worker records matched the executed causal states. Partial/cache audit copies were retained rather than treated as additional scored decisions. No verification step made a provider request or opened August 8–9 data.
+
+The episode workers used the same frozen core and traffic. Their helper hash is recorded separately because parallel dispatch changed execution orchestration, not the simulator, input protocol, action decoder, or safety rules. Each accepted deterministic schedule was checked for feasibility and its recorded objective. The verifier does not assume an identical result from rerunning a wall-time-limited optimizer.
+
+| Controller | Completed / requests | Backlog | Executed violations | Mean accrued added delay | P95 accrued added delay |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Scripted | 62/136 | 74 | 0 | 1,177.8 seconds | 2,228.0 seconds |
+| Deterministic | 63/136 | 73 | 0 | 1,164.6 seconds | 2,520.5 seconds |
+| AI with checked fallbacks | 63/136 | 73 | 0 | 1,168.9 seconds | 2,585.1 seconds |
+
+All three had zero unresolved decisions. The AI system matched the deterministic controller's completion count, but its mean was 4.28 seconds higher and its P95 was worse. It did not demonstrate an efficiency improvement over that reference. Small mean reductions against scripted control must accompany the changed completion count and worse tail delay.
+
+Only 33 of 83 AI requests returned usable orders. Fifty decisions used checked fallbacks: 28 ambiguous transport failures, 20 `length` terminations, one invalid provider/action response, and one HTTP 500. These were preserved without paid retries. The AI row therefore measures the combined AI, verifier, and fallback system. Zero executed violations primarily demonstrates the checked serialized research model; it does not establish unrestricted model safety or human ATC performance.
+
+Known charges for selected requests were $0.0692799, with 29 unknown request charges. The shared budget reserved $0.2456414 across 87 requests, including four preflight requests excluded from the final matrix. The budget cap remained $1. Timing and charges are service evidence, separate from simulated flight delay.
+
+Final acceptance covers this nominal reconstruction and its disclosed limits. There is no recommendation to promote the AI over the deterministic controller. The six windows span one historical day; final test days remain held out.
+
+The final report files `plan.json`, `runs.json`, and `summary.json` were byte-identical to the replayed master run. The attestation is `reports/2026-10-17/verification.json`:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Frozen independent `verify.py` | `be15986de37e6baa7006f7a893bb5d2f69b6981933a0af989bad159abcebc117` |
+| Final `plan.json` | `dd9b856ca8591ba25d9eef94c29f5934523ce86bdd8cbcbb8e65cea503c6f6e1` |
+| Final `runs.json` | `cd21f40f19258edf97e0b7cc032256ddc2654b641dec93eb21db56884a1792cc` |
+| Final `summary.json` | `dd946930ad6a5d80da8fbc9eed6ae7ef8b8003b9ea26d956dfb7435321f30fc1` |
+| Final `verification.json` | `2eaf6f145c6aa00bc46deda2371201da07bb7752da201fc66d1b9b74ce48ffbd` |
