@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyFlow · Hearback On/Off</title>
+<style>
+:root{
+  --bg:#080b0e; --panel:#0d1115; --line:#1c232a; --line2:#29323b;
+  --water:#0a1219; --land:#141a20; --land-edge:#222a32;
+  --ink:#e7eaed; --dim:#8b959f; --faint:#56616b;
+  --amber:#f0a83a; --red:#ff554a; --teal:#33d1ae; --blue:#7ab0ff;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+body{display:flex;flex-direction:column;min-width:1240px}
+header{height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid var(--line)}
+.brand b{font:700 14px var(--mono);letter-spacing:.16em}
+.brand span{font:500 11px var(--mono);color:var(--dim);letter-spacing:.1em;margin-left:8px}
+.headline{flex:1;font:500 13.5px var(--sans);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.headline em{font-style:normal;color:var(--ink)}
+.simtag{font:600 10px var(--mono);letter-spacing:.16em;color:var(--amber);border:1px solid #5a4320;padding:4px 7px;border-radius:3px}
+.clock{font:600 18px var(--mono);min-width:96px;text-align:right;font-variant-numeric:tabular-nums}
+.ctl{display:flex;gap:6px;align-items:center}
+.ctl button,.seg button{background:#131820;border:1px solid var(--line2);color:var(--ink);font:600 10.5px var(--mono);letter-spacing:.08em;height:28px;padding:0 11px;border-radius:4px;cursor:pointer}
+.ctl button:hover,.seg button:hover{border-color:#46525e}
+.ctl button.on{border-color:var(--teal);color:var(--teal)}
+.seg{display:flex}
+.seg button{border-radius:0;margin-left:-1px}
+.seg button:first-child{border-radius:4px 0 0 4px}.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button.on{background:#13261f;border-color:#2b6b58;color:var(--teal);position:relative}
+.seg-l{font:600 9.5px var(--mono);letter-spacing:.14em;color:var(--faint);margin-right:6px}
+.moment{height:40px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;border-bottom:1px solid var(--line);background:#0a0e12}
+.moment .k{font:600 9.5px var(--mono);letter-spacing:.16em;color:var(--faint)}
+.moment .m{font:500 13px var(--sans);color:#cfd6dc}
+.moment .m b{font-family:var(--mono);font-weight:700;letter-spacing:.04em}
+.moment .m .a{color:var(--amber)} .moment .m .b{color:var(--blue)}
+.moment .pass{margin-left:auto;font:600 10px var(--mono);letter-spacing:.12em;color:var(--dim)}
+main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);min-height:0}
+.side{background:var(--panel);display:grid;grid-template-rows:42px minmax(0,1fr) 304px;min-height:0;position:relative;overflow:hidden}
+.side-h{display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line)}
+.side-h .tag{font:700 12px var(--mono);letter-spacing:.16em}
+.side.off .tag{color:var(--amber)} .side.on .tag{color:var(--teal)}
+.side-h .sub{font:500 12px var(--sans);color:var(--dim)}
+.air{flex:none;white-space:nowrap;margin-left:auto;font:700 9.5px var(--mono);letter-spacing:.16em;color:var(--faint);border:1px solid var(--line2);padding:3px 7px;border-radius:3px;display:flex;align-items:center;gap:6px}
+.air i{width:7px;height:7px;border-radius:50%;background:#33404c}
+.air.live{color:#ffd0cc;border-color:#6a2a26}.air.live i{background:var(--red);box-shadow:0 0 8px var(--red)}
+.air.live.tx i{animation:blink .45s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.mapwrap{position:relative;min-height:0}
+.mapwrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.alarm{position:absolute;left:14px;bottom:26px;display:none;flex-direction:column;gap:2px;background:rgba(40,10,8,.9);border:1px solid #7a2a24;border-radius:6px;padding:9px 12px}
+.alarm.on{display:flex;animation:in .3s}
+.alarm .n{font:700 30px/1 var(--mono);color:var(--red)}
+.alarm .l{font:700 10px var(--mono);letter-spacing:.14em;color:#ffb3ad}
+.alarm .s{font:500 11px var(--mono);color:#e4b0aa}
+.okbadge{position:absolute;left:14px;bottom:26px;display:none;flex-direction:column;gap:2px;background:rgba(8,32,26,.9);border:1px solid #1f6a57;border-radius:6px;padding:9px 12px}
+.okbadge.on{display:flex;animation:in .3s}
+.okbadge .n{font:700 30px/1 var(--mono);color:var(--teal)}
+.okbadge .l{font:700 10px var(--mono);letter-spacing:.14em;color:#a8f0de}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:1px solid var(--line);min-height:0;overflow:hidden}
+.lower h4{font:600 9.5px var(--mono);letter-spacing:.16em;color:var(--faint);padding:9px 12px 5px;display:flex;justify-content:space-between}
+.tx{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+.log{flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:0 10px 10px;-webkit-mask-image:linear-gradient(transparent 0,#000 28px);mask-image:linear-gradient(transparent 0,#000 28px)}
+.ln{padding:5px 8px;margin-top:4px;border-left:2px solid #34414e;background:#10161c;border-radius:0 4px 4px 0;animation:in .3s ease-out}
+.ln .w{font:700 10px var(--mono);letter-spacing:.08em;color:#9fb3c8;display:flex;gap:8px}
+.ln .w .t{color:var(--faint);font-weight:500}
+.ln q{quotes:none;display:block;font:500 12.5px/1.38 var(--sans);color:#eef2f5;margin-top:1px}
+.ln.atc{border-color:#4f7fae}
+.ln.pilot{border-color:#6c7a88}
+.ln.bad{border-color:var(--red);background:#1c1110}
+.ln.bad .w{color:#ff9d95}
+.ln.sys{background:transparent;border-color:transparent;padding:3px 8px}
+.ln.sys .w{display:none}
+.ln.sys q{font:600 11px var(--mono);color:var(--dim)}
+.ln.sys.good q{color:var(--teal)} .ln.sys.warn q{color:var(--amber)} .ln.sys.err q{color:var(--red)}
+.ln.muted{opacity:.62}
+.ln.live{box-shadow:inset 0 0 0 1px #3a4a5a}
+@keyframes in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.right{display:flex;flex-direction:column;min-height:0}
+table{width:100%;border-collapse:collapse;font:600 11px var(--mono)}
+.hb{padding:0 12px}
+.hb td{padding:3px 6px;border-top:1px solid var(--line)}
+.hb td:first-child{color:var(--faint);font-size:9.5px;letter-spacing:.12em;width:24%}
+.hb td.c{border-radius:3px;transition:background .25s,color .25s}
+.hb .x{color:#ff9d95;background:#2c1311}
+.hb .k{color:var(--teal);background:#0e2520}
+.hb .n{color:var(--faint)}
+.hbv{margin:6px 12px 0;font:700 10.5px var(--mono);letter-spacing:.1em;padding:5px 8px;border-radius:3px;border:1px solid var(--line2);color:var(--faint);text-align:center}
+.hbv.x{color:#ffb3ad;border-color:#6a2a26;background:#22100e}
+.hbv.k{color:#a8f0de;border-color:#1f6a57;background:#0c211b}
+.hbv.n{color:#d9a75a;border-color:#4d3b1c;background:#1a140a}
+.led{padding:0 12px 8px}
+.led td{padding:3px 5px;border-top:1px solid var(--line);white-space:nowrap}
+.led td.s{text-align:right}
+.st{font:700 9.5px var(--mono);letter-spacing:.08em;padding:2px 6px;border-radius:3px}
+.st.pend{color:#c9d1d8;background:#1c242c}
+.st.ok{color:#08241d;background:var(--teal)}
+.st.unchk{color:#2a1c05;background:var(--amber)}
+.st.dbl{color:#fff;background:var(--red);animation:blink .6s steps(1) 6}
+.st.na{color:var(--faint);background:transparent;border:1px dashed var(--line2)}
+.led tr.dbl td{background:#1d0f0e}
+footer{height:46px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;border-top:1px solid var(--line);background:#0a0d11}
+footer .big{font:700 22px var(--mono);color:var(--amber)}
+footer .big2{font:700 22px var(--mono);color:var(--red)}
+footer .t{font:500 12.5px var(--sans);color:#c4ccd3}
+footer .src{margin-left:auto;font:500 11px var(--sans);color:var(--faint)}
+</style>
+<script src="radio-audio.js?v=3"></script>
+</head>
+<body>
+<header>
+  <div class="brand"><b>SKYFLOW</b><span>HEARBACK · ON vs OFF</span></div>
+  <div class="headline">Same frequency. Same mistake. <em>One</em> side checks what the pilot read back before anything is committed.</div>
+  <span class="simtag">SIMULATION</span>
+  <div class="clock" id="clock">14:20:00</div>
+  <div class="ctl">
+    <span class="seg-l">AUDIO</span>
+    <div class="seg" id="seg"><button data-m="alt" class="on">LEFT → RIGHT</button><button data-m="L">LEFT</button><button data-m="R">RIGHT</button></div>
+    <button id="snd">SOUND OFF</button><button id="play">PAUSE</button><button id="restart">RESTART</button>
+  </div>
+</header>
+<div class="moment">
+  <span class="k">THE MOMENT</span>
+  <span class="m">Controller clears <b class="b">SKYFLOW 412</b> to Oakland via W–E. <b class="a">SKYFLOW 421</b>, waiting at the SF pad, reads it back as its own.</span>
+  <span class="pass" id="pass">PASS 1 / 2 · AUDIO FOLLOWS LEFT</span>
+</div>
+<main>
+  <section class="side off" id="sideL">
+    <div class="side-h"><span class="tag">NO HEARBACK CHECK</span><span class="sub">Any readback is accepted; the plan commits on receipt</span><span class="air" id="airL"><i></i>ON AIR</span></div>
+    <div class="mapwrap"><canvas id="mapL"></canvas>
+      <div class="alarm" id="alarmL"><span class="l">LOSS OF SEPARATION</span><span class="n" id="nmL">1</span><span class="s" id="nmsL">closest —</span></div>
+    </div>
+    <div class="lower">
+      <div class="tx"><h4><span>TRANSCRIPT · SKYFLOW BAY APPROACH</span></h4><div class="log" id="logL"></div></div>
+      <div class="right">
+        <h4><span>HEARBACK</span><span>OFF</span></h4>
+        <div class="hb"><table id="hbL"></table></div>
+        <div class="hbv n" id="hbvL">NOT COMPARED · READBACK ASSUMED CORRECT</div>
+        <h4><span>RESERVATION LEDGER</span><span id="ledsL"></span></h4>
+        <div class="led"><table id="ledL"></table></div>
+      </div>
+    </div>
+  </section>
+  <section class="side on" id="sideR">
+    <div class="side-h"><span class="tag">KERNEL HEARBACK</span><span class="sub">Readback fields compared before the reservation commits</span><span class="air" id="airR"><i></i>ON AIR</span></div>
+    <div class="mapwrap"><canvas id="mapR"></canvas>
+      <div class="okbadge" id="okR"><span class="l">LOSS OF SEPARATION</span><span class="n">0</span><span class="l" style="color:#7fcfbb;letter-spacing:.08em">mismatch caught before liftoff</span></div>
+    </div>
+    <div class="lower">
+      <div class="tx"><h4><span>TRANSCRIPT · SKYFLOW BAY APPROACH</span></h4><div class="log" id="logR"></div></div>
+      <div class="right">
+        <h4><span>HEARBACK · KERNEL</span><span id="hbsR">ARMED</span></h4>
+        <div class="hb"><table id="hbR"></table></div>
+        <div class="hbv" id="hbvR">WAITING FOR READBACK</div>
+        <h4><span>RESERVATION LEDGER</span><span id="ledsR"></span></h4>
+        <div class="led"><table id="ledR"></table></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>
+  <span class="big">31%</span><span class="t">of 444 air–ground communication incidents involved readback/hearback errors.</span>
+  <span class="big2">36%</span><span class="t">of those led to the wrong aircraft taking a clearance.</span>
+  <span class="src">EUROCONTROL, Air–Ground Communication Safety Study · scenario is simulated</span>
+</footer>
+<script>
+// ---------- geography ----------
+const P={SF:[-122.41,37.785],SFO:[-122.375,37.622],OAK:[-122.235,37.722],W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77],MAR:[-122.485,37.862],BER:[-122.275,37.865]};
+const CORR=[["SF","MAR"],["SF","W"],["SF","C"],["C","BER"],["C","E"],["W","E"],["W","SFO"],["E","OAK"],["OAK","BER"]];
+const BBOX={lon0:-122.47,lon1:-122.20,lat0:37.605,lat1:37.805};
+const km=(a,b)=>Math.hypot((a[0]-b[0])*88.2,(a[1]-b[1])*111.1);
+const lerp=(a,b,f)=>[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f];
+const ease=f=>f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2;
+let LAND=null;
+fetch("data/bay-coastline.geojson").then(r=>r.ok?r.json():null).then(j=>{LAND=j}).catch(()=>{});
+
+// track = [[s, [lon,lat]], ...]; position at time s
+function at(track,s){
+  if(s<=track[0][0])return track[0][1];
+  for(let i=1;i<track.length;i++){const [t1,p1]=track[i],[t0,p0]=track[i-1];
+    if(s<=t1){const f=(s-t0)/Math.max(1e-6,t1-t0);return lerp(p0,p1,ease(f))}}
+  return track[track.length-1][1];
+}
+const Q=[-122.3925,37.7372], R=[-122.4085,37.7365];
+// LEFT: 421 departs on 412's clearance, 412 departs too; they meet at W.
+const TL={
+  "412":[[15,P.SFO],[28,P.W],[42,P.E],[52,P.OAK]],
+  "421":[[14,P.SF],[26.5,Q],[31,R],[50,P.SF]],
+};
+// RIGHT: 421 holds; 412 departs after the corrected readback; 421 follows on its own slot.
+const TR={
+  "412":[[39.5,P.SFO],[51,P.W],[62,P.E],[70,P.OAK]],
+  "421":[[62,P.SF],[72,P.W]],
+};
+const air=(tr,s)=>s>tr[0][0]&&s<tr[tr.length-1][0]+0.01;
+
+// ---------- script ----------
+const C1="SkyFlow four one two, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred.";
+const C2="Cleared to Oakland via Whiskey, Echo, one thousand five hundred, SkyFlow four two one.";
+const C3="SkyFlow four one two, I say again, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred.";
+const C3b="Cleared to Oakland via Whiskey, Echo, climb and maintain one thousand five hundred, SkyFlow four one two.";
+const C4="SkyFlow four two one, now cleared to Oakland via Whiskey, Echo, behind four one two. Climb and maintain one thousand five hundred.";
+const S=[ // side: B both, L, R.  kind: atc|pilot|sys
+  {s:1.0, side:"B", who:"atc", text:C1},
+  {s:7.6, side:"B", who:"pilot", cs:"SKF421", text:C2, bad:true},
+  {s:12.6,side:"L", who:"sys", cls:"warn", text:"Readback received → plan committed (fields not compared)", fx:"L_commit"},
+  {s:14.0,side:"L", who:"sys", cls:"err",  text:"SKF421 lifting off SF · no reservation on file", fx:"L_dbl"},
+  {s:15.0,side:"L", who:"sys", cls:"warn", text:"SKF412 lifting off SFO · heard its callsign in the clearance"},
+  {s:23.5,side:"L", who:"atc", text:"SkyFlow four two one, traffic alert, eVTOL converging at Whiskey. Turn right immediately, stop climb.", bad:true},
+  {s:31.0,side:"L", who:"pilot", cs:"SKF421", text:"Turning right, stopping climb, SkyFlow four two one. Traffic in sight."},
+  {s:37.0,side:"L", who:"atc", text:"SkyFlow four two one, that clearance was for four one two. Return to the San Francisco pad, report on the ground."},
+  {s:45.0,side:"L", who:"pilot", cs:"SKF421", text:"Returning to San Francisco, SkyFlow four two one."},
+  {s:51.0,side:"L", who:"sys", cls:"err", text:"Incident report filed · 1 loss of separation · W–E double-booked"},
+  {s:12.6,side:"R", who:"sys", cls:"err", text:"Hearback: callsign SKF421 ≠ SKF412 → reservation NOT committed", fx:"R_reject"},
+  {s:14.0,side:"R", who:"atc", text:"SkyFlow four two one, negative, that clearance was for four one two. Caution, similar callsign. Hold position.", bad:true},
+  {s:21.6,side:"R", who:"pilot", cs:"SKF421", text:"Holding position, SkyFlow four two one."},
+  {s:25.0,side:"R", who:"atc", text:C3, fx:"R_reissue"},
+  {s:32.4,side:"R", who:"pilot", cs:"SKF412", text:C3b},
+  {s:38.6,side:"R", who:"sys", cls:"good", text:"Hearback: all fields match → W–SFO, W–E, E–OAK committed", fx:"R_commit"},
+  {s:49.0,side:"R", who:"atc", text:C4},
+  {s:56.6,side:"R", who:"pilot", cs:"SKF421", text:C2, fx:"R_421rb"},
+  {s:61.4,side:"R", who:"sys", cls:"good", text:"Hearback: SKF421 fields match → SF–W committed (14:28 slot)", fx:"R_421ok"},
+];
+const END=74;
+SkyRadio.prefetch(S.filter(l=>l.who!=="sys").map(l=>({text:l.text,speaker:l.who,key:l.cs})));
+
+// ---------- per-side state ----------
+const FIELDS=[["CALLSIGN","SKF412"],["CLEARED TO","OAK"],["ROUTE","W–E"],["ALTITUDE","1500"]];
+const LEDGER=[["SKF412","W–SFO","14:20–22"],["SKF412","W–E","14:22–25"],["SKF412","E–OAK","14:25–27"],["SKF421","SF–W","14:28–29"]];
+function fresh(){return{log:[],hb:null,ledger:LEDGER.map(()=>({st:"pend",note:""})),fired:new Set(),minD:99,breach:0}}
+let st={L:fresh(),R:fresh()};
+
+function renderHB(side){
+  const el=document.getElementById("hb"+side),s=st[side];
+  el.innerHTML="<tr><td></td><td style='color:var(--faint);font-size:9.5px'>EXPECTED</td><td style='color:var(--faint);font-size:9.5px'>HEARD</td></tr>"+
+  FIELDS.map(([k,exp],i)=>{
+    const heard=s.hb?s.hb[i]:"—";
+    let cls="n";if(s.hb&&side==="R")cls=heard===exp?"k":"x";
+    return `<tr><td>${k}</td><td>${exp}</td><td class="c ${cls}">${heard}</td></tr>`}).join("");
+}
+function renderLed(side){
+  const el=document.getElementById("led"+side),s=st[side];
+  const lab={pend:"PENDING",ok:"COMMITTED",unchk:"UNCHECKED",dbl:"DOUBLE BOOKED",na:"—"};
+  el.innerHTML=LEDGER.map(([cs,c,w],i)=>{const r=s.ledger[i];
+    return `<tr class="${r.st==='dbl'?'dbl':''}"><td style="color:${cs==='SKF412'?'var(--blue)':'var(--amber)'}">${cs}</td><td>${c}</td><td style="color:var(--dim)">${w}${r.note?`<br><span style="color:#ff9d95">${r.note}</span>`:""}</td><td class="s"><span class="st ${r.st}">${lab[r.st]}</span></td></tr>`}).join("");
+}
+function fx(name){
+  const L=st.L,R=st.R;
+  if(name==="L_commit"){L.hb=["SKF421","OAK","W–E","1500"];[0,1,2].forEach(i=>L.ledger[i].st="unchk");renderHB("L");}
+  if(name==="L_dbl"){L.ledger[2-1].st="dbl";L.ledger[1].note="+ SKF421 airborne";L.ledger[3].st="dbl";L.ledger[3].note="early, unfiled";}
+  if(name==="R_reject"){R.hb=["SKF421","OAK","W–E","1500"];setV("R","x","REJECTED · CALLSIGN MISMATCH · NOT COMMITTED");document.getElementById("hbsR").textContent="MISMATCH";renderHB("R");}
+  if(name==="R_reissue"){R.hb=null;setV("R","","RE-ISSUED TO SKF412 · WAITING FOR READBACK");document.getElementById("hbsR").textContent="ARMED";renderHB("R");}
+  if(name==="R_commit"){R.hb=["SKF412","OAK","W–E","1500"];[0,1,2].forEach(i=>R.ledger[i].st="ok");setV("R","k","ALL FIELDS MATCH · COMMITTED");document.getElementById("hbsR").textContent="MATCH";renderHB("R");}
+  if(name==="R_421rb"){FIELDS[0][1]="SKF421";R.hb=null;setV("R","","SKF421 SLOT · WAITING FOR READBACK");renderHB("R");}
+  if(name==="R_421ok"){R.hb=["SKF421","OAK","W–E","1500"];R.ledger[3].st="ok";setV("R","k","SKF421 MATCH · COMMITTED");renderHB("R");}
+  renderLed("L");renderLed("R");
+}
+function setV(side,cls,txt){const e=document.getElementById("hbv"+side);e.className="hbv "+cls;e.textContent=txt}
+function resetUI(){
+  FIELDS[0][1]="SKF412";
+  st={L:fresh(),R:fresh()};
+  for(const s of["L","R"]){document.getElementById("log"+s).innerHTML="";renderHB(s);renderLed(s)}
+  setV("R","","WAITING FOR READBACK");document.getElementById("hbsR").textContent="ARMED";
+  document.getElementById("alarmL").classList.remove("on");document.getElementById("okR").classList.remove("on");
+}
+
+// ---------- clock + audio sync ----------
+let s=0,playing=true,pass=0,mode="alt",busy=null,busySide=null,lastTs=performance.now(),idx=new Set();
+const audSide=()=>mode==="alt"?(pass%2===0?"L":"R"):mode;
+const spoken=l=>l.who!=="sys"&&(l.side==="B"||l.side===audSide());
+const fmt=x=>{const t=1200+Math.floor(x);return `14:${String(Math.floor(t/60)%60).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`};
+function nextSpokenAt(){let n=1e9;S.forEach((l,i)=>{if(!idx.has(i)&&spoken(l)&&l.s<n)n=l.s});return n}
+function addLine(side,l,live){
+  const box=document.getElementById("log"+side);
+  const d=document.createElement("div");
+  const who=l.who==="atc"?"BAY APPROACH":l.cs;
+  d.className=`ln ${l.who} ${l.cls||""} ${l.bad&&l.who!=="sys"?"bad":""} ${l.who==="sys"?"sys":""} ${!live&&l.who!=="sys"?"muted":""}`;
+  d.innerHTML=`<div class="w"><span>${who}</span><span class="t">${fmt(l.s)}${!live&&l.who!=="sys"?" · text only this pass":""}</span></div><q>${l.text}</q>`;
+  box.append(d);while(box.children.length>9)box.firstChild.remove();
+  return d;
+}
+function fire(i){
+  idx.add(i);const l=S[i];
+  const sides=l.side==="B"?["L","R"]:[l.side];
+  const live=spoken(l);
+  const els=sides.map(sd=>addLine(sd,l,live&&(l.side==="B"||sd===audSide())));
+  if(l.fx)fx(l.fx);
+  if(live){
+    els.forEach(e=>e.classList.add("live"));
+    busy=SkyRadio.say(l.text,l.who,l.cs).then(()=>{els.forEach(e=>e.classList.remove("live"));busy=null});
+  }
+}
+SkyRadio.onTransmit(({live})=>{const a=audSide();["L","R"].forEach(x=>document.getElementById("air"+x).classList.toggle("tx",live&&x===a))});
+function setPassUI(){
+  const a=audSide();
+  document.getElementById("airL").classList.toggle("live",a==="L");
+  document.getElementById("airR").classList.toggle("live",a==="R");
+  document.getElementById("pass").textContent=mode==="alt"?`PASS ${pass%2+1} / 2 · AUDIO FOLLOWS ${a==="L"?"LEFT":"RIGHT"}`:`AUDIO LOCKED TO ${a==="L"?"LEFT":"RIGHT"}`;
+}
+function restart(nextPass){
+  SkyRadio.flush();busy=null;s=0;idx=new Set();
+  pass=nextPass?pass+1:0;resetUI();setPassUI();
+}
+
+// ---------- map ----------
+function proj(w,h){
+  const k=Math.cos(37.72*Math.PI/180),gw=(BBOX.lon1-BBOX.lon0)*k,gh=BBOX.lat1-BBOX.lat0;
+  const sc=Math.min(w/gw,h/gh)*1.0,ox=(w-gw*sc)/2,oy=(h-gh*sc)/2;
+  return p=>[ox+(p[0]-BBOX.lon0)*k*sc,oy+(BBOX.lat1-p[1])*sc];
+}
+function drawMap(side){
+  const cv=document.getElementById("map"+side),dpr=devicePixelRatio||1;
+  const w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;
+  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr}
+  const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);
+  const pr=proj(w,h),kmPx=pr([BBOX.lon0+0.01,37.7])[0]-pr([BBOX.lon0,37.7])[0];
+  const pxPerKm=kmPx/(0.01*88.2);
+  g.fillStyle="#0a1219";g.fillRect(0,0,w,h);
+  // land
+  if(LAND){g.fillStyle="#131a20";g.strokeStyle="#222b33";g.lineWidth=1;
+    for(const f of LAND.features){const polys=f.geometry.type==="Polygon"?[f.geometry.coordinates]:f.geometry.coordinates;
+      for(const poly of polys){g.beginPath();for(const ring of poly){ring.forEach((p,i)=>{const q=pr(p);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.closePath()}g.fill("evenodd");g.stroke()}}}
+  // grid ticks
+  g.strokeStyle="rgba(120,140,160,.05)";g.lineWidth=1;
+  for(let x=0;x<w;x+=48){g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()}
+  for(let y=0;y<h;y+=48){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}
+  const S_=st[side];
+  // corridors
+  for(const [a,b] of CORR){const A=pr(P[a]),B=pr(P[b]);const we=(a==="W"&&b==="E");
+    let col="rgba(150,170,190,.28)",lw=1.5;
+    if(we){ if(side==="L"&&S_.ledger[1].st==="dbl"){col=`rgba(255,85,74,${.55+.35*Math.sin(perf*8)})`;lw=3}
+            else if(side==="R"&&S_.ledger[1].st==="ok"){col="rgba(51,209,174,.85)";lw=3}
+            else {col="rgba(240,168,58,.55)";lw=2.2} }
+    g.strokeStyle=col;g.lineWidth=lw;g.setLineDash(we?[]:[5,5]);g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke()}
+  g.setLineDash([]);
+  // W–E label
+  {const m=pr(lerp(P.W,P.E,.5));g.font="600 10px "+getComputedStyle(document.body).getPropertyValue("--mono");g.fillStyle="#9aa6b2";g.fillText("CORRIDOR W–E",m[0]-36,m[1]+18)}
+  // nodes
+  const pads=["SF","SFO","OAK","MAR","BER"];
+  for(const [k,p] of Object.entries(P)){const q=pr(p);if(q[0]<-20||q[1]<-20||q[0]>w+20||q[1]>h+20)continue;
+    const pad=pads.includes(k);g.fillStyle=pad?"#0a1219":"#5d6a77";g.strokeStyle=pad?"#c9d3dc":"#5d6a77";g.lineWidth=1.5;
+    g.beginPath();pad?g.rect(q[0]-5,q[1]-5,10,10):g.arc(q[0],q[1],3,0,7);pad?(g.fill(),g.stroke()):g.fill();
+    g.fillStyle=pad?"#dfe5ea":"#7d8a96";g.font=(pad?"700 11px ":"600 10px ")+"ui-monospace,Menlo,monospace";
+    g.fillText(k,q[0]+9,q[1]-7)}
+  // aircraft
+  const T=side==="L"?TL:TR;
+  const pos={},on={};
+  for(const cs of ["412","421"]){pos[cs]=at(T[cs],s);on[cs]=air(T[cs],s)}
+  // right: 421 hold marker on pad
+  const d=km(pos["412"],pos["421"]),both=on["412"]&&on["421"];
+  if(both){S_.minD=Math.min(S_.minD,d);if(d<1.5&&!S_.breach){S_.breach=1;if(side==="L"){document.getElementById("alarmL").classList.add("on")}}}
+  if(side==="L"&&S_.breach)document.getElementById("nmsL").textContent=`closest ${(S_.minD*0.54).toFixed(2)} nm · ${Math.round(S_.minD*1000)} m · min 1.5 km`;
+  const breach=both&&d<1.5;
+  for(const cs of ["412","421"]){
+    const q=pr(pos[cs]);const live=on[cs];const col=cs==="412"?"#7ab0ff":"#f0a83a";
+    // trail
+    if(live){g.strokeStyle=col+"55";g.lineWidth=1.5;g.beginPath();for(let k=0;k<=12;k++){const pp=pr(at(T[cs],s-k*0.45));k?g.lineTo(pp[0],pp[1]):g.moveTo(pp[0],pp[1])}g.stroke()}
+    // separation ring (0.75 km radius = half of 1.5 km minimum)
+    const rr=0.75*pxPerKm;
+    if(live){g.lineWidth=breach?2.2:1;g.strokeStyle=breach?`rgba(255,85,74,${.5+.5*Math.sin(perf*14)})`:col+"66";
+      if(breach){g.fillStyle=`rgba(255,85,74,${.12+.1*Math.sin(perf*14)})`;g.beginPath();g.arc(q[0],q[1],rr,0,7);g.fill()}
+      g.beginPath();g.arc(q[0],q[1],rr,0,7);g.stroke()}
+    // glyph
+    g.save();g.translate(q[0],q[1]);
+    const ah=at(T[cs],s+0.3),hd=pr(ah);const ang=Math.atan2(hd[1]-q[1],hd[0]-q[0]);
+    g.rotate(live?ang:-Math.PI/2);g.fillStyle=live?col:"#56616b";
+    g.beginPath();g.moveTo(8,0);g.lineTo(-6,-5);g.lineTo(-3,0);g.lineTo(-6,5);g.closePath();g.fill();g.restore();
+    // tag
+    const held=!live&&s<T[cs][0][0];
+    const label=`SKF${cs}`+(held?(side==="R"&&cs==="421"&&s>14?" · HOLDING":" · ON PAD"):"");
+    g.font="700 11px ui-monospace,Menlo,monospace";const tw=g.measureText(label).width;
+    const lx=q[0]+(cs==="412"?12:-tw-14),ly=q[1]+(cs==="412"?16:-12);
+    g.fillStyle="rgba(8,11,14,.85)";g.fillRect(lx-4,ly-11,tw+8,15);
+    g.fillStyle=live?col:"#8b959f";g.fillText(label,lx,ly);
+  }
+  if(breach){g.font="700 11px ui-monospace,Menlo,monospace";g.fillStyle="#ff554a";const m=pr(lerp(pos["412"],pos["421"],.5));g.fillText(`${Math.round(d*1000)} m`,m[0]+14,m[1]+4)}
+  // legend
+  g.font="500 10px ui-monospace,Menlo,monospace";g.fillStyle="#56616b";g.fillText("rings = ½ of 1.5 km minimum separation · Simulation",12,h-10);
+}
+
+// ---------- loop ----------
+let perf=0;
+function tick(now){
+  const dt=Math.max(0,Math.min(.1,(now-lastTs)/1000));lastTs=now;perf=now/1000;
+  if(playing){
+    let ns=s+dt;
+    if(busy){const n=nextSpokenAt();if(ns>=n)ns=Math.max(s,n-0.001)}
+    s=ns;
+    S.forEach((l,i)=>{if(!idx.has(i)&&s>=l.s&&!(spoken(l)&&busy))fire(i)});
+    if(s>=END&&!busy)restart(true);
+  }
+  if(st.R.ledger[0].st==="ok"&&s>45)document.getElementById("okR").classList.add("on");
+  document.getElementById("clock").textContent=fmt(s);
+  drawMap("L");drawMap("R");
+  requestAnimationFrame(tick);
+}
+// ---------- controls ----------
+const $=id=>document.getElementById(id);
+$("play").onclick=()=>{playing=!playing;$("play").textContent=playing?"PAUSE":"PLAY"};
+$("restart").onclick=()=>restart(false);
+$("snd").onclick=()=>{SkyRadio.enabled?SkyRadio.disable():SkyRadio.enable();sndUI()};
+function sndUI(){$("snd").textContent=SkyRadio.enabled?"SOUND ON":"SOUND OFF";$("snd").classList.toggle("on",SkyRadio.enabled)}
+document.addEventListener("skyradio:enabled",sndUI);
+$("seg").onclick=e=>{const m=e.target.dataset.m;if(!m)return;mode=m;[...$("seg").children].forEach(b=>b.classList.toggle("on",b.dataset.m===m));restart(false)};
+addEventListener("keydown",e=>{if(e.key===" "){e.preventDefault();$("play").click()}if(e.key==="r")restart(false)});
+resetUI();setPassUI();requestAnimationFrame(tick);
+</script>
+</body>
+</html>

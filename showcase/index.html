@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#e8f2f2" />
+    <meta
+      name="description"
+      content="SkyFlow: a reproducible Bay Area air traffic coordination demo."
+    />
+    <title>SkyFlow — Recursive ATC Lab</title>
+  </head>
+  <body>
+    <div id="skyflow-demo">
+      <header class="sf-header">
+        <div class="sf-brand">
+          <span class="sf-brandmark"
+            ><i data-lucide="route" aria-hidden="true"></i></span
+          ><strong>skyflow<span> / </span></strong
+          ><span class="sf-subtitle">A shared sky. A coordinated future.</span>
+        </div>
+        <span class="sf-sim">SIMULATION</span>
+      </header>
+      <div class="sf-toolbar">
+        <div>
+          <span class="sf-eyebrow">BAY AREA CONTROL ROOM</span>
+          <h2>Make room for what’s next.</h2>
+        </div>
+        <div class="sf-modes" role="group" aria-label="Scheduling policy">
+          <button data-mode="fixed" aria-pressed="false">Fixed routes</button
+          ><button data-mode="adaptive" aria-pressed="true">Coordinated</button>
+        </div>
+      </div>
+      <div class="sf-scoreboard" aria-label="Full scenario outcomes">
+        <span class="sf-outcome-caption"
+          >Full-run outcomes · 28 identical requests</span
+        >
+        <div class="sf-stat">
+          <span>On-time arrivals</span>
+          <div>
+            <strong id="sf-ontime">—</strong
+            ><span class="sf-unit">/ 28 trips</span>
+          </div>
+          <p id="sf-ontime-delta"></p>
+        </div>
+        <div class="sf-stat">
+          <span>Mean arrival delay</span>
+          <div>
+            <strong id="sf-delay">—</strong><span class="sf-unit">min</span>
+          </div>
+          <p id="sf-delay-delta"></p>
+        </div>
+        <div class="sf-stat">
+          <span>Total distance</span>
+          <div>
+            <strong id="sf-distance">—</strong><span class="sf-unit">km</span>
+          </div>
+          <p id="sf-distance-delta"></p>
+        </div>
+      </div>
+      <div class="sf-workspace">
+        <section
+          class="sf-map"
+          aria-label="Three dimensional Bay Area traffic simulation"
+        >
+          <div
+            id="sf-scene"
+            role="img"
+            aria-label="Bay Area coastline with five concept vertiports, reserved air corridors and animated synthetic flights"
+          ></div>
+          <div id="sf-labels"></div>
+          <div class="sf-map-title">
+            <span class="sf-dot"></span> SAN FRANCISCO BAY
+            <span>SECTOR 01</span>
+          </div>
+          <div class="sf-weather">
+            <label
+              ><input id="sf-weather" type="checkbox" checked /><span
+                ><i data-lucide="cloud" aria-hidden="true"></i> Storm
+                scenario</span
+              ></label
+            ><small id="sf-weather-status">Cross-bay closure · min 08–24</small>
+          </div>
+          <div class="sf-map-legend">
+            <span><b class="sf-route-key"></b> Corridors</span
+            ><span><b class="sf-selected-key"></b> Selected route</span
+            ><span>Height exaggerated</span>
+          </div>
+          <div id="sf-loading">Preparing the airspace…</div>
+        </section>
+        <aside class="sf-inspector">
+          <div class="sf-inspector-heading">
+            <span class="sf-eyebrow">FLIGHT DESK</span
+            ><span class="sf-live-count" id="sf-airborne">0 airborne</span>
+          </div>
+          <label class="sf-flight-label" for="sf-flight">Inspect flight</label
+          ><select id="sf-flight"></select>
+          <div class="sf-trip">
+            <strong id="sf-from">SF</strong><span>→</span
+            ><strong id="sf-to">OAK</strong>
+          </div>
+          <div class="sf-trip-names" id="sf-trip-names"></div>
+          <div id="sf-flight-status" class="sf-flight-status">Scheduled</div>
+          <dl class="sf-facts">
+            <div>
+              <dt>Departure</dt>
+              <dd id="sf-departure"></dd>
+            </div>
+            <div>
+              <dt>Arrival / deadline</dt>
+              <dd id="sf-arrival"></dd>
+            </div>
+            <div>
+              <dt>Route</dt>
+              <dd id="sf-route"></dd>
+            </div>
+          </dl>
+          <div class="sf-trace-title">
+            <span class="sf-eyebrow">COORDINATION TRACE</span
+            ><span>RULE-BASED</span>
+          </div>
+          <ol class="sf-trace" id="sf-trace"></ol>
+          <div class="sf-guard">
+            <i data-lucide="shield-check" aria-hidden="true"></i
+            ><span
+              ><strong id="sf-conflicts">0 reservation conflicts</strong
+              ><small>Corridors · junctions · pads</small></span
+            >
+          </div>
+        </aside>
+        <aside class="sf-radio" aria-label="Sector radio">
+          <div class="sf-radio-head">
+            <span class="sf-eyebrow">SECTOR 01 · 123.450</span
+            ><span id="sf-radio-state" class="sf-radio-state">MONITORING</span>
+          </div>
+          <div class="sf-radio-controls">
+            <label class="sf-toggle"
+              ><input id="sf-voice" type="checkbox" checked /><span
+                >Voice</span
+              ></label
+            ><span id="sf-engine" class="sf-engine"
+              >browser voice · agent: rules</span
+            >
+          </div>
+          <ol id="sf-radio-log" class="sf-radio-log" aria-live="polite"></ol>
+          <form id="sf-pilot-form" class="sf-pilot">
+            <button type="button" id="sf-ptt" class="sf-ptt">
+              Hold to talk as pilot
+            </button>
+            <div class="sf-quick" role="group" aria-label="Sample pilot calls">
+              <button type="button" data-call="priority">Medical</button
+              ><button type="button" data-call="weather">
+                Unable · weather</button
+              ><button type="button" data-call="delay">Delay</button>
+            </div>
+            <div class="sf-pilot-text">
+              <input
+                id="sf-pilot-input"
+                autocomplete="off"
+                aria-label="Pilot transmission"
+                placeholder="SkyFlow 112, medical, request priority"
+              /><button type="submit">Send</button>
+            </div>
+          </form>
+        </aside>
+      </div>
+      <div class="sf-playback">
+        <button id="sf-play" class="sf-play">Play demo</button>
+        <div class="sf-scrub">
+          <div>
+            <label for="sf-time">Scenario time</label
+            ><output id="sf-clock" aria-live="off">12:00</output>
+          </div>
+          <input
+            id="sf-time"
+            type="range"
+            min="0"
+            max="120"
+            step="0.05"
+            value="12"
+            aria-label="Scenario time in minutes"
+          />
+        </div>
+        <label class="sf-speed"
+          >Speed<select id="sf-speed" aria-label="Playback speed">
+            <option value="0.4">24×</option>
+            <option value="1.2" selected>72×</option>
+            <option value="3">180×</option>
+          </select></label
+        ><button id="sf-end">See outcome</button>
+      </div>
+      <footer class="sf-footer">
+        <span id="sf-progress" aria-live="polite"
+          >Synthetic demand · deterministic scheduler</span
+        >
+        <details>
+          <summary>Model & sources</summary>
+          <div class="sf-provenance">
+            <p>
+              28 identical requests, two scheduling policies. Fixed routes wait
+              for the shortest route; coordination selects the earliest-arriving
+              feasible route. Both know the same forecast closure before
+              scheduling. Metrics cover every trip through completion; replay
+              shows the computed schedule.
+            </p>
+            <p>
+              One vehicle per undirected corridor, junction clearance, and
+              landing-pad reservation. Waiting occurs before takeoff. This is a
+              simplified resource model, not certified separation or a live
+              AI/aviation feed. Concept vertiports, buildings, flight demand and
+              weather are synthetic; vertical scale is illustrative.
+            </p>
+            <p>
+              Coastline:
+              <a
+                href="https://github.com/topojson/us-atlas"
+                target="_blank"
+                rel="noreferrer"
+                >US Atlas / Census</a
+              >. Visual reference:
+              <a
+                href="https://x.com/anxuanng/status/2110801686923264126"
+                target="_blank"
+                rel="noreferrer"
+                >An Xuan’s control room</a
+              >. Interaction research:
+              <a
+                href="https://x.com/benlimner/status/1992636511167172741"
+                target="_blank"
+                rel="noreferrer"
+                >Air Loom</a
+              >
+              and
+              <a
+                href="https://x.com/AhmedShahnab/status/2055830664503603390"
+                target="_blank"
+                rel="noreferrer"
+                >city-agent replay</a
+              >.
+            </p>
+          </div>
+        </details>
+      </footer>
+      <div id="sf-error" role="alert" hidden></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

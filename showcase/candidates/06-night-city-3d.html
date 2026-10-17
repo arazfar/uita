@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Night City</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<style>
+:root{--ink:#e8eef3;--mut:#93a1ad;--dim:#5f6d79;--cyan:#6fe3ff;--amber:#ffbf47;--red:#ff5a4f;--green:#4fd690;
+  --glass:rgba(10,16,24,.55);--edge:rgba(160,200,230,.16);--mono:'IBM Plex Mono',ui-monospace,monospace;--sans:'IBM Plex Sans',system-ui,sans-serif;--cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#03060a;color:var(--ink);font-family:var(--sans)}
+#gl{position:fixed;inset:0}
+#labels{position:fixed;inset:0;pointer-events:none}
+.glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);border:1px solid var(--edge);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+#tl{position:fixed;left:22px;top:20px;padding:12px 16px;display:flex;align-items:center;gap:16px}
+#tl .b{font-family:var(--cond);font-weight:700;font-size:18px;letter-spacing:.06em}
+#tl .b small{display:block;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.02em;color:var(--mut)}
+.sim{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--amber);border:1px solid rgba(255,191,71,.4);padding:2px 6px;border-radius:3px}
+#clock{font-family:var(--mono);font-size:24px;font-weight:500;min-width:112px}
+#phase{font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.1em;padding:5px 10px;border-radius:4px;border:1px solid rgba(79,214,144,.4);color:var(--green)}
+#phase.storm{color:#fff;background:rgba(200,40,32,.55);border-color:rgba(255,90,79,.7)}
+#phase.recovery{color:var(--amber);border-color:rgba(255,191,71,.45)}
+#score{position:fixed;right:22px;top:20px;display:grid;grid-template-columns:repeat(5,auto);padding:4px 4px}
+.k{padding:8px 14px;border-right:1px solid var(--edge)} .k:last-child{border-right:0}
+.k small{display:block;font-family:var(--cond);font-weight:600;font-size:10px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;white-space:nowrap}
+.k div{font-family:var(--mono);font-size:19px;font-weight:500;margin-top:2px;white-space:nowrap}
+.k div i{font-style:normal;font-size:12px;color:var(--dim)}
+.k .g{color:var(--green)} .k .r{color:var(--red)}
+#toasts{position:fixed;right:22px;top:104px;width:340px;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 12px;font-size:12.5px;line-height:1.4;transition:opacity .6s,transform .6s;border-left:3px solid var(--cyan)}
+.toast.REJECT{border-left-color:var(--red)} .toast.HUMAN{border-left-color:var(--amber)} .toast.WX{border-left-color:var(--red)} .toast.SPAWN{border-left-color:#7fb2ff}
+.toast .h{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--mut);margin-bottom:3px}
+.toast .v{font-family:var(--cond);font-weight:700;font-size:10px;letter-spacing:.1em;padding:1px 5px;border-radius:2px;background:rgba(79,214,144,.18);color:#9ff0c4}
+.toast.REJECT .v,.toast.WX .v{background:rgba(255,90,79,.2);color:#ffb3ad} .toast.HUMAN .v{background:rgba(255,191,71,.2);color:#ffd98f} .toast.SPAWN .v{background:rgba(127,178,255,.18);color:#bcd6ff}
+.toast .rs{color:var(--mut);font-size:11.5px}
+.toast.out{opacity:0;transform:translateX(20px)}
+#radio{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;width:min(820px,calc(100vw - 640px));padding:12px 18px 14px}
+#radio .top{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--mut);margin-bottom:6px}
+#hbBadge{font-family:var(--cond);font-weight:700;font-size:11px;letter-spacing:.08em;padding:2px 8px;border-radius:3px;color:var(--dim);border:1px solid var(--edge)}
+#hbBadge.ok{color:#9ff0c4;border-color:rgba(79,214,144,.5)} #hbBadge.bad{color:#fff;background:rgba(200,40,32,.7);border-color:transparent}
+.rl{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:baseline}
+.rl .w{font-family:var(--cond);font-weight:700;font-size:11px;letter-spacing:.08em;text-align:center;border-radius:3px;padding:1px 0}
+.rl.CTL .w{background:var(--cyan);color:#041018} .rl.PLT .w{background:#cfd8e0;color:#0b1218} .rl.DL .w{border:1px solid var(--edge);color:var(--mut)}
+#prev{opacity:.5;font-size:13px;margin-bottom:5px;min-height:18px}
+#cur .t{font-size:17px;line-height:1.35;min-height:23px}
+#cur.bad .t{color:#ffb3ad} #cur.neg .t{color:#fff;font-weight:500}
+.caret{display:inline-block;width:7px;height:15px;background:var(--cyan);margin-left:3px;vertical-align:-2px;animation:bl .7s infinite}
+@keyframes bl{50%{opacity:0}}
+#ctl{position:fixed;left:22px;bottom:22px;padding:6px;display:flex;gap:6px}
+#ctl button{background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--ink);font-family:var(--mono);font-size:12px;height:32px;padding:0 12px;border-radius:6px;cursor:pointer}
+#ctl button:hover{background:rgba(255,255,255,.12)}
+#legend{position:fixed;left:22px;bottom:72px;padding:10px 12px;font-family:var(--mono);font-size:10.5px;color:var(--mut);display:flex;flex-direction:column;gap:5px}
+#legend span{display:flex;align-items:center;gap:7px} #legend i{width:18px;height:3px;border-radius:2px;display:inline-block}
+.vl{font-family:var(--mono);font-size:11px;color:#dff7ff;text-shadow:0 0 6px #000,0 0 2px #000;text-align:center;line-height:1.15;transform:translateY(-14px)}
+.vl b{font-family:var(--cond);font-size:13px;letter-spacing:.06em;color:#fff}
+.vl small{display:block;color:#9fb6c4;font-size:9.5px}
+.fl{font-family:var(--mono);font-size:10px;color:#d6f6ff;background:rgba(4,12,20,.6);border:1px solid rgba(111,227,255,.35);padding:0 4px;border-radius:3px;transform:translate(14px,-12px);white-space:nowrap}
+.fl.hot{border-color:var(--red);color:#ffd0cc}
+.fl{pointer-events:auto;cursor:pointer} .fl.sel{background:rgba(111,227,255,.85);color:#041018;border-color:#fff}
+#cam{position:fixed;right:22px;bottom:22px;width:272px;padding:10px;display:flex;flex-direction:column;gap:7px}
+#cam .row{display:flex;gap:5px}
+#cam button{flex:1;height:30px;background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--ink);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer;white-space:nowrap;padding:0 6px}
+#cam button:hover{background:rgba(255,255,255,.13)} #cam button.on{background:rgba(111,227,255,.18);border-color:rgba(111,227,255,.6);color:#dff8ff}
+#cam button kbd{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-right:4px}
+#cam .z{flex:0 0 34px;font-size:15px}
+#shot{font-family:var(--cond);font-weight:600;font-size:11px;letter-spacing:.08em;color:var(--mut);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bCine.on{background:rgba(255,191,71,.16)!important;border-color:rgba(255,191,71,.55)!important;color:#ffe3a8!important}
+#resume{position:fixed;left:50%;transform:translateX(-50%);top:22px;display:none;align-items:center;gap:8px;padding:8px 14px;font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.08em;color:#ffe3a8;cursor:pointer;border-color:rgba(255,191,71,.5)}
+#resume:hover{background:rgba(40,30,10,.7)}
+body::before,body::after{content:"";position:fixed;left:0;right:0;height:0;background:#000;z-index:5;transition:height .6s ease;pointer-events:none}
+body::before{top:0} body::after{bottom:0} body.lb::before,body.lb::after{height:7vh}
+
+.jl{font-family:var(--cond);font-weight:700;font-size:12px;color:rgba(200,225,240,.7);text-shadow:0 0 4px #000}
+#end{position:fixed;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none}
+#end .box{padding:22px 30px;text-align:center}
+#end h3{font-family:var(--cond);font-size:13px;letter-spacing:.18em;color:var(--mut);font-weight:600}
+#end .big{display:flex;gap:30px;margin-top:12px;font-family:var(--mono)} #end .big div{font-size:32px} #end .big small{display:block;font-family:var(--sans);font-size:11px;color:var(--mut)}
+#err{position:fixed;inset:auto 0 50% 0;text-align:center;color:var(--mut);font-family:var(--mono);font-size:12px}
+
+#bSnd .w1,#bSnd .w2{opacity:.25} #bSnd.snd-on .w1,#bSnd.snd-on .w2{opacity:1} #bSnd.snd-on{border-color:#3d8a63;color:#bff0d6}
+#txl{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--dim);display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border-radius:3px;border:1px solid transparent}
+#txl.live{color:#fff;background:#7d2420;border-color:#b23a33}
+#txl i{width:7px;height:7px;border-radius:50%;background:#ff6b62;animation:blinkTx .5s infinite alternate}
+@keyframes blinkTx{to{opacity:.3}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="labels"></div>
+<div id="err">loading three.js…</div>
+<div id="tl" class="glass"><div class="b">SKYFLOW<small>Recursive ATC · SF Bay</small></div><span class="sim">SIMULATION</span><div id="clock">T+00:00</div><div id="phase">NOMINAL</div></div>
+<div id="score" class="glass">
+  <div class="k"><small>On time · agents / static</small><div><span class="g" id="kOk">0</span><i>/28 </i><span class="r" id="kSt">0</span><i>/28</i></div></div>
+  <div class="k"><small>Max delay</small><div id="kDel">0.0<i> min</i></div></div>
+  <div class="k"><small>Conflicts</small><div id="kCon">0</div></div>
+  <div class="k"><small>Human</small><div id="kHum">0</div></div>
+  <div class="k"><small>Radio tx</small><div id="kRad">0</div></div>
+</div>
+<div id="toasts"></div>
+<div id="legend" class="glass"><span><i style="background:#6fe3ff"></i>corridor reserved</span><span><i style="background:#ff5a4f"></i>closed · weather</span><span><i style="background:#ffbf47"></i>metered</span></div>
+<div id="radio" class="glass"><div class="top"><span><span id="freq">BAY APPROACH 128.35</span> <span id="txl">RX</span></span><span id="hbBadge">HEARBACK</span></div><div id="prev" class="rl"></div><div id="cur" class="rl"><span class="w"></span><span class="t"></span></div></div>
+<div id="resume" class="glass">▶ RESUME CINEMATIC <span style="color:var(--dim);font-family:var(--mono);font-weight:400">C</span></div>
+<div id="cam" class="glass">
+  <div id="shot">CINEMATIC</div>
+  <div class="row"><button data-p="1"><kbd>1</kbd>Overview</button><button data-p="2"><kbd>2</kbd>Tower</button><button data-p="3"><kbd>3</kbd>Chase</button></div>
+  <div class="row"><button data-p="4"><kbd>4</kbd>Storm</button><button data-p="5"><kbd>5</kbd>OAK pad</button><button class="z" id="zOut" title="Zoom out (−)">−</button><button class="z" id="zIn" title="Zoom in (+)">+</button></div>
+  <div class="row"><button id="bCine" class="on"><kbd>C</kbd>Cinematic</button><button id="bLb">Letterbox</button></div>
+</div>
+<div id="ctl" class="glass"><button id="bSnd" title="Radio voice on/off"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="w1" d="M16 9a4 4 0 0 1 0 6"/><path class="w2" d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg><span>Sound off</span></button><button id="bPlay">❚❚ Pause</button><button id="bRe">↺ Restart</button></div>
+<div id="end"><div class="box glass"><h3>RUN COMPLETE · SIMULATION</h3><div class="big"><div style="color:var(--green)">28/28<small>agent team on time</small></div><div style="color:var(--red)">10/28<small>static plan on time</small></div><div>0<small>conflicts</small></div><div>+14.3%<small>distance flown</small></div></div></div></div>
+<script src="radio-audio.js?v=3"></script>
+<script>
+// ---- SkyFlow scripted scenario (Simulation) ----
+const SIM = (() => {
+  const LOOP = 90, RATE = 0.95;               // seconds per loop, sim-minutes per second
+  const STORM = [8, 24];                       // C–E closed, sim minutes
+  const SPEED = 2.5;                           // km per sim minute (150 km/h)
+  const toT = m => m / RATE, toM = t => t * RATE;
+  const VP = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865] };
+  const JN = { W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
+  const NODES = { ...VP, ...JN };
+  const CORR = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
+  const PADS = ['SF', 'MAR', 'SFO', 'OAK', 'BER'];
+  const PADNAME = { SF: 'San Francisco', MAR: 'Marin', SFO: 'San Francisco International', OAK: 'Oakland', BER: 'Berkeley' };
+  const JNAME = { W: 'Whiskey', C: 'Charlie', E: 'Echo' };
+  const DIG = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'niner'];
+  const spoken = n => String(n).split('').map(d => DIG[+d]).join(' ');
+  const key = (a, b) => CORR.includes(a + '-' + b) ? a + '-' + b : b + '-' + a;
+  const km = (a, b) => { const p = NODES[a], q = NODES[b]; return Math.hypot((p[0] - q[0]) * 88, (p[1] - q[1]) * 111); };
+  const adj = {};
+  CORR.forEach(c => { const [a, b] = c.split('-'); (adj[a] ||= []).push(b); (adj[b] ||= []).push(a); });
+  function path(from, to, avoid) {
+    const d = { [from]: 0 }, prev = {}, q = new Set(Object.keys(NODES));
+    while (q.size) {
+      let u = null; q.forEach(n => { if (d[n] !== undefined && (u === null || d[n] < d[u])) u = n; });
+      if (u === null || u === to) break; q.delete(u);
+      for (const v of adj[u]) { if (avoid && key(u, v) === avoid) continue; const nd = d[u] + km(u, v); if (d[v] === undefined || nd < d[v]) { d[v] = nd; prev[v] = u; } }
+    }
+    const p = [to]; while (p[0] !== from) p.unshift(prev[p[0]]); return p;
+  }
+  const routeKm = r => r.slice(1).reduce((s, n, i) => s + km(r[i], n), 0);
+  const viaText = r => { const j = r.filter(n => JN[n]); if (!j.length) return 'direct'; if (j.length === 1) return JNAME[j[0]]; return j.slice(0, -1).map((x, i) => JNAME[x] + '-' + JNAME[j[i + 1]]).join(', '); };
+  const viaShort = r => { const j = r.filter(n => JN[n]); return j.length ? j.join('–') : 'DCT'; };
+
+  const PAIRS = ['SF>BER', 'SFO>OAK', 'SFO>SF', 'MAR>OAK', 'OAK>SF', 'SF>BER', 'BER>OAK', 'SF>OAK', 'OAK>SF', 'SF>MAR', 'SFO>OAK', 'SF>OAK', 'BER>SF', 'OAK>BER',
+    'SF>SFO', 'MAR>OAK', 'OAK>SFO', 'SF>BER', 'BER>OAK', 'SF>OAK', 'SFO>SF', 'OAK>SF', 'MAR>SF', 'SF>BER', 'SFO>OAK', 'BER>SF', 'SF>OAK', 'OAK>MAR'];
+  const HOLD = { 6: 1.5, 16: 2 };
+  const STATIC_OK = new Set([0, 1, 2, 5, 9, 13, 17, 20, 23, 27]);
+  const ALT = [1200, 1500, 1800];
+
+  function segs(route, dep, from, to) {
+    const s = [{ key: from, kind: 'pad', m0: dep - 1, m1: dep + 0.3 }]; let m = dep;
+    for (let i = 1; i < route.length; i++) { const d = km(route[i - 1], route[i]) / SPEED; s.push({ key: key(route[i - 1], route[i]), kind: 'corr', m0: m, m1: m + d, a: route[i - 1], b: route[i] }); m += d; }
+    s.push({ key: to, kind: 'pad', m0: m, m1: m + 1.4 }); return s;
+  }
+  const flights = PAIRS.map((p, i) => {
+    const [from, to] = p.split('>'), release = 2.5 * i, cs = 101 + i;
+    const A = path(from, to), B = path(from, to, 'C-E');
+    const dep = release + (HOLD[i] || 0);
+    const sA = segs(A, release, from, to);
+    const ce = sA.find(s => s.key === 'C-E');
+    const affected = !!ce && ce.m1 > STORM[0] && ce.m0 < STORM[1];
+    const route = affected ? B : A;
+    const s = segs(route, dep, from, to);
+    const sched = sA[sA.length - 1].m0, arr = s[s.length - 1].m0;
+    return { i, cs, csSp: spoken(cs), from, to, A, B, route, affected, release, dep, arr, sched, delay: Math.max(0, arr - sched), segsA: sA, segs: s,
+      alt: ALT[i % 3], kmA: routeKm(A), kmR: routeKm(route), staticOk: STATIC_OK.has(i), plans: [] };
+  });
+
+  // ---- radio + events ----
+  const ev = [];
+  const fixed = [];   // occupied radio intervals
+  const altSp = a => a === 1200 ? 'one thousand two hundred' : a === 1500 ? 'one thousand five hundred' : 'one thousand eight hundred';
+  const fieldsOf = (f, route) => ({ callsign: 'SkyFlow ' + f.cs, route: viaShort(route), dest: f.to, alt: f.alt });
+  const FREQ = { BAY: '128.35', EAST: '124.90' };
+  const freqOf = f => (f.from === 'OAK' || f.from === 'BER') ? 'EAST' : 'BAY';
+  function radio(t, who, f, text, dur, freq) {
+    ev.push({ t, type: 'radio', who, cs: f ? f.cs : null, text, dur, freq, mhz: FREQ[freq] }); fixed.push([t, t + dur, freq]);
+  }
+  const busy = (t, d, fq) => fixed.some(([a, b, q]) => q === fq && t < b + 0.12 && t + d > a - 0.12);
+  function slot(t, d, fq) { while (busy(t, d, fq)) t += 0.1; return t; }
+  function exchange(desired, f, route, kind, fq = freqOf(f)) {
+    const v = viaText(route), via = v === 'direct' ? 'direct' : 'via ' + v;
+    const c = kind === 'reroute'
+      ? `SkyFlow ${f.csSp}, reroute ${via}, ${PADNAME[f.to]}. Charlie-Echo closed.`
+      : `SkyFlow ${f.csSp}, cleared ${PADNAME[f.to]} ${via}, maintain ${altSp(f.alt)}.`;
+    const r = kind === 'reroute'
+      ? `Reroute ${via}, ${PADNAME[f.to]}, SkyFlow ${f.csSp}.`
+      : `Cleared ${PADNAME[f.to]} ${via}, ${altSp(f.alt)}, SkyFlow ${f.csSp}.`;
+    const d1 = Math.min(1.9, Math.max(1.1, c.length * 0.017)), d2 = Math.min(1.6, Math.max(1.0, r.length * 0.017));
+    const t1 = slot(desired, d1 + d2 + 0.25, fq);
+    radio(t1, 'CTL', f, c, d1, fq);
+    radio(t1 + d1 + 0.25, 'PLT', f, r, d2, fq);
+    const t3 = t1 + d1 + 0.25 + d2 + 0.05;
+    ev.push({ t: t3, type: 'hearback', cs: f.cs, cleared: fieldsOf(f, route), readback: fieldsOf(f, route), ok: true });
+    return t3 + 0.15;
+  }
+  const T = toT;
+  ev.push({ t: 0.2, type: 'spawn', agent: 'coordinator', parent: null, text: 'Coordinator online · 28 trips filed' });
+
+  // scripted voice loop for SkyFlow 108 (index 7)
+  const f8 = flights[7];
+  const v0 = 10.5;
+  const c108 = `SkyFlow one zero eight, cleared Oakland via Whiskey, Whiskey-Echo, maintain one thousand two hundred.`;
+  const r108bad = `Cleared Oakland via Charlie-Echo, one thousand two hundred, SkyFlow one zero eight.`;
+  const n108 = `SkyFlow one zero eight, negative. Charlie-Echo is closed. Cleared via Whiskey, Whiskey-Echo. Read back.`;
+  const r108 = `Via Whiskey, Whiskey-Echo, Oakland, one thousand two hundred, SkyFlow one zero eight.`;
+  radio(v0, 'CTL', f8, c108, 1.9, 'BAY');
+  radio(v0 + 2.1, 'PLT', f8, r108bad, 1.6, 'BAY');
+  ev.push({ t: v0 + 3.8, type: 'hearback', cs: 108, cleared: fieldsOf(f8, f8.route), readback: { ...fieldsOf(f8, f8.route), route: 'C–E' }, ok: false, why: 'Route: read back C–E (closed) vs cleared W–E' });
+  ev.push({ t: v0 + 3.9, type: 'propose', agent: 'hearback', target: 'C-E', f: 7, text: 'Commit SkyFlow 108 as read back (C–E)', verdict: 'REJECT', reason: 'Readback C–E ≠ cleared W–E · C–E closed', ghost: { key: 'C-E', m0: f8.segsA.find(s => s.key === 'C-E').m0, m1: f8.segsA.find(s => s.key === 'C-E').m1 } });
+  radio(v0 + 4.2, 'CTL', f8, n108, 1.9, 'BAY');
+  radio(v0 + 6.3, 'PLT', f8, r108, 1.5, 'BAY');
+  ev.push({ t: v0 + 7.9, type: 'hearback', cs: 108, cleared: fieldsOf(f8, f8.route), readback: fieldsOf(f8, f8.route), ok: true, corrected: true });
+  f8.commitT = v0 + 8.05;
+
+  // storm
+  const tS = T(STORM[0]), tR = T(STORM[1]);
+  ev.push({ t: tS, type: 'storm', text: 'Unforecast cell over C–E · 45 dBZ, tops FL180, drifting NE' });
+  ev.push({ t: tS + 0.2, type: 'kernel', text: 'C–E CLOSED T+08 → T+24 (restrictive · auto-applied)' });
+  ev.push({ t: tS + 0.5, type: 'spawn', agent: 'sector.central', parent: 'coordinator', text: 'Coordinator spawned sector.central' });
+  ev.push({ t: tS + 0.7, type: 'spawn', agent: 'sector.east', parent: 'coordinator', text: 'Coordinator spawned sector.east' });
+  ev.push({ t: tS + 1.0, type: 'spawn', agent: 'pad.OAK', parent: 'sector.east', text: 'sector.east spawned pad.OAK' });
+  ev.push({ t: tS + 1.2, type: 'spawn', agent: 'pad.SF', parent: 'sector.central', text: 'sector.central spawned pad.SF' });
+  const f5 = flights[4];
+  const ce5 = f5.segsA.find(s => s.key === 'C-E');
+  ev.push({ t: tS + 1.5, type: 'propose', agent: 'sector.central', f: 4, text: `Keep SkyFlow 105 on C–E, cross at T+${ce5.m0.toFixed(0)}`, verdict: 'REJECT', reason: 'C–E closed T+08–T+24', ghost: { key: 'C-E', m0: ce5.m0, m1: ce5.m1 } });
+  ev.push({ t: tR, type: 'reopen', text: 'C–E REOPENED T+24 · metering 1 per 3 min' });
+
+  // commits: initial plans, re-plans
+  const desiredOf = f => Math.max(0.05 + f.i * 0.1, T(f.release - 5));
+  const agentOf = f => (f.from === 'OAK' || f.to === 'OAK') ? 'sector.east' : 'sector.central';
+  const voice = f => ((f.i === 12) || (f.affected && desiredOf(f) < tS)) && desiredOf(f) > 0.3;
+  function initial(f, desired, route, segs) {
+    if (voice(f)) { const t0 = exchange(desired, f, route, 'clear'); ev.push({ t: t0, type: 'commit', f: f.i, route, segs }); return t0; }
+    ev.push({ t: desired, type: 'datalink', cs: f.cs, text: `SkyFlow ${f.cs} ${f.from}→${f.to} ${viaShort(route)} · datalink clearance WILCO` });
+    ev.push({ t: desired + 0.3, type: 'commit', f: f.i, route, segs, datalink: true }); return desired + 0.3;
+  }
+  const pre = flights.filter(f => f.i !== 7 && desiredOf(f) < tS), post = flights.filter(f => f.i !== 7 && desiredOf(f) >= tS);
+  pre.forEach(f => { f.commitT = initial(f, desiredOf(f), f.affected ? f.A : f.route, f.affected ? f.segsA : f.segs); });
+  pre.filter(f => f.affected).forEach((f, k) => {
+    const tp = tS + 1.0 + k * 1.2;
+    ev.push({ t: tp, type: 'propose', agent: agentOf(f), f: f.i, text: `Reroute SkyFlow ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'no conflicts · pads within capacity' });
+    const t1 = exchange(tp + 0.2, f, f.route, 'reroute', 'EAST');
+    ev.push({ t: t1, type: 'commit', f: f.i, route: f.route, segs: f.segs, supersede: true });
+    f.recommitT = t1;
+  });
+  { const f = flights[7];
+    ev.push({ t: v0 - 0.4, type: 'propose', agent: 'sector.central', f: 7, text: `Plan SkyFlow 108 SF→OAK via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'pending readback' });
+    ev.push({ t: f.commitT, type: 'commit', f: 7, route: f.route, segs: f.segs, note: 'after corrected readback' }); }
+  post.forEach(f => {
+    const desired = desiredOf(f);
+    if (f.affected) ev.push({ t: desired - 0.3, type: 'propose', agent: agentOf(f), f: f.i, text: `Plan SkyFlow ${f.cs} ${f.from}→${f.to} via W–E (+${(f.kmR - f.kmA).toFixed(1)} km)`, verdict: 'ACCEPT', reason: 'C–E avoided · 0 conflicts' });
+    if (HOLD[f.i]) ev.push({ t: desired - 0.5, type: 'propose', agent: 'pad.OAK', f: f.i, text: `Ground hold SkyFlow ${f.cs} at ${f.from}, ${HOLD[f.i]} min`, verdict: 'ACCEPT', reason: f.i === 6 ? 'absorbs OAK pad peak' : 'medical priority to OAK pad 1' });
+    f.commitT = initial(f, desired, f.route, f.segs);
+  });
+  // rejected proposals with ghost bars
+  const f7 = flights[6], arr7 = f7.segsA[f7.segsA.length - 1];
+  ev.push({ t: flights[6].commitT - 1.4, type: 'propose', agent: 'pad.OAK', f: 6, text: `Land SkyFlow 107 OAK at T+${arr7.m0.toFixed(0)} as filed`, verdict: 'REJECT', reason: 'OAK pads 2/2 occupied in window', ghost: { key: 'OAK', m0: arr7.m0, m1: arr7.m1 } });
+  const f9 = flights[8], we9 = f9.segs.find(s => s.key === 'W-E');
+  ev.push({ t: flights[8].commitT + 1.2, type: 'propose', agent: 'sector.east', f: 8, text: 'Advance SkyFlow 109 two minutes on E–W', verdict: 'REJECT', reason: 'separation 50 s < 90 s behind SkyFlow 108', ghost: { key: 'W-E', m0: we9.m0 - 2, m1: we9.m1 - 2 } });
+
+  // human approvals (consequential / permissive actions)
+  const APPROVALS = [
+    { id: 'H-1', open: tR - 2.6, decide: tR - 0.6, title: 'Reopen corridor C–E', by: 'sector.central', why: 'Cell cleared corridor buffer 6 min ago · 2 PIREPs smooth', impact: 'Permissive action · metered 1 per 3 min for 15 min', },
+    { id: 'H-2', open: T(flights[15].release - 6.5), decide: T(flights[15].release - 6.5) + 2.2, title: 'Medical priority · SkyFlow 116', by: 'pad.OAK', why: 'Patient transfer MAR → OAK, requested by operator', impact: 'SkyFlow 117 ground-holds 2 min at OAK' },
+    { id: 'H-3', open: T(46), decide: T(46) + 2.4, title: 'Return C–E to full capacity', by: 'coordinator', why: '10 min nominal after reopen · no deviations', impact: 'Ends metering · restores filed routes' },
+  ];
+  APPROVALS.forEach(a => { ev.push({ t: a.open, type: 'approval-open', a }); ev.push({ t: a.decide, type: 'approval-decide', a }); });
+  ev.push({ t: T(46) + 2.5, type: 'kernel', text: 'C–E metering lifted · nominal ops' });
+
+  ev.sort((a, b) => a.t - b.t);
+  ev.forEach((e, k) => e.k = k);
+  const commitsOf = i => ev.filter(e => e.type === 'commit' && e.f === i);
+  flights.forEach(f => { f.firstCommitT = Math.min(...commitsOf(f.i).map(e => e.t)); });
+
+  function phase(t) {
+    if (t < tS) return { id: 'calm', label: 'NOMINAL' };
+    if (t < tR) return { id: 'storm', label: 'WX CELL · C–E CLOSED' };
+    if (t < T(46) + 2.5) return { id: 'recovery', label: 'RECOVERY · C–E METERED' };
+    return { id: 'done', label: 'NOMINAL · RECOVERED' };
+  }
+  function flightState(f, t) {
+    const m = toM(t);
+    if (t < f.firstCommitT) return 'pending';
+    if (m < f.dep) return 'cleared';
+    if (m < f.arr) return 'airborne';
+    return 'landed';
+  }
+  // position along route at sim minute m: returns {a,b,u} or null
+  function where(f, t) {
+    const m = toM(t); const route = (f.recommitT && t < tS + 1.2) ? f.A : f.route;
+    const sg = (route === f.A ? f.segsA : f.segs).filter(s => s.kind === 'corr');
+    const off = route === f.A ? f.release : 0;
+    for (const s of sg) if (m >= s.m0 && m < s.m1) return { a: s.a, b: s.b, u: (m - s.m0) / (s.m1 - s.m0), key: s.key };
+    return null;
+  }
+  function score(t) {
+    const m = toM(t); let landed = 0, ok = 0, st = 0, maxDelay = 0;
+    flights.forEach(f => { if (m >= f.arr) { landed++; if (f.delay < 5) ok++; if (f.staticOk) st++; maxDelay = Math.max(maxDelay, f.delay); } });
+    const human = APPROVALS.filter(a => t >= a.decide).length;
+    const radioN = ev.filter(e => e.type === 'radio' && e.t <= t).length;
+    return { landed, ok, st, maxDelay, human, radio: radioN, conflicts: 0 };
+  }
+  const totA = flights.reduce((s, f) => s + f.kmA, 0), totR = flights.reduce((s, f) => s + f.kmR, 0);
+  const clock = t => { const m = toM(t); const mm = Math.floor(m), ss = Math.floor((m - mm) * 60); return 'T+' + String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0'); };
+  return { LOOP, RATE, STORM, toT, toM, VP, JN, NODES, CORR, PADS, PADNAME, flights, events: ev, APPROVALS, phase, flightState, where, score, clock, tS, tR, key, viaShort,
+    HEADLINE: { staticOk: 10, agentOk: 28, distPct: 14.3, simDistPct: ((totR / totA - 1) * 100) } };
+})();
+
+// ---- playback clock (holds while the radio frequency is busy) ----
+const PLAY = (() => {
+  let t = 0, playing = true, last = performance.now(), cbs = [], holdT = Infinity, holdP = null;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (playing) { const prev = t; t += dt; if (t > holdT) t = Math.max(prev, holdT); if (t >= SIM.LOOP) { t = 0; clear(); cbs.forEach(c => c('restart')); } }
+    requestAnimationFrame(frame);
+  }
+  function clear() { holdT = Infinity; holdP = null; if (window.SkyRadio) SkyRadio.flush(); }
+  requestAnimationFrame(frame);
+  return {
+    get t() { return t; }, get playing() { return playing; }, get holding() { return holdP !== null && t >= holdT - 0.01; },
+    toggle() { playing = !playing; return playing; },
+    restart() { t = 0; clear(); cbs.forEach(c => c('restart')); }, on(c) { cbs.push(c); },
+    seek(x) { t = x; clear(); cbs.forEach(c => c('restart')); },
+    holdUntil(T, p) { holdT = T - 0.02; holdP = p; p.finally(() => { if (holdP === p) { holdT = Infinity; holdP = null; } }); },
+  };
+})();
+// ---- voice: every radio line goes through SkyRadio; the clock waits for it ----
+const VOICE = (() => {
+  const radioEv = SIM.events.filter(e => e.type === 'radio');
+  const spk = e => e.who === 'CTL' ? 'atc' : 'pilot';
+  const key = e => 'SKF' + e.cs;
+  function fire(e) {
+    if (!window.SkyRadio || !SkyRadio.enabled) return;
+    if (PLAY.t - e.t > 0.6) return;                      // fast-forward after a seek: stay silent
+    const p = SkyRadio.say(e.text, spk(e), key(e));
+    const next = SIM.events.find(x => x.t > e.t && (x.type === 'radio' || (x.type === 'hearback' && x.cs === e.cs)));
+    if (next) PLAY.holdUntil(next.t, Promise.resolve(p));
+  }
+  addEventListener('DOMContentLoaded', () => { if (window.SkyRadio) SkyRadio.prefetch(radioEv.map(e => ({ text: e.text, speaker: spk(e), key: key(e) }))); });
+  return { fire };
+})();
+// ?t=30 query param seeks for screenshots
+(() => { const q = new URLSearchParams(location.search).get('t'); if (q) setTimeout(() => PLAY.seek(+q), 50); })();
+
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+document.getElementById('err').remove();
+const $ = id => document.getElementById(id);
+const P = ([lon, lat], y = 0) => new THREE.Vector3((lon + 122.35) * 88, y, -(lat - 37.75) * 111);
+
+// ---------- renderer ----------
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x03060b);
+scene.fog = new THREE.FogExp2(0x050a12, 0.022);
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.05, 400);
+const labelR = new CSS2DRenderer({ element: $('labels') }); labelR.setSize(innerWidth, innerHeight);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.85, 0.55, 0.18);
+composer.addPass(bloom); composer.addPass(new OutputPass());
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); labelR.setSize(innerWidth, innerHeight); });
+scene.add(new THREE.HemisphereLight(0x3a5577, 0x05070a, 0.55));
+const moon = new THREE.DirectionalLight(0x8aa6d6, 0.5); moon.position.set(-20, 30, 10); scene.add(moon);
+
+// ---------- water + land ----------
+const water = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x06101c, roughness: 0.28, metalness: 0.7 }));
+water.rotation.x = -Math.PI / 2; water.position.y = -0.01; scene.add(water);
+const LAND = [
+  [[-122.53, 37.79], [-122.48, 37.811], [-122.41, 37.809], [-122.385, 37.792], [-122.388, 37.75], [-122.375, 37.71], [-122.36, 37.64], [-122.385, 37.58], [-122.53, 37.58], [-122.52, 37.70]],
+  [[-122.57, 37.82], [-122.48, 37.829], [-122.455, 37.86], [-122.47, 37.91], [-122.5, 37.95], [-122.6, 37.95]],
+  [[-122.34, 37.97], [-122.315, 37.89], [-122.30, 37.835], [-122.315, 37.81], [-122.285, 37.79], [-122.245, 37.745], [-122.21, 37.69], [-122.15, 37.62], [-122.05, 37.58], [-122.05, 37.97]],
+  [[-122.30, 37.785], [-122.235, 37.755], [-122.22, 37.765], [-122.285, 37.792]],
+];
+const landMat = new THREE.MeshStandardMaterial({ color: 0x0e1620, roughness: 0.95 });
+const polys = LAND.map(poly => poly.map(p => P(p)));
+polys.forEach(pts => {
+  const sh = new THREE.Shape(pts.map(v => new THREE.Vector2(v.x, -v.z)));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: false }); g.rotateX(-Math.PI / 2);
+  scene.add(new THREE.Mesh(g, landMat));
+  const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts.map(v => v.clone().setY(0.035))), new THREE.LineBasicMaterial({ color: 0x1d4a5e, transparent: true, opacity: 0.9 }));
+  scene.add(line);
+});
+function inPoly(x, z, pts) { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a.z > z) !== (b.z > z) && x < (b.x - a.x) * (z - a.z) / (b.z - a.z) + a.x) c = !c; } return c; }
+
+// ---------- buildings ----------
+function windowTex() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, 64, 128);
+  for (let y = 4; y < 124; y += 6) for (let x = 3; x < 61; x += 5) { const r = Math.random(); if (r < 0.34) { g.fillStyle = r < 0.08 ? '#a9ddff' : r < 0.28 ? '#ffd08f' : '#fff0d2'; g.globalAlpha = 0.45 + Math.random() * 0.55; g.fillRect(x, y, 3, 2); } }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; return t;
+}
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const CENTERS = [[[-122.398, 37.791], 1.9, 1.1], [[-122.27, 37.805], 0.9, 1.1], [[-122.27, 37.868], 0.35, 1.0], [[-122.43, 37.77], 0.3, 2.6], [[-122.395, 37.62], 0.15, 1.2], [[-122.25, 37.76], 0.25, 2.0]].map(([p, h, r]) => ({ v: P(p), h, r }));
+const boxes = [];
+for (let n = 0; n < 14000 && boxes.length < 5200; n++) {
+  const x = -16 + rnd() * 30, z = -15 + rnd() * 34;
+  const pi = polys.findIndex(p => inPoly(x, z, p)); if (pi < 0) continue;
+  if ([...Object.values(SIM.VP), [-122.392, 37.612]].some(v => { const q = P(v); return Math.hypot(x - q.x, z - q.z) < 0.45; })) continue;
+  let dens = 0.1, hmax = 0.06;
+  CENTERS.forEach(c => { const d = Math.hypot(x - c.v.x, z - c.v.z); const k = Math.exp(-(d * d) / (c.r * c.r)); dens += k; hmax = Math.max(hmax, c.h * k); });
+  if (rnd() > dens) continue;
+  const h = 0.04 + Math.pow(rnd(), 1.8) * hmax + rnd() * 0.04;
+  const fp = h > 0.4 ? 0.09 + rnd() * 0.06 : 0.05 + rnd() * 0.08;
+  boxes.push([x, z, h, fp, fp * (0.7 + rnd() * 0.6)]);
+}
+const bGeo = new THREE.BoxGeometry(1, 1, 1); bGeo.translate(0, 0.5, 0);
+const bMat = new THREE.MeshStandardMaterial({ color: 0x0b1119, roughness: 0.85, metalness: 0.1, emissive: 0xffffff, emissiveMap: windowTex(), emissiveIntensity: 3.4 });
+const bMesh = new THREE.InstancedMesh(bGeo, bMat, boxes.length);
+const mtx = new THREE.Matrix4();
+boxes.forEach((b, i) => { mtx.compose(new THREE.Vector3(b[0], 0.03, b[1]), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.25), new THREE.Vector3(b[3], b[2], b[4])); bMesh.setMatrixAt(i, mtx); });
+scene.add(bMesh);
+// street-light dust
+{ const pts = []; for (let n = 0; n < 26000 && pts.length < 18000; n++) { const x = -17 + rnd() * 34, z = -16 + rnd() * 36; if (polys.some(p => inPoly(x, z, p))) pts.push(x, 0.04, z); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffb46b, size: 0.035, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }))); }
+// bridges
+function bridge(a, b, col, towers) {
+  const A = P(a, 0.08), B = P(b, 0.08);
+  const curve = new THREE.QuadraticBezierCurve3(A, A.clone().lerp(B, 0.5).setY(0.12), B);
+  const pts = curve.getPoints(60);
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: col })));
+  const lg = new THREE.BufferGeometry().setFromPoints(pts.filter((_, i) => i % 2 === 0));
+  scene.add(new THREE.Points(lg, new THREE.PointsMaterial({ color: col, size: 0.06, blending: THREE.AdditiveBlending, transparent: true })));
+  towers.forEach(u => { const p = curve.getPoint(u); const m = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.32, 0.03), new THREE.MeshBasicMaterial({ color: col })); m.position.copy(p).setY(0.16); scene.add(m); });
+}
+bridge([-122.4785, 37.8105], [-122.4785, 37.8315], 0xff6a3a, [0.25, 0.75]);
+bridge([-122.389, 37.789], [-122.366, 37.809], 0xe8f2ff, [0.35, 0.7]);
+bridge([-122.362, 37.812], [-122.305, 37.823], 0xe8f2ff, [0.3]);
+
+// ---------- network ----------
+const NODES = SIM.NODES, isPad = n => !!SIM.VP[n];
+const nodeY = n => isPad(n) ? 0.06 : 0.5;
+const corr = {};
+SIM.CORR.forEach(k => {
+  const [a, b] = k.split('-'); const A = P(NODES[a], nodeY(a)), B = P(NODES[b], nodeY(b));
+  const m1 = A.clone().lerp(B, 0.22).setY(0.5), m2 = A.clone().lerp(B, 0.78).setY(0.5);
+  const curve = new THREE.CatmullRomCurve3([A, m1, A.clone().lerp(B, 0.5).setY(0.56), m2, B]);
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.045, 8, false), new THREE.MeshBasicMaterial({ color: 0x2fb8e0, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const core = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(120)), new THREE.LineBasicMaterial({ color: 0x6fe3ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending }));
+  scene.add(tube, core); corr[k] = { a, b, curve, tube, core };
+});
+// vertiports
+const pads = {};
+Object.entries(SIM.VP).forEach(([k, ll]) => {
+  const p = P(ll, 0.05), g = new THREE.Group(); g.position.copy(p);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.27, 48), new THREE.MeshBasicMaterial({ color: 0x4fd690, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2;
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(0.22, 48), new THREE.MeshBasicMaterial({ color: 0x0d2a22, transparent: true, opacity: 0.8 })); disc.rotation.x = -Math.PI / 2; disc.position.y = -0.005;
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.1, 1.2, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0x4fd690, transparent: true, opacity: 0.035, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); beam.position.y = 0.6;
+  g.add(disc, ring, beam); scene.add(g);
+  const el = document.createElement('div'); el.className = 'vl'; el.innerHTML = `<b>${k}</b><small>${SIM.PADNAME[k]}</small>`;
+  const lab = new CSS2DObject(el); lab.position.set(0, 0.35, 0); g.add(lab);
+  pads[k] = { g, ring, beam };
+});
+Object.entries(SIM.JN).forEach(([k, ll]) => {
+  const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), new THREE.MeshBasicMaterial({ color: 0xbfe9ff })); m.position.copy(P(ll, 0.5)); scene.add(m);
+  const el = document.createElement('div'); el.className = 'jl'; el.textContent = k; const l = new CSS2DObject(el); l.position.set(0, 0.22, 0); m.add(l);
+});
+
+// ---------- eVTOLs ----------
+function glowTex(inner = 'rgba(255,255,255,1)') { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, inner); gr.addColorStop(0.25, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); return t; }
+const GLOW = glowTex();
+const spr = (col, s) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); m.scale.set(s, s, s); return m; };
+const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2a3440, metalness: 0.6, roughness: 0.35, emissive: 0x0a1a24 });
+const rotorMat = new THREE.MeshBasicMaterial({ color: 0x9ad7ff, transparent: true, opacity: 0.18, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false });
+const TRAIL = 70;
+const craft = SIM.flights.map(f => {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.09, 4, 8), bodyMat); body.rotation.z = Math.PI / 2; g.add(body);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.006, 0.2), bodyMat); g.add(wing);
+  [[0.06, 0.09], [0.06, -0.09], [-0.06, 0.09], [-0.06, -0.09]].forEach(([x, z]) => { const r = new THREE.Mesh(new THREE.CircleGeometry(0.035, 20), rotorMat); r.rotation.x = -Math.PI / 2; r.position.set(x, 0.02, z); g.add(r); });
+  const red = spr(0xff3030, 0.09); red.position.set(0, 0, -0.1); const grn = spr(0x30ff70, 0.09); grn.position.set(0, 0, 0.1);
+  const strobe = spr(0xffffff, 0.16); strobe.position.set(-0.05, 0.02, 0); const halo = spr(0x6fe3ff, 0.2);
+  g.add(red, grn, strobe, halo); g.scale.setScalar(2.6); g.visible = false; scene.add(g);
+  const pos = new Float32Array(TRAIL * 3), col = new Float32Array(TRAIL * 3);
+  const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); tg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); trail.frustumCulled = false; scene.add(trail);
+  const el = document.createElement('div'); el.className = 'fl'; el.textContent = 'SKF' + f.cs; const lab = new CSS2DObject(el); g.add(lab);
+  return { f, g, strobe, halo, trail, pos, col, hist: [], lab, el, phase: rnd() * 6 };
+});
+function craftPos(f, t) {
+  const w = SIM.where(f, t); if (!w) return null;
+  const c = corr[w.key]; const u = c.a === w.a ? w.u : 1 - w.u;
+  const p = c.curve.getPointAt(u), d = c.curve.getTangentAt(u).multiplyScalar(c.a === w.a ? 1 : -1);
+  const lvl = (f.alt - 1500) / 300 * 0.05 * Math.min(1, Math.sin(Math.PI * u) * 3);
+  p.y += lvl; return { p, d, key: w.key };
+}
+
+// ---------- storm ----------
+const stormC = P([-122.315, 37.781], 0);
+function cloudTex() {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  for (let i = 0; i < 26; i++) { const x = 30 + Math.random() * 68, y = 30 + Math.random() * 68, r = 14 + Math.random() * 26; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,.22)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+  return new THREE.CanvasTexture(c);
+}
+const CT = cloudTex();
+const storm = new THREE.Group(); storm.position.copy(stormC); scene.add(storm);
+const puffs = [];
+for (let i = 0; i < 170; i++) {
+  const m = new THREE.SpriteMaterial({ map: CT, color: 0x1a2130, transparent: true, opacity: 0, depthWrite: false, fog: true });
+  const s = new THREE.Sprite(m); const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 1.8, y = 1.1 + rnd() * 1.6 * (1 - r / 2.6);
+  s.position.set(Math.cos(a) * r * 1.2, y, Math.sin(a) * r * 0.8); const sc = 1.0 + rnd() * 1.4; s.scale.set(sc, sc * 0.75, 1);
+  s.userData = { base: 0.35 + rnd() * 0.4, rot: (rnd() - 0.5) * 0.1 }; storm.add(s); puffs.push(s);
+}
+const flashL = new THREE.PointLight(0xcfe0ff, 0, 14, 1.6); flashL.position.set(0, 1.4, 0); storm.add(flashL);
+const boltMat = new THREE.LineBasicMaterial({ color: 0xe6f0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending });
+const bolt = new THREE.Line(new THREE.BufferGeometry(), boltMat); storm.add(bolt);
+const rainN = 1400, rainPos = new Float32Array(rainN * 6);
+for (let i = 0; i < rainN; i++) { const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 2.0, x = Math.cos(a) * r * 1.2, z = Math.sin(a) * r * 0.8, y = rnd() * 1.2; rainPos.set([x, y, z, x + 0.03, y - 0.12, z], i * 6); }
+const rainG = new THREE.BufferGeometry(); rainG.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rain = new THREE.LineSegments(rainG, new THREE.LineBasicMaterial({ color: 0x8fb3d9, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); storm.add(rain);
+const stormDisc = new THREE.Mesh(new THREE.CircleGeometry(2.6, 64), new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); stormDisc.rotation.x = -Math.PI / 2; stormDisc.position.y = 0.05; stormDisc.scale.set(1.2, 0.8, 1); storm.add(stormDisc);
+let nextFlash = 0, flashT = -9;
+function makeBolt() {
+  const pts = []; let x = (rnd() - 0.5) * 1.6, z = (rnd() - 0.5) * 1.0, y = 1.3;
+  pts.push(new THREE.Vector3(x, y, z)); while (y > 0.05) { y -= 0.08 + rnd() * 0.12; x += (rnd() - 0.5) * 0.22; z += (rnd() - 0.5) * 0.15; pts.push(new THREE.Vector3(x, Math.max(0.03, y), z)); }
+  bolt.geometry.dispose(); bolt.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+}
+
+// ---------- HUD / events ----------
+let cur = 0;
+function toast(kind, who, text, rs, t) {
+  const el = document.createElement('div'); el.className = 'toast glass ' + kind;
+  el.innerHTML = `<div class="h"><span>${who}</span><span class="v">${kind === 'HUMAN' ? 'HUMAN' : kind}</span></div><div>${text}</div>${rs ? `<div class="rs">${rs}</div>` : ''}`;
+  $('toasts').prepend(el); el._t = t;
+  [...$('toasts').children].slice(5).forEach(c => c.remove());
+}
+let radioCur = null, radioPrev = null, hbClear = 0;
+function apply(e, t) {
+  switch (e.type) {
+    case 'radio': VOICE.fire(e); radioPrev = radioCur; radioCur = e; if (e.who === 'PLT') { $('hbBadge').className = ''; $('hbBadge').textContent = `HEARBACK · CHECKING SKF${e.cs}`; hbClear = 0; } break;
+    case 'datalink': break;
+    case 'hearback': { const b = $('hbBadge'); b.className = e.ok ? 'ok' : 'bad'; b.textContent = e.ok ? (e.corrected ? `HEARBACK ✓ CORRECTED · SKF${e.cs} COMMITTED` : `HEARBACK ✓ SKF${e.cs}`) : `HEARBACK ✕ SKF${e.cs} ROUTE C–E ≠ W–E`; hbClear = t + 4; if (!e.ok) toast('REJECT', 'hearback verifier', `SkyFlow ${e.cs} read back the closed corridor`, 'commit blocked · controller corrects', e.t); break; }
+    case 'propose': if (e.verdict === 'REJECT' || (e.f === 3 || e.f === 4 || e.f === 7 || e.f === 8 || e.f === 6 || e.f === 16)) { if (e.agent !== 'hearback') toast(e.verdict, e.agent + ' → kernel', e.text, e.reason, e.t); } break;
+    case 'spawn': if (e.parent) toast('SPAWN', e.parent, e.text, null, e.t); break;
+    case 'storm': toast('WX', 'sensor.radar', e.text, 'not in forecast', e.t); break;
+    case 'kernel': case 'reopen': toast('ACCEPT', 'kernel', e.text, null, e.t); break;
+    case 'approval-open': toast('HUMAN', e.a.by, `Approval requested: ${e.a.title}`, e.a.why, e.t); break;
+    case 'approval-decide': toast('HUMAN', 'duty supervisor', `Approved: ${e.a.title}`, e.a.impact, e.t); break;
+  }
+}
+function reset() { cur = 0; $('toasts').innerHTML = ''; radioCur = radioPrev = null; craft.forEach(c => { c.hist.length = 0; }); $('hbBadge').className = ''; $('hbBadge').textContent = 'HEARBACK'; }
+PLAY.on(reset);
+// ---- sound: SkyRadio wiring ----
+(() => {
+  const b = document.getElementById('bSnd'), tx = document.getElementById('txl');
+  const paint = () => { const on = window.SkyRadio && SkyRadio.enabled; b.classList.toggle('snd-on', !!on); b.querySelector('span').textContent = on ? 'Sound on' : 'Sound off'; };
+  b.onclick = () => { if (!window.SkyRadio) return; SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); paint(); };
+  document.addEventListener('skyradio:enabled', paint);
+  if (window.SkyRadio) SkyRadio.onTransmit(x => { tx.classList.toggle('live', x.live); tx.innerHTML = x.live ? `<i></i>TX ${x.speaker === 'atc' ? 'ATC' : x.key}` : 'RX'; });
+  paint();
+})();
+
+function radioLine(el, e, t, full) {
+  if (!e) { el.innerHTML = ''; return; }
+  const p = full ? 1 : Math.min(1, (t - e.t) / e.dur), n = Math.ceil(e.text.length * p);
+  const bad = e.cs === 108 && /Charlie-Echo, one thousand/.test(e.text), neg = /negative/.test(e.text);
+  el.className = 'rl ' + e.who + (bad && !full ? ' bad' : '') + (neg && !full ? ' neg' : '');
+  el.innerHTML = `<span class="w">${e.who === 'CTL' ? 'ATC' : 'PILOT'}</span><span class="t">${e.text.slice(0, n)}${p < 1 ? '<span class="caret"></span>' : ''}</span>`;
+}
+
+// ---------- loop ----------
+const clock = new THREE.Clock(); const tmpV = new THREE.Vector3();
+function frame() {
+  const dt = Math.min(0.05, clock.getDelta()), t = PLAY.t, now = performance.now() / 1000;
+  while (cur < SIM.events.length && SIM.events[cur].t <= t) apply(SIM.events[cur++], t);
+  const storming = t >= SIM.tS && t < SIM.tR, ce = corr['C-E'];
+  const sI = THREE.MathUtils.clamp(Math.min((t - SIM.tS + 1) / 2, (SIM.tR + 2.5 - t) / 3), 0, 1);
+  // corridors
+  Object.entries(corr).forEach(([k, c]) => {
+    let col = 0x6fe3ff, op = 0.22;
+    if (k === 'C-E') {
+      if (storming) { col = 0xff4a3d; op = 0.3 + 0.25 * Math.sin(now * 6); }
+      else if (t >= SIM.tR && t < SIM.APPROVALS[2].decide) col = 0xffbf47;
+    }
+    c.tube.material.color.setHex(col); c.core.material.color.setHex(col); c.tube.material.opacity = op;
+    c.core.material.opacity = k === 'C-E' && storming ? 0.5 + 0.5 * Math.sin(now * 6) : 0.75;
+  });
+  // storm
+  puffs.forEach((s, i) => { s.material.opacity = s.userData.base * sI; s.material.rotation += s.userData.rot * dt; });
+  storm.rotation.y += dt * 0.03; storm.position.x = stormC.x + (t - SIM.tS) * 0.03 * sI; storm.position.z = stormC.z - (t - SIM.tS) * 0.02 * sI;
+  rain.material.opacity = 0.35 * sI; const rp = rainG.attributes.position.array;
+  for (let i = 0; i < rainN; i++) { let y = rp[i * 6 + 1] - dt * 2.2; if (y < 0) y += 1.2; rp[i * 6 + 1] = y; rp[i * 6 + 4] = y - 0.12; } rainG.attributes.position.needsUpdate = true;
+  stormDisc.material.opacity = 0.12 * sI * (0.7 + 0.3 * Math.sin(now * 3));
+  if (sI > 0.3 && now > nextFlash) { flashT = now; nextFlash = now + 1.0 + rnd() * 2.2; makeBolt(); }
+  const fl = Math.max(0, 1 - (now - flashT) / 0.25) * (Math.sin((now - flashT) * 70) > -0.3 ? 1 : 0.3);
+  flashL.intensity = fl * 25 * sI; boltMat.opacity = fl * sI;
+  puffs.forEach(s => s.material.color.setRGB(0.09 + fl * 0.32, 0.11 + fl * 0.34, 0.16 + fl * 0.4));
+  // craft
+  craft.forEach(c => {
+    const st = SIM.flightState(c.f, t); let cp = st === 'airborne' ? craftPos(c.f, t) : null;
+    c.air = !!cp;
+    if (!cp && (st === 'cleared' || (st === 'pending' && t > c.f.firstCommitT - 8.5))) { const a = c.f.i * 1.3; cp = { p: P(SIM.VP[c.f.from], 0.09).add(new THREE.Vector3(Math.cos(a) * 0.13, 0, Math.sin(a) * 0.13)), d: new THREE.Vector3(Math.cos(a + 1.6), 0, Math.sin(a + 1.6)), ground: true }; }
+    c.g.visible = !!cp; c.lab.visible = !!cp && (!cp.ground || c === selected || c.f.cs === 108); c.el.style.display = c.lab.visible ? '' : 'none';
+    c.el.classList.toggle('sel', c === selected || (follow === c));
+    if (cp) {
+      c.dir = cp.d.clone(); c.g.scale.setScalar(cp.ground ? 1.7 : 2.6); c.halo.visible = !cp.ground;
+      c.g.position.copy(cp.p); tmpV.copy(cp.p).add(cp.d); c.g.lookAt(tmpV); c.g.rotateY(-Math.PI / 2);
+      c.strobe.material.opacity = ((now + c.phase) % 1.1) < 0.08 ? 1 : 0;
+      if (!cp.ground) { c.hist.push(cp.p.clone()); if (c.hist.length > TRAIL) c.hist.shift(); }
+      const re = c.f.affected && t > SIM.tS; c.el.classList.toggle('hot', re && storming);
+      c.el.textContent = 'SKF' + c.f.cs + (re && storming ? ' · RR' : '');
+    } else if (c.hist.length) c.hist.length = Math.max(0, c.hist.length - 2);
+    const n = c.hist.length;
+    for (let i = 0; i < TRAIL; i++) {
+      const h = c.hist[Math.min(i, n - 1)] || c.g.position; c.pos.set([h.x, h.y, h.z], i * 3);
+      const k = n ? Math.pow(i / TRAIL, 1.6) : 0; const red = c.f.affected && storming;
+      c.col.set(red ? [k, k * 0.45, k * 0.3] : [k * 0.35, k * 0.85, k], i * 3);
+    }
+    c.trail.geometry.attributes.position.needsUpdate = true; c.trail.geometry.attributes.color.needsUpdate = true;
+  });
+  updateCamera(t, now); fpsN++;
+  // pads pulse
+  Object.values(pads).forEach((p, i) => { p.ring.material.color.setHSL(0.4, 0.7, 0.45 + 0.1 * Math.sin(now * 2 + i)); });
+  // HUD
+  const ph = SIM.phase(t); $('phase').textContent = ph.label; $('phase').className = ph.id;
+  $('clock').textContent = SIM.clock(t);
+  const sc = SIM.score(t); $('kOk').textContent = sc.ok; $('kSt').textContent = sc.st; $('kDel').innerHTML = sc.maxDelay.toFixed(1) + '<i> min</i>'; $('kCon').textContent = sc.conflicts; $('kHum').textContent = sc.human; $('kRad').textContent = sc.radio;
+  radioLine($('cur'), radioCur, t, false); radioLine($('prev'), radioPrev, t, true);
+  $('freq').textContent = radioCur ? (radioCur.freq === 'EAST' ? 'EAST SECTOR 124.90' : 'BAY APPROACH 128.35') : 'BAY APPROACH 128.35';
+  if (hbClear && t > hbClear) { hbClear = 0; $('hbBadge').className = ''; $('hbBadge').textContent = 'HEARBACK'; }
+  [...$('toasts').children].forEach(el => { if (t - el._t > 7) el.classList.add('out'); if (t - el._t > 8) el.remove(); });
+  $('end').style.display = t > 84 ? 'flex' : 'none';
+  composer.render(); labelR.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+camera.position.set(20, 10, 5);
+// ---------- camera: presets, manual orbit/zoom, cinematic auto-director ----------
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 0.6; controls.maxDistance = 48;
+controls.maxPolarAngle = Math.PI * 0.4985; controls.screenSpacePanning = false; controls.zoomToCursor = true;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const CENTER = V(0.3, 0, -0.8);
+const sfoTower = P([-122.392, 37.612], 0.11), oakPad = P(SIM.VP.OAK, 0.06);
+let selected = null;                       // craft object chosen by click / chase
+const visibleCraft = () => craft.filter(c => c.g.visible);
+function chaseTarget(t) {
+  if (selected && selected.g.visible) return selected;
+  const v = visibleCraft();
+  return v.find(c => c.f.cs === 108) || v.find(c => c.f.affected && c.air) || v.find(c => c.air) || v[0] || null;
+}
+function chaseShot(c, dist = 1.4, h = 0.5, side = 0.6) {
+  return () => {
+    if (!c || !c.g.visible) return null;
+    const p = c.g.position, d = (c.dir || V(1, 0, 0)).clone().setY(0).normalize();
+    const s = V(-d.z, 0, d.x);
+    return { pos: p.clone().addScaledVector(d, -dist).addScaledVector(s, side).add(V(0, h, 0)), tgt: p.clone().addScaledVector(d, 0.15), fov: 40 };
+  };
+}
+const orbitShot = (tg, R, H, a0, speed, fov = 42) => t => ({ pos: V(tg.x + Math.cos(a0 + t * speed) * R, H, tg.z + Math.sin(a0 + t * speed) * R), tgt: tg.clone(), fov });
+const stormTgt = () => storm.position.clone().setY(1.0);
+const PRESETS = {
+  1: { name: 'Overview', shot: () => ({ pos: V(CENTER.x + 9, 27, CENTER.z + 21), tgt: CENTER.clone(), fov: 42 }) },
+  2: { name: 'Tower cab · SFO', shot: () => ({ pos: sfoTower.clone(), tgt: P(SIM.JN.W, 0.06), fov: 50 }) },
+  3: { name: 'Chase', shot: null, chase: true },
+  4: { name: 'Storm · C–E', shot: () => { const s = stormTgt(); return { pos: s.clone().add(V(-4.2, 1.6, 4.4)), tgt: s, fov: 44 }; } },
+  5: { name: 'Vertiport · OAK', shot: () => ({ pos: oakPad.clone().add(V(-1.1, 0.55, 1.25)), tgt: oakPad.clone().add(V(0, 0.15, 0)), fov: 42 }) },
+};
+// cinematic beats (scenario seconds)
+const f104 = () => craft[3], f108 = () => craft[7];
+const BEATS = [
+  [0, 'Establishing orbit', t => orbitShot(CENTER, 21, 10, 0.55, 0.035)(t)],
+  [SIM.tS - 0.2, 'Storm push-in · C–E closes', t => { const s = stormTgt(), k = ease(Math.min(1, (t - SIM.tS) / 3)), a = 0.9 + t * 0.03, R = 13.5 - k * 4; return { pos: V(s.x + Math.cos(a) * R, 5.2 - k * 1.6, s.z + Math.sin(a) * R), tgt: s, fov: 44 - k * 4 }; }],
+  [11.0, 'Follow reroute · SkyFlow 104', t => chaseShot(f104(), 2.2, 2.4, 0.6)(t)],
+  [12.7, 'Readback mismatch · SkyFlow 108', t => { const c = f108(); const p = c.g.visible ? c.g.position.clone() : P(SIM.VP.SF, 0.09); const a = 2.2 + t * 0.05; return { pos: p.clone().add(V(Math.cos(a) * 2.1, 1.25, Math.sin(a) * 2.1)), tgt: p.clone().add(V(0, 0.05, 0)), fov: 36 }; }],
+  [18.9, 'Follow reroute · SkyFlow 108 via W–E', t => chaseShot(f108(), 2.0, 0.8, 0.8)(t)],
+  [25.6, 'Recovery · pull back', t => { const k = ease(Math.min(1, (t - 25.6) / 4)); return { pos: V(CENTER.x + 6, 14 + k * 12, CENTER.z + 14 + k * 8), tgt: CENTER.clone(), fov: 44 }; }],
+  [33, 'Network orbit', t => orbitShot(CENTER, 19, 8.5, 1.4, 0.03)(t)],
+  [48, 'Vertiport · OAK', t => { const a = 0.2 + t * 0.04; return { pos: oakPad.clone().add(V(Math.cos(a) * 1.8, 0.7, Math.sin(a) * 1.8)), tgt: oakPad.clone().add(V(0, 0.15, 0)), fov: 40 }; }],
+  [55, 'Tower cab · SFO', () => ({ pos: sfoTower.clone(), tgt: P(SIM.JN.W, 0.06), fov: 50 })],
+  [62, 'Chase', t => chaseShot(chaseTarget(t), 1.6, 0.6, 0.7)(t)],
+  [70, 'Network orbit', t => orbitShot(CENTER, 17, 7.5, 3.0, 0.03)(t)],
+  [82.5, 'Final pull-back', t => { const k = ease(Math.min(1, (t - 82.5) / 4)); return { pos: V(CENTER.x + 6, 14 + k * 14, CENTER.z + 15 + k * 9), tgt: CENTER.clone(), fov: 44 }; }],
+];
+const beatAt = t => { let b = BEATS[0]; for (const x of BEATS) if (t >= x[0]) b = x; return b; };
+let cine = true, letterbox = false, curShot = null, shotName = '', follow = null, followLast = null, chaseFn = null;
+const blend = { start: -1e9, p: V(0, 0, 0), q: V(0, 0, 0), fov: 42, dur: 1.5 };
+function startBlend(dur = 1.5) { blend.start = performance.now() / 1000; blend.p.copy(camera.position); blend.q.copy(controls.target); blend.fov = camera.fov; blend.dur = dur; }
+function setCine(on) {
+  cine = on; $('bCine').classList.toggle('on', on); $('resume').style.display = on ? 'none' : 'flex';
+  if (on) { follow = null; curShot = null; shotName = ''; document.querySelectorAll('#cam [data-p]').forEach(b => b.classList.remove('on')); }
+}
+function userTook() { if (cine) setCine(false); }
+controls.addEventListener('start', () => { userTook(); if (!follow) curShot = null; });
+function preset(n) {
+  userTook(); const pr = PRESETS[n]; follow = null; chaseFn = null;
+  if (pr.chase) { const c = chaseTarget(PLAY.t); if (!c) return; selected = c; follow = c; chaseFn = chaseShot(c); curShot = chaseFn; shotName = 'Chase · SkyFlow ' + c.f.cs; }
+  else { const s = pr.shot(); curShot = () => s; shotName = pr.name; }
+  startBlend();
+  document.querySelectorAll('#cam [data-p]').forEach(b => b.classList.toggle('on', +b.dataset.p === n));
+}
+function zoom(f) {
+  userTook(); const off = camera.position.clone().sub(controls.target);
+  const d = THREE.MathUtils.clamp(off.length() * f, controls.minDistance, controls.maxDistance);
+  const s = { pos: controls.target.clone().add(off.setLength(d)), tgt: controls.target.clone(), fov: camera.fov };
+  if (follow) { followLast = null; } curShot = follow ? null : () => s; if (!follow) { shotName = shotName || 'Manual'; startBlend(0.6); } else { camera.position.copy(s.pos); }
+}
+function updateCamera(t, now) {
+  // cinematic picks the shot by beat
+  if (cine) {
+    const b = beatAt(t);
+    if (b[1] !== shotName) { shotName = b[1]; curShot = b[2]; startBlend(b[0] === 0 && t < 0.3 ? 0.01 : 1.6); }
+  }
+  let s = curShot ? curShot(t) : null;
+  if (curShot && !s) { s = { pos: camera.position.clone(), tgt: controls.target.clone(), fov: camera.fov }; }
+  const k = ease(THREE.MathUtils.clamp((now - blend.start) / blend.dur, 0, 1));
+  if (s) {
+    camera.position.lerpVectors(blend.p, s.pos, k); controls.target.lerpVectors(blend.q, s.tgt, k);
+    const breathe = cine ? Math.sin(now * 0.35) * 0.9 : 0;
+    camera.fov = THREE.MathUtils.lerp(blend.fov, (s.fov || 42) + breathe, k); camera.updateProjectionMatrix();
+    camera.lookAt(controls.target);
+    if (!cine && k >= 1) {                     // hand over to the user
+      if (follow) { followLast = follow.g.position.clone(); }
+      curShot = null;
+    }
+  } else {
+    if (follow && follow.g.visible) {           // manual chase: keep the user's orbit offset, ride along with the flight
+      const p = follow.g.position; if (followLast) { const d = p.clone().sub(followLast); camera.position.add(d); controls.target.add(d); } followLast = p.clone();
+    }
+    controls.update();
+  }
+  const dk = THREE.MathUtils.clamp((Math.min(camera.position.distanceTo(controls.target), camera.position.y * 6) - 1) / 12, 0, 1);
+  bloom.strength = 0.32 + 0.53 * dk; bMat.emissiveIntensity = 1.5 + 1.9 * dk;
+  Object.values(pads).forEach(p => { p.beam.material.opacity = 0.035 * dk; });
+  Object.values(corr).forEach(c => { c.tube.material.opacity *= 0.3 + 0.7 * dk; });
+  document.body.classList.toggle('lb', letterbox);
+  $('shot').textContent = cine ? 'CINEMATIC · ' + shotName : (shotName ? shotName : 'Manual');
+}
+renderer.domElement.addEventListener('pointerdown', userTook);
+$('labels').addEventListener('click', e => { const el = e.target.closest('.fl'); if (!el) return; const c = craft.find(x => x.el === el); if (c) { selected = c; preset(3); } });
+document.querySelectorAll('#cam [data-p]').forEach(b => b.onclick = () => preset(+b.dataset.p));
+$('zIn').onclick = () => zoom(0.7); $('zOut').onclick = () => zoom(1.4);
+$('bCine').onclick = () => setCine(!cine); $('resume').onclick = () => setCine(true);
+$('bLb').onclick = () => { letterbox = !letterbox; $('bLb').classList.toggle('on', letterbox); };
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key >= '1' && e.key <= '5') preset(+e.key);
+  else if (e.key === 'c' || e.key === 'C') setCine(!cine);
+  else if (e.key === '+' || e.key === '=') zoom(0.7); else if (e.key === '-' || e.key === '_') zoom(1.4);
+});
+PLAY.on(() => { if (cine) { shotName = ''; } });
+let fpsN = 0; setInterval(() => { window.__fps = fpsN; fpsN = 0; }, 1000);
+window.CAM = { preset, zoom, setCine, get name() { return shotName; }, get pos() { return camera.position.toArray().map(v => +v.toFixed(2)); } };
+requestAnimationFrame(frame);
+$('bPlay').onclick = () => { $('bPlay').textContent = PLAY.toggle() ? '❚❚ Pause' : '▶ Play'; };
+$('bRe').onclick = () => PLAY.restart();
+addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); $('bPlay').click(); } if (e.key === 'r') PLAY.restart(); });
+window.__ready = true;
+</script>
+</body>
+</html>

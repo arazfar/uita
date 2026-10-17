@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "scope": "Local browser runtime",
+  "nodes": [
+    {
+      "id": "demand",
+      "label": "Synthetic demand",
+      "status": "active",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "id": "input",
+      "label": "Scenario controls",
+      "status": "active",
+      "confidence": "observed",
+      "evidencePaths": [
+        "index.html",
+        "src/main.js"
+      ]
+    },
+    {
+      "id": "planner",
+      "label": "Route scheduler",
+      "status": "active",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "id": "scene",
+      "label": "3D control room",
+      "status": "active",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/bay-geometry.json",
+        "src/main.js"
+      ]
+    },
+    {
+      "id": "schedule",
+      "label": "Computed schedules",
+      "status": "active",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "id": "validator",
+      "label": "Reservation validator",
+      "status": "active",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/scheduler.mjs",
+        "test/scheduler.test.mjs"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "demand",
+      "to": "planner",
+      "label": "same requests and deadlines",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "from": "input",
+      "to": "planner",
+      "label": "recompute both policies",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "from": "input",
+      "to": "scene",
+      "label": "play and scrub",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "from": "planner",
+      "to": "schedule",
+      "label": "complete trip plans",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "from": "planner",
+      "to": "validator",
+      "label": "routes and reservations",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "from": "schedule",
+      "to": "scene",
+      "label": "interpolated movement and metrics",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    },
+    {
+      "from": "validator",
+      "to": "scene",
+      "label": "conflict result",
+      "confidence": "observed",
+      "evidencePaths": [
+        "src/main.js",
+        "src/scheduler.mjs"
+      ]
+    }
+  ],
+  "assumptions": [
+    "Future agents are planned only; no agent framework or model API is implemented.",
+    "README was written against the current source; code and tests are authoritative.",
+    "Scheduling and validation are synchronous browser computations. Playback uses requestAnimationFrame."
+  ],
+  "omitted": [
+    "No deployed topology, backend, live telemetry, authentication, or production aviation control exists.",
+    "Planned recursive agents are described in README, not represented as runtime components."
+  ]
+}

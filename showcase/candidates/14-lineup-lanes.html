@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyFlow Sequence Lanes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="radio-audio.js?v=3"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+<style>
+:root{
+  --bg:#090c0e; --panel:#0e1316; --lane:#0f1518; --lane2:#121a1e; --line:#1d272c; --line2:#26333a;
+  --ink:#d3dde1; --dim:#7c8b92; --mute:#4c5a61;
+  --sky:#46d3c2; --sky2:#1d5f58; --amber:#f0a83a; --red:#ff5d4f; --green:#62d38a; --blue:#6aa8ff;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; --sans:"IBM Plex Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+#app{display:grid;grid-template-columns:1fr 372px;grid-template-rows:46px 1fr 206px;height:100vh;min-width:1240px}
+header{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid var(--line);background:#0b1013}
+.brand{font-weight:600;letter-spacing:.02em;font-size:14px;display:flex;align-items:center;gap:8px}
+.brand i{width:9px;height:9px;border-radius:2px;background:var(--sky);display:inline-block;box-shadow:0 0 10px var(--sky)}
+.brand span{color:var(--dim);font-weight:400}
+.tag{font:500 10px var(--mono);letter-spacing:.12em;padding:3px 7px;border:1px solid var(--line2);border-radius:3px;color:var(--amber)}
+.clock{font:600 15px var(--mono);color:var(--ink);margin-left:6px}
+.clock small{color:var(--dim);font-weight:400;font-size:11px;margin-left:6px}
+.phase{font:500 11px var(--mono);color:var(--dim);display:flex;gap:2px}
+.phase b{padding:4px 8px;border:1px solid var(--line);font-weight:500;transition:all .3s}
+.phase b.on{color:#081013;background:var(--sky);border-color:var(--sky)}
+.phase b.on.st{background:var(--amber);border-color:var(--amber)}
+.sp{flex:1}
+button{font:500 11px var(--mono);color:var(--ink);background:#121a1e;border:1px solid var(--line2);border-radius:4px;padding:6px 10px;cursor:pointer;letter-spacing:.04em}
+button:hover{border-color:var(--sky)}
+button.on{background:var(--sky);color:#061012;border-color:var(--sky)}
+.seg{display:flex}.seg button{border-radius:0}.seg button:first-child{border-radius:4px 0 0 4px}.seg button:last-child{border-radius:0 4px 4px 0;border-left:0}
+#scrub{width:140px;height:3px;background:var(--line2);position:relative;border-radius:2px}
+#scrub u{position:absolute;left:0;top:0;bottom:0;background:var(--sky);border-radius:2px}
+
+/* board */
+#boardWrap{position:relative;border-right:1px solid var(--line);overflow:hidden}
+#board{position:absolute;inset:0}
+.lane{position:absolute;left:0;right:0;border-bottom:1px solid var(--line)}
+.lane.even{background:var(--lane)} .lane.odd{background:var(--lane2)}
+.lane.grp{border-bottom:1px solid var(--line2)}
+.lbl{position:absolute;left:0;top:0;bottom:0;width:104px;padding:4px 10px;display:flex;flex-direction:column;justify-content:center;gap:1px;border-right:1px solid var(--line);background:#0b1013;z-index:2}
+.lbl b{font:600 12.5px var(--mono);letter-spacing:.04em}
+.lbl em{font:500 9.5px var(--mono);color:var(--dim);font-style:normal;letter-spacing:.1em}
+.lbl .q{font:500 10px var(--mono);color:var(--dim)}
+.lbl .q span{color:var(--ink);display:inline-block;min-width:14px}
+.lbl.hot .q span,.lbl .hq{color:var(--amber)}
+.lbl.hot{box-shadow:inset 3px 0 0 var(--amber)}
+.stand{position:absolute;left:108px;width:76px;top:6px;bottom:6px;border:1px dashed transparent;border-radius:4px}
+#axis{position:absolute;left:0;right:0;top:0;height:26px;border-bottom:1px solid var(--line2);background:#0b1013;font:500 10px var(--mono);color:var(--dim);z-index:3}
+#axis span{position:absolute;top:7px;transform:translateX(-50%)}
+#axis .now{color:var(--sky);font-weight:600}
+#ov{position:absolute;inset:0;pointer-events:none;z-index:4}
+.ac{position:absolute;left:0;top:0;width:70px;height:40px;will-change:transform;z-index:5;cursor:pointer}
+.ac .ico{position:absolute;left:0;top:7px;width:24px;height:24px;transform-origin:50% 50%}
+.ac .ico path,.ac .ico rect{fill:var(--sky)} .ac .ico circle{fill:none;stroke:var(--sky);stroke-width:1.4;opacity:.8}
+.ac .ico line{stroke:var(--sky);stroke-width:1.2}
+.ac.bg .ico path,.ac.bg .ico rect{fill:#5d6c73} .ac.bg .ico circle,.ac.bg .ico line{stroke:#5d6c73}
+.ac .tx{position:absolute;left:25px;top:0;font:600 10.5px/13px var(--mono);white-space:nowrap}
+.ac.bg .tx{color:#8a989e;font-weight:500}
+.ac .r2{font-weight:400;color:var(--dim);font-size:10px}
+.ac .dl{display:inline-block;margin-left:3px;padding:0 3px;border-radius:2px;font-weight:600;font-size:9.5px;line-height:12px;background:var(--amber);color:#1a1000}
+.ac .dl.hi{background:var(--red);color:#fff}
+.ac .dl.z{display:none}
+.ac .ch{display:inline-flex;align-items:center;gap:3px;font:500 9px/11px var(--mono);color:var(--dim);border:1px solid var(--line2);border-radius:2px;padding:0 3px;margin-top:1px}
+.ac .ch u{display:inline-block;width:12px;height:4px;background:#2a363c;position:relative}
+.ac .ch u s{position:absolute;left:0;top:0;bottom:0;background:var(--green)}
+.ac .ch.low{color:var(--red);border-color:#5a2420}.ac .ch.low u s{background:var(--red)}
+.ac .ch.med{color:#fff;background:var(--red);border-color:var(--red);font-weight:600}
+.ac .ch.rb{color:#081013;background:var(--amber);border-color:var(--amber);font-weight:600}
+.ac.sel .ico{filter:drop-shadow(0 0 6px var(--sky))}
+.ac.dying{transition:opacity .55s}
+#legend{position:absolute;right:10px;bottom:8px;z-index:6;font:500 10px var(--mono);color:var(--dim);display:flex;gap:12px;background:#0b1013cc;padding:5px 8px;border:1px solid var(--line);border-radius:4px}
+#legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+
+/* side */
+#side{grid-row:2/4;grid-column:2;display:grid;grid-template-rows:auto auto 1fr auto 1.15fr;background:var(--panel);min-height:0}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 8px;border-bottom:1px solid var(--line);font:600 10.5px var(--mono);letter-spacing:.12em;color:var(--dim)}
+.ph b{color:var(--ink);font-weight:600}
+.feed>*{flex-shrink:0}
+.feed{overflow:hidden;padding:8px 12px;display:flex;flex-direction:column;gap:6px;justify-content:flex-end;min-height:0}
+.tree{font:400 10px/15px var(--mono);color:var(--dim);padding:7px 14px;border-bottom:1px dashed var(--line);min-height:52px}
+.tree b{color:var(--sky);font-weight:500}
+.pr{border:1px solid var(--line);border-left:3px solid var(--line2);border-radius:3px;padding:6px 8px;background:#0b1013;animation:in .35s ease-out}
+.pr.ok{border-left-color:var(--green)} .pr.no{border-left-color:var(--red);background:#170d0c}
+.pr.sys{border-left-color:var(--blue)}
+.pr .h{display:flex;justify-content:space-between;font:600 10px var(--mono);color:var(--dim);letter-spacing:.06em}
+.pr .h .v{padding:0 5px;border-radius:2px;color:#081013}
+.pr.ok .v{background:var(--green)} .pr.no .v{background:var(--red);color:#fff}
+.pr .b{font-size:12px;margin:3px 0 2px;line-height:1.35}
+.pr .w{font:400 10.5px var(--mono);color:var(--dim)}
+.pr.no .w{color:#ff9a90}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rl{display:grid;grid-template-columns:44px 1fr;gap:6px;font-size:12px;line-height:1.38;animation:in .35s ease-out}
+.rl .who{font:600 9.5px/17px var(--mono);letter-spacing:.06em;color:var(--sky)}
+.rl.plt .who{color:var(--amber)}
+.rl .txt{color:var(--ink)}
+.rl.sys .who{color:var(--blue)} .rl.sys .txt{font:400 10.5px var(--mono);color:var(--dim)}
+.hb{margin-left:50px;border:1px solid var(--line2);border-radius:3px;font:400 10.5px var(--mono);animation:in .35s ease-out;overflow:hidden}
+.hb .hh{display:flex;justify-content:space-between;padding:3px 7px;background:#0b1013;color:var(--dim);font-weight:600;letter-spacing:.08em;font-size:9.5px}
+.hb.bad{border-color:var(--red)} .hb.bad .hh{background:#2a0f0d;color:#ffb1a8}
+.hb.good .hh b{color:var(--green)} .hb.bad .hh b{color:var(--red)}
+.hb .fl{display:flex;flex-wrap:wrap;gap:3px 10px;padding:4px 7px}.hb .fl .k{color:var(--green)}.hb .fl .x{color:#ffb1a8;font-weight:600;flex-basis:100%}
+.hb td{padding:2px 7px;border-top:1px solid var(--line)}
+.hb td:first-child{color:var(--dim);width:70px}
+.hb td.x{color:var(--red);font-weight:600}
+.hb td.k{color:var(--green)}
+.live{display:inline-block;width:6px;height:6px;border-radius:50%;background:#3a2422;margin-right:6px}
+.live.on{background:var(--red);box-shadow:0 0 8px var(--red);animation:bl .5s infinite}
+.txw{color:var(--red);margin-left:6px}
+.rl.onair .txt{color:#fff}.rl.onair{box-shadow:inset 2px 0 0 var(--red)}
+#bSnd.on{background:var(--amber);color:#1a1000;border-color:var(--amber)}
+@keyframes bl{50%{opacity:.25}}
+
+/* bottom */
+#bottom{grid-column:1;grid-row:3;display:grid;grid-template-columns:1fr 360px;border-top:1px solid var(--line2);border-right:1px solid var(--line);min-width:0}
+#score{padding:12px 16px;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:10px;align-content:start;position:relative}
+.tile{border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:#0b1013;min-width:0}
+.tile .k{font:500 9.5px var(--mono);letter-spacing:.1em;color:var(--dim)}
+.tile .v{font:600 26px/1.1 var(--mono);margin-top:6px}
+.tile .v small{font-size:12px;color:var(--dim);font-weight:400}
+.tile .s{font:400 10px var(--mono);color:var(--dim);margin-top:4px}
+.bars{margin-top:6px;display:grid;gap:4px}
+.bar{display:grid;grid-template-columns:62px 1fr 40px;align-items:center;gap:6px;font:500 10px var(--mono);color:var(--dim)}
+.bar div{height:7px;background:#1a2327;border-radius:1px;overflow:hidden}
+.bar div u{display:block;height:100%;background:var(--sky);transition:width .6s}
+.bar.st div u{background:#6f7d84}
+.bar b{color:var(--ink);text-align:right}
+#strip{grid-column:1/6;font:400 10.5px var(--mono);color:var(--dim);border-top:1px dashed var(--line);padding-top:8px;display:flex;gap:18px;flex-wrap:wrap}
+#strip b{color:var(--ink);font-weight:500}
+#recov{position:absolute;left:16px;right:10px;bottom:10px;padding:8px 12px;border:1px solid var(--sky2);background:#0a1716;border-radius:4px;font:500 11.5px var(--mono);color:var(--sky);opacity:0;transform:translateY(6px);transition:all .6s}
+#recov.on{opacity:1;transform:none}
+#mini{position:relative;border-left:1px solid var(--line)}
+#mini canvas{width:100%;height:100%;display:block}
+#mini .ml{position:absolute;left:10px;top:8px;font:600 9.5px var(--mono);letter-spacing:.12em;color:var(--dim)}
+
+/* 3D */
+#v3{position:absolute;inset:0;display:none;z-index:20;background:#0a0e10}
+#v3.on{display:block}
+#v3 canvas{display:block}
+.cam{position:absolute;right:12px;top:12px;z-index:25;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.cam .row{display:flex;gap:4px}
+.cam button{padding:5px 8px;font-size:10.5px;background:#0e1518e6}
+.cam button.on{background:var(--sky);color:#061012}
+#resume{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:26;display:none;background:var(--amber);color:#1a1000;border-color:var(--amber)}
+#v3 .lab{font:600 10px var(--mono);color:#e9f3f5;background:#081013cc;border:1px solid #1f6b62;padding:1px 4px;border-radius:2px;white-space:nowrap;pointer-events:none}
+#v3 .lab.h{border-color:var(--amber);color:var(--amber)}
+#v3 .lab.g{border-color:#3a4a52;color:#a9b7bd}
+#v3 .lab.pad{font-size:12px;border:0;background:none;color:var(--dim);letter-spacing:.08em}
+#v3 .lab.al{border-color:#53616a;color:#c4cdd1;background:#10161acc}
+#credit3{position:absolute;left:12px;bottom:10px;z-index:25;font:400 10px var(--mono);color:var(--mute)}
+#hint3{position:absolute;left:12px;top:12px;z-index:25;font:500 10.5px var(--mono);color:var(--dim);background:#0b1013cc;padding:5px 8px;border:1px solid var(--line);border-radius:4px}
+#hint3 b{color:var(--sky)}
+#foot{position:absolute;left:112px;bottom:8px;z-index:6;font:400 9.5px var(--mono);color:var(--mute)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand"><i></i>SkyFlow <span>/ Sequence Lanes</span></div>
+    <span class="tag">SIMULATION</span>
+    <div class="clock" id="clock">15:00:00<small>PDT · sim</small></div>
+    <div class="phase" id="phase"><b data-p="0">CALM</b><b data-p="1">STORM C–E</b><b data-p="2">REPLAN</b><b data-p="3">RECOVERY</b></div>
+    <div class="sp"></div>
+    <div id="scrub"><u></u></div>
+    <button id="bSnd" title="Radio audio">🔈 SOUND OFF</button>
+    <button id="bPlay">PAUSE</button>
+    <button id="bRestart">RESTART</button>
+    <div class="seg"><button id="b2d" class="on">2D BOARD</button><button id="b3d">3D APRON</button></div>
+  </header>
+
+  <div id="boardWrap">
+    <div id="board"><div id="axis"></div></div>
+    <svg id="ov"></svg>
+    <div id="legend"><span><i style="background:var(--sky)"></i>SkyFlow 101–128 (scored)</span><span><i style="background:#5d6c73"></i>other operators</span><span><i style="background:var(--amber)"></i>delay min</span></div>
+    <div id="foot">Simulation · scripted scenario · map © US Census (public domain)</div>
+    <div id="v3">
+      <div id="hint3">3D apron: the same queues, nose-to-tail at each pad hold bar · <b>1–5</b> cameras · <b>C</b> cinematic · drag / wheel</div>
+      <button id="resume">RESUME CINEMATIC</button>
+      <div class="cam">
+        <div class="row"><button data-c="1">1 OVERVIEW</button><button data-c="2">2 TOWER CAB</button><button data-c="3">3 CHASE</button></div>
+        <div class="row"><button data-c="4">4 STORM C–E</button><button data-c="5">5 OAK PAD</button></div>
+        <div class="row"><button id="zin">+</button><button id="zout">−</button><button id="bCine" class="on">CINEMATIC</button></div>
+      </div>
+      <div id="credit3">eVTOL: SkyFlow team model · "Airplane" by Poly by Google, "Boeing 747" by Miha Lunar (CC BY 3.0, poly.pizza) · ground traffic callsigns: The OpenSky Network</div>
+    </div>
+  </div>
+
+  <aside id="side">
+    <div class="ph"><span>AGENT PROPOSALS <b>→</b> KERNEL</span><span id="pc">0 / 0</span></div>
+    <div class="tree" id="tree"></div><div class="feed" id="props"></div>
+    <div class="ph" style="border-top:1px solid var(--line2)"><span><i class="live" id="txDot"></i>BAY APPROACH 123.45 · HEARBACK <b id="txWho" class="txw"></b></span><span id="rc">0 tx</span></div>
+    <div class="feed" id="radio"></div>
+  </aside>
+
+  <div id="bottom">
+    <div id="score">
+      <div class="tile"><div class="k">ON-TIME ARRIVALS · SKYFLOW</div>
+        <div class="bars">
+          <div class="bar"><span>AGENTS</span><div><u id="bA" style="width:0"></u></div><b id="vA">0/28</b></div>
+          <div class="bar st"><span>STATIC</span><div><u id="bS" style="width:0"></u></div><b id="vS">0/28</b></div>
+        </div>
+        <div class="s" id="landed">landed 0 · within 15 min of schedule</div>
+      </div>
+      <div class="tile"><div class="k">MAX DELAY</div><div class="v" id="vMax">0.0<small> min</small></div><div class="s" id="vMaxCs">—</div></div>
+      <div class="tile"><div class="k">CONFLICTS</div><div class="v" style="color:var(--green)">0</div><div class="s">kernel-checked</div></div>
+      <div class="tile"><div class="k">HUMAN INTERVENTIONS</div><div class="v">0</div><div class="s">supervisor idle</div></div>
+      <div class="tile"><div class="k">RADIO TX</div><div class="v" id="vTx">0</div><div class="s" id="vHb">hearback 0 · caught 0</div></div>
+      <div id="strip"><span>queued <b id="sQ">0</b></span><span>ground hold <b id="sH">0</b></span><span>airborne <b id="sA">0</b></span><span>rerouted <b id="sR">0</b></span><span>proposals <b id="sP">0</b> · rejected <b id="sX">0</b></span><span>distance <b id="sD">+0.0%</b></span></div>
+      <div id="recov">END-OF-BANK PROJECTION · static plan 10/28 on time · agent team 28/28 · +14.3% distance · 0 conflicts · 0 human interventions</div>
+    </div>
+    <div id="mini"><canvas id="mc"></canvas><div class="ml">BAY · SAME AIRCRAFT</div></div>
+  </div>
+</div>
+
+<script type="module">
+// ---------- scenario ----------
+const LOOP = 75, SPM = 0.5;                       // seconds per loop, sim minutes per real second
+const S_MED = 4, S_STORM = 8, S_COMMIT = 13, S_CLEAR = 24, S_112 = 20.9;
+const HORIZON = 16, SEP = 1.0, CW = 70, GAP = 74, LABELW = 104, NOWX = 194, AXH = 26;
+const NODES = {SF:[-122.41,37.785],MAR:[-122.485,37.862],SFO:[-122.375,37.622],OAK:[-122.235,37.722],BER:[-122.275,37.865],W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77]};
+const CORR = [['SF','MAR'],['SF','W'],['SF','C'],['C','BER'],['C','E'],['W','E'],['W','SFO'],['E','OAK'],['OAK','BER']];
+const PADS = ['SF','MAR','SFO','OAK','BER'];
+const PADNAME = {SF:'San Francisco',MAR:'Marin',SFO:'SFO',OAK:'Oakland',BER:'Berkeley'};
+const LANES = []; PADS.forEach(p => { LANES.push(p+':D'); LANES.push(p+':A'); });
+const AFFECTED = new Set(['SF','MAR','OAK']);
+
+const km = (a,b) => { const A=NODES[a],B=NODES[b]; return Math.hypot((A[0]-B[0])*88,(A[1]-B[1])*111); };
+function path(o,d,avoidCE){
+  const dist={}, prev={}, Q=new Set(Object.keys(NODES)); for(const n of Q) dist[n]=1e9; dist[o]=0;
+  while(Q.size){ let u=null; for(const n of Q) if(u===null||dist[n]<dist[u]) u=n; Q.delete(u); if(u===d) break;
+    for(const [a,b] of CORR){ if(avoidCE && ((a==='C'&&b==='E')||(a==='E'&&b==='C'))) continue;
+      const v = a===u?b:b===u?a:null; if(!v||!Q.has(v)) continue; const nd=dist[u]+km(u,v); if(nd<dist[v]){dist[v]=nd;prev[v]=u;} } }
+  const p=[d]; while(p[0]!==o) p.unshift(prev[p[0]]); return {p, km:dist[d]};
+}
+const usesCE = p => p.some((n,i)=>i&&((n==='C'&&p[i-1]==='E')||(n==='E'&&p[i-1]==='C')));
+const ftOf = k => 1.5 + k/2.8;
+
+let seed = 7; const rnd = () => { seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+const pick = w => { let r=rnd()*w.reduce((a,b)=>a+b[1],0); for(const [k,v] of w){ if((r-=v)<=0) return k; } return w[0][0]; };
+const DEST = {SF:[['OAK',5],['BER',2],['SFO',2],['MAR',1]],OAK:[['SF',5],['MAR',1],['BER',2],['SFO',1.5]],MAR:[['SF',2],['OAK',4],['SFO',2],['BER',1]],SFO:[['SF',5],['BER',3],['OAK',2]],BER:[['SF',5],['SFO',3],['OAK',2]]};
+const RATE = {SF:.56,OAK:.46,MAR:.26,SFO:.38,BER:.3};
+const SKY_PAIRS = [['SF','OAK'],['MAR','SFO'],['OAK','SF'],['SFO','BER'],['BER','SF'],['MAR','OAK'],['SFO','SF'],['OAK','MAR'],['SF','BER'],['BER','SFO'],['SF','OAK'],['OAK','BER']];
+const OVR = {104:{o:'SF',d:'OAK',dep0:2},105:{o:'MAR',d:'OAK',dep0:3.5},107:{o:'SFO',d:'SF',dep0:9,med:true},112:{o:'SF',d:'OAK',dep0:10},115:{o:'SF',d:'OAK',dep0:10,bat:21}};
+
+const F = [];
+function mk(cs, sky, o, d, dep0, bat){
+  const r = path(o,d,false), rr = path(o,d,true);
+  return {id:F.length, cs, sky, org:o, dst0:d, dep0, bat, pathN:r.p, pathR:rr.p, km:r.km, kmR:rr.km, ft:ftOf(r.km), ftR:ftOf(rr.km), viaCE:usesCE(r.p), med:false};
+}
+for(let i=0;i<28;i++){ const cs=101+i, o=OVR[cs]; const pr=SKY_PAIRS[i%SKY_PAIRS.length];
+  const f = mk('SKF'+cs, true, o?o.o:pr[0], o?o.d:pr[1], o&&o.dep0!=null?o.dep0:-12+2.5*i, o&&o.bat?o.bat:Math.round(48+rnd()*46));
+  if(o&&o.med) f.med=true; F.push(f); }
+const opsCodes=['BHP','MTL','BHP','TBY']; let bgn=200;
+for(const p of PADS){ let t=-16; while(t<64){ t += (0.35+rnd()*1.3)/RATE[p]*0.82; bgn+=1+(rnd()*3|0);
+  F.push(mk(opsCodes[bgn%4]+bgn, false, p, pick(DEST[p]), +t.toFixed(2), Math.round(40+rnd()*55))); } }
+
+// plans: p0 (schedule), p1 (+medical), p2 (+storm, agent replan)
+function seqLane(list, opts){
+  let last=-1e9; const out={};
+  for(const f of list){ let d=Math.max(f._key, last+SEP); if(opts.block && d>=S_STORM && d<S_COMMIT+0.5) d=Math.max(d,S_COMMIT+0.5); out[f.id]=d; last=d + (f.med&&opts.med?1.6:0); }
+  return out;
+}
+function plan(opts){
+  const P={};
+  for(const pad of PADS){
+    const list=F.filter(f=>f.org===pad && !(opts.storm && (f.cs==='SKF115'||f.cs==='SKF112'))).map(f=>{ f._key = (opts.med&&f.med)?5:f.dep0; return f; }).sort((a,b)=>a._key-b._key);
+    const d=seqLane(list,{block:opts.storm&&AFFECTED.has(pad), med:opts.med});
+    for(const f of list) P[f.id]={dep:d[f.id]};
+  }
+  if(opts.storm){ P[F.find(f=>f.cs==='SKF115').id]={dep:S_CLEAR+0.4}; P[F.find(f=>f.cs==='SKF112').id]={dep:S_112}; }
+  let k=0;
+  for(const f of F){ const q=P[f.id]; q.dst=f.dst0; q.rr=false; q.arr=q.dep+f.ft;
+    if(!opts.storm||!f.viaCE) continue;
+    if(q.dep<S_STORM && q.arr>S_STORM){ // airborne when C–E closed
+      if(f.cs==='SKF104'){ q.dst='BER'; q.arr=S_COMMIT+3.2; q.div=true; }
+      else if(f.cs==='SKF105'){ q.dst='SFO'; q.arr=S_COMMIT+4.6; q.div=true; }
+      else { q.arr=Math.max(q.arr+2.2, S_COMMIT+1+0.9*(k++)); q.rr=true; }
+    } else if(q.dep>=S_STORM && q.dep<S_CLEAR && f.cs!=='SKF115'){ q.rr=true; q.arr=q.dep+f.ftR; }
+  }
+  return P;
+}
+const P0=plan({}), P1=plan({med:true}), P2=plan({med:true,storm:true});
+F.forEach(f=>{ f.p0=P0[f.id]; f.p1=P1[f.id]; f.p2=P2[f.id]; f.sched=f.dep0+f.ft; });
+
+function view(f,s){
+  const P = s<S_MED? f.p0 : s<S_COMMIT? f.p1 : f.p2;
+  let dep=P.dep, arr=P.arr, dst=P.dst, held=false, stand=false, ahold=false;
+  if(s>=S_STORM && s<S_COMMIT){
+    if(AFFECTED.has(f.org) && f.p1.dep>=S_STORM){ const h=s+0.35; if(dep<=h){ dep=h; held=true; } arr=dep+f.ft; }
+    else if(f.viaCE && f.p1.dep<S_STORM && f.p1.arr>S_STORM){ const h=s+0.35; if(arr<=h){ arr=h; ahold=true; } }
+  }
+  if(f.cs==='SKF115' && s>=S_COMMIT && s<S_CLEAR){ stand=true; held=true; }
+  const rrx = P.rr? (f.ftR-f.ft):0;
+  if(s<dep) return {lane:f.org+':D', slot:dep, held, stand, delay:Math.max(0,dep-f.dep0+rrx), rr:P.rr, P};
+  if(s<arr) return {lane:dst+':A', slot:arr, held:ahold, ahold, delay:Math.max(0,arr-f.sched), rr:P.rr, div:P.div, P, air:true, dep, arr};
+  return null;
+}
+
+// ---------- script ----------
+const EV = [
+ {t:.4,k:'tree',html:'<b>COORD</b> spawned <b>SECTOR-W</b>, <b>SECTOR-E</b>'},
+ {t:1.4,k:'tree',html:'SECTOR-W → <b>PAD-SF</b> <b>PAD-MAR</b> <b>PAD-SFO</b> · SECTOR-E → <b>PAD-OAK</b> <b>PAD-BER</b>'},
+ {t:2.4,k:'prop',ag:'PAD-SF',txt:'Sequence SF departures at one-minute pad spacing',v:1,why:'pad separation ≥ 1.0 min · 0 conflicts'},
+ {t:3.6,k:'rad',who:'CTL',txt:'SkyFlow one zero four, San Francisco pad, wind three one zero at six, cleared for departure via Charlie Echo, Oakland pad two.'},
+ {t:5.4,k:'rad',who:'PLT',txt:'Cleared for departure via Charlie Echo, Oakland pad two, SkyFlow one zero four.'},
+ {t:6.1,k:'hb',ok:1,cs:'SKF104',rows:[['callsign','SKF104','SKF104'],['route','C–E','C–E'],['dest','OAK-2','OAK-2']]},
+ {t:7.2,k:'prop',ag:'PAD-SFO',txt:'SKF107 MEDEVAC → slot #1, hold pad 1.6 min for priority launch',v:1,why:'priority=medical · 3 flights shift +1–2 min · reserves OK'},
+ {t:8.6,k:'rad',who:'CTL',txt:'SkyFlow one zero seven, medevac priority, number one, cleared for departure, San Francisco pad one.'},
+ {t:10.2,k:'rad',who:'PLT',txt:'Number one, cleared for departure, San Francisco pad one, SkyFlow one zero seven.'},
+ {t:16,k:'sys',txt:'WX: unforecast convective cell over the Bay Bridge. Kernel closes corridor C–E 15:08–15:24.'},
+ {t:16.6,k:'rad',who:'CTL',txt:'All SkyFlow, Bay Approach, corridor Charlie Echo is closed, convective activity. Departures routing Charlie Echo, hold on the pad.'},
+ {t:18.6,k:'prop',ag:'SECTOR-E',txt:'Airborne C–E traffic: hold at Echo fix, two-minute legs',v:1,why:'500 ft vertical separation · reserves ≥ 15%'},
+ {t:20.6,k:'prop',ag:'SECTOR-E',txt:'Reroute held SF/MAR/OAK departures via W–E, release at one-minute spacing',v:1,why:'+14.3% distance · 0 conflicts · all reserves ≥ 15%'},
+ {t:22,k:'prop',ag:'SECTOR-E',txt:'Reroute SKF115 via W–E',v:0,why:'REJECT: would push SKF115 past its battery reserve (21% → 12% at OAK, reserve 15%)'},
+ {t:23.2,k:'prop',ag:'PAD-SF',txt:'Hold SKF115 on stand 3 until C–E reopens; let queue pass',v:1,why:'battery-safe · stand 3 free · 0 conflicts'},
+ {t:24.2,k:'prop',ag:'PAD-OAK',txt:'Divert SKF104 → Berkeley pad 1, SKF105 → SFO pad 3',v:1,why:'both pads free · ETA 15:16 / 15:17 · reserves OK'},
+ {t:26,k:'sys',txt:'Kernel committed 14 reservations. Queues released.'},
+ {t:26.6,k:'rad',who:'CTL',txt:'SkyFlow one zero four, divert Berkeley pad one, turn left heading three four zero, descend and maintain eight hundred.'},
+ {t:28.4,k:'rad',who:'PLT',txt:'Divert Berkeley pad one, left three four zero, down to eight hundred, SkyFlow one zero four.'},
+ {t:29,k:'hb',ok:1,cs:'SKF104',rows:[['callsign','SKF104','SKF104'],['dest','BER-1','BER-1'],['heading','340','340'],['alt','800','800']]},
+ {t:30.4,k:'rad',who:'CTL',focus:'SKF112',txt:'SkyFlow one one two, cleared to Oakland pad two via Whiskey Echo, climb and maintain one thousand two hundred.'},
+ {t:33,k:'rad',who:'PLT',focus:'SKF112',txt:'Cleared to Oakland pad two via Charlie Echo, one thousand two hundred, SkyFlow one one two.'},
+ {t:34.3,k:'hb',ok:0,cs:'SKF112',rows:[['callsign','SKF112','SKF112'],['dest','OAK-2','OAK-2'],['route','W–E','C–E (closed)'],['alt','1200','1200']]},
+ {t:35.4,k:'rad',who:'CTL',focus:'SKF112',txt:'SkyFlow one one two, negative. Charlie Echo is closed. Cleared via Whiskey Echo, read back.'},
+ {t:38,k:'rad',who:'PLT',focus:'SKF112',txt:'Via Whiskey Echo, Oakland pad two, one thousand two hundred, SkyFlow one one two.'},
+ {t:39.2,k:'hb',ok:1,cs:'SKF112',rows:[['callsign','SKF112','SKF112'],['route','W–E','W–E'],['alt','1200','1200']]},
+ {t:40.4,k:'sys',txt:'Kernel committed reservation SKF112 · SF → W → E → OAK · slot 15:20:54.'},
+ {t:48,k:'sys',txt:'WX: cell clear of the bridge. Corridor C–E reopened 15:24.'},
+ {t:48.4,k:'prop',ag:'PAD-SF',txt:'Release SKF115 via C–E, slot 15:24:24',v:1,why:'battery 21% → 17% at OAK ≥ 15% reserve · 0 conflicts'},
+ {t:49,k:'rad',who:'CTL',txt:'SkyFlow one one five, Charlie Echo is open, cleared for departure via Charlie Echo, Oakland pad one.'},
+ {t:51,k:'rad',who:'PLT',txt:'Cleared for departure via Charlie Echo, Oakland pad one, SkyFlow one one five.'},
+ {t:51.6,k:'hb',ok:1,cs:'SKF115',rows:[['callsign','SKF115','SKF115'],['route','C–E','C–E'],['dest','OAK-1','OAK-1']]},
+ {t:58,k:'prop',ag:'COORD',txt:'All queues nominal. Retire sector holds, return to schedule.',v:1,why:'max delay 14.4 min (SKF115, battery hold) · 0 conflicts'},
+];
+
+// ---------- DOM refs ----------
+const $ = id => document.getElementById(id);
+const board=$('board'), axis=$('axis'), ov=$('ov'), wrap=$('boardWrap');
+let W=1000,H=600,LH=60,PXM=50;
+const laneEls={};
+LANES.forEach((ln,i)=>{
+  const [p,k]=ln.split(':'); const d=document.createElement('div'); d.className='lane '+(i%4<2?'even':'odd')+(k==='A'?' grp':'');
+  d.innerHTML=`<div class="lbl"><b>${p} ${k==='D'?'DEP':'ARR'}</b><em>${PADNAME[p].toUpperCase()}</em><div class="q">Q <span>0</span><i style="font-style:normal" class="hq"></i></div></div><div class="stand"></div>`;
+  board.appendChild(d); laneEls[ln]={el:d,q:d.querySelector('.q span'),hq:d.querySelector('.hq'),lbl:d.querySelector('.lbl')};
+});
+function layout(){
+  const r=wrap.getBoundingClientRect(); W=r.width; H=r.height; LH=(H-AXH)/LANES.length; PXM=(W-NOWX-24)/HORIZON;
+  LANES.forEach((ln,i)=>{ const e=laneEls[ln].el; e.style.top=(AXH+i*LH)+'px'; e.style.height=LH+'px'; });
+  ov.setAttribute('viewBox',`0 0 ${W} ${H}`); ov.setAttribute('width',W); ov.setAttribute('height',H);
+  axis.innerHTML=''; for(let m=0;m<=HORIZON;m+=2){ const s=document.createElement('span'); s.style.left=(NOWX+m*PXM)+'px'; s.textContent=m?`+${m}′`:'NOW'; if(!m) s.className='now'; axis.appendChild(s); }
+  const st=document.createElement('span'); st.style.left=(LABELW+42)+'px'; st.textContent='STAND'; axis.appendChild(st);
+}
+addEventListener('resize',()=>{layout(); for(const e of live.values()){ if(!e.arc) e.y=laneY(e.lane); } step(0); r3 && r3.resize();});
+layout();
+
+const ICON=`<svg class="ico" viewBox="0 0 40 40"><line x1="7" y1="8" x2="28" y2="8"/><line x1="7" y1="32" x2="28" y2="32"/><circle cx="9" cy="8" r="4.6"/><circle cx="26" cy="8" r="4.6"/><circle cx="9" cy="32" r="4.6"/><circle cx="26" cy="32" r="4.6"/><rect x="15" y="6" width="4.5" height="28" rx="2"/><path d="M2.5 20 C5 16.6 13 16.4 30 18.2 L36 19 L36 21 L30 21.8 C13 23.6 5 23.4 2.5 20Z"/><path d="M30 19 L35.5 12.5 L38 12.5 L34.5 20 L38 27.5 L35.5 27.5 L30 21Z"/></svg>`;
+const live=new Map(); // key -> element state
+let selected='SKF112';
+function laneY(ln){ return AXH + LANES.indexOf(ln)*LH + LH/2; }
+const clock = s => { const t=Math.max(0,s)*60+15*3600; const h=Math.floor(t/3600), m=Math.floor(t/60)%60, x=Math.floor(t)%60; return `${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`; };
+const hm = s => clock(s).slice(0,5);
+
+function makeEl(f,key){
+  const d=document.createElement('div'); d.className='ac '+(f.sky?'sky':'bg');
+  d.innerHTML=ICON+`<div class="tx"><div>${f.cs}</div><div class="r2"><span class="sl"></span><i class="dl z"></i></div><div class="cc"></div></div>`;
+  d.onclick=()=>{ selected=f.cs; };
+  board.appendChild(d);
+  return {key,f,d,ico:d.querySelector('.ico'),sl:d.querySelector('.sl'),dl:d.querySelector('.dl'),cc:d.querySelector('.cc'),x:0,y:0,vx:0,vy:0,a:0,rot:0,lane:null,arc:null,dying:0,cache:{},lift:0};
+}
+
+// ---------- simulation step ----------
+let t=0, playing=true, last=performance.now(), evI=0, txN=0, hbN=0, caught=0, pN=0, xN=0;
+const trails=[]; let focusCs=null, focusUntil=0;
+
+function chipFor(f,v,s){
+  if(f.med && s>=S_MED && v.lane.endsWith(':D')) return ['med','MEDEVAC'];
+  if(focusCs===f.cs && t<focusUntil) return ['rb','READBACK'];
+  if(v.stand) return ['low',`▮ ${f.bat}% HOLD`];
+  return [f.bat<25?'low':'', null];
+}
+
+function step(dt){
+  const s=t*SPM;
+  const seen=new Set(); const perLane={}; LANES.forEach(l=>perLane[l]=[]);
+  const views=[];
+  for(const f of F){ const v=view(f,s); if(!v) continue; if(v.lane.endsWith(':D') && v.slot-s>HORIZON+1) continue;
+    const key=f.id+(v.air?'a':'d'); views.push([f,v,key]); perLane[v.lane].push([f,v,key]); }
+  // target x per lane: nose-to-tail against NOW
+  const tgt={};
+  for(const ln of LANES){
+    const arr=perLane[ln].filter(([f,v])=>!v.stand).sort((a,b)=>a[1].slot-b[1].slot || a[0].dep0-b[0].dep0);
+    let px=-1e9; for(const [f,v,key] of arr){ const x=Math.max(NOWX+(v.slot-s)*PXM, px+GAP); tgt[key]=x; px=x; }
+    for(const [f,v,key] of perLane[ln]) if(v.stand) tgt[key]=LABELW+8;
+    const lq=laneEls[ln]; const nh=perLane[ln].filter(x=>x[1].held).length;
+    lq.q.textContent=perLane[ln].length; lq.hq.textContent=nh?`· HOLD ${nh}`:''; lq.lbl.classList.toggle('hot',nh>0);
+  }
+  for(const [f,v,key] of views){
+    seen.add(key); let e=live.get(key); const ty=laneY(v.lane), tx=tgt[key];
+    if(!e){ e=makeEl(f,key); e.x=Math.max(tx, v.air? tx : W-CW-10); if(v.air) e.x=tx+30; e.y=ty; e.lane=v.lane; live.set(key,e); }
+    if(e.lane!==v.lane){ e.arc={x0:e.x,y0:e.y,t0:t}; e.lane=v.lane; trails.push({x0:e.x,y0:e.y,key,t0:t,div:true}); }
+    e.v=v; e.tx=tx; e.ty=ty; e.dying=0;
+    // spring
+    const k=150, c=2*Math.sqrt(k)*0.72;
+    if(e.arc){ const p=Math.min(1,(t-e.arc.t0)/1.6), q=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+      const cx=Math.max(e.arc.x0,tx)+170, cy=(e.arc.y0+ty)/2;
+      const nx=(1-q)*(1-q)*e.arc.x0+2*(1-q)*q*cx+q*q*tx, ny=(1-q)*(1-q)*e.arc.y0+2*(1-q)*q*cy+q*q*ty;
+      e.rot=Math.atan2(ny-e.y,nx-e.x)*180/Math.PI+180; e.x=nx; e.y=ny; e.vx=0; e.vy=0; e.lift=Math.sin(q*Math.PI);
+      if(p>=1){ e.arc=null; e.rot=0; e.lift=0; } }
+    else { e.vx+=((tx-e.x)*k - e.vx*c)*dt; e.x+=e.vx*dt; e.vy+=((ty-e.y)*k - e.vy*c)*dt; e.y+=e.vy*dt;
+      e.lift += ((e.vx<-140?1:0)-e.lift)*Math.min(1,dt*8); e.rot*=0.85; }
+    e.a=Math.min(1,e.a+dt*3);
+    // card content
+    const sl=hm(v.slot), dlm=Math.round(v.delay); const [cc,ct]=chipFor(f,v,s);
+    const ck=sl+'|'+dlm+'|'+cc+'|'+ct+'|'+(v.held?1:0);
+    if(e.cache.k!==ck){ e.cache.k=ck; e.sl.textContent=sl; e.dl.textContent='+'+dlm; e.dl.className='dl'+(dlm<1?' z':dlm>=10?' hi':'');
+      e.cc.innerHTML = ct? `<span class="ch ${cc}">${ct}</span>` : (f.sky? `<span class="ch ${cc}"><u><s style="width:${f.bat}%"></s></u>${f.bat}%</span>`:''); }
+    e.d.classList.toggle('sel',f.cs===selected);
+  }
+  for(const [key,e] of live){ if(seen.has(key)) continue;
+    if(!e.dying){ e.dying=t; e.d.classList.add('dying'); }
+    e.x += ((NOWX-40)-e.x)*Math.min(1,dt*5); e.a=Math.max(0,1-(t-e.dying)/0.6); e.lift=Math.min(1,(t-e.dying)*2);
+    if(t-e.dying>0.7 || t<e.dying){ e.d.remove(); live.delete(key); r3 && r3.drop(key); } }
+  for(const e of live.values()){
+    const ly=e.lift*-9; e.d.style.transform=`translate(${e.x.toFixed(1)}px,${(e.y-20+ly).toFixed(1)}px)`; e.d.style.opacity=e.a.toFixed(2);
+    e.ico.style.transform=`rotate(${e.rot.toFixed(1)}deg) scale(${1+e.lift*.12})`; e.d.style.zIndex=e.lift>.1?9:5; }
+  drawOverlay(s, perLane);
+  return {s, views, perLane};
+}
+
+function drawOverlay(s, perLane){
+  let h='';
+  const nx=NOWX-4;
+  h+=`<line x1="${nx}" y1="${AXH}" x2="${nx}" y2="${H}" stroke="#46d3c2" stroke-width="2" opacity=".85"/><line x1="${nx}" y1="${AXH}" x2="${nx}" y2="${H}" stroke="#46d3c2" stroke-width="10" opacity=".07"/>`;
+  for(let m=2;m<=HORIZON;m+=2){ const x=NOWX+m*PXM; h+=`<line x1="${x}" y1="${AXH}" x2="${x}" y2="${H}" stroke="#1a2328" stroke-width="1"/>`; }
+  for(const ln of LANES){
+    const held=perLane[ln].filter(x=>x[1].held && !x[1].stand); const y0=AXH+LANES.indexOf(ln)*LH;
+    if(held.length){ let a=1e9,b=-1e9; for(const [f,v,key] of held){ const e=live.get(key); if(!e) continue; a=Math.min(a,e.x); b=Math.max(b,e.x+CW); }
+      if(a<1e9){ const air=ln.endsWith(':A'); const lab=air?'AIRBORNE HOLD · ECHO FIX':'GROUND HOLD · C–E CLOSED';
+        h+=`<path d="M${a-6} ${y0+9} v-4 h${b-a+12} v4 M${a-6} ${y0+LH-9} v4 h${b-a+12} v-4" fill="none" stroke="#f0a83a" stroke-width="1.6"/>`;
+        h+=`<rect x="${a-6}" y="${y0+5}" width="${b-a+12}" height="${LH-10}" fill="#f0a83a" opacity=".06"/>`;
+        const lt=`${lab} · ${held.length}`, lw=lt.length*5.9+10; h+=`<rect x="${a-6}" y="${y0+LH-14}" width="${lw}" height="13" fill="#f0a83a"/><text x="${a-1}" y="${y0+LH-4.5}" fill="#1a1000" font-family="IBM Plex Mono" font-size="9.5" font-weight="600" letter-spacing=".04em">${lt}</text>`; } }
+    const st=perLane[ln].find(x=>x[1].stand); if(st){ h+=`<rect x="${LABELW+4}" y="${y0+5}" width="${CW+10}" height="${LH-10}" rx="3" fill="none" stroke="#ff5d4f" stroke-dasharray="3 3"/>`; }
+  }
+  for(let i=trails.length-1;i>=0;i--){ const tr=trails[i]; const e=live.get(tr.key); const age=t-tr.t0; if(age>4||!e||age<0){ trails.splice(i,1); continue; }
+    const tx=e.tx+CW/2*0, ty=e.ty; const cx=Math.max(tr.x0,tx)+170, cy=(tr.y0+ty)/2; const op=Math.max(0,1-Math.max(0,age-1.6)/2.4);
+    h+=`<path d="M${tr.x0+12} ${tr.y0} Q${cx} ${cy} ${tx+12} ${ty}" fill="none" stroke="#46d3c2" stroke-width="1.6" stroke-dasharray="5 4" opacity="${op}"/>`;
+    const dt=`${e.f.cs} DIVERT → ${e.lane.split(':')[0]}`; h+=`<g opacity="${op}"><rect x="${cx-64}" y="${cy-11}" width="${dt.length*6.1+8}" height="15" rx="2" fill="#0a1716" stroke="#46d3c2"/><text x="${cx-60}" y="${cy}" fill="#46d3c2" font-family="IBM Plex Mono" font-size="10" font-weight="600">${dt}</text></g>`; }
+  if(s>=S_STORM && s<S_CLEAR){ h+=`<text x="${W-14}" y="${AXH+14}" text-anchor="end" fill="#f0a83a" font-family="IBM Plex Mono" font-size="10" font-weight="600">⛈ C–E CLOSED · reopens ${hm(S_CLEAR)}</text>`; }
+  ov.innerHTML=h;
+}
+
+// ---------- side panel ----------
+const props=$('props'), radio=$('radio'), tree=$('tree');
+function trim(el,max){ while(el.children.length>max) { el.firstElementChild.remove(); } }
+function fire(ev){
+  if(ev.k==='tree'){ tree.innerHTML += (tree.innerHTML?'<br>':'')+ev.html; return; }
+  if(ev.k==='prop'){ pN++; if(!ev.v) xN++; const d=document.createElement('div'); d.className='pr '+(ev.v?'ok':'no');
+    d.innerHTML=`<div class="h"><span>${ev.ag} → KERNEL</span><span class="v">${ev.v?'ACCEPT':'REJECT'}</span></div><div class="b">${ev.txt}</div><div class="w">${ev.why}</div>`; props.appendChild(d); trim(props,7); }
+  if(ev.k==='sys'){ const d=document.createElement('div'); d.className='pr sys'; d.innerHTML=`<div class="h"><span>KERNEL</span><span></span></div><div class="b" style="font-size:11.5px">${ev.txt}</div>`; props.appendChild(d); trim(props,7);
+    const r=document.createElement('div'); r.className='rl sys'; r.innerHTML=`<span class="who">SYS</span><span class="txt">${ev.txt}</span>`; radio.appendChild(r); trim(radio,9); }
+  if(ev.k==='rad'){ txN++; air(ev); const r=document.createElement('div'); ev.el=r; r.className='rl '+(ev.who==='PLT'?'plt':''); r.innerHTML=`<span class="who">${ev.who==='PLT'?'PILOT':'CTL·AI'}</span><span class="txt">${ev.txt}</span>`; radio.appendChild(r); trim(radio,9);
+    if(ev.focus){ focusCs=ev.focus; focusUntil=41; selected=ev.focus; } }
+  if(ev.k==='hb'){ hbN++; if(!ev.ok) caught++; const d=document.createElement('div'); d.className='hb '+(ev.ok?'good':'bad');
+    d.innerHTML=`<div class="hh"><span>HEARBACK ${ev.cs}</span><b>${ev.ok?'MATCH ✓':'MISMATCH ✗ · route'}</b></div><div class="fl">${ev.rows.map(r=>r[1]===r[2]?`<span class="k">${r[0]} ${r[2]} ✓</span>`:`<span class="x">${r[0]}: cleared ${r[1]} · heard ${r[2]} ✗</span>`).join('')}</div>`; radio.appendChild(d); trim(radio,9); }
+  $('pc').textContent=`${pN-xN} / ${pN}`; $('rc').textContent=txN+' tx';
+}
+
+// ---------- radio audio (shared SkyRadio module) ----------
+const DIG={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9};
+function csOf(txt){ const m=txt.match(/SkyFlow ((?:zero|one|two|three|four|five|six|seven|eight|nine)(?: (?:zero|one|two|three|four|five|six|seven|eight|nine)){2})/); return m? 'SKF'+m[1].split(' ').map(w=>DIG[w]).join('') : 'ALL'; }
+const spk = ev => ev.who==='PLT'?'pilot':'atc';
+let busy=0;
+function air(ev){ if(!SkyRadio.enabled) return; busy++; SkyRadio.say(ev.txt, spk(ev), spk(ev)==='pilot'?csOf(ev.txt):undefined).finally(()=>{ busy=Math.max(0,busy-1); }); }
+SkyRadio.prefetch(EV.filter(e=>e.k==='rad').map(e=>({text:e.txt, speaker:spk(e), key:spk(e)==='pilot'?csOf(e.txt):undefined})));
+SkyRadio.onTransmit(({text,speaker,key,live})=>{
+  $('txDot').classList.toggle('on',live); $('txWho').textContent=live?(speaker==='atc'?'TX · CONTROLLER':'TX · '+key):'';
+  const ev=EV.find(e=>e.txt===text); if(ev&&ev.el) ev.el.classList.toggle('onair',live);
+  if(live && key) selected=key;
+});
+function sndUi(){ const on=SkyRadio.enabled; $('bSnd').textContent=on?'🔊 SOUND ON':'🔈 SOUND OFF'; $('bSnd').classList.toggle('on',on); }
+$('bSnd').onclick=()=>{ if(SkyRadio.enabled){ SkyRadio.disable(); SkyRadio.stop(); busy=0; } else SkyRadio.enable(); sndUi(); };
+document.addEventListener('skyradio:enabled',sndUi);
+
+// ---------- scoreboard ----------
+const sky=F.filter(f=>f.sky);
+function score(s, views){
+  let landed=0, ontime=0, maxd=0, maxcs='—';
+  for(const f of sky){ const v=view(f,s); const P=s<S_COMMIT?(s<S_MED?f.p0:f.p1):f.p2;
+    const d = v? v.delay : Math.max(0,P.arr-f.sched); if(v||s>P.dep){ if(d>maxd){maxd=d;maxcs=f.cs;} }
+    if(!v && s>=P.arr){ landed++; if(d<15) ontime++; } }
+  // static plan shadow: C–E traffic waits for reopening, cascading at each pad
+  let st=0; for(const f of sky){ if(s<f.p0.arr) continue; const hit=f.viaCE && f.p0.arr>S_STORM-2 && f.p0.dep<S_CLEAR+6; const casc=AFFECTED.has(f.org)&&f.p0.dep>S_STORM&&f.p0.dep<S_CLEAR+14; if(!hit&&!casc) st++; }
+  const rec=t>=60, A=rec?28:ontime, S=rec?10:Math.min(st,10);
+  $('vA').textContent=A+'/28'; $('vS').textContent=S+'/28'; $('bA').style.width=(A/28*100)+'%'; $('bS').style.width=(S/28*100)+'%';
+  $('landed').textContent=rec?'projected end-of-bank, 28 trips':`landed ${landed} · within 15 min of schedule`;
+  $('vMax').innerHTML=maxd.toFixed(1)+'<small> min</small>'; $('vMaxCs').textContent=maxd>0.5?maxcs:'—';
+  $('vTx').textContent=txN; $('vHb').textContent=`hearback ${hbN} · caught ${caught}`;
+  let q=0,h=0,a=0,r=0; for(const [f,v] of views){ if(v.air) a++; else q++; if(v.held) h++; }
+  for(const f of F) if(s>=S_COMMIT && (f.p2.rr||f.p2.div) && s<f.p2.arr+30) r++;
+  $('sQ').textContent=q; $('sH').textContent=h; $('sA').textContent=a; $('sR').textContent=s>=S_COMMIT?r:0; $('sP').textContent=pN; $('sX').textContent=xN;
+  $('sD').textContent='+'+(s<S_COMMIT?0:Math.min(14.3,(s-S_COMMIT)*1.6)).toFixed(1)+'%';
+  $('recov').classList.toggle('on',rec); $('strip').style.visibility=rec?'hidden':'visible';
+}
+
+// ---------- minimap ----------
+const mc=$('mc'), mx=mc.getContext('2d'); let land=null;
+const BB={l0:-122.56,l1:-122.17,a0:37.59,a1:37.9};
+fetch('data/bay-coastline.geojson').then(r=>r.json()).then(j=>land=j).catch(()=>{});
+function mp(ll,w,h){ const sx=w/(BB.l1-BB.l0), sy=h/((BB.a1-BB.a0)*1.26); const s=Math.min(sx,sy); const ox=(w-(BB.l1-BB.l0)*s)/2, oy=(h-(BB.a1-BB.a0)*s*1.26)/2;
+  return [ox+(ll[0]-BB.l0)*s, oy+(BB.a1-ll[1])*s*1.26]; }
+function along(nodes,fr){ const segs=[]; let tot=0; for(let i=1;i<nodes.length;i++){ const L=km(nodes[i-1],nodes[i]); segs.push(L); tot+=L; }
+  let d=fr*tot; for(let i=0;i<segs.length;i++){ if(d<=segs[i]){ const A=NODES[nodes[i]],B=NODES[nodes[i+1]],q=d/segs[i]; return [A[0]+(B[0]-A[0])*q,A[1]+(B[1]-A[1])*q]; } d-=segs[i]; } return NODES[nodes[nodes.length-1]]; }
+function mini(s, views){
+  const r=mc.getBoundingClientRect(), dpr=devicePixelRatio||1; if(mc.width!==Math.round(r.width*dpr)){ mc.width=r.width*dpr; mc.height=r.height*dpr; }
+  const w=r.width,h=r.height; mx.setTransform(dpr,0,0,dpr,0,0); mx.fillStyle='#08121a'; mx.fillRect(0,0,w,h);
+  if(land){ mx.fillStyle='#141b1f'; mx.strokeStyle='#26323a'; mx.lineWidth=.8; for(const ft of land.features){ const rings=ft.geometry.type==='Polygon'?[ft.geometry.coordinates]:ft.geometry.coordinates; for(const poly of rings){ mx.beginPath(); for(const ring of poly){ ring.forEach((c,i)=>{ const [x,y]=mp(c,w,h); i?mx.lineTo(x,y):mx.moveTo(x,y); }); mx.closePath(); } mx.fill('evenodd'); mx.stroke(); } } }
+  const closed=s>=S_STORM&&s<S_CLEAR;
+  for(const [a,b] of CORR){ const ce=(a==='C'&&b==='E'); const A=mp(NODES[a],w,h),B=mp(NODES[b],w,h); mx.beginPath(); mx.moveTo(...A); mx.lineTo(...B);
+    mx.strokeStyle= ce&&closed?'#ff5d4f':'#2f4a50'; mx.setLineDash(ce&&closed?[4,3]:[]); mx.lineWidth=ce&&closed?2:1.4; mx.stroke(); }
+  mx.setLineDash([]);
+  if(closed){ const c=mp([-122.315,37.78],w,h); const g=mx.createRadialGradient(c[0],c[1],2,c[0],c[1],26); g.addColorStop(0,'rgba(240,168,58,.35)'); g.addColorStop(1,'rgba(240,168,58,0)'); mx.fillStyle=g; mx.beginPath(); mx.arc(c[0],c[1],26,0,7); mx.fill(); }
+  for(const n in NODES){ const [x,y]=mp(NODES[n],w,h); const pad=PADS.includes(n); mx.fillStyle=pad?'#d3dde1':'#5a6b72'; mx.fillRect(x-(pad?3:2),y-(pad?3:2),pad?6:4,pad?6:4);
+    mx.font='500 9px IBM Plex Mono'; mx.fillStyle=pad?'#9fb0b6':'#56656c'; mx.fillText(n,x+5,y-4); }
+  for(const [f,v] of views){ if(!v.air) continue; const P=v.P; const nodes=v.div? path(f.org,P.dst,true).p : (P.rr? f.pathR : f.pathN);
+    const fr=Math.min(1,Math.max(0,(s-v.dep)/(v.arr-v.dep))); const [x,y]=mp(along(nodes,fr),w,h);
+    mx.fillStyle=f.sky?(v.ahold?'#f0a83a':'#46d3c2'):'#6c7b82'; mx.beginPath(); mx.arc(x,y,f.sky?2.6:1.8,0,7); mx.fill();
+    if(f.cs===selected){ mx.strokeStyle='#46d3c2'; mx.beginPath(); mx.arc(x,y,6,0,7); mx.stroke(); mx.fillStyle='#46d3c2'; mx.fillText(f.cs,x+7,y+3); } }
+  for(const p of PADS){ const q=views.filter(([f,v])=>!v.air&&f.org===p&&v.held).length; if(!q) continue; const [x,y]=mp(NODES[p],w,h); mx.fillStyle='#f0a83a'; mx.font='600 9px IBM Plex Mono'; mx.fillText('HOLD '+q,x+5,y+9); }
+}
+
+// ---------- header ----------
+function header(s){
+  $('clock').innerHTML=clock(s)+'<small>PDT · sim</small>';
+  const ph = s<S_STORM?0 : s<S_COMMIT?1 : s<S_CLEAR+4?2 : 3;
+  document.querySelectorAll('#phase b').forEach(b=>{ b.classList.toggle('on',+b.dataset.p===ph); b.classList.toggle('st',ph===1); });
+  $('scrub').firstElementChild.style.width=(t/LOOP*100)+'%';
+}
+
+function restart(){ SkyRadio.stop(); busy=0; t=0; evI=0; txN=hbN=caught=pN=xN=0; focusCs=null; selected='SKF112'; for(const e of live.values()) e.d.remove(); live.clear(); trails.length=0;
+  props.querySelectorAll('.pr').forEach(n=>n.remove()); tree.innerHTML=''; radio.innerHTML=''; r3 && r3.reset(); }
+$('bPlay').onclick=()=>{ playing=!playing; if(!playing){ SkyRadio.stop(); busy=0; } $('bPlay').textContent=playing?'PAUSE':'PLAY'; };
+$('bRestart').onclick=restart;
+addEventListener('keydown',e=>{ if(e.code==='Space'){ e.preventDefault(); $('bPlay').click(); } if(e.key==='r') restart(); });
+
+// ---------- 3D apron (lazy) ----------
+let r3=null, mode='2d';
+$('b2d').onclick=()=>{ mode='2d'; $('v3').classList.remove('on'); $('b2d').classList.add('on'); $('b3d').classList.remove('on'); };
+$('b3d').onclick=async()=>{ mode='3d'; $('v3').classList.add('on'); $('b3d').classList.add('on'); $('b2d').classList.remove('on'); if(!r3){ r3=await initThree(); } r3.resize(); };
+if(location.hash==='#3d') setTimeout(()=>$('b3d').click(),50);
+
+async function initThree(){
+  const THREE=await import('three');
+  const {OrbitControls}=await import('three/addons/controls/OrbitControls.js');
+  const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+  const {CSS2DRenderer,CSS2DObject}=await import('three/addons/renderers/CSS2DRenderer.js');
+  const host=$('v3');
+  const ren=new THREE.WebGLRenderer({antialias:true}); ren.setPixelRatio(Math.min(2,devicePixelRatio)); ren.toneMapping=THREE.ACESFilmicToneMapping; ren.shadowMap.enabled=true;
+  host.prepend(ren.domElement);
+  const lr=new CSS2DRenderer(); lr.domElement.style.cssText='position:absolute;inset:0;pointer-events:none'; host.appendChild(lr.domElement);
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0b1114); scene.fog=new THREE.Fog(0x0b1114,140,360);
+  const cam=new THREE.PerspectiveCamera(42,1,0.5,900);
+  const ctl=new OrbitControls(cam,ren.domElement); ctl.enableDamping=true; ctl.minDistance=10; ctl.maxDistance=260; ctl.maxPolarAngle=Math.PI*0.47;
+  scene.add(new THREE.HemisphereLight(0xbfd6e0,0x1a1410,1.1));
+  const sun=new THREE.DirectionalLight(0xfff1dc,2.2); sun.position.set(-60,90,40); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+  Object.assign(sun.shadow.camera,{left:-140,right:140,top:140,bottom:-140,far:300}); scene.add(sun);
+  const U=5; // world units per sim minute
+  const laneZ = i => i*9 + Math.floor(i/2)*7;
+  const ZMID=laneZ(9)/2;
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(700,500),new THREE.MeshStandardMaterial({color:0x1b2124,roughness:.95}));
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; ground.position.set(40,0,ZMID); scene.add(ground);
+  const asphalt=new THREE.MeshStandardMaterial({color:0x2a3135,roughness:.85}), yel=new THREE.MeshBasicMaterial({color:0xe8b23a}), wht=new THREE.MeshBasicMaterial({color:0x9aa8ae});
+  LANES.forEach((ln,i)=>{ const z=laneZ(i); const L=HORIZON*U+30;
+    const strip=new THREE.Mesh(new THREE.BoxGeometry(L,.12,6),asphalt); strip.position.set(L/2-18,.06,z); strip.receiveShadow=true; scene.add(strip);
+    for(let x=-10;x<L-20;x+=6){ const m=new THREE.Mesh(new THREE.BoxGeometry(3,.02,.18),ln.endsWith('A')?wht:yel); m.position.set(x,.14,z); scene.add(m); }
+    const hb=new THREE.Mesh(new THREE.BoxGeometry(.5,.03,6),yel); hb.position.set(-2,.15,z); scene.add(hb);
+    const d=document.createElement('div'); d.className='lab pad'; d.textContent=ln.replace(':D',' DEP').replace(':A',' ARR'); const o=new CSS2DObject(d); o.position.set(-22,0,z); scene.add(o);
+  });
+  // pad apron discs at NOW
+  PADS.forEach((p,j)=>{ const z=(laneZ(j*2)+laneZ(j*2+1))/2; const pad=new THREE.Mesh(new THREE.CylinderGeometry(7,7,.2,40),new THREE.MeshStandardMaterial({color:0x223036}));
+    pad.position.set(-10,.1,z); scene.add(pad); const ring=new THREE.Mesh(new THREE.TorusGeometry(5.5,.12,6,48),new THREE.MeshBasicMaterial({color:0x46d3c2})); ring.rotation.x=Math.PI/2; ring.position.set(-10,.25,z); scene.add(ring); });
+  // storm
+  const storm=new THREE.Group(); const cm=new THREE.MeshStandardMaterial({color:0x39434a,transparent:true,opacity:.55,roughness:1,depthWrite:false});
+  for(let i=0;i<26;i++){ const s=new THREE.Mesh(new THREE.SphereGeometry(5+Math.random()*7,14,10),cm); s.position.set(10+Math.random()*50,26+Math.random()*7,laneZ(0)-6+Math.random()*(laneZ(7)-laneZ(0)+12)); storm.add(s); }
+  const rainG=new THREE.BufferGeometry(); const rp=[]; for(let i=0;i<900;i++){ const x=8+Math.random()*55,z=laneZ(0)-6+Math.random()*(laneZ(7)-laneZ(0)+12),y=Math.random()*26; rp.push(x,y,z,x-.4,y-2.2,z); }
+  rainG.setAttribute('position',new THREE.Float32BufferAttribute(rp,3)); const rain=new THREE.LineSegments(rainG,new THREE.LineBasicMaterial({color:0x7d97a5,transparent:true,opacity:.35})); storm.add(rain);
+  const flash=new THREE.PointLight(0xcfe3ff,0,140); flash.position.set(35,30,laneZ(3)); storm.add(flash); scene.add(storm);
+  // models
+  const loader=new GLTFLoader(); const load=u=>new Promise(r=>loader.load(u,g=>r(g.scene),undefined,()=>r(null)));
+  const [ev,al1,al2]=await Promise.all([load('assets/evtol.glb'),load('assets/airplane-google/model.glb'),load('assets/boeing747-mihalunar/model.glb')]);
+  function norm(o,len){ const b=new THREE.Box3().setFromObject(o), sz=b.getSize(new THREE.Vector3()), c=b.getCenter(new THREE.Vector3());
+    const g=new THREE.Group(); o.position.sub(c); o.position.y+=sz.y/2; const s=len/Math.max(sz.x,sz.z); const w=new THREE.Group(); w.add(o); w.scale.setScalar(s); if(sz.z>sz.x) w.rotation.y=Math.PI/2; g.add(w);
+    g.traverse(m=>{ if(m.isMesh){ m.castShadow=true; } }); return g; }
+  let proto;
+  if(ev){ proto=norm(ev,4.6); } else { proto=new THREE.Group(); const b=new THREE.Mesh(new THREE.CapsuleGeometry(.5,3,4,8),new THREE.MeshStandardMaterial({color:0xe6eef0})); b.rotation.z=Math.PI/2; b.position.y=.8; proto.add(b); const wg=new THREE.Mesh(new THREE.BoxGeometry(.8,.12,5),new THREE.MeshStandardMaterial({color:0xcfd8db})); wg.position.y=.9; proto.add(wg); }
+  const NOSE = window.__nose ?? Math.PI; // orient nose toward NOW (−x)
+  // SFO holding point with airliners (ADS-B on-ground callsigns)
+  let gc=['UAL29','SWA1255','AAL2105','ACA567','ASA536'];
+  try{ const j=await (await fetch('data/adsb-tracks.json')).json(); const g=j.filter(a=>a.callsign&&a.points.some(p=>p[6])&&/^[A-Z]{3}\d/.test(a.callsign)).map(a=>a.callsign.trim()); if(g.length>=4) gc=g.slice(0,5); }catch(e){}
+  const twyZ=laneZ(5)+ (laneZ(6)-laneZ(5))/2; // between SFO and OAK groups
+  const twy=new THREE.Mesh(new THREE.BoxGeometry(200,.1,10),new THREE.MeshStandardMaterial({color:0x252b2e})); twy.position.set(60,.04,-30); scene.add(twy);
+  const t2=document.createElement('div'); t2.className='lab pad'; t2.textContent='SFO TWY A · HOLD SHORT 28L (real ground traffic, OpenSky)'; const t2o=new CSS2DObject(t2); t2o.position.set(-6,0,-39); scene.add(t2o);
+  const hbA=new THREE.Mesh(new THREE.BoxGeometry(.8,.03,14),yel); hbA.position.set(-6,.12,-30); scene.add(hbA);
+  const airliners=[]; gc.forEach((c,i)=>{ const src=(i%2?al2:al1); if(!src) return; const m=norm(src.clone(true),i%2?15:13); m.position.set(6+i*19,0,-30); m.rotation.y=window.__anose ?? 0; scene.add(m);
+    const d=document.createElement('div'); d.className='lab al'; d.textContent=c+' · #'+(i+1); const o=new CSS2DObject(d); o.position.set(0,6,0); m.add(o); airliners.push(m); });
+
+  const pool=new Map();
+  function get(e){ let o=pool.get(e.key); if(o) return o; const m=proto.clone(true);
+    if(!e.f.sky) m.traverse(n=>{ if(n.isMesh){ n.material=n.material.clone(); n.material.color.multiplyScalar(.55); } });
+    const d=document.createElement('div'); d.className='lab'+(e.f.sky?'':' g'); const lab=new CSS2DObject(d); lab.position.set(0,3.6,0); m.add(lab);
+    scene.add(m); o={m,d,lab,last:''}; pool.set(e.key,o); return o; }
+  function drop(key){ const o=pool.get(key); if(!o) return; o.m.remove(o.lab); o.d.remove(); scene.remove(o.m); pool.delete(key); }
+  function toWorld(e){ const x=(e.x-NOWX)/PXM*U; const lf=(e.y-AXH-LH/2)/LH; const i0=Math.max(0,Math.min(9,Math.floor(lf))), i1=Math.min(9,i0+1), q=Math.max(0,Math.min(1,lf-i0));
+    return [x, laneZ(i0)+(laneZ(i1)-laneZ(i0))*q]; }
+  // camera rig
+  const presets={
+    1:()=>({p:[ -55,95,ZMID+95],l:[30,0,ZMID]}),
+    2:()=>({p:[-34,7,laneZ(9)+22],l:[25,2,ZMID-4]}),
+    3:()=>{ const e=[...live.values()].find(e=>e.f.cs===selected); if(!e) return presets[1](); const [x,z]=toWorld(e); return {p:[x-16,9+e.lift*6,z+14],l:[x+6,1+e.lift*6,z],follow:true}; },
+    4:()=>({p:[-24,26,laneZ(0)-26],l:[18,6,laneZ(3)]}),
+    5:()=>({p:[-30,16,laneZ(7)+22],l:[6,0,(laneZ(6)+laneZ(7))/2]}),
+  };
+  let cine=true, tw=null, followP=null;
+  function go(n,dur=1.5){ const P=presets[n](); tw={fp:cam.position.clone(),fl:ctl.target.clone(),n,t0:performance.now(),dur:dur*1000}; followP=n; }
+  function user(){ if(cine){ cine=false; $('bCine').classList.remove('on'); $('resume').style.display='block'; } }
+  ren.domElement.addEventListener('pointerdown',()=>{ user(); tw=null; followP=null; }); ren.domElement.addEventListener('wheel',()=>{ user(); tw=null; followP=null; },{passive:true});
+  host.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{ user(); go(+b.dataset.c); });
+  addEventListener('keydown',e=>{ if(mode!=='3d') return; if('12345'.includes(e.key)&&e.key.length===1){ user(); go(+e.key); } if(e.key==='c'||e.key==='C') setCine(!cine); });
+  function setCine(v){ cine=v; $('bCine').classList.toggle('on',v); $('resume').style.display=v?'none':'block'; if(v) lastBeat=-1; }
+  $('bCine').onclick=()=>setCine(!cine); $('resume').onclick=()=>setCine(true);
+  const dolly=f=>{ user(); tw=null; followP=null; const d=cam.position.clone().sub(ctl.target); const L=Math.min(ctl.maxDistance,Math.max(ctl.minDistance,d.length()*f)); cam.position.copy(ctl.target).add(d.setLength(L)); };
+  $('zin').onclick=()=>dolly(.78); $('zout').onclick=()=>dolly(1.28);
+  let lastBeat=-1; const beats=[[0,1],[15.5,4],[25.5,3],[30,3],[42,5],[50,4],[58,1]];
+  const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+  cam.position.set(-55,95,ZMID+95); ctl.target.set(30,0,ZMID);
+  function frame(s){
+    if(cine){ let b=0; for(let i=0;i<beats.length;i++) if(t>=beats[i][0]) b=i; if(b!==lastBeat){ lastBeat=b; const n=beats[b][1]; if(b===2||b===3) selected=b===2?'SKF104':'SKF112'; go(n,b===0?0.01:1.8); } }
+    if(tw){ const P=presets[tw.n](); const q=ease(Math.min(1,(performance.now()-tw.t0)/tw.dur)); cam.position.lerpVectors(tw.fp,new THREE.Vector3(...P.p),q); ctl.target.lerpVectors(tw.fl,new THREE.Vector3(...P.l),q); if(q>=1) tw=null; }
+    else if(followP){ const P=presets[followP](); if(P.follow||cine){ cam.position.lerp(new THREE.Vector3(...P.p),.06); ctl.target.lerp(new THREE.Vector3(...P.l),.08); } }
+    if(cine && lastBeat===0 && !tw){ const a=performance.now()*0.00006; const r=125; cam.position.set(30+Math.cos(a+2.4)*r,80,ZMID+Math.sin(a+2.4)*r); }
+    cam.fov=42+Math.sin(performance.now()*0.0004)*(cine?1.6:0); cam.updateProjectionMatrix();
+    ctl.update();
+    const on=s>=S_STORM&&s<S_CLEAR; storm.visible=on||(s>=S_STORM-1&&s<S_CLEAR+1); cm.opacity=on?.55:.2; rain.position.y=-((performance.now()*0.03)%2.2);
+    flash.intensity = on && Math.random()<0.02 ? 900 : flash.intensity*0.8;
+    for(const e of live.values()){ const o=get(e); const [x,z]=toWorld(e); const climb=e.dying? (t-e.dying)*14 : 0;
+      o.m.position.set(x+2.3, e.lift*7+climb, z); o.m.rotation.set(0,NOSE+(e.rot*Math.PI/180),0); o.m.visible=e.a>0.05;
+      const v=e.v; const lab=e.f.cs+(v&&v.delay>=1?` +${Math.round(v.delay)}′`:'')+(v&&v.held?' HOLD':'');
+      if(o.last!==lab){ o.last=lab; o.d.textContent=lab; o.d.className='lab'+(e.f.sky?'':' g')+(v&&v.held?' h':''); }
+      o.lab.visible = e.f.sky || (v&&v.held); }
+    ren.render(scene,cam); lr.render(scene,cam);
+  }
+  function resize(){ const r=host.getBoundingClientRect(); ren.setSize(r.width,r.height); lr.setSize(r.width,r.height); cam.aspect=r.width/r.height; cam.updateProjectionMatrix(); }
+  function reset(){ for(const k of [...pool.keys()]) drop(k); lastBeat=-1; }
+  return {frame,resize,drop,reset};
+}
+
+// ---------- loop ----------
+function tick(now){
+  const dt=Math.max(0,Math.min(0.05,(now-last)/1000)); last=now;
+  if(playing){ let d=dt; if(busy>0){ d*=0.35; const nx=EV.slice(evI).find(e=>e.k==='rad'||e.k==='hb'); if(nx && t+d>=nx.t) d=Math.max(0,nx.t-t-1e-3); }
+    t+=d; if(t>=LOOP) restart(); }
+  while(evI<EV.length && EV[evI].t<=t){ fire(EV[evI]); evI++; }
+  const st=step(playing?dt:0);
+  header(st.s); score(st.s, st.views); mini(st.s, st.views);
+  if(mode==='3d' && r3) r3.frame(st.s);
+  schedule();
+}
+// rAF with a timer fallback so the loop keeps running in occluded/headless windows
+function schedule(){ let done=false; const go=()=>{ if(done) return; done=true; tick(performance.now()); }; requestAnimationFrame(go); setTimeout(go,50); }
+window.__sim={get t(){return t}, set t(v){t=v}, F};
+schedule();
+</script>
+</body>
+</html>

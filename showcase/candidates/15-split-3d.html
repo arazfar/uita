@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Split Diorama</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#e9eef2; --dim:#93a3b0; --mute:#5f707d;
+  --panel:rgba(15,21,27,.88); --line:rgba(160,185,200,.16);
+  --teal:#1fc8a8; --amber:#f2b33d; --red:#ff5a47; --paper:#f3ead2;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --div:156px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b1015;color:var(--ink);font-family:var(--sans)}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block}
+#ctl{position:absolute;inset:0;z-index:1;cursor:grab}
+.lbls{position:absolute;top:0;pointer-events:none;z-index:2;overflow:hidden}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.3);z-index:5}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.ph b{color:var(--ink);font-weight:600}
+#top{top:12px;left:12px;right:12px;height:48px;display:flex;align-items:center;gap:16px;padding:0 14px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand .n{font:600 17px/1 var(--sans)}
+.brand .s{font:500 11px/1 var(--mono);color:var(--dim);letter-spacing:.08em}
+.chip{font:600 10px/1 var(--mono);letter-spacing:.14em;padding:5px 8px;border-radius:4px;border:1px solid var(--line);color:var(--dim)}
+.chip.sim{color:#0e1a20;background:var(--paper);border-color:transparent}
+#phase{min-width:250px;text-align:center}
+#phase.calm{color:var(--teal);border-color:rgba(31,200,168,.4)}
+#phase.storm{color:#fff;background:var(--red);border-color:var(--red)}
+#phase.recovery{color:var(--teal);border-color:var(--teal)}
+#clock{font:500 19px/1 var(--mono)}
+#clock small{font-size:11px;color:var(--dim);margin-left:6px}
+.sp{flex:1}
+.btn{background:transparent;border:1px solid var(--line);color:var(--ink);font:600 11px/1 var(--mono);padding:7px 10px;border-radius:6px;cursor:pointer;letter-spacing:.08em}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.on{background:var(--teal);color:#06231d;border-color:var(--teal)}
+.btn kbd{font:inherit;opacity:.55;margin-right:5px}
+#bar{width:200px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;position:relative;overflow:hidden}
+#bar i{position:absolute;inset:0 auto 0 0;background:var(--teal);width:0}
+#bar .st{position:absolute;top:0;bottom:0;background:rgba(255,90,71,.55)}
+
+/* side titles */
+.side{position:fixed;top:70px;z-index:4;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.side .t{font:600 13px/1 var(--sans)}
+.side .d{font:500 10.5px/1 var(--mono);color:var(--dim);letter-spacing:.06em}
+.side .dot{width:9px;height:9px;border-radius:50%}
+#sideL{left:12px} #sideL .dot{background:var(--red)}
+#sideR{right:12px} #sideR .dot{background:var(--teal)}
+
+/* divider */
+#divider{position:fixed;top:0;bottom:0;left:calc(50% - var(--div)/2);width:var(--div);background:linear-gradient(180deg,#0b1015,#101820 50%,#0b1015);border-left:1px solid var(--line);border-right:1px solid var(--line);z-index:3;display:flex;flex-direction:column;padding:72px 10px 120px;gap:8px}
+#divider .hd{font:600 9.5px/1.3 var(--mono);letter-spacing:.16em;color:var(--dim);text-align:center;padding-bottom:4px}
+.dm{border:1px solid var(--line);border-radius:8px;padding:8px 8px 9px;background:rgba(255,255,255,.02)}
+.dm .k{font:600 9px/1 var(--mono);letter-spacing:.14em;color:var(--mute);text-align:center}
+.dm .row{display:flex;justify-content:space-between;align-items:baseline;margin-top:7px;font-family:var(--mono)}
+.dm .l{color:var(--red);font-size:15px;font-weight:600}
+.dm .r{color:var(--teal);font-size:15px;font-weight:600}
+.dm .x{font-size:10px;color:var(--dim);text-align:center;margin-top:5px;font-family:var(--mono)}
+.dm .tr{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:5px;position:relative;overflow:hidden}
+.dm .tr i{position:absolute;top:0;bottom:0;left:0}
+.dm.zero .l,.dm.zero .r{color:var(--ink)}
+#divider .foot{margin-top:auto;font:500 9px/1.4 var(--mono);color:var(--mute);text-align:center}
+
+/* congestion meter (left) */
+#cong{left:12px;bottom:66px;width:340px;padding:0 0 10px}
+#cong .meter{margin:10px 12px 0;height:12px;border-radius:3px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+#cong .meter i{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg,#3d8f7f,#f2b33d 60%,#ff5a47 75%);transition:width .3s}
+#cong .meter .cap{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;left:66.7%}
+#cong .scale{display:flex;justify-content:space-between;margin:4px 12px 0;font:500 9px var(--mono);color:var(--mute)}
+#cong .big{display:flex;align-items:baseline;gap:10px;padding:8px 12px 0}
+#cong .big b{font:600 26px/1 var(--mono)}
+#cong .big span{font:600 10px/1 var(--mono);letter-spacing:.14em;color:var(--dim)}
+#cong.hot .big b{color:var(--red)} #cong.hot .big span{color:var(--red)}
+#queue{display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px 0;min-height:26px}
+#queue s{text-decoration:none;font:600 9.5px/1 var(--mono);padding:4px 5px;border-radius:3px;background:rgba(255,90,71,.14);color:#ffb4aa;border:1px solid rgba(255,90,71,.35)}
+#queue .none{font:500 10px var(--mono);color:var(--mute)}
+
+/* radio (right) */
+#radio{right:12px;bottom:66px;width:400px}
+#tx{padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px;height:196px;overflow:hidden}
+.ln{display:grid;grid-template-columns:48px 1fr;gap:8px;font-size:12px;line-height:1.35;opacity:.55;transition:opacity .3s}
+.ln.now{opacity:1}
+.ln .w{font:600 9.5px/1.5 var(--mono);letter-spacing:.08em;color:var(--dim)}
+.ln.atc .w{color:var(--teal)}
+.ln.bad{color:#ffd0c9} .ln.bad .w{color:var(--red)}
+.chk{white-space:nowrap;font:600 9px/1 var(--mono);letter-spacing:.1em;padding:3px 6px;border-radius:3px;margin-left:6px;vertical-align:1px}
+.chk.ok{background:var(--teal);color:#06231d} .chk.bad{background:var(--red);color:#fff}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2b3a44;margin-right:7px;vertical-align:0}
+.live.on{background:var(--red);box-shadow:0 0 0 3px rgba(255,90,71,.25)}
+#wave{display:block;width:100%;height:22px}
+
+/* camera bar */
+#cambar{bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;padding:6px;align-items:center;z-index:6}
+#cambar .sep{width:1px;height:20px;background:var(--line);margin:0 2px}
+#shot{position:fixed;left:50%;transform:translateX(-50%);bottom:60px;font:600 10px/1 var(--mono);letter-spacing:.14em;color:#0f1a20;background:rgba(243,234,210,.92);padding:5px 8px;border-radius:4px;z-index:6;transition:opacity .4s;white-space:nowrap}
+#resume{position:fixed;left:50%;transform:translateX(-50%);bottom:60px;z-index:7;display:none;background:var(--teal);color:#06231d;border:0;font:600 10.5px/1 var(--mono);letter-spacing:.12em;padding:8px 12px;border-radius:16px;cursor:pointer}
+#credit{position:fixed;left:12px;bottom:16px;font:500 9px/1.3 var(--mono);color:var(--mute);max-width:calc(50% - 300px);z-index:5}
+#loading{position:fixed;inset:0;display:grid;place-items:center;font:500 12px var(--mono);color:var(--dim);letter-spacing:.12em;pointer-events:none;z-index:9}
+
+/* 3D labels */
+.lab{font:600 9.5px/1 var(--mono);letter-spacing:.06em;color:#0f1a20;background:rgba(243,234,210,.9);padding:3px 5px;border-radius:3px;white-space:nowrap;transform:translateY(-14px)}
+.lab.j{background:rgba(17,24,31,.75);color:#cfe}
+.lab.storm{background:var(--red);color:#fff}
+.lab.f{background:rgba(17,24,31,.82);color:#e9eef2;font-size:9px;padding:2px 4px}
+.lab.f.late{background:var(--red);color:#fff;box-shadow:0 0 10px rgba(255,90,71,.8)}
+.lab.f.rr{color:var(--amber)}
+.lab.f.hl{background:var(--amber);color:#1a1205}
+.call{font:500 10.5px/1.3 var(--sans);color:var(--ink);background:rgba(12,18,23,.92);border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:5px;padding:6px 8px;max-width:230px;transform:translate(0,-100%) translateY(-18px);transition:opacity .4s}
+.call .a{font:600 9px/1 var(--mono);letter-spacing:.12em;color:var(--dim);display:block;margin-bottom:3px}
+.call .v{font:600 9px/1 var(--mono);letter-spacing:.1em;display:inline-block;margin-top:4px;padding:2px 5px;border-radius:3px;background:var(--teal);color:#06231d}
+.call.rej{border-left-color:var(--red)} .call.rej .v{background:var(--red);color:#fff}
+@media (max-width:1360px){#radio{width:340px} #cong{width:300px} :root{--div:146px} #credit{display:none}}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+<script src="radio-audio.js?v=3"></script>
+</head>
+<body>
+<div id="stage"><div id="ctl"></div><div class="lbls" id="lblL"></div><div class="lbls" id="lblR"></div></div>
+<div id="loading">LOADING BLENDER DIORAMA…</div>
+
+<div id="top" class="panel">
+  <div class="brand"><span class="n">SkyFlow</span><span class="s">SAME STORM · SAME 28 TRIPS</span></div>
+  <span class="chip sim">SIMULATION</span>
+  <span id="phase" class="chip calm">CALM · ALL CORRIDORS OPEN</span>
+  <div class="sp"></div>
+  <div id="clock">T+00:00<small>sim</small></div>
+  <div id="bar"><div class="st" id="stBand"></div><i id="prog"></i></div>
+  <button class="btn" id="play">PAUSE</button>
+  <button class="btn" id="restart">RESTART</button>
+  <button class="btn" id="snd" title="Radio audio">🔈 RADIO OFF</button>
+</div>
+
+<div class="side" id="sideL"><span class="dot"></span><span class="t">Static plan</span><span class="d">FILED ROUTES · NO REPLANNING</span></div>
+<div class="side" id="sideR"><span class="dot"></span><span class="t">Agent team</span><span class="d">RECURSIVE ATC · KERNEL-VALIDATED</span></div>
+
+<div id="divider">
+  <div class="hd">LIVE DELTA<br><span style="color:var(--red)">STATIC</span> · <span style="color:var(--teal)">AGENTS</span></div>
+  <div class="dm"><div class="k">ON-TIME</div><div class="row"><span class="l" id="dOnL">0</span><span class="r" id="dOnR">0</span></div>
+    <div class="tr"><i id="dOnBL" style="background:var(--red)"></i></div><div class="tr"><i id="dOnBR" style="background:var(--teal)"></i></div><div class="x" id="dOnX">of 0 landed</div></div>
+  <div class="dm"><div class="k">MAX DELAY</div><div class="row"><span class="l" id="dDl">0.0</span><span class="r" id="dDr">0.0</span></div><div class="x">minutes</div></div>
+  <div class="dm"><div class="k">BATTERY RESERVE MIN</div><div class="row"><span class="l" id="dBl">—</span><span class="r" id="dBr">—</span></div><div class="x">floor 20%</div></div>
+  <div class="dm"><div class="k">HOLDING NOW</div><div class="row"><span class="l" id="dHl">0</span><span class="r" id="dHr">0</span></div><div class="x">aircraft</div></div>
+  <div class="dm zero"><div class="k">CONFLICTS</div><div class="row"><span class="l">0</span><span class="r">0</span></div><div class="x">separation kept</div></div>
+  <div class="dm"><div class="k">EXTRA DISTANCE</div><div class="row"><span class="l">0%</span><span class="r" id="dX">0%</span></div><div class="x">on W–E reroutes</div></div>
+  <div class="foot">camera linked<br>drag · wheel · 1–5 · C</div>
+</div>
+
+<div id="cong" class="panel">
+  <div class="ph"><span>Bay 123.875 · static</span><b id="congTag">NORMAL</b></div>
+  <div class="big"><b id="congPct">32%</b><span id="congLbl">FREQUENCY UTILISATION</span></div>
+  <div class="meter"><i id="congBar" style="width:21%"></i><span class="cap"></span></div>
+  <div class="scale"><span>0</span><span>50</span><span>100% · saturated</span><span>150</span></div>
+  <div id="queue"><span class="none">No calls waiting</span></div>
+</div>
+
+<div id="radio" class="panel">
+  <div class="ph"><span><i class="live" id="live"></i>Bay Control 123.875 · agents</span><b>hearback check</b></div>
+  <canvas id="wave" width="800" height="44"></canvas>
+  <div id="tx"></div>
+</div>
+
+<div id="cambar" class="panel">
+  <button class="btn" id="zout" title="Zoom out">−</button><button class="btn" id="zin" title="Zoom in">+</button>
+  <span class="sep"></span>
+  <button class="btn" data-p="1"><kbd>1</kbd>Overview</button><button class="btn" data-p="2"><kbd>2</kbd>Tower</button>
+  <button class="btn" data-p="3"><kbd>3</kbd>Chase</button><button class="btn" data-p="4"><kbd>4</kbd>Storm</button>
+  <button class="btn" data-p="5"><kbd>5</kbd>OAK pad</button>
+  <span class="sep"></span>
+  <button class="btn on" id="cine"><kbd>C</kbd>Cinematic</button>
+</div>
+<div id="shot">CINEMATIC · ESTABLISHING</div>
+<button id="resume">▶ RESUME CINEMATIC</button>
+<div id="credit">Blender diorama (Draco GLB) · Map © OpenStreetMap contributors (ODbL), US Census coastline · Simulated traffic</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const $=id=>document.getElementById(id);
+const LON0=-122.35, LAT0=37.74, K=10;
+const geo=(lon,lat)=>[(lon-LON0)*111320*Math.cos(LAT0*Math.PI/180)/K,(lat-LAT0)*110574/K];
+const v3=(bx,by,h)=>new THREE.Vector3(bx,h,-by);
+const ALT=45, MIN_PER_S=0.95, END=88, STORM=[8,24], SPD=250, ONTIME=3;
+const L_STATIC=1, L_AGENT=2;
+const CORR=['SF-MAR','SF-W','SF-C','C-BER','C-E','W-E','W-SFO','E-OAK','OAK-BER'];
+
+// ---------- renderer: one canvas, two scissored viewports, one shared camera ----------
+const stage=$('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.AgXToneMapping; renderer.toneMappingExposure=1.15;
+renderer.setScissorTest(true);
+stage.prepend(renderer.domElement);
+const lblL=new CSS2DRenderer({element:$('lblL')}), lblR=new CSS2DRenderer({element:$('lblR')});
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xc7d2d9);
+scene.fog=new THREE.Fog(0xc7d2d9,9000,22000);
+scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),0.04).texture;
+scene.environmentIntensity=0.35;
+const BASE_FOV=26;
+const cam=new THREE.PerspectiveCamera(BASE_FOV,1,4,60000);
+let VW=0,DIV=156;
+function fit(){
+  DIV=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--div'))||156;
+  VW=Math.floor((innerWidth-DIV)/2);
+  renderer.setSize(innerWidth,innerHeight);
+  cam.aspect=VW/innerHeight; cam.updateProjectionMatrix();
+  lblL.setSize(VW,innerHeight); lblR.setSize(VW,innerHeight);
+  Object.assign($('lblL').style,{left:'0px',width:VW+'px'});
+  Object.assign($('lblR').style,{left:(innerWidth-VW)+'px',width:VW+'px'});
+}
+fit(); addEventListener('resize',fit);
+const controls=new OrbitControls(cam,$('ctl'));
+controls.enableDamping=true; controls.minDistance=60; controls.maxDistance=11000;
+controls.maxPolarAngle=1.5; controls.screenSpacePanning=false;
+
+scene.add(new THREE.HemisphereLight(0xeaf3ff,0x6b6150,1.1));
+const sun=new THREE.DirectionalLight(0xfff1dc,2.6);
+sun.position.set(-1400,2600,1500);
+sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-2000,right:2000,top:2000,bottom:-2000,near:100,far:7000});
+sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.6;
+scene.add(sun,sun.target);
+renderer.shadowMap.autoUpdate=false; // static diorama: bake once
+
+// ---------- assets ----------
+const draco=new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/');
+const loader=new GLTFLoader().setDRACOLoader(draco);
+const [dio,evt,meta]=await Promise.all([
+  loader.loadAsync('assets/skyflow-diorama.glb'),
+  loader.loadAsync('assets/evtol.glb'),
+  fetch('assets/skyflow-diorama.json').then(r=>r.json())
+]);
+$('loading').remove();
+dio.scene.traverse(o=>{
+  if(!o.isMesh) return;
+  o.receiveShadow=true;
+  o.castShadow=/bld|blocks|sf_build|tower|terminal|airliner|evtol|pad_base|bridge|bay_|golden/.test(o.name);
+  if(o.material?.name==='water'){o.material.roughness=0.12;o.material.envMapIntensity=1.4;}
+});
+scene.add(dio.scene);
+
+const NODE={W:geo(-122.39,37.73),C:geo(-122.34,37.79),E:geo(-122.29,37.77)};
+for(const [k,p] of Object.entries(meta.pads)) NODE[k]=[p.x,p.y];
+const padZ=k=>meta.pads[k]?meta.pads[k].z:ALT;
+const setLayer=(o,l)=>o.traverse(c=>c.layers.set(l));
+// A CSS2D element can live in one renderer only, so shared labels get one copy per side.
+// CSS2DRenderer hides any element it doesn't draw, so each side gets its own label scene.
+const labL=new THREE.Scene(), labR=new THREE.Scene();
+function lab2(cls,text,pos){return [labL,labR].map(sc=>{const o=new CSS2DObject(Object.assign(document.createElement('div'),{className:cls,textContent:text}));
+  o.position.copy(pos); sc.add(o); return o;});}
+
+// ---------- corridors + nodes (shared) ----------
+const corrMat={ok:new THREE.MeshBasicMaterial({color:0x1fc8a8,transparent:true,opacity:.85}),
+  closed:new THREE.MeshBasicMaterial({color:0xff5a47,transparent:true,opacity:.95})};
+const corrMesh={};
+for(const c of CORR){
+  const [a,b]=c.split('-');
+  const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(v3(...NODE[a],ALT),v3(...NODE[b],ALT)),1,2.2,6,false),corrMat.ok);
+  scene.add(m); corrMesh[c]=m;
+}
+// agent-side reroute ribbon W–E highlight
+const rrMat=new THREE.MeshBasicMaterial({color:0xf2b33d,transparent:true,opacity:0});
+const rr=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(v3(...NODE.W,ALT+1),v3(...NODE.E,ALT+1)),1,4.2,8,false),rrMat);
+setLayer(rr,L_AGENT); scene.add(rr);
+const dropMat=new THREE.LineBasicMaterial({color:0x1b5b63,transparent:true,opacity:.5});
+for(const [k,p] of Object.entries(NODE)){
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([v3(...p,padZ(k)),v3(...p,ALT)]),dropMat));
+  lab2('lab'+(k.length===1?' j':''),k,v3(...p,k.length===1?ALT+8:padZ(k)+20));
+}
+
+// ---------- storm ----------
+const storm=new THREE.Group(); storm.position.copy(v3(...geo(-122.315,37.781),0)); scene.add(storm);
+const puffMat=new THREE.MeshStandardMaterial({color:0x56606c,roughness:1,transparent:true,opacity:0,depthWrite:false});
+let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+for(let i=0;i<24;i++){const r=40+rnd()*55,m=new THREE.Mesh(new THREE.IcosahedronGeometry(r,2),puffMat);
+  const a=rnd()*6.28,d=rnd()*110; m.position.set(Math.cos(a)*d,95+rnd()*70,Math.sin(a)*d*.8); storm.add(m);}
+const rainMat=new THREE.LineBasicMaterial({color:0x8fa3b8,transparent:true,opacity:0});
+const rp=[]; for(let i=0;i<450;i++){const a=rnd()*6.28,d=rnd()*120,x=Math.cos(a)*d,z=Math.sin(a)*d*.8,y=rnd()*110;rp.push(x,y,z,x-4,y-22,z);}
+const rg=new THREE.BufferGeometry(); rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));
+const rain=new THREE.LineSegments(rg,rainMat); storm.add(rain);
+const flash=new THREE.PointLight(0xcfe0ff,0,900,1.2); flash.position.set(0,120,0); storm.add(flash);
+const stormLab=lab2('lab storm','CELL · C–E CLOSED',storm.position.clone().setY(190));
+
+// ---------- routing ----------
+const len=(a,b)=>Math.hypot(NODE[a][0]-NODE[b][0],NODE[a][1]-NODE[b][1]);
+function route(from,to,closed){
+  const dist={},prev={},Q=new Set(Object.keys(NODE)); for(const k of Q) dist[k]=Infinity; dist[from]=0;
+  while(Q.size){let u=null;for(const k of Q) if(u===null||dist[k]<dist[u]) u=k; Q.delete(u); if(u===to) break;
+    for(const c of CORR){ if(closed&&c==='C-E') continue; const [a,b]=c.split('-'); const v=a===u?b:b===u?a:null; if(!v||!Q.has(v)) continue;
+      if(v!==to&&meta.pads[v]&&v!=='SF') continue;
+      const d=dist[u]+len(u,v); if(d<dist[v]){dist[v]=d;prev[v]=u;} } }
+  const p=[to]; while(p[0]!==from) p.unshift(prev[p[0]]); return p;
+}
+const plen=p=>p.reduce((s,n,k)=>k?s+len(p[k-1],n):0,0);
+const usesCE=p=>p.some((n,i)=>i&&((n==='C'&&p[i-1]==='E')||(n==='E'&&p[i-1]==='C')));
+// Build a timeline of keypoints {t,p,b(battery %),hover}. hold = {at:node index, dur:min, ground:bool}
+const CRUISE=4.4, HOVER=2.0, VERT=3.0;
+function timeline(f,path,dep,hold){
+  const K=[]; let t=dep, b=100;
+  const o=path[0], d=path[path.length-1];
+  const push=(p,dt,rate,hover)=>{t+=dt;b-=dt*rate;K.push({t,p,b,hover});};
+  K.push({t,p:v3(...NODE[o],padZ(o)+1.2),b,hover:false});
+  if(hold&&hold.ground){ // parked beside the pad, off the FATO
+    const a=f.i*2.1; const pp=v3(NODE[o][0]+Math.cos(a)*34,NODE[o][1]+Math.sin(a)*34,padZ(o)+1.2);
+    K[0].p=pp; push(pp,hold.dur,0,false); push(v3(...NODE[o],padZ(o)+1.2),.25,0,false);
+  }
+  push(v3(...NODE[o],ALT),1.2,VERT,false);
+  for(let k=1;k<path.length;k++){
+    const n=path[k]; const last=k===path.length-1;
+    push(v3(...NODE[n],ALT),len(path[k-1],n)/SPD,CRUISE,false);
+    if(hold&&!hold.ground&&hold.at===k){ // hover-hold stack at a junction
+      const stack=v3(...NODE[n],ALT+14+hold.slot*11); push(stack,.3,HOVER,true); push(stack,hold.dur-.6,HOVER,true); push(v3(...NODE[n],ALT),.3,HOVER,true);
+    }
+  }
+  push(v3(...NODE[d],padZ(d)+1.2),1.2,VERT,false);
+  return K;
+}
+const PAIRS=[['SF','OAK'],['SFO','BER'],['MAR','OAK'],['OAK','SF'],['BER','SFO'],['SF','SFO'],['OAK','MAR'],['SFO','SF'],['BER','SF'],['SF','BER'],['OAK','SFO'],['MAR','SFO'],['SFO','OAK'],['SF','MAR']];
+const words=n=>String(n).split('').map(c=>['zero','one','two','three','four','five','six','seven','eight','nine'][c]).join(' ');
+
+// ---------- two plans over the same 28 trips ----------
+const MET=2.3;
+const trips=[];
+for(let i=0;i<28;i++){const [o,d]=PAIRS[i%14]; const p=route(o,d,false); trips.push({i,id:'SKF'+(101+i),o,d,rel:i*2.5,path:p,nomEta:i*2.5+2.4+plen(p)/SPD});}
+// STATIC: no replanning. Anything crossing the C/E sector during the closure holds (ground stop),
+// then is metered back out of the sector one every 2.3 min, in filed order.
+let next=STORM[1], hoverSlot=0;
+for(const tr of trips){
+  const p=tr.path, h=p.findIndex(n=>n==='C'||n==='E');
+  tr.s={path:p,hold:null,delay:0};
+  if(h<0) continue;
+  const tAt=tr.rel+1.2+plen(p.slice(0,h+1))/SPD;            // nominal arrival at first C/E node
+  const airborne=tr.rel<STORM[0];
+  const tHold=airborne?tAt:tr.rel;
+  if(tAt<STORM[0]) continue;                                   // already through the sector
+  if(tHold>=STORM[1]&&tHold>=next) continue;
+  const rel=Math.max(tHold,STORM[1],next); next=rel+MET;
+  tr.s.delay=rel-tHold;
+  tr.s.hold=airborne?{at:h,dur:tr.s.delay,ground:false,slot:hoverSlot++}:{at:0,dur:tr.s.delay,ground:true};
+}
+// AGENTS: reroute anything that would use C–E during the closure via W–E; nothing holds.
+for(const tr of trips){
+  const tCE=tr.rel+1.2+plen(tr.path.slice(0,Math.max(1,tr.path.indexOf('C')+1,tr.path.indexOf('E')+1)))/SPD;
+  const hit=usesCE(tr.path)&&tCE>=STORM[0]-.5&&tr.rel<STORM[1];
+  const p=hit?route(tr.o,tr.d,true):tr.path;
+  tr.a={path:p,hold:null,rr:hit,delay:(plen(p)-plen(tr.path))/SPD};
+}
+const evProto=evt.scene;
+function makeEv(layer){const g=evProto.clone(true); g.scale.setScalar(30); const rotors=[]; g.traverse(o=>{if(/^rotor_/.test(o.name)) rotors.push(o);});
+  g.userData.rotors=rotors; setLayer(g,layer); g.visible=false; scene.add(g); return g;}
+const glowGeo=new THREE.SphereGeometry(7,16,12);
+for(const tr of trips){
+  for(const [key,layer] of [['s',L_STATIC],['a',L_AGENT]]){
+    const P=tr[key]; P.K=timeline(tr,P.path,tr.rel,P.hold); P.land=P.K[P.K.length-1].t;
+    P.late=(P.land-tr.nomEta)>ONTIME; P.res=P.K[P.K.length-1].b;
+    P.obj=makeEv(layer);
+    const el=document.createElement('div'); el.className='lab f'; el.textContent=tr.id;
+    P.lab=new CSS2DObject(el); (key==='s'?labL:labR).add(P.lab);
+    if(key==='s'){const g=new THREE.Mesh(glowGeo,new THREE.MeshBasicMaterial({color:0xff3b2a,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));
+      g.scale.setScalar(1/30); g.layers.set(layer); P.obj.add(g); P.glow=g;}
+  }
+}
+const sumLate=k=>trips.filter(t=>!t[k].late).length;
+const FINAL={s:sumLate('s'),a:sumLate('a')};
+const RR=trips.filter(t=>t.a.rr); const extra=((RR.reduce((s,t)=>s+plen(t.a.path),0)/RR.reduce((s,t)=>s+plen(t.path),0))-1)*100;
+console.log('[15] static on-time',FINAL.s,'agents',FINAL.a,'extra',extra.toFixed(1)+'%');
+
+function sample(K,t){
+  if(t<K[0].t) return null;
+  const last=K[K.length-1]; if(t>=last.t) return {p:last.p,b:last.b,done:true,hover:false,dir:null};
+  let i=1; while(K[i].t<t) i++;
+  const a=K[i-1],b=K[i],u=(t-a.t)/Math.max(1e-6,b.t-a.t);
+  return {p:a.p.clone().lerp(b.p,u),b:a.b+(b.b-a.b)*u,hover:b.hover,dir:b.p.clone().sub(a.p),done:false,ground:a.p.equals(b.p)&&a.b===b.b};
+}
+
+// ---------- agent decision callouts (right side only) ----------
+const calls=[];
+function callout(t0,dur,node,agent,text,verdict,rej){
+  const el=document.createElement('div'); el.className='call'+(rej?' rej':'');
+  el.innerHTML=`<span class="a">${agent}</span>${text}<br><span class="v">${verdict}</span>`;
+  const o=new CSS2DObject(el); o.position.copy(typeof node==='string'?v3(...NODE[node],ALT+30):node); o.visible=false; labR.add(o);
+  calls.push({t0,t1:t0+dur,o});
+}
+callout(8.05,5,'C','COORDINATOR → KERNEL','Cell over C–E. Close corridor C–E 08–24.','✓ COMMITTED');
+callout(8.6,6,'W','SECTOR CENTRAL','Reroute SKF103, SKF104 via W–E (+2.1 min each).','✓ COMMITTED');
+callout(9.4,6,'OAK','PAD AGENT · OAK','Hold SKF104 on FATO 16 min.','✗ REJECTED · blocks SKF101 arrival',true);
+callout(15.2,8,'E','HEARBACK · SKF107','Readback "via Charlie Echo" ≠ cleared "via Echo Whiskey".','✗ MISMATCH · RE-ISSUE',true);
+callout(17.6,5,'E','KERNEL','Corrected readback. Reservation E→W→SF→MAR.','✓ COMMITTED');
+callout(24.1,6,'C','COORDINATOR','Cell clear. Reopen C–E; restore filed routes.','✓ COMMITTED');
+
+// ---------- radio script (agent side) ----------
+const SCRIPT=[
+  [1.2,'atc','SkyFlow one zero one, Bay Control, cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred.'],
+  [1.3,'pilot','Cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred, SkyFlow one zero one.','SKF101',{ok:1}],
+  [8.0,'atc','All SkyFlow traffic, Bay Control. Corridor Charlie Echo is closed due to weather. Expect reroute via Whiskey Echo.'],
+  [8.5,'atc','SkyFlow one zero three, after Sierra Foxtrot proceed direct Whiskey, then Echo, Oakland. Maintain one thousand five hundred.'],
+  [8.6,'pilot','After Sierra Foxtrot direct Whiskey, then Echo, Oakland, maintain one thousand five hundred, SkyFlow one zero three.','SKF103',{ok:1}],
+  [15.0,'atc','SkyFlow one zero seven, cleared to Marin via Echo, Whiskey, Sierra Foxtrot. Climb and maintain one thousand five hundred.'],
+  [15.1,'pilot','Cleared to Marin via Charlie, Echo, Sierra Foxtrot, climb one thousand five hundred, SkyFlow one zero seven.','SKF107',{bad:1}],
+  [15.2,'atc','SkyFlow one zero seven, negative. Charlie Echo is closed. Cleared via Echo, Whiskey, Sierra Foxtrot. Read back.'],
+  [15.3,'pilot','Via Echo, Whiskey, Sierra Foxtrot to Marin, one thousand five hundred, SkyFlow one zero seven.','SKF107',{ok:1,commit:1}],
+  [24.0,'atc','All SkyFlow traffic, Bay Control. Corridor Charlie Echo is open. Resume filed routings.'],
+  [66.0,'atc','SkyFlow one two eight, Marin pad one, cleared to land.'],
+  [66.1,'pilot','Cleared to land Marin pad one, SkyFlow one two eight.','SKF128',{ok:1}],
+];
+SkyRadio.prefetch(SCRIPT.map(([,s,text,key])=>({text,speaker:s,key})));
+let busy=0, txCount=0;
+function showLine(spk,text,key,flag){
+  const d=document.createElement('div'); d.className='ln now '+spk+(flag?.bad?' bad':'');
+  const who=spk==='atc'?'BAY':key;
+  d.innerHTML=`<span class="w">${who}</span><span>${text}${flag?.ok?`<span class="chk ok">${flag.commit?'✓ COMMIT':'✓ HEARBACK'}</span>`:''}${flag?.bad?'<span class="chk bad">✗ ROUTE ≠ CLEARED</span>':''}</span>`;
+  const tx=$('tx'); [...tx.children].forEach(c=>c.classList.remove('now')); tx.prepend(d); while(tx.children.length>5) tx.lastChild.remove();
+  txCount++;
+}
+function fire(line){
+  const [,spk,text,key,flag]=line;
+  showLine(spk,text,key,flag);
+  if(SkyRadio.enabled){busy++; SkyRadio.say(text,spk,key).finally(()=>busy--);}
+}
+let txLive=false;
+SkyRadio.onTransmit(e=>{txLive=e.live; $('live').classList.toggle('on',e.live);});
+function sndUI(){const on=SkyRadio.enabled; $('snd').textContent=on?'🔊 RADIO ON':'🔈 RADIO OFF'; $('snd').classList.toggle('on',on);}
+$('snd').onclick=()=>{SkyRadio.enabled?SkyRadio.disable():SkyRadio.enable(); sndUI();};
+document.addEventListener('skyradio:enabled',sndUI);
+
+// ---------- camera: presets + cinematic director ----------
+const tw=meta.towers.SFO;
+const focusAgent=id=>{const tr=trips.find(t=>t.id===id); const s=sample(tr.a.K,simT); return s?s.p:v3(...NODE[tr.o],ALT);};
+const CENTER=v3(-150,150,40);
+const PRESETS={
+  1:{name:'OVERVIEW',fn:()=>({pos:CENTER.clone().add(new THREE.Vector3(500,2700,4300)),tgt:CENTER,fov:BASE_FOV})},
+  2:{name:'TOWER CAB · SFO',fn:()=>({pos:v3(tw[0],tw[1],9),tgt:v3(-60,-200,40),fov:52})},
+  3:{name:'CHASE · SKF103 (agents)',fn:()=>chase('SKF103')},
+  4:{name:'STORM · C–E',fn:()=>{const c=storm.position;return {pos:c.clone().add(new THREE.Vector3(-380,420,700)),tgt:c.clone().setY(80),fov:30};}},
+  5:{name:'VERTIPORT · OAK',fn:()=>{const pd=meta.pads.OAK,c=v3(pd.x,pd.y,pd.z);return {pos:c.clone().add(new THREE.Vector3(-230,190,330)),tgt:c,fov:30};}},
+};
+function chase(id,dist=260){const p=focusAgent(id); return {pos:p.clone().add(new THREE.Vector3(-dist*.6,dist*.6,dist)),tgt:p,fov:32};}
+const BEATS=[ // [simMin, label, shot fn]
+  [0,'ESTABLISHING · BAY SECTOR',()=>{const a=simT*.035; const r=4600; return {pos:CENTER.clone().add(new THREE.Vector3(Math.sin(a)*r*.45+600,1900,Math.cos(a)*r)),tgt:CENTER.clone().add(new THREE.Vector3(0,0,-250)),fov:BASE_FOV};}],
+  [7.6,'STORM · C–E CLOSES',()=>{const c=storm.position,k=Math.min(1,(simT-7.6)/4);return {pos:c.clone().add(new THREE.Vector3(-300,560-k*160,1100-k*380)),tgt:c.clone().setY(70),fov:30};}],
+  [11.5,'FOLLOW · SKF103 VIA W–E',()=>chase('SKF103',300)],
+  [14.8,'READBACK · SKF107',()=>chase('SKF107',170)],
+  [19,'STATIC SIDE STACKS UP · C',()=>{const c=v3(...NODE.C,ALT);return {pos:c.clone().add(new THREE.Vector3(-420,380,620)),tgt:c.clone().setY(70),fov:30};}],
+  [24.5,'RECOVERY · C–E REOPENS',()=>{const a=simT*.03;return {pos:CENTER.clone().add(new THREE.Vector3(Math.sin(a)*1800,2300,2800)),tgt:CENTER,fov:BASE_FOV};}],
+  [40,'OAK PAD · BACKLOG VS FLOW',()=>{const pd=meta.pads.OAK,c=v3(pd.x,pd.y,pd.z);return {pos:c.clone().add(new THREE.Vector3(-260,260,420)),tgt:c,fov:30};}],
+  [52,'WIDE · RECOVERY SCOREBOARD',()=>{const k=Math.min(1,(simT-52)/12);return {pos:CENTER.clone().add(new THREE.Vector3(500,2600+k*1200,3000+k*900)),tgt:CENTER,fov:BASE_FOV};}],
+];
+let cine=true, beat=-1, preset=null, blend=null;
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+function startBlend(){blend={pos:cam.position.clone(),tgt:controls.target.clone(),fov:cam.fov,t0:performance.now()};}
+function setCine(on){cine=on;$('cine').classList.toggle('on',on);$('resume').style.display=on?'none':'block';$('shot').style.opacity=on?1:0;if(on){preset=null;beat=-1;}}
+function goPreset(n){preset=n; setCine(false); startBlend(); $('shot').textContent=PRESETS[n].name; $('shot').style.opacity=1;}
+function userInput(){if(cine) setCine(false); if(preset&&preset!==3) preset=null; blend=null;}
+$('ctl').addEventListener('pointerdown',userInput); $('ctl').addEventListener('wheel',userInput,{passive:true});
+$('cine').onclick=()=>setCine(!cine); $('resume').onclick=()=>setCine(true);
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>goPreset(+b.dataset.p));
+function zoom(f){userInput(); const d=cam.position.clone().sub(controls.target); const L=THREE.MathUtils.clamp(d.length()*f,controls.minDistance,controls.maxDistance); cam.position.copy(controls.target).add(d.setLength(L));}
+$('zin').onclick=()=>zoom(.75); $('zout').onclick=()=>zoom(1.33);
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
+  if(e.key>='1'&&e.key<='5') goPreset(+e.key);
+  else if(e.key==='c'||e.key==='C') setCine(!cine);
+  else if(e.key===' '){e.preventDefault();togglePlay();}
+  else if(e.key==='+'||e.key==='=') zoom(.75); else if(e.key==='-') zoom(1.33);});
+function camUpdate(){
+  let shot=null;
+  if(cine){let b=0; for(let i=0;i<BEATS.length;i++) if(simT>=BEATS[i][0]) b=i;
+    if(b!==beat){beat=b; startBlend(); $('shot').textContent='CINEMATIC · '+BEATS[b][1];}
+    shot=BEATS[b][2]();
+    shot.fov+=Math.sin(performance.now()/2400)*.6; // FOV breathing
+  } else if(preset) shot=PRESETS[preset].fn();
+  if(!shot){controls.update(); return;}
+  if(blend){const k=Math.min(1,(performance.now()-blend.t0)/1500), e=ease(k);
+    cam.position.copy(blend.pos.clone().lerp(shot.pos,e)); controls.target.copy(blend.tgt.clone().lerp(shot.tgt,e)); cam.fov=blend.fov+(shot.fov-blend.fov)*e;
+    if(k>=1) blend=null;}
+  else {cam.position.lerp(shot.pos,.08); controls.target.lerp(shot.tgt,.08); cam.fov+=(shot.fov-cam.fov)*.08;}
+  cam.lookAt(controls.target); cam.updateProjectionMatrix();
+  if(preset&&!blend&&preset!==3) preset=null; // static presets hand back to orbit
+}
+
+// ---------- clock + loop ----------
+let simT=0, playing=true, fired=0;
+function togglePlay(){playing=!playing;$('play').textContent=playing?'PAUSE':'PLAY';}
+$('play').onclick=togglePlay;
+function restart(){simT=0;fired=0;txCount=0;$('tx').innerHTML='';SkyRadio.flush();busy=0;if(cine)beat=-1;}
+$('restart').onclick=restart;
+$('stBand').style.left=(STORM[0]/END*100)+'%'; $('stBand').style.width=((STORM[1]-STORM[0])/END*100)+'%';
+const fmt=m=>{const s=Math.floor(m*60);return 'T+'+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+
+const wave=$('wave'),wctx=wave.getContext('2d');
+function drawWave(){
+  const w=wave.width,h=wave.height; wctx.clearRect(0,0,w,h); wctx.strokeStyle=txLive?'#1fc8a8':'#2b3a44'; wctx.lineWidth=2; wctx.beginPath();
+  const tt=performance.now()/90;
+  for(let x=0;x<w;x+=4){const a=txLive?(Math.sin(x*.05+tt)*.5+Math.sin(x*.13-tt*1.7)*.35)*(.4+.6*Math.abs(Math.sin(x*.011+tt*.2))):0.04*Math.sin(x*.2+tt);
+    const y=h/2+a*h*.42; x?wctx.lineTo(x,y):wctx.moveTo(x,y);} wctx.stroke();
+}
+
+let last=performance.now(), shadowsBaked=0;
+const tmp=new THREE.Vector3();
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000); last=now;
+  if(playing&&busy<=0) simT+=dt*MIN_PER_S;
+  if(simT>=END) restart();
+  while(fired<SCRIPT.length&&simT>=SCRIPT[fired][0]){fire(SCRIPT[fired]); fired++; if(busy>0) break;}
+
+  const stormOn=simT>=STORM[0]&&simT<STORM[1];
+  const sk=THREE.MathUtils.clamp(Math.min(simT-STORM[0]+1,STORM[1]+1.5-simT)/1.5,0,1);
+  puffMat.opacity=.82*sk; rainMat.opacity=.55*sk; storm.visible=sk>0; stormLab.forEach(o=>o.visible=stormOn);
+  rain.position.y=-((now/40)%22);
+  flash.intensity=stormOn&&Math.random()<.02?9000:flash.intensity*.85;
+  corrMesh['C-E'].material=stormOn?corrMat.closed:corrMat.ok;
+  rrMat.opacity=stormOn?.55+.25*Math.sin(now/300):0;
+  $('phase').className='chip '+(stormOn?'storm':simT<STORM[0]?'calm':'recovery');
+  $('phase').textContent=stormOn?'STORM · C–E CLOSED · REPLANNING':simT<STORM[0]?'CALM · ALL CORRIDORS OPEN':'RECOVERY · C–E REOPENED';
+  $('clock').innerHTML=fmt(simT)+'<small>sim</small>'; $('prog').style.width=(simT/END*100)+'%';
+
+  // flights
+  const st={s:{on:0,landed:0,maxd:0,minb:101,hold:0},a:{on:0,landed:0,maxd:0,minb:101,hold:0}};
+  const waiting=[];
+  for(const tr of trips) for(const key of ['s','a']){
+    const P=tr[key], s=sample(P.K,simT), S=st[key];
+    if(!s){P.obj.visible=P.lab.visible=false; continue;}
+    if(s.done){P.obj.visible=P.lab.visible=simT-P.land<1.2; S.landed++; if(!P.late) S.on++; S.maxd=Math.max(S.maxd,P.land-tr.nomEta); S.minb=Math.min(S.minb,P.res); continue;}
+    P.obj.visible=P.lab.visible=true; P.obj.position.copy(s.p); P.lab.position.copy(s.p).setY(s.p.y+12);
+    if(s.dir&&s.dir.lengthSq()>1){tmp.copy(s.p).add(new THREE.Vector3(s.dir.x,0,s.dir.z)); P.obj.lookAt(tmp);}
+    for(const r of P.obj.userData.rotors) r.rotation.y+=s.ground?0:.9;
+    S.minb=Math.min(S.minb,s.b);
+    const late=simT>tr.nomEta+ONTIME||(P.hold&&(s.ground||s.hover));
+    if(s.ground||s.hover){S.hold++; if(key==='s') waiting.push(tr.id);}
+    S.maxd=Math.max(S.maxd,Math.max(0,simT-tr.nomEta));
+    const el=P.lab.element;
+    if(key==='s'){const isLate=P.late&&(late||P.hold); el.className='lab f'+(isLate?' late':''); el.textContent=tr.id+(isLate&&P.hold?` HOLD +${Math.round(P.hold.dur)}m`:'');
+      P.glow.material.opacity=isLate?.35+.2*Math.sin(now/220+tr.i):0;}
+    else {const hl=tr.id==='SKF107'&&simT>15&&simT<18.5; el.className='lab f'+(hl?' hl':P.rr?' rr':''); el.textContent=tr.id+(P.rr?' W–E':'');}
+  }
+  // delta strip (landed so far; maxima computed against planned arrival)
+  const n=Math.max(st.s.landed,1);
+  $('dOnL').textContent=st.s.on; $('dOnR').textContent=st.a.on; $('dOnX').textContent=`of ${st.s.landed} landed · final ${FINAL.s} vs ${FINAL.a}`;
+  $('dOnBL').style.width=(st.s.on/28*100)+'%'; $('dOnBR').style.width=(st.a.on/28*100)+'%';
+  $('dDl').textContent=Math.max(0,st.s.maxd).toFixed(1); $('dDr').textContent=Math.max(0,st.a.maxd).toFixed(1);
+  const bL=st.s.minb>100?'—':Math.round(st.s.minb)+'%', bR=st.a.minb>100?'—':Math.round(st.a.minb)+'%';
+  $('dBl').textContent=bL; $('dBr').textContent=bR; $('dBl').style.color=st.s.minb<20?'#ff5a47':'';
+  $('dHl').textContent=st.s.hold; $('dHr').textContent=st.a.hold;
+  $('dX').textContent='+'+(simT>STORM[0]?extra:0).toFixed(1)+'%';
+  // frequency congestion meter (static side): every held aircraft re-calls for updates
+  const airborne=trips.filter(t=>{const s=sample(t.s.K,simT);return s&&!s.done;}).length;
+  const util=Math.round(18+airborne*6+st.s.hold*13+(stormOn?14:0)+Math.sin(now/700)*3);
+  $('congPct').textContent=util+'%'; $('congBar').style.width=Math.min(100,util/150*100)+'%';
+  const hot=util>=100; $('cong').classList.toggle('hot',hot); $('congTag').textContent=hot?'FREQUENCY CONGESTED':util>75?'BUSY':'NORMAL';
+  $('congLbl').textContent=hot?'FREQUENCY CONGESTED · CALLS BLOCKED':'FREQUENCY UTILISATION';
+  const q=$('queue'); const qs=waiting.slice(0,10).map(id=>`<s>${id} REQ</s>`).join('')+(waiting.length>10?`<s>+${waiting.length-10}</s>`:'');
+  const html=waiting.length?qs:'<span class="none">No calls waiting</span>'; if(q.innerHTML!==html) q.innerHTML=html;
+
+  for(const c of calls) c.o.visible=simT>=c.t0&&simT<c.t1;
+  camUpdate(); drawWave();
+
+  // render: left = static layer, right = agent layer, same camera
+  if(shadowsBaked<3){renderer.shadowMap.needsUpdate=true; shadowsBaked++;}
+  const H=innerHeight;
+  cam.layers.set(0); cam.layers.enable(L_STATIC);
+  renderer.setViewport(0,0,VW,H); renderer.setScissor(0,0,VW,H); renderer.render(scene,cam); lblL.render(labL,cam);
+  cam.layers.set(0); cam.layers.enable(L_AGENT);
+  renderer.setViewport(innerWidth-VW,0,VW,H); renderer.setScissor(innerWidth-VW,0,VW,H); renderer.render(scene,cam); lblR.render(labR,cam);
+  requestAnimationFrame(frame);
+}
+// cinematic starts on overview
+const s0=PRESETS[1].fn(); cam.position.copy(s0.pos); controls.target.copy(s0.tgt);
+requestAnimationFrame(frame);
+window.__sky={trips,FINAL,get simT(){return simT},set simT(v){simT=v}};
+</script>
+</body>
+</html>

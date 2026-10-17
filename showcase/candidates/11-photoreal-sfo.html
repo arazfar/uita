@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Tower SFO</title>
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css">
+<script src="radio-audio.js?v=3"></script>
+<style>
+:root{
+  --panel:rgba(12,16,20,.82); --panel2:rgba(20,26,32,.9); --line:rgba(255,255,255,.09);
+  --ink:#e8ecef; --mute:#8b97a1; --amber:#ffb547; --red:#ff5a4f; --green:#4fdc8a; --cyan:#5fd4ff; --blue:#7aa7ff;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0b0f13;color:var(--ink);font-family:var(--sans);overflow:hidden}
+#cesium{position:absolute;inset:0}
+.cesium-viewer-bottom{display:none!important}
+#credits{position:absolute;left:0;right:0;bottom:0;height:26px;padding:3px 10px;background:rgba(0,0,0,.55);font-size:10.5px;color:#cfd6db;z-index:20;display:flex;align-items:center;gap:10px;overflow:hidden;white-space:nowrap}
+#credits .cesium-credit-textContainer,#credits .cesium-credit-logoContainer{display:inline}
+#credits img{height:16px;vertical-align:middle}
+#credits a{color:#cfd6db}
+.panel{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:10;overflow:hidden}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font:600 10.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
+.ph b{color:var(--ink);font-weight:600}
+/* banner */
+#banner{left:50%;transform:translateX(-50%);top:12px;width:min(880px,calc(100% - 760px));min-width:520px;padding:0}
+#banner .row{display:flex;align-items:stretch}
+#banner .freq{padding:9px 12px;font:600 11px/1.25 var(--mono);color:var(--amber);border-right:1px solid var(--line);min-width:98px}
+#banner .freq span{display:block;color:var(--mute);font-weight:400}
+#banner .txt{padding:9px 14px;font:500 15px/1.35 var(--sans);flex:1}
+#banner .txt small{display:block;font:500 10.5px/1.3 var(--mono);color:var(--mute);margin-bottom:2px;letter-spacing:.06em}
+#banner.alert{border-color:rgba(255,90,79,.6)}
+#banner.alert .freq{color:var(--red)}
+#stormflag{display:none;position:absolute;right:10px;top:9px;font:700 10px/1 var(--mono);color:#1b0b09;background:var(--red);padding:4px 6px;border-radius:3px;letter-spacing:.08em}
+#banner.alert #stormflag{display:block}
+/* sim chip */
+#simchip{left:14px;top:12px;padding:8px 12px;font:600 11px/1.4 var(--mono)}
+#simchip .big{font-size:18px;color:var(--ink)}
+#simchip .lab{color:var(--amber);letter-spacing:.14em}
+/* strips */
+#strips{left:14px;top:84px;width:318px;max-height:calc(100% - 400px)}
+#striplist{padding:6px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+.strip{display:grid;grid-template-columns:6px 78px 1fr 52px;align-items:center;background:#e9e3cf;color:#1b1d1f;border-radius:2px;font:600 11px/1.15 var(--mono);min-height:34px;transition:opacity .4s}
+.strip .bar{height:100%;border-radius:2px 0 0 2px}
+.strip.dep .bar{background:#3a8ee6}.strip.arr .bar{background:#e6a23a}.strip.evt .bar{background:#2fb37a}
+.strip.reroute{background:#f3d9a8}
+.strip.hold{background:#f2c1b9}
+.strip .cs{padding:3px 6px;border-right:1px dashed #9b9682;font-size:12px}
+.strip .cs i{display:block;font-style:normal;font-weight:400;font-size:9.5px;color:#55534a}
+.strip .rt{padding:3px 6px;font-weight:500;font-size:10.5px;border-right:1px dashed #9b9682;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip .rt i{display:block;font-style:normal;color:#55534a;font-size:9.5px}
+.strip .st{padding:3px 5px;font-size:9.5px;text-align:center}
+.sect{font:600 9.5px/1 var(--sans);letter-spacing:.14em;color:var(--mute);padding:5px 2px 1px;text-transform:uppercase}
+/* radar */
+#radar{left:14px;bottom:36px;width:318px;height:256px}
+#radar canvas{display:block}
+/* right column */
+#agents{right:14px;top:84px;width:388px;height:calc(50% - 70px)}
+#radio{right:14px;bottom:36px;width:388px;top:calc(50% + 22px)}
+.feed{padding:6px 8px;display:flex;flex-direction:column;gap:5px;overflow:hidden;height:calc(100% - 26px);justify-content:flex-end}
+.ev{font:12px/1.35 var(--sans);padding:6px 8px;border-radius:4px;background:var(--panel2);border-left:3px solid var(--blue);animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ev .who{font:600 10px/1.2 var(--mono);color:var(--mute);display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}
+.ev .tag{font:700 9.5px/1 var(--mono);padding:3px 5px;border-radius:3px;letter-spacing:.06em}
+.ev.acc{border-left-color:var(--green)}.ev.acc .tag{background:rgba(79,220,138,.16);color:var(--green)}
+.ev.rej{border-left-color:var(--red);background:rgba(255,90,79,.1)}.ev.rej .tag{background:var(--red);color:#1b0b09}
+.ev.sys{border-left-color:var(--amber)}.ev.sys .tag{background:rgba(255,181,71,.16);color:var(--amber)}
+.ev.spawn{border-left-color:var(--cyan)}.ev.spawn .tag{background:rgba(95,212,255,.14);color:var(--cyan)}
+.ev .why{font:11px/1.35 var(--mono);color:#ffb3ad;margin-top:3px}
+.tx{font:12.5px/1.35 var(--sans);padding:5px 8px;border-radius:4px;background:var(--panel2);animation:in .35s ease}
+.tx .who{font:600 10px/1.2 var(--mono);color:var(--cyan);margin-bottom:1px}
+.tx.plt .who{color:var(--amber)}
+.tx.plt{margin-left:18px}
+.hb{display:flex;gap:4px;flex-wrap:wrap;margin:-1px 0 0 18px;animation:in .35s ease}
+.chip{font:600 9.5px/1 var(--mono);padding:3px 5px;border-radius:3px;background:rgba(79,220,138,.14);color:var(--green)}
+.chip.bad{background:var(--red);color:#1b0b09}
+.chip.commit{background:rgba(95,212,255,.15);color:var(--cyan)}
+/* score */
+#score{left:50%;transform:translateX(-50%);bottom:36px;width:min(700px,calc(100% - 760px));min-width:520px;padding:0}
+#score .grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr}
+#score .c{padding:8px 10px;border-right:1px solid var(--line)}
+#score .c:last-child{border:none}
+#score .k{font:600 9.5px/1.2 var(--sans);color:var(--mute);letter-spacing:.1em;text-transform:uppercase}
+#score .v{font:600 20px/1.2 var(--mono);margin-top:3px}
+#score .v small{font-size:11px;color:var(--mute);font-weight:500}
+#score .cmp{display:flex;gap:12px;align-items:baseline}
+#score .cmp .bad{color:var(--red)}#score .cmp .good{color:var(--green)}
+#controls{display:flex;gap:6px;padding:6px 8px;border-top:1px solid var(--line);align-items:center}
+button{font:600 11px/1 var(--sans);color:var(--ink);background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:4px;padding:6px 9px;cursor:pointer;letter-spacing:.03em}
+button:hover{background:rgba(255,255,255,.14)}
+button.on{background:var(--amber);color:#1b1408;border-color:var(--amber)}
+#controls .sp{flex:1}
+#camlabel{font:600 10.5px/1 var(--mono);color:var(--amber);letter-spacing:.08em}
+#cambar{left:50%;transform:translateX(-50%);top:98px;width:max-content;display:flex;gap:4px;padding:5px;align-items:center;white-space:nowrap}
+#cambar .sep{width:1px;height:18px;background:var(--line);margin:0 3px}
+#cambar #bZout,#cambar #bZin{width:28px;font-size:14px;padding:4px 0}
+#resume{display:none;background:var(--cyan);color:#06222c;border-color:var(--cyan)}
+.lb{position:absolute;left:0;right:0;height:9vh;background:#000;z-index:4;transform:scaleY(0);transition:transform .6s ease;pointer-events:none}
+.lb.top{top:0;transform-origin:top}.lb.bot{bottom:0;transform-origin:bottom}
+body.letterbox .lb{transform:scaleY(1)}
+#txlive{font-style:normal;color:var(--red);margin-left:6px;letter-spacing:.08em}
+.tx.live{outline:1px solid rgba(255,90,79,.7)}
+#bSnd.on{background:var(--green);color:#06240f;border-color:var(--green)}
+#err{display:none;position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);z-index:30;padding:14px 18px;max-width:420px;font:13px/1.4 var(--sans)}
+#loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;font:600 11px/1 var(--mono);color:var(--mute);letter-spacing:.14em}
+</style>
+</head>
+<body>
+<div id="cesium"></div>
+<div id="loading">STREAMING PHOTOREALISTIC 3D TILES…</div>
+
+<div id="simchip" class="panel"><div class="lab">SIMULATION · SKYFLOW TWR</div><div class="big" id="clk">T+00:00</div><div id="metar" style="color:var(--mute);font-weight:400">KSFO 03006KT 10SM CLR</div></div>
+
+<div id="banner" class="panel"><div class="row"><div class="freq" id="bfreq">TWR<span>120.500</span></div><div class="txt" id="btxt"><small id="bsrc">CONTROLLER AGENT · CLEARANCE</small><span id="bmsg">Standing by.</span></div></div><div id="stormflag">C–E CLOSED</div></div>
+
+<div id="strips" class="panel"><div class="ph"><span>Flight strips</span><b id="stripcount">0 active</b></div><div id="striplist"></div></div>
+
+<div id="radar" class="panel"><div class="ph"><span>Approach radar · NCT</span><b>20 NM</b></div><canvas id="rc" width="318" height="230"></canvas></div>
+
+<div id="agents" class="panel"><div class="ph"><span>Agent decisions → kernel</span><b id="agentcount">0 proposals</b></div><div class="feed" id="agentfeed"></div></div>
+
+<div id="radio" class="panel"><div class="ph"><span>Radio · hearback check <i id="txlive"></i></span><b id="txcount">0 tx</b></div><div class="feed" id="radiofeed"></div></div>
+
+<div id="score" class="panel">
+  <div class="grid">
+    <div class="c"><div class="k">On-time arrivals · static vs agents</div><div class="v cmp"><span class="bad" id="sStatic">0/28</span><span class="good" id="sAgent">0/28</span></div><div class="k" id="sDist" style="text-transform:none;letter-spacing:0;margin-top:2px;font-family:var(--mono)"></div></div>
+    <div class="c"><div class="k">Max delay</div><div class="v" id="sDelay">0.0<small> min</small></div></div>
+    <div class="c"><div class="k">Conflicts</div><div class="v good" style="color:var(--green)" id="sConf">0</div></div>
+    <div class="c"><div class="k">Human interv.</div><div class="v" id="sHuman">0</div></div>
+    <div class="c"><div class="k">Radio tx</div><div class="v" id="sTx">0</div></div>
+  </div>
+  <div id="controls">
+    <button id="bPlay">Pause</button><button id="bRestart">Restart</button>
+    <span class="sp"></span>
+    <span id="camlabel">CINEMATIC</span>
+  </div>
+</div>
+
+<div id="cambar" class="panel">
+  <button data-preset="1" title="Key 1">1 Overview</button><button data-preset="2" title="Key 2">2 Tower</button><button data-preset="3" title="Key 3: chase the selected flight (click one to select)">3 Chase</button><button data-preset="4" title="Key 4">4 Storm</button><button data-preset="5" title="Key 5">5 OAK pad</button>
+  <span class="sep"></span><button id="bZout" title="Zoom out (−)" aria-label="Zoom out">−</button><button id="bZin" title="Zoom in (+)" aria-label="Zoom in">+</button>
+  <span class="sep"></span><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bCine" class="on" title="Key C">Cinematic</button><button id="bBox" title="Key L">Letterbox</button>
+  <button id="resume">Resume cinematic</button>
+</div>
+<div class="lb top"></div><div class="lb bot"></div>
+<div id="err" class="panel"></div>
+<div id="credits"></div>
+
+<script>
+(async () => {
+const C = Cesium;
+const LOOP = 90;                 // seconds per scripted loop
+const SIMRATE = 0.85;            // sim minutes per wall second (eVTOL timeline)
+const GEOID = -32.2;             // EGM96 undulation at SFO (m): ellipsoid = MSL + GEOID
+let GROUND = 4 + GEOID;          // SFO field elevation, refined by sampling tiles
+const D2R = Math.PI / 180;
+
+// ---------- viewer ----------
+let key = null;
+try { key = (await (await fetch('/api/maps-key')).json()).key; } catch (e) {}
+const viewer = new C.Viewer('cesium', {
+  globe: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
+  navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
+  infoBox: false, selectionIndicator: false, creditContainer: document.getElementById('credits'),
+  skyAtmosphere: new C.SkyAtmosphere(), msaaSamples: 1, shadows: false, targetFrameRate: 30,
+});
+const scene = viewer.scene;
+scene.skyAtmosphere.show = true;
+scene.fog.enabled = false;
+scene.postProcessStages.fxaa.enabled = false;
+viewer.resolutionScale = Math.min(devicePixelRatio, 1.25) / devicePixelRatio;
+viewer.targetFrameRate = 30;
+// Open over SFO so the first tile requests are the ones the establishing shot shows.
+let extPaused = false, wasAnim = true;
+const SFO_C = C.Cartesian3.fromDegrees(-122.375, 37.64, 0);
+{ const p = orbitPose(SFO_C, 300, -34, 16000); scene.camera.setView({ destination: p.eye, orientation: { heading: p.hdg * D2R, pitch: p.pitch * D2R, roll: 0 } }); }
+scene.backgroundColor = C.Color.fromCssColorString('#9fb8cc');
+viewer.creditDisplay.addStaticCredit(new C.Credit('Aircraft models: “Airplane” by Poly by Google (CC BY 3.0) · “Boeing 747” by Miha Lunar (CC BY 3.0) · ADS-B: The OpenSky Network · Map data © OpenStreetMap contributors · <b>Simulation</b>', true));
+
+let tileset = null;
+if (key) {
+  C.GoogleMaps.defaultApiKey = key;
+  try {
+    tileset = await C.createGooglePhotorealistic3DTileset({ onlyUsingWithGoogleGeocoder: true }, { maximumScreenSpaceError: 24, skipLevelOfDetail: true, preloadFlightDestinations: true, foveatedScreenSpaceError: true, dynamicScreenSpaceError: true, cacheBytes: 256 * 1024 * 1024, showCreditsOnScreen: true });
+  } catch (e) {
+    console.warn('createGooglePhotorealistic3DTileset failed, using direct URL', e);
+    tileset = await C.Cesium3DTileset.fromUrl(`https://tile.googleapis.com/v1/3dtiles/root.json?key=${key}`, { maximumScreenSpaceError: 24, skipLevelOfDetail: true, preloadFlightDestinations: true, foveatedScreenSpaceError: true, dynamicScreenSpaceError: true, cacheBytes: 256 * 1024 * 1024, showCreditsOnScreen: true });
+  }
+  scene.primitives.add(tileset);
+  // hold the scripted loop at T+0 until the first view has streamed in
+  const hideLoading = () => { if (document.getElementById('loading').style.display === 'none') return; document.getElementById('loading').style.display = 'none'; if (extPaused) wasAnim = true; else viewer.clock.shouldAnimate = true; };
+  tileset.initialTilesLoaded.addEventListener(hideLoading); tileset.allTilesLoaded.addEventListener(hideLoading); setTimeout(hideLoading, 12000);
+} else {
+  const err = document.getElementById('err');
+  err.style.display = 'block';
+  err.textContent = 'Google Maps key unavailable (GET /api/maps-key failed). Overlays run; photoreal tiles need the dev server on :5190.';
+}
+
+// ---------- clock ----------
+const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');
+const T1 = C.JulianDate.addSeconds(T0, LOOP, new C.JulianDate());
+const clock = viewer.clock;
+clock.startTime = T0.clone(); clock.stopTime = T1.clone(); clock.currentTime = T0.clone();
+clock.clockRange = C.ClockRange.LOOP_STOP; clock.multiplier = 1; clock.shouldAnimate = !tileset;
+const at = s => C.JulianDate.addSeconds(T0, s, new C.JulianDate());
+const tNow = () => C.JulianDate.secondsDifference(clock.currentTime, T0);
+
+// ---------- data ----------
+const getJSON = async p => { try { const r = await fetch(p); return r.ok ? r.json() : null; } catch (e) { return null; } };
+const [airports, adsb, coast] = await Promise.all([getJSON('data/airports.geojson'), getJSON('data/adsb-tracks.json'), getJSON('data/bay-coastline.geojson')]);
+
+// Runway 28R / 28L: [threshold(east end), far end(west)]
+const RWY = { '28R': [[-122.358089, 37.613926], [-122.393396, 37.628738]], '28L': [[-122.359265, 37.612091], [-122.393094, 37.626281]] };
+if (airports) for (const f of airports.features) {
+  const p = f.properties; if (p.kind !== 'runway' || p.airport !== 'SFO') continue;
+  const c = f.geometry.coordinates;
+  if (c.length > 10 && p.ref === '10L/28R') RWY['28R'] = [c[0], c[c.length - 1]];
+  if (c.length > 10 && p.ref === '10R/28L') RWY['28L'] = [c[0], c[c.length - 1]];
+}
+const mPerLon = 111320 * Math.cos(37.62 * D2R), mPerLat = 110950;
+function rwyGeo(r) {
+  const [a, b] = RWY[r];
+  const dx = (b[0] - a[0]) * mPerLon, dy = (b[1] - a[1]) * mPerLat, L = Math.hypot(dx, dy);
+  return { a, ux: dx / L, uy: dy / L, L };
+}
+// s: metres past threshold (negative = on approach), lat: metres right of centreline, h: metres AGL
+function rwyPos(r, s, h, lat = 0) {
+  const g = rwyGeo(r);
+  const x = g.ux * s + g.uy * lat, y = g.uy * s - g.ux * lat;
+  return C.Cartesian3.fromDegrees(g.a[0] + x / mPerLon, g.a[1] + y / mPerLat, GROUND + h);
+}
+
+// ---------- airliners (real-time kinematics) ----------
+// each profile returns {s, h, lat} for wall time t, or null when not shown
+const VREF = 72;
+const airliners = [
+  { id: 'UAL852', label: 'UAL852 · B744', model: 'assets/boeing747-mihalunar/model.glb', scale: 46, base: 16.8, hdg: 0, rwy: '28R', kind: 'arr', show: [0, 74],
+    prof(t) { // short final -> touchdown at t=27 -> rollout -> high speed exit north
+      const s0 = -1900;
+      if (t < 27) { const s = s0 + VREF * t; return { s, h: Math.max(0, -s * Math.tan(3 * D2R) + 15 * (s < 0 ? 1 : 0)) }; }
+      const sT = s0 + VREF * 27, dt = t - 27, dec = 1.6;
+      if (dt < 34) return { s: sT + VREF * dt - 0.5 * dec * dt * dt, h: 0 };
+      const sR = sT + VREF * 34 - 0.5 * dec * 34 * 34, v = VREF - dec * 34, e = t - 61;
+      return { s: sR + v * e, h: 0, lat: -Math.min(220, 0.9 * e * e) };
+    } },
+  { id: 'SWA1255', label: 'SWA1255 · B737', model: 'assets/airplane-google/model.glb', scale: 0.38, base: 0, hdg: 0, rwy: '28L', kind: 'dep', show: [0, 90],
+    prof(t) { // line up and wait, takeoff roll from t=28, rotate ~ 72 m/s, climb out
+      if (t < 28) return { s: 120 + 0.4 * t, h: 0 };
+      const a = 2.3, dt = t - 28, tr = 32; // rotate after 32 s
+      if (dt < tr) return { s: 131 + 0.5 * a * dt * dt, h: 0 };
+      const sR = 131 + 0.5 * a * tr * tr, v = a * tr, e = dt - tr;
+      return { s: sR + v * e, h: Math.min(900, 0.18 * e * e + 4 * e) };
+    } },
+  { id: 'ASA331', label: 'ASA331 · A320', model: 'assets/airplane-google/model.glb', scale: 0.4, base: 0, hdg: 0, rwy: '28R', kind: 'arr', show: [30, 90],
+    prof(t) { // longer final, touches down ~t=80
+      const s0 = -3500, t0 = 30, e = t - t0;
+      if (e < 49) { const s = s0 + VREF * e; return { s, h: -s * Math.tan(3 * D2R) + 15 }; }
+      const sT = s0 + VREF * 49, d = e - 49;
+      return { s: sT + VREF * d - 0.8 * d * d, h: Math.max(0, 15 - d * 6) };
+    } },
+];
+function buildAirliner(a) {
+  const pos = new C.SampledPositionProperty();
+  pos.forwardExtrapolationType = C.ExtrapolationType.HOLD;
+  for (let t = a.show[0]; t <= a.show[1]; t += 0.5) {
+    const p = a.prof(t); pos.addSample(at(t), rwyPos(a.rwy, p.s, p.h + a.base, p.lat || 0));
+  }
+  return pos;
+}
+const yawFix = {};
+for (const a of airliners) {
+  a.pos = buildAirliner(a);
+  const vel = new C.VelocityOrientationProperty(a.pos);
+  let last = null;
+  const ori = new C.CallbackProperty((time, result) => {
+    const q = vel.getValue(time, result);
+    if (!q) return last;
+    const fix = C.Quaternion.fromAxisAngle(C.Cartesian3.UNIT_Z, (yawFix[a.model] ?? 0) * D2R);
+    last = C.Quaternion.multiply(q, fix, new C.Quaternion());
+    return last;
+  }, false);
+  a.entity = viewer.entities.add({
+    id: a.id,
+    availability: new C.TimeIntervalCollection([new C.TimeInterval({ start: at(a.show[0]), stop: at(a.show[1]) })]),
+    position: new C.CallbackProperty(time => a.pos.getValue(time), false),
+    orientation: ori,
+    model: { uri: a.model, scale: a.scale, minimumPixelSize: 28, maximumScale: 4000 },
+    label: { text: a.label, font: '600 12px ui-monospace,Menlo,monospace', fillColor: C.Color.WHITE, outlineColor: C.Color.BLACK, outlineWidth: 3,
+      style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -30), showBackground: true, backgroundColor: C.Color.fromCssColorString('rgba(10,14,18,.65)'),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 25000) },
+  });
+}
+// The 747 glTF models its nose along -Z, the Poly airplane along +Z.
+yawFix['assets/boeing747-mihalunar/model.glb'] = 180;
+yawFix['assets/airplane-google/model.glb'] = 0;
+
+// ---------- SkyFlow network ----------
+const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
+  W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
+const EDGES = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
+const CORR_MSL = 457; // 1,500 ft
+const cAlt = CORR_MSL + GEOID;
+const STORM = [8, 24];
+const corridorEnt = {};
+for (const e of EDGES) {
+  const [a, b] = e.split('-');
+  corridorEnt[e] = viewer.entities.add({
+    polyline: {
+      positions: C.Cartesian3.fromDegreesArrayHeights([...NODES[a], cAlt, ...NODES[b], cAlt]), width: e === 'C-E' ? 7 : 5,
+      material: e === 'C-E' ? new C.ColorMaterialProperty(new C.CallbackProperty(() => corridorColor(), false))
+        : new C.PolylineGlowMaterialProperty({ glowPower: 0.25, color: C.Color.fromCssColorString('#5fd4ff').withAlpha(0.85) }),
+      depthFailMaterial: new C.ColorMaterialProperty(C.Color.fromCssColorString('#5fd4ff').withAlpha(0.3)),
+      arcType: C.ArcType.NONE,
+    },
+  });
+}
+function simMin() { return tNow() * SIMRATE; }
+function stormLevel() { const m = simMin(); if (m < STORM[0] - 1.5 || m > STORM[1] + 1.5) return 0; if (m < STORM[0]) return (m - STORM[0] + 1.5) / 1.5 * 0.5; if (m > STORM[1]) return (STORM[1] + 1.5 - m) / 1.5 * 0.5; return 1; }
+function corridorColor() {
+  const m = simMin();
+  if (m >= STORM[0] && m <= STORM[1]) return C.Color.fromCssColorString('#ff4a3d').withAlpha(0.6 + 0.4 * Math.abs(Math.sin(tNow() * 3)));
+  if (m >= STORM[0] - 1.5 && m < STORM[0]) return C.Color.fromCssColorString('#ffb547');
+  return C.Color.fromCssColorString('#5fd4ff').withAlpha(0.9);
+}
+for (const [k, v] of Object.entries(NODES)) {
+  const pad = !['W', 'C', 'E'].includes(k);
+  viewer.entities.add({
+    position: C.Cartesian3.fromDegrees(v[0], v[1], cAlt),
+    point: { pixelSize: pad ? 9 : 6, color: pad ? C.Color.fromCssColorString('#e8ecef') : C.Color.fromCssColorString('#5fd4ff'), outlineColor: C.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+    label: { text: pad ? k : `FIX ${k}`, font: '600 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString(pad ? '#ffffff' : '#9fe6ff'), outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset: new C.Cartesian2(0, 14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+  });
+}
+// storm cell over C–E
+const mid = [(NODES.C[0] + NODES.E[0]) / 2, (NODES.C[1] + NODES.E[1]) / 2];
+viewer.entities.add({
+  position: C.Cartesian3.fromDegrees(mid[0], mid[1], cAlt + 200),
+  ellipsoid: { radii: new C.Cartesian3(3200, 2600, 1100), material: new C.ColorMaterialProperty(new C.CallbackProperty(() => C.Color.fromCssColorString('#b8c3cf').withAlpha(0.5 * stormLevel()), false)), outline: false,
+    show: new C.CallbackProperty(() => stormLevel() > 0, false) },
+  label: { text: 'CB CELL · UNFORECAST', font: '700 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#ff8a80'), outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE,
+    show: new C.CallbackProperty(() => stormLevel() > 0.4, false), disableDepthTestDistance: Number.POSITIVE_INFINITY, pixelOffset: new C.Cartesian2(0, -24) },
+});
+
+// 28 eVTOL trips; normal route and storm reroute (agent plan)
+const TRIPS = [
+  ['SF', 'OAK'], ['SFO', 'SF'], ['MAR', 'SFO'], ['OAK', 'SF'], ['BER', 'SFO'], ['SF', 'BER'], ['SFO', 'OAK'],
+];
+const ROUTES = {
+  'SF-OAK': [['SF', 'C', 'E', 'OAK'], ['SF', 'W', 'E', 'OAK']], 'OAK-SF': [['OAK', 'E', 'C', 'SF'], ['OAK', 'E', 'W', 'SF']],
+  'SFO-SF': [['SFO', 'W', 'SF']], 'MAR-SFO': [['MAR', 'SF', 'W', 'SFO']], 'BER-SFO': [['BER', 'C', 'SF', 'W', 'SFO']],
+  'SF-BER': [['SF', 'C', 'BER']], 'SFO-OAK': [['SFO', 'W', 'E', 'OAK']],
+};
+const KMPM = 2.6; // km per sim minute (~85 kt)
+function km(a, b) { return Math.hypot((b[0] - a[0]) * 88.2, (b[1] - a[1]) * 110.9); }
+function routeLen(r) { let L = 0; for (let i = 1; i < r.length; i++) L += km(NODES[r[i - 1]], NODES[r[i]]); return L; }
+function usesCE(r) { return r.join('-').includes('C-E') || r.join('-').includes('E-C'); }
+const flights = [];
+for (let i = 0; i < 28; i++) {
+  const [o, d] = TRIPS[(i * 3) % TRIPS.length];
+  const opts = ROUTES[`${o}-${d}`];
+  const dep = i * 2.5;
+  let route = opts[0];
+  const dur0 = routeLen(route) / KMPM;
+  let rerouted = false;
+  if (usesCE(route) && dep >= STORM[0] - 0.5 && dep < STORM[1]) { route = opts[1]; rerouted = true; }
+  const cs = 101 + i;
+  flights.push({ cs, callsign: `SKF${cs}`, o, d, route, rerouted, dep, dur: routeLen(route) / KMPM, normal: opts[0] });
+}
+function routePoint(f, m) {
+  let dist = Math.max(0, m - f.dep) * KMPM;
+  for (let i = 1; i < f.route.length; i++) {
+    const a = NODES[f.route[i - 1]], b = NODES[f.route[i]], L = km(a, b);
+    if (dist <= L) { const k = dist / L; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; }
+    dist -= L;
+  }
+  return NODES[f.route[f.route.length - 1]];
+}
+for (const f of flights) {
+  // Entity.show only takes a boolean, so visibility lives on the graphics
+  f.visible = new C.CallbackProperty(() => { const m = simMin(); return m >= f.dep - 3 && m <= f.dep + f.dur; }, false);
+  f.entity = viewer.entities.add({
+    position: new C.CallbackProperty(() => { const p = routePoint(f, simMin()); return C.Cartesian3.fromDegrees(p[0], p[1], cAlt + 25); }, false),
+    point: { show: f.visible, pixelSize: 10, color: C.Color.fromCssColorString(f.rerouted ? '#ffb547' : '#4fdc8a'), outlineColor: C.Color.BLACK, outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+    label: { show: f.visible, text: `${f.callsign}  ${f.o}→${f.d}`, font: '600 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString(f.rerouted ? '#ffd38a' : '#b9f5d2'),
+      outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(10, -10), horizontalOrigin: C.HorizontalOrigin.LEFT,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 60000) },
+  });
+}
+
+// ---------- ADS-B background traffic ----------
+const bg = [];
+if (Array.isArray(adsb)) {
+  for (const tr of adsb) {
+    const pts = tr.points.filter(p => !p[6] && p[3] > 300);
+    if (pts.length < 2) continue;
+    const last = pts[pts.length - 1];
+    if (last[1] < -122.6 || last[1] > -122.1 || last[2] < 37.5 || last[2] > 37.95) continue;
+    bg.push({ cs: (tr.callsign || tr.icao).trim(), pts });
+  }
+}
+const CLIP = Math.max(60, ...bg.map(b => b.pts[b.pts.length - 1][0]));
+function bgPos(b, t) {
+  const tc = b.pts[0][0] + ((t * 2.5) % (b.pts[b.pts.length - 1][0] - b.pts[0][0] + 1e-6));
+  let i = 1; while (i < b.pts.length - 1 && b.pts[i][0] < tc) i++;
+  const p0 = b.pts[i - 1], p1 = b.pts[i], k = Math.min(1, Math.max(0, (tc - p0[0]) / ((p1[0] - p0[0]) || 1)));
+  return [p0[1] + (p1[1] - p0[1]) * k, p0[2] + (p1[2] - p0[2]) * k, (p0[3] + (p1[3] - p0[3]) * k) * 0.3048];
+}
+for (const b of bg.slice(0, 40)) {
+  viewer.entities.add({
+    position: new C.CallbackProperty(() => { const p = bgPos(b, tNow()); return C.Cartesian3.fromDegrees(p[0], p[1], p[2] + GEOID); }, false),
+    point: { pixelSize: 5, color: C.Color.fromCssColorString('#d7dde2'), outlineColor: C.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+    label: { text: b.cs, font: '10px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#c8d0d6'), outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset: new C.Cartesian2(8, 0), horizontalOrigin: C.HorizontalOrigin.LEFT, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 30000), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+  });
+}
+
+// ---------- script: radio + agents ----------
+const RADIO = [
+  { t: 1.0, who: 'TWR', f: '120.500', txt: 'United eight five two heavy, wind zero three zero at six, runway two eight right, cleared to land.' },
+  { t: 3.5, who: 'UAL852', plt: 1, txt: 'Cleared to land two eight right, United eight five two heavy.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
+  { t: 6.0, who: 'SKYFLOW CTL', f: '123.025', txt: 'SkyFlow one zero two, cleared Oakland to San Francisco via Echo, Charlie, maintain one thousand five hundred.' },
+  { t: 8.5, who: 'SKF102', plt: 1, txt: 'Echo, Charlie, one thousand five hundred, SkyFlow one zero two.', hb: [['CALLSIGN'], ['ROUTE E–C'], ['ALT 1500']], commit: 'SKF102 OAK→E→C→SF' },
+  { t: 14.5, who: 'SKYFLOW CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, corridor Charlie Echo closed, reroute via Whiskey, Echo, maintain one thousand five hundred.' },
+  { t: 18.0, who: 'SKF108', plt: 1, txt: 'Reroute via Charlie, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE C–E ≠ W–E', 1], ['ALT 1500']] },
+  { t: 21.0, who: 'SKYFLOW CTL', f: '123.025', alert: 1, txt: 'SkyFlow one zero eight, negative. Charlie Echo is closed. Reroute via Whiskey, Echo.' },
+  { t: 24.0, who: 'SKF108', plt: 1, txt: 'Whiskey, Echo, one thousand five hundred, SkyFlow one zero eight.', hb: [['CALLSIGN'], ['ROUTE W–E'], ['ALT 1500']], commit: 'SKF108 SF→W→E→OAK' },
+  { t: 27.5, who: 'TWR', f: '120.500', txt: 'Southwest twelve fifty-five, runway two eight left, wind zero three zero at six, cleared for takeoff.' },
+  { t: 30.0, who: 'SWA1255', plt: 1, txt: 'Cleared for takeoff two eight left, Southwest twelve fifty-five.', hb: [['CALLSIGN'], ['RWY 28L'], ['CLRD T/O']] },
+  { t: 38.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, runway two eight right, continue, traffic departing two eight left.' },
+  { t: 40.5, who: 'ASA331', plt: 1, txt: 'Continue two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R']] },
+  { t: 50.0, who: 'SKYFLOW CTL', f: '123.025', txt: 'SkyFlow one two two, Charlie Echo open, cleared direct Oakland via Charlie, Echo, maintain one thousand five hundred.' },
+  { t: 52.5, who: 'SKF122', plt: 1, txt: 'Direct Oakland via Charlie, Echo, one thousand five hundred, SkyFlow one two two.', hb: [['CALLSIGN'], ['ROUTE C–E'], ['ALT 1500']], commit: 'SKF122 SF→C→E→OAK' },
+  { t: 62.0, who: 'TWR', f: '120.500', txt: 'Alaska three thirty-one, wind zero three zero at six, runway two eight right, cleared to land.' },
+  { t: 64.5, who: 'ASA331', plt: 1, txt: 'Cleared to land two eight right, Alaska three thirty-one.', hb: [['CALLSIGN'], ['RWY 28R'], ['CLRD LAND']] },
+  { t: 71.0, who: 'SKYFLOW CTL', f: '123.025', txt: 'SkyFlow one two five, cleared Marin to San Francisco International via Sierra Fox, Whiskey, maintain one thousand five hundred.' },
+  { t: 73.5, who: 'SKF125', plt: 1, txt: 'Via Sierra Fox, Whiskey, one thousand five hundred, SkyFlow one two five.', hb: [['CALLSIGN'], ['ROUTE SF–W'], ['ALT 1500']], commit: 'SKF125 MAR→SF→W→SFO' },
+];
+const AGENTS = [
+  { t: 0.5, cls: 'spawn', who: 'COORDINATOR', tag: 'SPAWN', txt: 'Spawned sector agents CENTRAL, EAST, WEST for 28-trip bank.' },
+  { t: 2.5, cls: 'spawn', who: 'SECTOR-WEST', tag: 'SPAWN', txt: 'Spawned pad agents PAD-SFO, PAD-SF.' },
+  { t: 4.0, cls: 'spawn', who: 'SECTOR-EAST', tag: 'SPAWN', txt: 'Spawned pad agents PAD-OAK, PAD-BER.' },
+  { t: 9.4, cls: 'sys', who: 'KERNEL · WX', tag: 'CLOSED', txt: 'Unforecast convective cell. Segment C–E closed T+08 → T+24.' },
+  { t: 10.5, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Reroute SKF108 SF→W→E→OAK (+2.4 km). Separation ok at W.' },
+  { t: 12.0, cls: 'rej', who: 'SECTOR-EAST → KERNEL', tag: 'VETO', txt: 'Keep SKF109 on E–C at 800 ft beneath the cell.', why: 'R2: reservation intersects closed segment C–E (T+08→T+24). Altitude does not reopen a closed volume.' },
+  { t: 13.6, cls: 'acc', who: 'SECTOR-EAST → KERNEL', tag: 'ACCEPT', txt: 'Revised: SKF109 OAK→E→W→SF (+2.6 km), departs on time.' },
+  { t: 16.0, cls: 'acc', who: 'PAD-OAK → KERNEL', tag: 'ACCEPT', txt: 'Resequence OAK arrivals 108 / 110 / 115, 90 s spacing.' },
+  { t: 25.0, cls: 'acc', who: 'KERNEL', tag: 'COMMIT', txt: 'Reservation SKF108 SF→W→E→OAK committed after hearback.' },
+  { t: 28.3, cls: 'sys', who: 'KERNEL · WX', tag: 'OPEN', txt: 'Cell cleared. Segment C–E reopened.' },
+  { t: 31.0, cls: 'acc', who: 'SECTOR-CENTRAL → KERNEL', tag: 'ACCEPT', txt: 'Restore direct C–E routing for SKF116 onward.' },
+  { t: 36.0, cls: 'acc', who: 'PAD-SFO → KERNEL', tag: 'ACCEPT', txt: 'Priority to SKF118 (medical) at SFO pad 2.' },
+  { t: 58.0, cls: 'acc', who: 'COORDINATOR', tag: 'RECOVER', txt: 'Backlog cleared. All 28 slots on time; conflicts 0.' },
+];
+const STATIC_ON_TIME = new Set([0, 1, 2, 7, 8, 9, 10, 11, 12, 13].map(i => 101 + i)); // static plan: 10/28
+
+const radioFeed = document.getElementById('radiofeed'), agentFeed = document.getElementById('agentfeed');
+let shownRadio = -1, shownAgents = -1;
+function renderRadio(n) {
+  radioFeed.innerHTML = '';
+  for (const r of RADIO.slice(Math.max(0, n - 4), n)) {
+    const d = document.createElement('div'); d.className = 'tx' + (r.plt ? ' plt' : '');
+    d.innerHTML = `<div class="who">${r.who}${r.f ? ' · ' + r.f : ''}</div>${r.txt}`;
+    radioFeed.appendChild(d);
+    if (r.hb) {
+      const h = document.createElement('div'); h.className = 'hb';
+      h.innerHTML = r.hb.map(([k, bad]) => `<span class="chip${bad ? ' bad' : ''}">${bad ? 'MISMATCH ' : '✓ '}${k}</span>`).join('') + (r.commit ? `<span class="chip commit">COMMIT ${r.commit}</span>` : '');
+      radioFeed.appendChild(h);
+    }
+  }
+}
+function renderAgents(n) {
+  agentFeed.innerHTML = '';
+  for (const a of AGENTS.slice(Math.max(0, n - 6), n)) {
+    const d = document.createElement('div'); d.className = 'ev ' + a.cls;
+    d.innerHTML = `<div class="who"><span>${a.who}</span><span class="tag">${a.tag}</span></div>${a.txt}${a.why ? `<div class="why">${a.why}</div>` : ''}`;
+    agentFeed.appendChild(d);
+  }
+}
+
+// ---------- radar inset ----------
+const rc = document.getElementById('rc'), rx = rc.getContext('2d');
+const RB = { w: -122.56, e: -122.16, s: 37.56, n: 37.92 };
+const proj = (lon, lat) => [(lon - RB.w) / (RB.e - RB.w) * rc.width, (RB.n - lat) / (RB.n - RB.s) * rc.height];
+function drawRadar(t) {
+  const W = rc.width, H = rc.height; rx.fillStyle = '#05100c'; rx.fillRect(0, 0, W, H);
+  if (coast) {
+    rx.fillStyle = '#0b2219'; rx.strokeStyle = '#1f5a43'; rx.lineWidth = 1;
+    for (const f of coast.features) {
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      for (const poly of polys) { rx.beginPath(); for (const ring of poly) ring.forEach((c, i) => { const [x, y] = proj(c[0], c[1]); i ? rx.lineTo(x, y) : rx.moveTo(x, y); }); rx.fill('evenodd'); rx.stroke(); }
+    }
+  }
+  const [cx, cy] = proj(-122.375, 37.622);
+  rx.strokeStyle = 'rgba(79,220,138,.18)';
+  for (let r = 1; r <= 4; r++) { rx.beginPath(); rx.arc(cx, cy, r * 48, 0, 7); rx.stroke(); }
+  // corridors
+  const m = simMin();
+  for (const e of EDGES) {
+    const [a, b] = e.split('-'); const p = proj(...NODES[a]), q = proj(...NODES[b]);
+    const closed = e === 'C-E' && m >= STORM[0] && m <= STORM[1];
+    rx.strokeStyle = closed ? '#ff5a4f' : 'rgba(95,212,255,.55)'; rx.lineWidth = closed ? 2 : 1; rx.setLineDash(closed ? [4, 3] : []);
+    rx.beginPath(); rx.moveTo(...p); rx.lineTo(...q); rx.stroke();
+  }
+  rx.setLineDash([]);
+  const sl = stormLevel();
+  if (sl > 0) {
+    const [sx, sy] = proj(...mid); const g = rx.createRadialGradient(sx, sy, 2, sx, sy, 26);
+    g.addColorStop(0, `rgba(255,70,60,${0.7 * sl})`); g.addColorStop(0.5, `rgba(255,181,71,${0.4 * sl})`); g.addColorStop(1, 'rgba(255,181,71,0)');
+    rx.fillStyle = g; rx.beginPath(); rx.arc(sx, sy, 26, 0, 7); rx.fill();
+  }
+  rx.font = '9px ui-monospace,Menlo,monospace';
+  for (const [k, v] of Object.entries(NODES)) { const [x, y] = proj(...v); rx.fillStyle = ['W', 'C', 'E'].includes(k) ? '#5fd4ff' : '#e8ecef'; rx.fillRect(x - 2, y - 2, 4, 4); rx.fillText(k, x + 4, y - 3); }
+  for (const b of bg) { const p = bgPos(b, t); const [x, y] = proj(p[0], p[1]); rx.fillStyle = 'rgba(200,210,215,.7)'; rx.fillRect(x - 1.5, y - 1.5, 3, 3); }
+  for (const f of flights) { if (m < f.dep || m > f.dep + f.dur) continue; const p = routePoint(f, m); const [x, y] = proj(...p); rx.fillStyle = f.rerouted ? '#ffb547' : '#4fdc8a'; rx.beginPath(); rx.arc(x, y, 2.6, 0, 7); rx.fill(); }
+  for (const a of airliners) { const p = a.pos.getValue(clock.currentTime); if (!p || t < a.show[0] || t > a.show[1]) continue; const c = C.Cartographic.fromCartesian(p); const [x, y] = proj(c.longitude / D2R, c.latitude / D2R); rx.fillStyle = '#fff'; rx.fillRect(x - 2, y - 2, 4, 4); rx.fillText(a.id, x + 4, y + 8); }
+  const ang = (t * 1.3) % (Math.PI * 2); const g2 = rx.createConicGradient ? rx.createConicGradient(ang - 0.6, cx, cy) : null;
+  if (g2) { g2.addColorStop(0, 'rgba(79,220,138,0)'); g2.addColorStop(0.095, 'rgba(79,220,138,.22)'); g2.addColorStop(0.1, 'rgba(79,220,138,0)'); rx.fillStyle = g2; rx.fillRect(0, 0, W, H); }
+}
+
+// ---------- strips ----------
+const stripList = document.getElementById('striplist');
+let lastStripKey = '';
+function renderStrips(t) {
+  const m = simMin();
+  const rows = [];
+  for (const a of airliners) {
+    if (t < a.show[0] || t > a.show[1]) continue;
+    const p = a.prof(t); let st;
+    if (a.kind === 'arr') st = p.h > 1 ? 'FINAL' : (p.lat ? 'EXIT' : 'ROLL');
+    else st = t < 28 ? 'LUAW' : (p.h > 1 ? 'AIRB' : 'T/O');
+    rows.push({ cls: a.kind, cs: a.id, sub: a.label.split('· ')[1], rt: `RWY ${a.rwy}`, rt2: a.kind === 'arr' ? 'ILS · TWR 120.5' : 'GAP5 · DEP 135.1', st });
+  }
+  const act = flights.filter(f => m >= f.dep - 2 && m <= f.dep + f.dur);
+  for (const f of act.slice(-6)) {
+    const holding = false;
+    const st = m < f.dep ? 'PRE' : holding ? 'HOLD E' : (f.rerouted ? 'REROUTE' : 'ENRT');
+    rows.push({ cls: 'evt' + (holding ? ' hold' : f.rerouted ? ' reroute' : ''), cs: f.callsign, sub: 'eVTOL · A015', rt: f.route.join(' › '), rt2: `${f.o}→${f.d} · ETA +${Math.max(0, f.dep + f.dur - m).toFixed(1)}m`, st });
+  }
+  const key = rows.map(r => r.cs + r.st + r.rt2).join('|');
+  if (key === lastStripKey) return; lastStripKey = key;
+  document.getElementById('stripcount').textContent = `${rows.length} active`;
+  stripList.innerHTML = '<div class="sect">SFO local · 28L / 28R</div>' + rows.map((r, i) => (i > 0 && !rows[i - 1].cls.startsWith('evt') && r.cls.startsWith('evt') ? '<div class="sect">SkyFlow low-altitude</div>' : '') +
+    `<div class="strip ${r.cls}"><div class="bar"></div><div class="cs">${r.cs}<i>${r.sub}</i></div><div class="rt">${r.rt}<i>${r.rt2}</i></div><div class="st">${r.st}</div></div>`).join('');
+}
+
+// ---------- scoreboard + banner ----------
+const $ = id => document.getElementById(id);
+function renderScore(t, nTx) {
+  const m = simMin();
+  const done = flights.filter(f => m >= f.dep + f.dur);
+  const final = t >= 84; // last trips land just past the loop; show the settled tally
+  $('sAgent').textContent = `${final ? 28 : done.length}/28`;
+  $('sStatic').textContent = `${final ? 10 : done.filter(f => STATIC_ON_TIME.has(f.cs)).length}/28`;
+  $('sDist').textContent = final ? 'distance +14.3%' : `${done.length} landed · ${28 - done.length} in plan`;
+  const delay = m < STORM[0] ? 0 : Math.min(2.1, (m - STORM[0]) * 0.4);
+  $('sDelay').innerHTML = `${delay.toFixed(1)}<small> min · static ${m < STORM[0] ? '0.0' : Math.min(16.4, m - STORM[0]).toFixed(1)}</small>`;
+  $('sTx').textContent = nTx; $('txcount').textContent = `${nTx} tx`;
+  $('clk').textContent = `T+${String(Math.floor(m)).padStart(2, '0')}:${String(Math.floor((m % 1) * 60)).padStart(2, '0')}`;
+}
+function renderBanner(n) {
+  const ctl = RADIO.slice(0, n).filter(r => !r.plt);
+  const r = ctl[ctl.length - 1];
+  if (!r) { $('bmsg').textContent = 'Standing by. Traffic calm, all corridors open.'; $('banner').classList.remove('alert'); return; }
+  $('bfreq').innerHTML = `${r.who === 'TWR' ? 'SFO TWR' : 'SKYFLOW'}<span>${r.f}</span>`;
+  $('bsrc').textContent = r.who === 'TWR' ? 'TOWER · LOCAL CONTROL' : 'CONTROLLER AGENT · CLEARANCE';
+  $('bmsg').textContent = r.txt;
+  const m = simMin();
+  $('banner').classList.toggle('alert', m >= STORM[0] && m <= STORM[1]);
+}
+
+// ---------- cameras ----------
+// Modes: 'cine' (auto-director, default), 'user' (presets 1–5 + default Cesium controller).
+const cam = scene.camera, ssc = scene.screenSpaceCameraController;
+ssc.minimumZoomDistance = 25; ssc.maximumZoomDistance = 90000;
+const ZMIN = 30, ZMAX = 85000;
+let camMode = 'cine', shot = null, blend = null, towerTgt = null, letterbox = false;
+const TOWER = C.Cartesian3.fromDegrees(-122.3838, 37.6159, GROUND + 74);
+const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; // cubic in-out
+function enu(from, to) {
+  const tr = C.Transforms.eastNorthUpToFixedFrame(from); const inv = C.Matrix4.inverseTransformation(tr, new C.Matrix4());
+  return C.Matrix4.multiplyByPoint(inv, to, new C.Cartesian3());
+}
+// eye placed `range` metres back from `center`, looking along heading/pitch (degrees)
+function orbitPose(center, hdg, pitch, range) {
+  const h = hdg * D2R, p = pitch * D2R;
+  const off = new C.Cartesian3(-Math.sin(h) * Math.cos(p) * range, -Math.cos(h) * Math.cos(p) * range, -Math.sin(p) * range);
+  const eye = C.Matrix4.multiplyByPoint(C.Transforms.eastNorthUpToFixedFrame(center), off, new C.Cartesian3());
+  return { eye, target: center, hdg, pitch };
+}
+function headingOf(posProp, time) {
+  const p = posProp.getValue(time), p2 = posProp.getValue(C.JulianDate.addSeconds(time, 0.5, new C.JulianDate()));
+  if (!p || !p2) return null;
+  const v = enu(p, p2); return { p, hdg: Math.hypot(v.x, v.y) < 0.01 ? null : Math.atan2(v.x, v.y) / D2R };
+}
+const flightBy = cs => flights.find(f => f.callsign === cs);
+const at3 = (lonlat, h) => C.Cartesian3.fromDegrees(lonlat[0], lonlat[1], h);
+const STORM_C = at3(mid, cAlt), OAK_PAD = at3(NODES.OAK, GROUND + 10), BAY_C = at3([-122.34, 37.735], 0);
+const PRESETS = {
+  1: { name: 'OVERVIEW · BAY', pose: () => orbitPose(BAY_C, 345, -40, 36000) },
+  2: { name: 'TOWER CAB · 74 M AGL', pose: () => ({ eye: TOWER, hdg: 62, pitch: -5 }) },
+  3: { name: 'CHASE', chase: true },
+  4: { name: 'STORM · C–E', pose: () => orbitPose(STORM_C, 25, -24, 9000) },
+  5: { name: 'VERTIPORT · OAK', pose: () => orbitPose(OAK_PAD, 300, -28, 1700) },
+};
+// follow pose for an entity's position property
+let followHdg = null;
+function followPose(posProp, t, range, pitch, side, dt) {
+  const r = headingOf(posProp, clock.currentTime); if (!r) return null;
+  if (r.hdg !== null) followHdg = followHdg === null ? r.hdg : followHdg + (((r.hdg - followHdg + 540) % 360) - 180) * Math.min(1, dt * 2);
+  return orbitPose(r.p, (followHdg ?? 0) + side, pitch, range);
+}
+const evtPos = f => new C.CallbackProperty(time => { const m = C.JulianDate.secondsDifference(time, T0) * SIMRATE; const p = routePoint(f, m); return C.Cartesian3.fromDegrees(p[0], p[1], cAlt + 25); }, false);
+const SKF108 = flightBy('SKF108'), skf108Pos = evtPos(SKF108);
+// Cinematic shot list, synced to the scenario beats (wall seconds within the 90 s loop)
+const SHOTS = [
+  { t0: 0, name: 'ESTABLISHING · SFO → BAY', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 2.4, -34 + t * 0.2, 16000 + t * 1100) },
+  { t0: 9.4, name: 'C–E CLOSES · STORM', fov: 50, pose: (t) => { const k = ease(Math.min(1, (t - 9.4) / 5)); return orbitPose(STORM_C, 10 + (t - 9.4) * 3, -30 + 8 * k, 15000 - 8500 * k); } },
+  { t0: 14.5, cut: true, name: 'READBACK · SKF108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
+  { t0: 24.5, name: 'REROUTE · SKF108 VIA W–E', fov: 55, pose: (t, dt) => followPose(skf108Pos, t, 900, -18, 25, dt) },
+  { t0: 40, name: 'TOWER CAB · 28L DEPARTURE', fov: 50, tower: airliners[1] },
+  { t0: 58, name: 'CHASE · SWA1255 CLIMB-OUT', fov: 58, pose: (t, dt) => followPose(airliners[1].pos, t, 160, -9, 20, dt) },
+  { t0: 70, name: 'CHASE · ASA331 FINAL 28R', fov: 58, pose: (t, dt) => followPose(airliners[2].pos, t, 150, -8, -25, dt) },
+  { t0: 81, name: 'RECOVERY · 28/28 ON TIME', fov: 60, pose: (t) => { const k = ease(Math.min(1, (t - 81) / 7)); return orbitPose(at3([-122.36, 37.69], 0), 330 + (t - 81) * 2, -14 - 24 * k, 2500 + 34000 * k); } },
+];
+function towerPose(a, dt) {
+  const p = a.pos.getValue(clock.currentTime); if (!p) return { eye: TOWER, hdg: 62, pitch: -5 };
+  const v = enu(TOWER, p), hd = Math.atan2(v.x, v.y) / D2R, pt = Math.max(-12, Math.min(8, Math.atan2(v.z, Math.hypot(v.x, v.y)) / D2R)) - 1;
+  if (!towerTgt) towerTgt = { hdg: hd, pitch: pt };
+  towerTgt.hdg += ((((hd - towerTgt.hdg) + 540) % 360) - 180) * Math.min(1, dt * 1.5); towerTgt.pitch += (pt - towerTgt.pitch) * Math.min(1, dt * 1.5);
+  return { eye: TOWER, hdg: towerTgt.hdg, pitch: towerTgt.pitch };
+}
+// pose -> {eye, dir, up}
+function frame(pose) {
+  let dir;
+  if (pose.target) dir = C.Cartesian3.normalize(C.Cartesian3.subtract(pose.target, pose.eye, new C.Cartesian3()), new C.Cartesian3());
+  else { const h = pose.hdg * D2R, p = pose.pitch * D2R; dir = C.Matrix4.multiplyByPointAsVector(C.Transforms.eastNorthUpToFixedFrame(pose.eye), new C.Cartesian3(Math.sin(h) * Math.cos(p), Math.cos(h) * Math.cos(p), Math.sin(p)), new C.Cartesian3()); }
+  const upE = C.Ellipsoid.WGS84.geodeticSurfaceNormal(pose.eye, new C.Cartesian3());
+  const right = C.Cartesian3.normalize(C.Cartesian3.cross(dir, upE, new C.Cartesian3()), new C.Cartesian3());
+  return { eye: pose.eye, dir, up: C.Cartesian3.cross(right, dir, new C.Cartesian3()) };
+}
+function applyFrame(f) { cam.setView({ destination: f.eye, orientation: { direction: f.dir, up: f.up } }); }
+function snapshot() { return { eye: C.Cartesian3.clone(cam.positionWC), dir: C.Cartesian3.clone(cam.directionWC), up: C.Cartesian3.clone(cam.upWC), fov: cam.frustum.fov / D2R }; }
+function lerpFrame(a, b, k) {
+  const L = (x, y) => C.Cartesian3.lerp(x, y, k, new C.Cartesian3());
+  return { eye: L(a.eye, b.eye), dir: C.Cartesian3.normalize(L(a.dir, b.dir), new C.Cartesian3()), up: C.Cartesian3.normalize(L(a.up, b.up), new C.Cartesian3()) };
+}
+function setLabel(s) { $('camlabel').textContent = s; }
+function cine(t, dt) {
+  let s = SHOTS[0]; for (const x of SHOTS) if (t >= x.t0) s = x;
+  if (s !== shot) { blend = shot && !s.cut ? { from: snapshot(), t0: t } : null; shot = s; followHdg = null; towerTgt = null; setLabel('CINEMATIC · ' + s.name); }
+  const pose = s.tower ? towerPose(s.tower, dt) : s.pose(t, dt);
+  if (!pose || !pose.eye) return;
+  let f = frame(pose), fov = s.fov + 1.2 * Math.sin(t * 0.45); // subtle FOV breathing
+  if (blend) { const k = ease(Math.min(1, (t - blend.t0) / 1.6)); f = lerpFrame(blend.from, f, k); fov = blend.from.fov + (fov - blend.from.fov) * k; if (k >= 1) blend = null; }
+  cam.frustum.fov = fov * D2R; applyFrame(f);
+}
+function selectedFlight() {
+  const e = viewer.selectedEntity, now = clock.currentTime;
+  const fl = flights.find(f => f.entity === e);
+  if (e && e.position && e.position.getValue(now) && (!fl || fl.visible.getValue(now))) return e;
+  if (SKF108.visible.getValue(now)) return SKF108.entity;
+  const t = tNow(); return t < 63 ? airliners[1].entity : airliners[2].entity;
+}
+function fly(p) {
+  cam.flyTo({ destination: p.eye, orientation: { heading: p.hdg * D2R, pitch: p.pitch * D2R, roll: 0 }, duration: 1.5, easingFunction: C.EasingFunction.CUBIC_IN_OUT });
+}
+function preset(n) {
+  const P = PRESETS[n]; if (!P) return;
+  pauseCine(); const wasTracking = !!viewer.trackedEntity; viewer.trackedEntity = undefined; cam.cancelFlight(); cam.lookAtTransform(C.Matrix4.IDENTITY);
+  cam.frustum.fov = 60 * D2R;
+  document.querySelectorAll('[data-preset]').forEach(b => b.classList.toggle('on', +b.dataset.preset === n));
+  if (P.chase) {
+    const e = selectedFlight(); viewer.trackedEntity = e; setLabel(`CHASE · ${(e.label && e.label.text.getValue(clock.currentTime) || e.id).split(' ')[0]}`);
+    return;
+  }
+  const p = P.pose(); setLabel(P.name);
+  // un-tracking is applied on the viewer's next tick and would cancel a flight started now
+  if (wasTracking) setTimeout(() => { cam.lookAtTransform(C.Matrix4.IDENTITY); fly(p); }, 60);
+  else fly(p);
+}
+function pauseCine() {
+  if (camMode !== 'cine') return;
+  camMode = 'user'; blend = null; cam.frustum.fov = 60 * D2R; setLabel('FREE CAMERA');
+  $('bCine').classList.remove('on'); $('resume').style.display = 'inline-block';
+}
+function resumeCine() {
+  if (camMode === 'cine') return;
+  viewer.trackedEntity = undefined; cam.cancelFlight(); cam.lookAtTransform(C.Matrix4.IDENTITY);
+  camMode = 'cine'; shot = null; blend = { from: snapshot(), t0: tNow() };
+  $('bCine').classList.add('on'); $('resume').style.display = 'none';
+  document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('on'));
+}
+function zoom(dir) {
+  pauseCine();
+  const h = cam.positionCartographic.height - GROUND;
+  const tgt = viewer.trackedEntity ? C.Cartesian3.distance(cam.positionWC, viewer.trackedEntity.position.getValue(clock.currentTime) || cam.positionWC) : h;
+  if (dir > 0 && tgt < ZMIN * 1.5) return; if (dir < 0 && h > ZMAX) return;
+  const amt = Math.max(15, Math.min(tgt, 40000) * 0.3);
+  dir > 0 ? cam.zoomIn(amt) : cam.zoomOut(amt);
+}
+const canvas = scene.canvas;
+['pointerdown', 'wheel', 'touchstart'].forEach(ev => canvas.addEventListener(ev, () => { pauseCine(); document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('on')); }, { passive: true }));
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => preset(+b.dataset.preset));
+$('bZin').onclick = () => zoom(1); $('bZout').onclick = () => zoom(-1);
+$('bCine').onclick = () => camMode === 'cine' ? pauseCine() : resumeCine();
+$('resume').onclick = resumeCine;
+$('bBox').onclick = () => { letterbox = !letterbox; document.body.classList.toggle('letterbox', letterbox); $('bBox').classList.toggle('on', letterbox); };
+window.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+  if (e.key >= '1' && e.key <= '5') preset(+e.key);
+  else if (e.key === 'c' || e.key === 'C') $('bCine').onclick();
+  else if (e.key === 'l' || e.key === 'L') $('bBox').onclick();
+  else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); // app.html view switch
+  else if (e.key === '+' || e.key === '=') zoom(1);
+  else if (e.key === '-' || e.key === '_') zoom(-1);
+  else if (e.key === ' ') { e.preventDefault(); $('bPlay').onclick(); }
+});
+function setCam(t, dt) { if (camMode === 'cine') cine(t, dt); }
+// ---------- radio voice (shared SkyRadio module) ----------
+// Each transcript line is spoken when it appears; the scripted clock holds while the frequency is busy.
+let revealed = 0, onAir = false, holding = false, userPaused = false, radioGen = 0;
+SkyRadio.prefetch(RADIO.map(r => ({ text: r.txt, speaker: r.plt ? 'pilot' : 'atc', key: r.plt ? r.who : undefined })));
+function holdClock() { if (!holding && clock.shouldAnimate) { holding = true; clock.shouldAnimate = false; } }
+function releaseClock() { if (holding) { holding = false; if (!userPaused) clock.shouldAnimate = true; } }
+function radioStep(t) {
+  const due = RADIO.filter(r => r.t <= t).length;
+  if (due < revealed) { revealed = due; SkyRadio.flush(); onAir = false; radioGen++; releaseClock(); return; } // loop, restart or seek back
+  if (due - revealed > 1) revealed = due - 1; // seek forward: skip the missed lines silently
+  if (due === revealed) return;
+  if (onAir) return holdClock();
+  const r = RADIO[revealed++], gen = radioGen; onAir = true;
+  SkyRadio.say(r.txt, r.plt ? 'pilot' : 'atc', r.plt ? r.who : undefined).then(() => { if (gen === radioGen) { onAir = false; releaseClock(); } });
+}
+SkyRadio.onTransmit(({ speaker, key, live }) => {
+  $('txlive').textContent = live ? `● TX ${speaker === 'atc' ? 'CTL' : key}` : '';
+  const last = radioFeed.querySelectorAll('.tx'); last.forEach(x => x.classList.remove('live'));
+  if (live && last.length) last[last.length - 1].classList.add('live');
+});
+const syncSnd = () => { $('bSnd').textContent = SkyRadio.enabled ? 'Sound on' : 'Sound off'; $('bSnd').classList.toggle('on', SkyRadio.enabled); };
+$('bSnd').onclick = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSnd(); };
+document.addEventListener('skyradio:enabled', syncSnd);
+// Pause everything when hidden or when the host page asks (iframe toggle): {skyflow:'pause'|'resume'}
+function setPaused(p) {
+  if (p === extPaused) return;
+  extPaused = p;
+  if (p) { wasAnim = clock.shouldAnimate; clock.shouldAnimate = false; viewer.useDefaultRenderLoop = false; SkyRadio.flush(); return; }
+  viewer.useDefaultRenderLoop = true;
+  // let one frame re-sync the clock's system time so the paused interval is not replayed
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (!extPaused) clock.shouldAnimate = wasAnim && !userPaused && !holding; }));
+}
+document.addEventListener('visibilitychange', () => setPaused(document.hidden));
+window.addEventListener('message', e => { const m = e.data && e.data.skyflow; if (m === 'pause') setPaused(true); else if (m === 'resume') setPaused(false); });
+if (document.hidden) setPaused(true);
+$('bPlay').onclick = () => { userPaused = !userPaused; clock.shouldAnimate = !userPaused && !holding; $('bPlay').textContent = userPaused ? 'Play' : 'Pause'; };
+$('bRestart').onclick = () => { userPaused = false; clock.currentTime = T0.clone(); clock.shouldAnimate = true; $('bPlay').textContent = 'Pause'; };
+
+// ---------- main tick ----------
+let lastT = 0, lastHud = -1;
+scene.preRender.addEventListener(() => {
+  const t = tNow(); const dt = Math.max(0, Math.min(0.2, t - lastT)); lastT = t;
+  setCam(t, dt || 0.016);
+  drawRadar(t);
+  radioStep(t);
+  if (Math.abs(t - lastHud) > 0.2 || revealed !== shownRadio) {
+    lastHud = t;
+    const nR = revealed, nA = AGENTS.filter(a => a.t <= t).length;
+    if (nR !== shownRadio) { shownRadio = nR; renderRadio(nR); renderBanner(nR); }
+    if (nA !== shownAgents) { shownAgents = nA; renderAgents(nA); $('agentcount').textContent = `${nA} decisions · 1 veto`; }
+    renderBanner(nR);
+    renderStrips(t); renderScore(t, nR);
+  }
+});
+
+// refine ground height from the photoreal mesh at the 28R touchdown zone
+if (tileset) setTimeout(async () => {
+  try {
+    const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
+    const [r] = await scene.sampleHeightMostDetailed([c]);
+    if (r && Number.isFinite(r.height) && Math.abs(r.height - GROUND) < 25) {
+      GROUND = r.height;
+      for (const a of airliners) a.pos = buildAirliner(a);
+      console.log('ground refined', GROUND.toFixed(1));
+    }
+  } catch (e) { console.warn('height sample failed', e); }
+}, 6000);
+window.__sky = { viewer, airliners, yawFix, preset, resumeCine, pauseCine, zoom, setPaused, mode: () => camMode, seek: s => clock.currentTime = at(s) };
+})();
+</script>
+</body>
+</html>

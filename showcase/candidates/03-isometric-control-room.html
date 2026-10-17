@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyFlow Control Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#efe9dd; --panel:#fbf9f4; --panel2:#f4f0e7; --ink:#1c232b; --ink2:#4d5762; --ink3:#86909a;
+  --line:#ddd5c5; --teal:#0e7d72; --teal-soft:#d6ece8; --amber:#c97c12; --amber-soft:#f8e8cc;
+  --red:#c2412d; --red-soft:#f6dcd5; --blue:#2c6aae; --blue-soft:#dbe7f4; --green:#3c8a3a; --green-soft:#dcefd9;
+  --shadow:0 1px 0 rgba(28,35,43,.04),0 6px 18px -8px rgba(28,35,43,.22);
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font:13px/1.35 var(--sans);-webkit-font-smoothing:antialiased}
+#scene{position:fixed;inset:0}
+#labels{position:fixed;inset:0;pointer-events:none}
+.mono{font-family:var(--mono)}
+/* top bar */
+.top{position:fixed;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:14px;padding:0 16px;background:rgba(251,249,244,.92);border-bottom:1px solid var(--line);backdrop-filter:blur(6px);z-index:5}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.2px;font-size:15px}
+.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--ink);display:grid;place-items:center}
+.brand small{font-weight:500;color:var(--ink3);font-size:12px;margin-left:4px}
+.chip{font:600 10.5px var(--mono);letter-spacing:.8px;padding:3px 7px;border-radius:5px;border:1px solid var(--line);color:var(--ink2);background:var(--panel2);text-transform:uppercase}
+.chip.sim{color:#7a5b10;background:#fbefd2;border-color:#ecd9a6}
+.phase{display:flex;gap:3px;margin-left:8px}
+.phase span{font:500 11px var(--mono);padding:4px 9px;border-radius:5px;color:var(--ink3);background:transparent;border:1px solid transparent;transition:.3s}
+.phase span.on{color:var(--ink);background:#fff;border-color:var(--line);box-shadow:var(--shadow)}
+.phase span.on.storm{color:var(--red);border-color:#e8b9ae;background:var(--red-soft)}
+.phase span.on.replan{color:var(--amber);border-color:#ecd1a2;background:var(--amber-soft)}
+.phase span.on.recover{color:var(--teal);border-color:#a9d6cf;background:var(--teal-soft)}
+.spacer{flex:1}
+.clock{font:500 13px var(--mono);color:var(--ink2)}
+.clock b{color:var(--ink);font-weight:600}
+.ctrl{display:flex;gap:6px}
+.btn{font:600 12px var(--sans);padding:6px 11px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn:hover{border-color:#c6bca8}
+.btn.on{border-color:#a9d6cf;color:var(--teal)}
+.btn svg{width:13px;height:13px}
+/* kpis */
+.kpis{position:fixed;top:64px;left:16px;right:392px;display:flex;gap:10px;z-index:4}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+.kpi{padding:10px 13px 11px;min-width:142px;flex:0 0 auto}
+.kpi .k{font:600 10.5px var(--mono);letter-spacing:.7px;color:var(--ink3);text-transform:uppercase}
+.kpi .v{font:600 26px/1.05 var(--mono);margin-top:5px;letter-spacing:-.5px}
+.kpi .v small{font-size:12px;color:var(--ink3);font-weight:500;margin-left:3px;letter-spacing:0}
+.kpi .s{font-size:11.5px;color:var(--ink2);margin-top:3px}
+.kpi.warn .v{color:var(--amber)}
+.score{padding:9px 13px;flex:1 1 auto;min-width:300px;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:4px 12px;align-items:center}
+.score .hd{grid-column:1/-1;display:flex;justify-content:space-between;font:600 10.5px var(--mono);letter-spacing:.7px;color:var(--ink3);text-transform:uppercase}
+.score .cell .l{font-size:11px;color:var(--ink2)}
+.score .cell .n{font:600 17px var(--mono)}
+.ontime{display:flex;flex-direction:column;gap:4px}
+.bar{height:6px;border-radius:3px;background:#ebe5d8;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.ontime .row{white-space:nowrap;display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--ink2)}
+.ontime .row b{color:var(--ink)}
+/* right column */
+.right{position:fixed;top:64px;right:16px;bottom:16px;width:364px;display:flex;flex-direction:column;gap:10px;z-index:4}
+.sec-h{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 7px;font:600 10.5px var(--mono);letter-spacing:.7px;color:var(--ink3);text-transform:uppercase}
+.sec-h .sub{text-transform:none;letter-spacing:0;font:500 11px var(--sans);color:var(--ink3)}
+.agents .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 8px 8px}
+.agent{border:1px solid var(--line);border-radius:8px;padding:7px 8px;background:#fff;font-size:11.5px;min-height:74px;transition:opacity .4s, transform .4s;position:relative}
+.agent.ghost{opacity:.4;border-style:dashed;background:transparent;min-height:0}
+.agent.new{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+.agent .nm{display:flex;align-items:center;gap:5px;font-weight:600;font-size:12px}
+.agent .d{font:600 9.5px var(--mono);padding:1px 4px;border-radius:3px;background:var(--panel2);color:var(--ink2);border:1px solid var(--line)}
+.agent .st{margin-left:auto;font:600 9.5px var(--mono);text-transform:uppercase;letter-spacing:.5px}
+.agent .task{color:var(--ink2);margin:3px 0 4px;min-height:28px;line-height:1.25}
+.agent .bud{display:flex;align-items:center;gap:6px;font:500 10px var(--mono);color:var(--ink3)}
+.agent .bud .bar{flex:1;height:4px}
+.agent.full{grid-column:1/-1;min-height:0}
+.st.idle{color:var(--ink3)} .st.work{color:var(--blue)} .st.prop{color:var(--amber)} .st.ok{color:var(--teal)} .st.rej{color:var(--red)} .st.ret{color:var(--ink3)}
+.kiosk{padding:0 0 10px;transition:.3s}
+.kiosk.live{border-color:#e2b15f;box-shadow:0 0 0 3px rgba(201,124,18,.13),var(--shadow)}
+.kiosk .body{padding:0 12px}
+.kiosk .q{font-size:13px;font-weight:600}
+.kiosk .why{color:var(--ink2);font-size:11.5px;margin:3px 0 8px}
+.kiosk .acts{display:flex;gap:6px;align-items:center}
+.kiosk .acts .btn{flex:1;justify-content:center;padding:8px}
+.btn.approve{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn.reject{color:var(--red)}
+.btn:disabled{opacity:.45;cursor:default}
+.cd{font:600 11px var(--mono);color:var(--amber);min-width:38px;text-align:right}
+.kiosk .res{font:500 11.5px var(--sans);color:var(--ink2);padding-top:6px}
+.kiosk .idle{color:var(--ink3);font-size:12px;padding:2px 12px 0}
+.feed{flex:1;min-height:0;display:flex;flex-direction:column}
+.tabs{display:flex;gap:2px;padding:6px 8px 0;border-bottom:1px solid var(--line)}
+.tab{font:600 11.5px var(--sans);padding:6px 10px;border:none;background:none;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;gap:5px;align-items:center}
+.tab.on{color:var(--ink);border-bottom-color:var(--ink)}
+.tab .badge{font:600 9.5px var(--mono);background:var(--red);color:#fff;border-radius:8px;padding:0 5px;line-height:15px}
+.pane{flex:1;overflow:hidden;padding:4px 0;display:none}
+.pane.on{display:block}
+.log .ev{display:grid;grid-template-columns:44px 1fr;gap:6px;padding:4px 12px;font-size:11.5px;border-bottom:1px dashed #ece6da}
+.log .ev .t{font:500 10.5px var(--mono);color:var(--ink3);padding-top:1px}
+.log .ev .who{font:600 10.5px var(--mono);margin-right:4px}
+.ev.fresh{animation:flash 1.2s ease}
+@keyframes flash{0%{background:#fff3d6}100%{background:transparent}}
+.verdict{font:600 9.5px var(--mono);padding:1px 4px;border-radius:3px;margin-left:3px}
+.verdict.ok{background:var(--teal-soft);color:var(--teal)} .verdict.rej{background:var(--red-soft);color:var(--red)}
+table.traffic{width:100%;border-collapse:collapse;font:500 11px var(--mono)}
+.traffic th{text-align:left;color:var(--ink3);font-weight:600;font-size:10px;padding:4px 6px;letter-spacing:.4px}
+.traffic td{padding:3px 6px;border-top:1px solid #efe9de}
+.traffic tr.sel td{background:var(--amber-soft)}
+.tag{font:600 9.5px var(--mono);padding:1px 4px;border-radius:3px}
+.tag.air{background:var(--blue-soft);color:var(--blue)} .tag.hold{background:var(--amber-soft);color:var(--amber)} .tag.rr{background:var(--teal-soft);color:var(--teal)}
+.alert{margin:6px 10px;padding:7px 9px;border-radius:7px;border:1px solid;font-size:11.5px}
+.alert b{display:block;font-size:12px;margin-bottom:1px}
+.alert.r{border-color:#ebc1b7;background:#fbefeb;color:#7d2a1c}
+.alert.a{border-color:#ecd5ab;background:#fcf4e4;color:#6b4407}
+.alert.t{border-color:#b9ddd6;background:#eef7f5;color:#0a4e47}
+/* bottom left: flight lifecycle + radio */
+.flight{position:fixed;left:16px;bottom:16px;width:600px;z-index:4;padding-bottom:10px}
+.fl-h{display:flex;align-items:baseline;gap:10px;padding:10px 14px 4px}
+.fl-h .cs{font:600 16px var(--mono)}
+.fl-h .rt{font:500 12px var(--mono);color:var(--ink2)}
+.fl-h .del{margin-left:auto;font:500 11.5px var(--mono);color:var(--ink3)}
+.stepper{display:flex;align-items:center;padding:8px 14px 10px}
+.step{display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;position:relative;z-index:1}
+.step .dot{width:22px;height:22px;border-radius:50%;border:2px solid #d3cab8;background:#fff;display:grid;place-items:center;font:600 10px var(--mono);color:var(--ink3);transition:.35s}
+.step .lb{font:600 11px var(--sans);color:var(--ink3)}
+.step .tm{font:500 10px var(--mono);color:var(--ink3);height:12px}
+.step.done .dot{background:var(--ink);border-color:var(--ink);color:#fff}
+.step.cur .dot{border-color:var(--amber);color:var(--amber);box-shadow:0 0 0 4px rgba(201,124,18,.16)}
+.step.cur .lb,.step.done .lb{color:var(--ink)}
+.conn{flex:1;height:2px;background:#e1d9c9;margin:0 -10px;position:relative;top:-15px}
+.conn i{position:absolute;inset:0 100% 0 0;background:var(--ink);transition:right .5s}
+.radio{margin:0 10px;border:1px solid var(--line);border-radius:9px;background:#fff;display:grid;grid-template-columns:1fr 196px;min-height:160px}
+.tx-list{padding:6px 0;border-right:1px solid var(--line);overflow:hidden;max-height:200px;display:flex;flex-direction:column;justify-content:flex-end}
+.tx{display:grid;grid-template-columns:36px 1fr;gap:6px;padding:4px 10px;font-size:12px;line-height:1.35}
+.tx .sp{font:600 9.5px var(--mono);padding:2px 0;border-radius:3px;text-align:center;height:17px;margin-top:1px}
+.tx .sp.c{background:var(--ink);color:#fff} .tx .sp.p{background:var(--blue-soft);color:var(--blue)} .tx .sp.h{background:var(--panel2);color:var(--ink2);border:1px solid var(--line)}
+.tx em{font-style:normal;background:var(--red-soft);color:var(--red);border-radius:3px;padding:0 2px}
+.tx strong{font-weight:600;color:var(--teal)}
+.tx.live .say::after{content:"";display:inline-block;width:6px;height:11px;background:var(--ink);margin-left:2px;vertical-align:-1px;animation:blink .8s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.hb{padding:8px 10px;font-size:11.5px}
+.hb .ttl{font:600 10px var(--mono);letter-spacing:.6px;color:var(--ink3);text-transform:uppercase;margin-bottom:5px;display:flex;justify-content:space-between}
+.hb .f{display:grid;grid-template-columns:52px 1fr 18px;gap:4px;padding:3px 0;border-bottom:1px dashed #ece6da;font:500 11px var(--mono);align-items:center}
+.hb .f .fk{color:var(--ink3);font-size:10px}
+.hb .f .m{font-weight:700;text-align:center}
+.hb .f.ok .m{color:var(--teal)} .hb .f.bad{background:var(--red-soft)} .hb .f.bad .m{color:var(--red)}
+.hb .commit{margin-top:7px;font:600 10.5px var(--mono);padding:5px 6px;border-radius:5px;text-align:center;color:var(--ink3);border:1px dashed var(--line)}
+.hb .commit.ok{color:var(--teal);background:var(--teal-soft);border:1px solid #a9d6cf}
+.hb .commit.bad{color:var(--red);background:var(--red-soft);border:1px solid #ebc1b7}
+.wave{display:flex;gap:2px;align-items:center;height:12px}
+.wave i{width:2px;background:var(--ink3);border-radius:1px;height:3px}
+.wave.on i{animation:wv .6s ease-in-out infinite alternate;background:var(--ink)}
+@keyframes wv{to{height:12px}}
+/* scene labels */
+.lbl{font:600 10.5px var(--mono);color:var(--ink);background:rgba(255,255,255,.9);border:1px solid var(--line);padding:1px 5px;border-radius:4px;white-space:nowrap;transform:translateY(-14px)}
+.lbl.port{font-size:11px;background:var(--ink);color:#fff;border-color:var(--ink)}
+.lbl.port small{opacity:.65;font-weight:500;margin-left:3px}
+.lbl.jx{background:rgba(255,255,255,.78);border:1px solid var(--line);color:var(--ink2);font-size:10px;padding:0 4px;transform:translate(-50%,-6px) translateX(50%)}
+.lbl.ac{font-size:9.5px;padding:0 4px;background:rgba(255,255,255,.82);color:var(--blue);transform:translate(10px,-14px)}
+.lbl.ac.sel{background:var(--amber);color:#fff;border-color:var(--amber);font-size:10.5px}
+.lbl.ac.hold{color:var(--amber)}
+.lbl.wx{background:var(--red);color:#fff;border-color:var(--red);font-size:10.5px}
+.camtools{position:fixed;left:630px;bottom:16px;z-index:4;padding:7px;display:flex;flex-direction:column;gap:6px}
+.camtools .row{display:flex;gap:3px;align-items:center}
+.cb{font:600 11.5px var(--sans);height:28px;min-width:28px;padding:0 7px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:5px;justify-content:center}
+.cb:hover{border-color:#c6bca8}.cb.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.cb kbd,.shotchip kbd{font:600 9.5px var(--mono);padding:0 4px;border-radius:3px;border:1px solid currentColor;opacity:.55}
+#cam-out,#cam-in{font-size:16px;font-weight:500}
+.camtools .sep{width:1px;height:18px;background:var(--line);margin:0 3px}
+.camtools .hint{font:500 10.5px var(--mono);color:var(--ink3);margin-left:6px}
+.shotchip{position:fixed;top:176px;left:16px;z-index:4;display:flex;align-items:center;gap:6px;font:600 10.5px var(--mono);letter-spacing:.4px;color:var(--ink2);background:rgba(251,249,244,.92);border:1px solid var(--line);border-radius:20px;padding:5px 11px;box-shadow:var(--shadow)}
+.shotchip b{color:var(--ink);font-weight:600}
+.shotchip i{width:7px;height:7px;border-radius:50%;background:var(--red);animation:blink 1.2s steps(2) infinite}
+.shotchip.resume{cursor:pointer;color:var(--amber);border-color:#ecd1a2;background:#fdf6e8}
+.shotchip.resume b{color:var(--amber)}
+.lbox{position:fixed;left:0;right:0;height:0;background:#1c232b;z-index:2;transition:height .6s ease;pointer-events:none}
+.lbox.top{top:52px}.lbox.bot{bottom:0}
+body.cine .lbox{height:34px}
+.legend{position:fixed;left:630px;bottom:100px;z-index:3;padding:8px 11px;font:500 10.5px var(--mono);color:var(--ink2);display:flex;flex-direction:column;gap:4px}
+.legend div{display:flex;align-items:center;gap:7px}
+.legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
+.credit{position:fixed;left:630px;bottom:186px;font:500 10px var(--mono);color:var(--ink3);z-index:3}
+@media (max-width:1360px){.kpi{min-width:108px;padding:9px 10px}.score{min-width:0;gap:4px 8px}.score .hd span:last-child{display:none}.kpi .v{font-size:22px}.legend,.credit,.camtools .hint{display:none}.flight{width:560px}.camtools{left:auto;right:392px;bottom:auto;top:166px}.camtools .cb kbd{display:none}}
+</style>
+<script src="radio-audio.js?v=3"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="scene"></div>
+<div id="labels"></div>
+
+<header class="top">
+  <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 15c4-1 6-5 9-5s5 4 9 5"/><circle cx="12" cy="10" r="2"/></svg></div>SkyFlow<small>Bay Sector UAM-1 · Recursive ATC</small></div>
+  <span class="chip sim">Simulation</span>
+  <div class="phase" id="phase"><span data-p="calm">Calm</span><span data-p="storm" class="">Storm</span><span data-p="replan">Replan</span><span data-p="recover">Recovery</span></div>
+  <div class="spacer"></div>
+  <div class="clock">SIM <b id="clk">T+00:00</b> · <span id="loc">14:00</span>L</div>
+  <div class="ctrl">
+    <button class="btn" id="play"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg><span>Pause</span></button>
+    <button class="btn" id="snd" title="Radio audio"><svg viewBox="0 0 16 16"></svg><span>Muted</span></button>
+    <button class="btn" id="restart"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 8a5.5 5.5 0 1 0 1.7-4"/><path d="M2.5 2.5v3.5H6"/></svg>Restart</button>
+  </div>
+</header>
+
+<section class="kpis">
+  <div class="card kpi"><div class="k">Aircraft in sector</div><div class="v" id="k-air">0</div><div class="s" id="k-air-s">0 on pads</div></div>
+  <div class="card kpi"><div class="k">Arrivals / hr</div><div class="v" id="k-arr">0</div><div class="s" id="k-arr-s">0 of 28 landed</div></div>
+  <div class="card kpi" id="kpi-delay"><div class="k">Avg delay</div><div class="v" id="k-del">0.0<small>min</small></div><div class="s" id="k-del-s">max 0.0 min</div></div>
+  <div class="card kpi"><div class="k">Min separation</div><div class="v" id="k-sep">--<small>NM</small></div><div class="s">floor 1.0 NM · same band</div></div>
+  <div class="card score">
+    <div class="hd"><span>Scoreboard</span><span id="sc-note">static plan vs agent team</span></div>
+    <div class="ontime">
+      <div class="row"><span>Static plan</span><b>10/28</b></div>
+      <div class="bar"><i style="width:35.7%;background:#b9ad97"></i></div>
+      <div class="row"><span>Agent team</span><b id="sc-agent">0/28</b></div>
+      <div class="bar"><i id="sc-agent-bar" style="width:0;background:var(--teal)"></i></div>
+    </div>
+    <div class="cell"><div class="l">Conflicts</div><div class="n" id="sc-conf">0</div></div>
+    <div class="cell"><div class="l">Human interv.</div><div class="n" id="sc-hum">0</div></div>
+    <div class="cell"><div class="l">Radio tx</div><div class="n" id="sc-tx">0</div></div>
+  </div>
+</section>
+
+<aside class="right">
+  <div class="card agents">
+    <div class="sec-h"><span>Agent tasks</span><span class="sub" id="ag-sub">1 active · depth cap 2</span></div>
+    <div class="grid" id="agents"></div>
+  </div>
+  <div class="card kiosk" id="kiosk">
+    <div class="sec-h"><span>Approval kiosk</span><span class="sub" id="ki-sub">supervisor</span></div>
+    <div id="ki-body"><div class="idle">No pending requests. The kernel escalates ground stops longer than 10 minutes.</div></div>
+  </div>
+  <div class="card feed">
+    <div class="tabs">
+      <button class="tab" data-t="traffic">Traffic</button>
+      <button class="tab" data-t="alerts">Alerts <span class="badge" id="al-badge" style="display:none">0</span></button>
+      <button class="tab on" data-t="log">Log</button>
+    </div>
+    <div class="pane" id="p-traffic"><table class="traffic"><thead><tr><th>CALLSIGN</th><th>ROUTE</th><th>ALT</th><th>ETA</th><th>STATE</th></tr></thead><tbody id="tr-body"></tbody></table></div>
+    <div class="pane" id="p-alerts"></div>
+    <div class="pane on log" id="p-log"></div>
+  </div>
+</aside>
+
+<section class="card flight">
+  <div class="fl-h"><span class="cs">SkyFlow 112</span><span class="rt" id="fl-rt">SF → OAK · filed via C–E</span><span class="del" id="fl-del">sched dep 14:15L</span></div>
+  <div class="stepper" id="stepper"></div>
+  <div class="radio">
+    <div class="tx-list" id="tx"></div>
+    <div class="hb">
+      <div class="ttl"><span>Hearback check</span><span class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i></span></div>
+      <div id="hb-fields"></div>
+      <div class="commit" id="hb-commit">awaiting readback</div>
+    </div>
+  </div>
+</section>
+
+<div class="card camtools">
+  <div class="row">
+    <button class="cb" id="cam-out" title="Zoom out (-)">−</button><button class="cb" id="cam-in" title="Zoom in (+)">+</button>
+    <span class="sep"></span>
+    <button class="cb cam-p" title="Key 1"><kbd>1</kbd>Bay</button><button class="cb cam-p" title="Key 2"><kbd>2</kbd>Tower</button><button class="cb cam-p" title="Key 3"><kbd>3</kbd>Chase</button><button class="cb cam-p" title="Key 4"><kbd>4</kbd>Storm</button><button class="cb cam-p" title="Key 5"><kbd>5</kbd>OAK</button>
+  </div>
+  <div class="row">
+    <button class="cb wide on" id="cam-cine" title="Key C"><kbd>C</kbd><span>Cinematic on</span></button>
+    <button class="cb" id="cam-lb" title="Letterbox bars">Letterbox</button>
+    <span class="hint">drag orbits · wheel zooms</span>
+  </div>
+</div>
+<div class="shotchip" id="shot"><i></i>CINEMATIC · <b id="shot-l">Establishing orbit</b></div>
+<button class="shotchip resume" id="resume" style="display:none">Cinematic paused · <b>Resume cinematic</b> <kbd>C</kbd></button>
+<div class="lbox top"></div><div class="lbox bot"></div>
+
+<div class="card legend">
+  <div><i style="background:#3aa395"></i>corridor open</div>
+  <div><i style="background:var(--red)"></i>closed (wx)</div>
+  <div><i style="background:var(--amber)"></i>selected flight route</div>
+  <div style="color:var(--ink3);font-size:9.5px">Simulation · coastline US Census</div>
+</div>
+
+<script>
+window.COAST=[[[[-122.4929,37.7879],[-122.4858,37.7906],[-122.4803,37.8013],[-122.4782,37.8083],[-122.4768,37.8094],[-122.4707,37.8085],[-122.4638,37.8047],[-122.4203,37.8085],[-122.4095,37.8089],[-122.4009,37.8049],[-122.4011,37.8036],[-122.3877,37.7888],[-122.3877,37.7768],[-122.3852,37.7688],[-122.3868,37.7637],[-122.3823,37.7608],[-122.3813,37.7553],[-122.3831,37.7533],[-122.3766,37.7521],[-122.3762,37.7485],[-122.3678,37.7402],[-122.3682,37.7399],[-122.3738,37.7396],[-122.3759,37.7357],[-122.3752,37.7347],[-122.3746,37.7329],[-122.3733,37.7332],[-122.372,37.7342],[-122.3701,37.7328],[-122.3674,37.732],[-122.3662,37.7328],[-122.3593,37.7286],[-122.3637,37.7221],[-122.3629,37.7181],[-122.3648,37.7164],[-122.3793,37.7243],[-122.3832,37.7207],[-122.376,37.716],[-122.3801,37.7109],[-122.3788,37.7095],[-122.3794,37.7087],[-122.3915,37.7098],[-122.3942,37.7076],[-122.3876,37.6791],[-122.3817,37.6773],[-122.381,37.6724],[-122.381,37.6679],[-122.3743,37.6622],[-122.3762,37.6553],[-122.38,37.6477],[-122.3872,37.6473],[-122.3912,37.6464],[-122.3893,37.6402],[-122.3843,37.6404],[-122.3802,37.635],[-122.3651,37.6281],[-122.3679,37.621],[-122.3556,37.6153],[-122.3591,37.6093],[-122.3704,37.6144],[-122.3733,37.6138],[-122.3786,37.6056],[-122.3698,37.6027],[-122.3602,37.5925],[-122.3346,37.5918],[-122.3344,37.588],[-122.3289,37.5888],[-122.3251,37.5915],[-122.3149,37.5912],[-122.3157,37.5837],[-122.3059,37.5755],[-122.2843,37.5754],[-122.2736,37.5705],[-122.2629,37.5739],[-122.2519,37.5679],[-122.2434,37.5528],[-122.2358,37.552],[-122.2329,37.5526],[-122.2291,37.5513],[-122.2232,37.5432],[-122.2125,37.5402],[-122.2037,37.5402],[-122.1966,37.5372],[-122.1946,37.5326],[-122.2001,37.5266],[-122.195,37.5225],[-122.1866,37.5176],[-122.1835,37.5208],[-122.1796,37.5118],[-122.1621,37.5002],[-122.1557,37.5012],[-122.1496,37.5027],[-122.1397,37.507],[-122.1362,37.5068],[-122.131,37.5037],[-122.1277,37.5001],[-122.1241,37.4859],[-122.1205,37.4772],[-122.1231,37.474],[-122.1175,37.4676],[-122.1091,37.463],[-122.1018,37.4627],[-122.0963,37.4578],[-122.0887,37.4523],[-122.0685,37.4503],[-122.0676,37.45],[-122.445,37.45],[-122.446,37.4615],[-122.4521,37.4805],[-122.4596,37.4927],[-122.4679,37.4981],[-122.4724,37.5005],[-122.4859,37.4946],[-122.4938,37.4923],[-122.4954,37.4956],[-122.4993,37.4953],[-122.5007,37.498],[-122.4987,37.5008],[-122.5015,37.5046],[-122.5059,37.5071],[-122.5124,37.5141],[-122.5167,37.5213],[-122.5195,37.5373],[-122.5166,37.5449],[-122.5148,37.5461],[-122.5137,37.5522],[-122.5152,37.5663],[-122.5181,37.5676],[-122.5204,37.5753],[-122.518,37.5767],[-122.5172,37.5906],[-122.5208,37.5942],[-122.5153,37.5956],[-122.5147,37.5983],[-122.5076,37.5961],[-122.5014,37.5996],[-122.5004,37.6041],[-122.5021,37.6064],[-122.5023,37.6083],[-122.4982,37.6083],[-122.4968,37.6121],[-122.4982,37.6141],[-122.498,37.6208],[-122.4959,37.6228],[-122.4941,37.644],[-122.4968,37.6864],[-122.5065,37.7237],[-122.5145,37.7808],[-122.5053,37.7883],[-122.4929,37.7879]]],[[[-122.332,37.782],[-122.3309,37.7951],[-122.3342,37.8013],[-122.3415,37.8042],[-122.3423,37.8056],[-122.333,37.8108],[-122.3228,37.8101],[-122.3173,37.8163],[-122.3192,37.8191],[-122.3304,37.8206],[-122.3161,37.8273],[-122.3061,37.826],[-122.2966,37.8285],[-122.298,37.8364],[-122.3159,37.8368],[-122.3142,37.8423],[-122.2992,37.8405],[-122.3011,37.8463],[-122.3014,37.8555],[-122.3084,37.8629],[-122.3169,37.8588],[-122.3187,37.8664],[-122.3252,37.8743],[-122.3187,37.8753],[-122.3132,37.8702],[-122.3085,37.8709],[-122.3114,37.8798],[-122.3161,37.8849],[-122.3269,37.8887],[-122.3269,37.8925],[-122.3154,37.8922],[-122.3111,37.8904],[-122.3095,37.893],[-122.3114,37.8958],[-122.3148,37.8987],[-122.319,37.8979],[-122.3223,37.8954],[-122.3254,37.8978],[-122.3248,37.9019],[-122.3217,37.9051],[-122.3251,37.9081],[-122.3357,37.9103],[-122.3447,37.9072],[-122.3523,37.9076],[-122.3531,37.9096],[-122.3604,37.9095],[-122.3619,37.9174],[-122.3648,37.9179],[-122.3655,37.9158],[-122.3635,37.9056],[-122.3683,37.9046],[-122.3787,37.9072],[-122.3859,37.9081],[-122.3906,37.9091],[-122.3875,37.9205],[-122.3905,37.9225],[-122.3915,37.9254],[-122.3977,37.9294],[-122.4013,37.9284],[-122.402,37.9314],[-122.41,37.9324],[-122.4137,37.9373],[-122.411,37.9397],[-122.4141,37.9453],[-122.4226,37.9472],[-122.4193,37.9509],[-122.4207,37.9549],[-122.425,37.9569],[-122.4301,37.9631],[-122.4298,37.9654],[-122.4186,37.9648],[-122.4126,37.9633],[-122.4118,37.9605],[-122.4084,37.9575],[-122.4029,37.9549],[-122.3955,37.9599],[-122.4015,37.9657],[-122.401,37.9685],[-122.3817,37.9717],[-122.3676,37.9782],[-122.3619,37.99],[-122.363,37.9944],[-122.3669,37.9985],[-122.3689,38.008],[-122.3679,38.0125],[-122.3646,38.0129],[-122.362,38.0086],[-122.3555,38.0087],[-122.3401,38.0037],[-122.3325,38.0015],[-122.3245,38.0056],[-122.3154,38.0116],[-122.3008,38.0109],[-122.2939,38.0161],[-122.2894,38.0223],[-122.2835,38.0227],[-122.2768,38.0305],[-122.2751,38.0374],[-122.2714,38.0409],[-122.2669,38.0411],[-122.2629,38.0446],[-122.2629,38.05],[-122.0,38.05],[-122.0,37.45],[-122.0447,37.45],[-122.0386,37.4546],[-122.0386,37.462],[-122.0498,37.4661],[-122.0534,37.4733],[-122.0545,37.4873],[-122.0555,37.4952],[-122.0826,37.5016],[-122.0928,37.5006],[-122.1025,37.4972],[-122.1094,37.5003],[-122.1113,37.5076],[-122.112,37.5288],[-122.1287,37.5606],[-122.1339,37.5629],[-122.1362,37.5682],[-122.1444,37.5819],[-122.147,37.5884],[-122.1469,37.5994],[-122.1464,37.6074],[-122.1514,37.6205],[-122.153,37.6419],[-122.1604,37.6647],[-122.1676,37.6772],[-122.1777,37.6828],[-122.1841,37.691],[-122.1873,37.6903],[-122.1941,37.6955],[-122.2015,37.705],[-122.2042,37.7116],[-122.2125,37.709],[-122.2118,37.702],[-122.2147,37.6992],[-122.2265,37.7065],[-122.2522,37.7249],[-122.2484,37.7278],[-122.256,37.7357],[-122.261,37.7396],[-122.2617,37.7434],[-122.2522,37.7476],[-122.2449,37.7503],[-122.2439,37.7518],[-122.2719,37.7615],[-122.275,37.7657],[-122.2794,37.7681],[-122.2831,37.7639],[-122.289,37.7646],[-122.2888,37.7687],[-122.2999,37.7723],[-122.3064,37.7761],[-122.3154,37.7766],[-122.3178,37.7797],[-122.332,37.782]]],[[[-122.3588,37.8143],[-122.3608,37.8128],[-122.3611,37.808],[-122.3623,37.807],[-122.3671,37.8074],[-122.3717,37.8094],[-122.3728,37.8111],[-122.3713,37.8147],[-122.379,37.8269],[-122.3777,37.8305],[-122.3735,37.8323],[-122.3688,37.8313],[-122.3629,37.8227],[-122.3643,37.8189],[-122.3588,37.8143]]],[[[-122.4254,37.8273],[-122.4252,37.8286],[-122.4232,37.8287],[-122.4202,37.8265],[-122.4207,37.8252],[-122.4228,37.8253],[-122.4254,37.8273]]],[[[-122.4199,37.8565],[-122.42,37.855],[-122.4186,37.8533],[-122.4188,37.8528],[-122.4196,37.8527],[-122.4231,37.8545],[-122.4307,37.8557],[-122.4346,37.8537],[-122.4395,37.8556],[-122.4408,37.8554],[-122.4424,37.8562],[-122.4422,37.8583],[-122.445,37.8605],[-122.4451,37.8614],[-122.4412,37.8625],[-122.4395,37.8675],[-122.4383,37.8677],[-122.4365,37.8663],[-122.4344,37.8669],[-122.4346,37.8689],[-122.4338,37.87],[-122.4325,37.8704],[-122.4319,37.8715],[-122.431,37.8721],[-122.43,37.8721],[-122.427,37.8703],[-122.4247,37.8704],[-122.4232,37.8693],[-122.4231,37.8682],[-122.4219,37.8661],[-122.422,37.8641],[-122.4213,37.8633],[-122.4193,37.8629],[-122.4188,37.862],[-122.4214,37.8591],[-122.4199,37.8565]]],[[[-122.4978,38.0194],[-122.4946,38.0151],[-122.4875,38.0144],[-122.4815,38.0076],[-122.4628,38.0034],[-122.4507,37.9922],[-122.4484,37.9883],[-122.4473,37.9844],[-122.4561,37.9799],[-122.4637,37.9815],[-122.4666,37.9848],[-122.472,37.9818],[-122.4746,37.9776],[-122.4746,37.975],[-122.4772,37.9716],[-122.4844,37.9706],[-122.4925,37.9701],[-122.4955,37.9705],[-122.4965,37.9677],[-122.4903,37.9648],[-122.4903,37.9592],[-122.4865,37.9469],[-122.4805,37.9454],[-122.4795,37.9425],[-122.4865,37.9398],[-122.4899,37.9366],[-122.497,37.9389],[-122.4986,37.9415],[-122.5051,37.9428],[-122.5051,37.9364],[-122.5031,37.9288],[-122.4936,37.9219],[-122.4864,37.9219],[-122.4792,37.9164],[-122.4756,37.9169],[-122.4736,37.9125],[-122.473,37.9089],[-122.4761,37.9079],[-122.477,37.9057],[-122.4723,37.9026],[-122.4625,37.8974],[-122.4586,37.8941],[-122.4484,37.8934],[-122.4437,37.8867],[-122.4415,37.8846],[-122.4383,37.8824],[-122.4389,37.8806],[-122.4418,37.8809],[-122.4445,37.8788],[-122.444,37.8765],[-122.4482,37.8752],[-122.4499,37.8727],[-122.4552,37.873],[-122.458,37.8719],[-122.4607,37.874],[-122.4625,37.8733],[-122.4633,37.8718],[-122.4625,37.8687],[-122.4585,37.8656],[-122.4581,37.8633],[-122.4596,37.8627],[-122.4688,37.8689],[-122.4737,37.8749],[-122.4742,37.8774],[-122.4712,37.8808],[-122.4729,37.8848],[-122.4815,37.8899],[-122.489,37.8957],[-122.4934,37.8939],[-122.499,37.8939],[-122.5024,37.8954],[-122.5043,37.8941],[-122.5008,37.8867],[-122.4989,37.886],[-122.4965,37.8773],[-122.5005,37.8742],[-122.4963,37.8708],[-122.4946,37.8663],[-122.4877,37.8642],[-122.4784,37.8595],[-122.4788,37.8516],[-122.4799,37.8498],[-122.4797,37.8476],[-122.4775,37.8466],[-122.4769,37.8426],[-122.4756,37.8415],[-122.4723,37.8368],[-122.4721,37.8351],[-122.4726,37.833],[-122.4737,37.8329],[-122.4745,37.8338],[-122.4761,37.834],[-122.4778,37.8334],[-122.4791,37.8304],[-122.4785,37.8261],[-122.4791,37.8255],[-122.4835,37.8267],[-122.4909,37.8267],[-122.4955,37.8224],[-122.499,37.8224],[-122.4998,37.8221],[-122.5,37.8209],[-122.5045,37.8211],[-122.5057,37.8233],[-122.5111,37.825],[-122.5201,37.8257],[-122.5237,37.8248],[-122.5276,37.821],[-122.5289,37.8183],[-122.5296,37.8177],[-122.5307,37.818],[-122.5319,37.8212],[-122.535,37.8242],[-122.5341,37.8262],[-122.5373,37.8303],[-122.549,37.8362],[-122.559,37.8465],[-122.5615,37.8518],[-122.5735,37.8557],[-122.5754,37.8587],[-122.5797,37.8601],[-122.5818,37.857],[-122.6013,37.8751],[-122.6139,37.8784],[-122.6174,37.8772],[-122.6211,37.8788],[-122.6241,37.8811],[-122.6269,37.8807],[-122.6287,37.8817],[-122.6282,37.8845],[-122.642,37.8975],[-122.65,37.901],[-122.65,38.05],[-122.4928,38.05],[-122.4929,38.0484],[-122.4995,38.0322],[-122.4978,38.0194]]]];
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ---------------- scenario ---------------- */
+const P = {SF:[-122.41,37.785],MAR:[-122.485,37.862],SFO:[-122.375,37.622],OAK:[-122.235,37.722],BER:[-122.275,37.865],W:[-122.39,37.73],C:[-122.34,37.79],E:[-122.29,37.77]};
+const PORTS=['SF','MAR','SFO','OAK','BER'], JX=['W','C','E'];
+const PORTNAME={SF:'Downtown',MAR:'Marin',SFO:'Airport',OAK:'Oakland',BER:'Berkeley'};
+const CORR=[['SF','MAR'],['SF','W'],['SF','C'],['C','BER'],['C','E'],['W','E'],['W','SFO'],['E','OAK'],['OAK','BER']];
+const COS=Math.cos(37.76*Math.PI/180);
+const XY=n=>[(P[n][0]+122.35)*COS, P[n][1]-37.76];
+const SPEED=0.03;          // deg / sim-min  (~108 kt)
+const SPM=1.05;            // real seconds per sim minute
+const END=82;              // loop length in sim minutes (~86 s)
+const STORM=[8,24];
+const ROUTES={
+ 'SF-OAK':{s:['SF','C','E','OAK'],a:['SF','W','E','OAK']},
+ 'BER-SFO':{s:['BER','C','SF','W','SFO']},
+ 'MAR-OAK':{s:['MAR','SF','C','E','OAK'],a:['MAR','SF','W','E','OAK']},
+ 'OAK-SF':{s:['OAK','E','C','SF'],a:['OAK','E','W','SF']},
+ 'SFO-BER':{s:['SFO','W','E','OAK','BER']},
+ 'BER-SF':{s:['BER','C','SF']},
+ 'MAR-SFO':{s:['MAR','SF','W','SFO']},
+ 'SF-BER':{s:['SF','C','BER']},
+ 'OAK-MAR':{s:['OAK','E','C','SF','MAR'],a:['OAK','BER','C','SF','MAR']},
+ 'SFO-OAK':{s:['SFO','W','E','OAK']},
+};
+const ORDER=['SF-OAK','BER-SFO','MAR-OAK','OAK-SF','SF-OAK','SFO-BER','SF-OAK','BER-SF','OAK-SF','MAR-SFO',
+ 'SF-BER','OAK-MAR','SFO-OAK','BER-SFO','MAR-OAK','SF-BER','OAK-SF','SFO-BER','BER-SF','SF-OAK',
+ 'MAR-SFO','OAK-MAR','SFO-OAK','SF-BER','BER-SFO','OAK-SF','MAR-OAK','SF-OAK'];
+const usesCE=p=>p.some((n,i)=>i&&((p[i-1]==='C'&&n==='E')||(p[i-1]==='E'&&n==='C')));
+function pathGeom(p){const pts=p.map(XY);const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));return{pts,cum,len:cum[cum.length-1]};}
+const SEL=6;
+const FLIGHTS=ORDER.map((od,i)=>{
+  const r=ROUTES[od], sched=2.5*i, cs=i===6?112:i===11?107:101+i;
+  const st=pathGeom(r.s);
+  let path=r.s, dep=sched, rr=false;
+  if(r.a&&usesCE(r.s)){
+    // static C–E window
+    const ceIdx=r.s.findIndex((n,k)=>k&&usesCE([r.s[k-1],n]));
+    const tIn=sched+st.cum[ceIdx-1]/SPEED, tOut=sched+st.cum[ceIdx]/SPEED;
+    if(tOut>STORM[0]&&tIn<STORM[1]){path=r.a;rr=true; if(sched>=STORM[0]&&sched<11.5)dep=11.5;}
+  }
+  if(i===SEL){path=r.a;rr=true;dep=17.2;}
+  const g=pathGeom(path);
+  const schedArr=sched+st.len/SPEED, arr=dep+g.len/SPEED;
+  return {i,od,cs,sched,dep,path,rr,g,staticLen:st.len,schedArr,arr,delay:Math.max(0,arr-schedArr),from:path[0],to:path[path.length-1]};
+});
+function posOf(f,m){
+  if(m<f.dep||m>f.arr)return null;
+  const d=(m-f.dep)*SPEED,{pts,cum}=f.g;let k=1;while(k<cum.length-1&&cum[k]<d)k++;
+  const t=(d-cum[k-1])/(cum[k]-cum[k-1]||1);
+  const a=pts[k-1],b=pts[k];
+  return {x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t,hd:Math.atan2(b[1]-a[1],b[0]-a[0]),seg:[f.path[k-1],f.path[k]],east:b[0]>=a[0],prog:d/f.g.len};
+}
+const fmt=m=>{m=Math.max(0,m);const mm=Math.floor(m),ss=Math.floor((m-mm)*60);return String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');};
+const loc=m=>{const t=14*60+Math.floor(m);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
+
+/* ---------------- three.js diorama ---------------- */
+const host=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setClearColor(0xefe9dd);
+host.appendChild(renderer.domElement);
+const lr=new CSS2DRenderer();document.getElementById('labels').appendChild(lr.domElement);
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0xefe9dd,600,1100);
+const K=520; // world units per scaled degree
+const W2=(x,y)=>new THREE.Vector3(x*K,0,-y*K);
+const LL=(lon,lat)=>W2((lon+122.35)*COS,lat-37.76);
+const cam=new THREE.PerspectiveCamera(30,1,1,2400);
+const camTarget=new THREE.Vector3(0,0,22);
+const camDir=new THREE.Vector3(0.98,0.82,0.62).normalize();
+scene.add(new THREE.HemisphereLight(0xfffaf0,0xc9bfae,1.15));
+const sun=new THREE.DirectionalLight(0xfff4e2,1.9);sun.position.set(-120,220,90);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-170,right:170,top:170,bottom:-170,near:10,far:600});sun.shadow.bias=-0.0006;
+scene.add(sun);
+
+// base slab + water
+const B={x0:LL(-122.53,0).x,x1:LL(-122.17,0).x,z0:LL(0,37.93).z,z1:LL(0,37.585).z};
+const bw=B.x1-B.x0,bd=B.z1-B.z0,cx=(B.x0+B.x1)/2,cz=(B.z0+B.z1)/2;
+const slab=new THREE.Mesh(new THREE.BoxGeometry(bw,10,bd),[0,0,0,0,0,0].map((_,i)=>new THREE.MeshLambertMaterial({color:i===2?0xa9c9d6:[0xd8cdb8,0xd8cdb8,0,0xc8bba4,0xcfc3ad,0xcfc3ad][i]})));
+slab.position.set(cx,-5.05,cz);slab.receiveShadow=true;scene.add(slab);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(bw,bd),new THREE.MeshLambertMaterial({color:0xb4d3df}));
+water.rotation.x=-Math.PI/2;water.position.set(cx,0.02,cz);water.receiveShadow=true;scene.add(water);
+// land (clipped to slab bounds)
+function clipPoly(pts,xmin,xmax,ymin,ymax){
+  const edges=[[p=>p[0]>=xmin,(a,b)=>{const t=(xmin-a[0])/(b[0]-a[0]);return[xmin,a[1]+t*(b[1]-a[1])]}],[p=>p[0]<=xmax,(a,b)=>{const t=(xmax-a[0])/(b[0]-a[0]);return[xmax,a[1]+t*(b[1]-a[1])]}],[p=>p[1]>=ymin,(a,b)=>{const t=(ymin-a[1])/(b[1]-a[1]);return[a[0]+t*(b[0]-a[0]),ymin]}],[p=>p[1]<=ymax,(a,b)=>{const t=(ymax-a[1])/(b[1]-a[1]);return[a[0]+t*(b[0]-a[0]),ymax]}]];
+  let out=pts;for(const[ins,ix]of edges){const inp=out;out=[];for(let i=0;i<inp.length;i++){const c=inp[i],p=inp[(i+inp.length-1)%inp.length];if(ins(c)){if(!ins(p))out.push(ix(p,c));out.push(c);}else if(ins(p))out.push(ix(p,c));}if(!out.length)break;}return out;
+}
+const landMat=new THREE.MeshLambertMaterial({color:0xf1ebdc});
+const landSide=new THREE.MeshLambertMaterial({color:0xd9cdb5});
+const toV2=([lo,la])=>{const v=LL(lo,la);return new THREE.Vector2(v.x,-v.z);};
+for(const rings of (window.COAST||[])){
+  const c=clipPoly(rings[0],-122.53,-122.17,37.585,37.93);if(c.length<3)continue;
+  const sh=new THREE.Shape(c.map(toV2));
+  for(const h of rings.slice(1)){const hc=clipPoly(h,-122.53,-122.17,37.585,37.93);if(hc.length>2)sh.holes.push(new THREE.Path(hc.map(toV2)));}
+  const g=new THREE.ExtrudeGeometry(sh,{depth:1.4,bevelEnabled:false});g.rotateX(-Math.PI/2);
+  const m=new THREE.Mesh(g,[landMat,landSide]);m.receiveShadow=true;scene.add(m);
+}
+// deterministic rng
+let seed=7;const rnd=()=>((seed=(seed*16807)%2147483647)/2147483647);
+const bldMat=[0xffffff,0xf3f0ea,0xe6e1d7,0xdfe6ea].map(c=>new THREE.MeshLambertMaterial({color:c}));
+function city(lon,lat,n,spread,hmax){
+  for(let i=0;i<n;i++){const a=rnd()*Math.PI*2,r=Math.sqrt(rnd())*spread;const v=LL(lon+Math.cos(a)*r/COS*0.9,lat+Math.sin(a)*r*0.9);
+    const h=1+Math.pow(rnd(),2.2)*hmax*(1-r/spread*0.6),w=1.4+rnd()*1.8;
+    const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,w*(0.8+rnd()*0.6)),bldMat[i%4]);b.position.set(v.x,1.4+h/2,v.z);b.castShadow=b.receiveShadow=true;scene.add(b);}
+}
+city(-122.402,37.789,70,0.016,16);city(-122.43,37.765,40,0.025,4);city(-122.272,37.805,38,0.014,9);city(-122.268,37.87,18,0.012,3);city(-122.47,37.76,30,0.03,2.5);city(-122.255,37.77,20,0.02,2.5);
+// parks
+const park=new THREE.Mesh(new THREE.BoxGeometry(LL(-122.455,0).x-LL(-122.51,0).x,0.25,8),new THREE.MeshLambertMaterial({color:0xcfe0b8}));
+park.position.copy(LL(-122.483,37.769)).setY(1.5);scene.add(park);
+// trees in Marin headlands
+const treeMat=new THREE.MeshLambertMaterial({color:0xa9c48f});
+for(let i=0;i<40;i++){const v=LL(-122.52+rnd()*0.06,37.835+rnd()*0.06);const t=new THREE.Mesh(new THREE.ConeGeometry(0.9,2.2+rnd(),6),treeMat);t.position.set(v.x,2.4,v.z);t.castShadow=true;scene.add(t);}
+// bridges
+function bridge(a,b,color,towers){
+  const A=LL(...a),Bv=LL(...b),len=A.distanceTo(Bv);const m=new THREE.MeshLambertMaterial({color});
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(len,0.5,1.1),m);deck.position.copy(A).lerp(Bv,.5).setY(2.2);deck.rotation.y=-Math.atan2(Bv.z-A.z,Bv.x-A.x);deck.castShadow=true;scene.add(deck);
+  for(const t of towers){const p=A.clone().lerp(Bv,t);const tw=new THREE.Mesh(new THREE.BoxGeometry(.7,6,1.3),m);tw.position.copy(p).setY(4.5);tw.rotation.y=deck.rotation.y;tw.castShadow=true;scene.add(tw);}
+}
+bridge([-122.4785,37.8085],[-122.4785,37.832],0xc4523a,[.25,.75]);
+bridge([-122.388,37.787],[-122.36,37.81],0x9aa3ab,[.3,.7]);bridge([-122.36,37.81],[-122.305,37.822],0x9aa3ab,[.5]);
+bridge([-122.385,37.62],[-122.25,37.59],0xb0b7bd,[]);
+
+// vertiports and junctions
+const H_PORT=3.2,H_AIR={e:7.5,w:9.5},H_JX=8.5;
+const portPos={},jxPos={};
+const padMat=new THREE.MeshLambertMaterial({color:0x2a333d});
+for(const n of PORTS){
+  const v=W2(...XY(n));portPos[n]=v.clone().setY(H_PORT);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.8,H_PORT-1.4,6),new THREE.MeshLambertMaterial({color:0xe7e1d4}));base.position.copy(v).setY(1.4+(H_PORT-1.4)/2);base.castShadow=base.receiveShadow=true;scene.add(base);
+  const pad=new THREE.Mesh(new THREE.CylinderGeometry(3.1,3.1,.35,6),padMat);pad.position.copy(v).setY(H_PORT+.17);pad.receiveShadow=true;scene.add(pad);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(2.2,.18,6,24),new THREE.MeshBasicMaterial({color:0x5fd0c0}));ring.rotation.x=Math.PI/2;ring.position.copy(v).setY(H_PORT+.4);scene.add(ring);
+  const hbar=new THREE.Mesh(new THREE.BoxGeometry(1.4,.05,.3),new THREE.MeshBasicMaterial({color:0xffffff}));hbar.position.copy(v).setY(H_PORT+.38);scene.add(hbar);
+  for(const s of[-1,1]){const hb=new THREE.Mesh(new THREE.BoxGeometry(.3,.05,1.4),hbar.material);hb.position.copy(v).setY(H_PORT+.38);hb.position.x+=s*.6;scene.add(hb);}
+  const tower=new THREE.Mesh(new THREE.BoxGeometry(1,7,1),new THREE.MeshLambertMaterial({color:0xf7f4ee}));tower.position.copy(v).add(new THREE.Vector3(4.2,0,-2.2)).setY(1.4+3.5);tower.castShadow=true;scene.add(tower);
+  const cab=new THREE.Mesh(new THREE.CylinderGeometry(1.2,.9,1.2,8),new THREE.MeshLambertMaterial({color:0x37627a}));cab.position.copy(tower.position).setY(1.4+7.6);cab.castShadow=true;scene.add(cab);
+  const el=document.createElement('div');el.className='lbl port';el.innerHTML=n+'<small>'+PORTNAME[n]+'</small>';
+  const o=new CSS2DObject(el);o.position.copy(v).setY(H_PORT+6);scene.add(o);
+}
+for(const n of JX){
+  const v=W2(...XY(n));jxPos[n]=v.clone().setY(H_JX);
+  const d=new THREE.Mesh(new THREE.OctahedronGeometry(1.1),new THREE.MeshLambertMaterial({color:0x1c232b}));d.position.copy(jxPos[n]);d.castShadow=true;scene.add(d);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,H_JX),new THREE.MeshBasicMaterial({color:0x9a9183}));pole.position.copy(v).setY(H_JX/2);scene.add(pole);
+  const el=document.createElement('div');el.className='lbl jx';el.textContent=n==='W'?'Whiskey':n==='C'?'Charlie':'Echo';
+  const o=new CSS2DObject(el);o.position.copy(jxPos[n]).setY(H_JX+7);scene.add(o);el.style.transform='translateY(-4px)';
+}
+const nodePos=n=>(portPos[n]||jxPos[n]);
+// corridors
+const corrMesh={};
+const openMat=new THREE.MeshLambertMaterial({color:0x3aa395,transparent:true,opacity:.55});
+for(const[a,b]of CORR){
+  const A=nodePos(a),Bv=nodePos(b),len=A.distanceTo(Bv);
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,len,8,1,true),openMat.clone());
+  m.position.copy(A).lerp(Bv,.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),Bv.clone().sub(A).normalize());
+  scene.add(m);corrMesh[a+'-'+b]=m;
+  // ground shadow line
+  const gl=new THREE.Mesh(new THREE.PlaneGeometry(len,.5),new THREE.MeshBasicMaterial({color:0x7aa7a0,transparent:true,opacity:.28,depthWrite:false}));
+  gl.rotation.x=-Math.PI/2;gl.rotation.z=-Math.atan2(Bv.z-A.z,Bv.x-A.x);gl.position.copy(A).lerp(Bv,.5).setY(1.55);
+  const Ag=A.clone().setY(0),Bg=Bv.clone().setY(0);gl.scale.x=Ag.distanceTo(Bg)/len;scene.add(gl);
+}
+const ce=corrMesh['C-E'];
+// selected route ribbon
+const selLine=new THREE.Group();scene.add(selLine);
+function drawSel(path){
+  selLine.clear();
+  for(let i=1;i<path.length;i++){const A=nodePos(path[i-1]),Bv=nodePos(path[i]),len=A.distanceTo(Bv);
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,len,8,1,true),new THREE.MeshBasicMaterial({color:0xd8901f,transparent:true,opacity:.7}));
+    m.position.copy(A).lerp(Bv,.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),Bv.clone().sub(A).normalize());selLine.add(m);}
+}
+// storm
+const storm=new THREE.Group();scene.add(storm);
+const sc=jxPos.C.clone().lerp(jxPos.E,.5);storm.position.set(sc.x,0,sc.z);
+const cloudMat=new THREE.MeshLambertMaterial({color:0x8e98a4,transparent:true,opacity:.82});
+const puffs=[];
+for(let i=0;i<14;i++){const r=3+rnd()*4;const s=new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),cloudMat);s.position.set((rnd()-.5)*20,15+rnd()*6,(rnd()-.5)*14);s.castShadow=true;storm.add(s);puffs.push(s);}
+const anvil=new THREE.Mesh(new THREE.CylinderGeometry(15,9,3,10),new THREE.MeshLambertMaterial({color:0xa7b0ba,transparent:true,opacity:.75}));anvil.position.y=23;anvil.castShadow=true;storm.add(anvil);
+const rainGeo=new THREE.BufferGeometry();const RN=260;const rp=new Float32Array(RN*6);
+for(let i=0;i<RN;i++){const x=(rnd()-.5)*24,z=(rnd()-.5)*16,y=rnd()*14;rp.set([x,y,z,x-.4,y-2.4,z],i*6);}
+rainGeo.setAttribute('position',new THREE.BufferAttribute(rp,3));
+const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0x6d8aa3,transparent:true,opacity:.55}));storm.add(rain);
+const wxRing=new THREE.Mesh(new THREE.RingGeometry(13,14.2,48),new THREE.MeshBasicMaterial({color:0xc2412d,transparent:true,opacity:.7,side:THREE.DoubleSide}));wxRing.rotation.x=-Math.PI/2;wxRing.position.y=0.3;storm.add(wxRing);
+const wxDisk=new THREE.Mesh(new THREE.CircleGeometry(13,48),new THREE.MeshBasicMaterial({color:0x52677a,transparent:true,opacity:.18,depthWrite:false}));wxDisk.rotation.x=-Math.PI/2;wxDisk.position.y=0.25;storm.add(wxDisk);
+const bolt=new THREE.PointLight(0xdfe8ff,0,80);bolt.position.y=14;storm.add(bolt);
+const wxEl=document.createElement('div');wxEl.className='lbl wx';wxEl.textContent='CB cell · C–E closed';const wxLbl=new CSS2DObject(wxEl);wxLbl.position.y=28;storm.add(wxLbl);
+storm.scale.setScalar(.001);storm.visible=false;
+
+// eVTOL model
+function makeEVTOL(sel){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.55,1.6,4,8),new THREE.MeshLambertMaterial({color:sel?0xf3a42a:0xffffff}));body.rotation.z=Math.PI/2;body.castShadow=true;g.add(body);
+  const can=new THREE.Mesh(new THREE.SphereGeometry(.42,8,6),new THREE.MeshLambertMaterial({color:0x29435a}));can.position.set(.85,.18,0);g.add(can);
+  const wing=new THREE.Mesh(new THREE.BoxGeometry(.5,.12,4.2),new THREE.MeshLambertMaterial({color:sel?0xd98a1c:0x2c6aae}));wing.castShadow=true;g.add(wing);
+  const rotors=[];
+  for(const[x,z]of[[.9,1.9],[.9,-1.9],[-.9,1.9],[-.9,-1.9]]){
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(2,.1,.12),wing.material);arm.position.set(0,.05,z);g.add(arm);
+    const r=new THREE.Mesh(new THREE.CylinderGeometry(.75,.75,.04,14),new THREE.MeshBasicMaterial({color:0x1c232b,transparent:true,opacity:.28}));r.position.set(x,.25,z);g.add(r);rotors.push(r);
+    const hub=new THREE.Mesh(new THREE.BoxGeometry(1.3,.04,.1),new THREE.MeshBasicMaterial({color:0x1c232b}));hub.position.copy(r.position);g.add(hub);rotors.push(hub);
+  }
+  g.userData.rotors=rotors;g.scale.setScalar(2.6);return g;
+}
+const acObjs=FLIGHTS.map(f=>{
+  const g=makeEVTOL(f.i===SEL);g.visible=false;scene.add(g);
+  const el=document.createElement('div');el.className='lbl ac'+(f.i===SEL?' sel':'');el.textContent='SKF'+f.cs;
+  const o=new CSS2DObject(el);o.position.set(0,2,0);g.add(o);
+  return {g,el,o};
+});
+
+const RIGHT_COL=380;
+let D0=410;
+function resize(){
+  const w=innerWidth,h=innerHeight;renderer.setSize(w,h);lr.setSize(w,h);
+  // render a virtual canvas wider by the right column so the view centre sits in the free map area
+  cam.aspect=(w+RIGHT_COL)/h;cam.setViewOffset(w+RIGHT_COL,h,RIGHT_COL,0,w,h);cam.updateProjectionMatrix();
+  D0=410*Math.max(1,1440/w*0.95);
+}
+addEventListener('resize',resize);resize();
+
+const $=id=>document.getElementById(id);
+/* ---------------- camera: presets, cinematic director, user controls ---------------- */
+const controls=new OrbitControls(cam,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=22;controls.maxDistance=720;controls.maxPolarAngle=1.48;controls.zoomSpeed=.9;
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const UP=V(0,1,0);
+const sfoTower=portPos.SFO.clone().add(V(4.2,0,-2.2)).setY(10.6);
+const chaseSm={pos:null,tgt:null};
+function flightAnchor(i){const g=acObjs[i].g;if(g.visible)return{p:g.position.clone(),fwd:V(Math.cos(g.rotation.y),0,-Math.sin(g.rotation.y)),on:true};const f=FLIGHTS[i];const n=S.m<f.dep?f.from:f.to;return{p:portPos[n].clone().setY(H_PORT+1),fwd:V(1,0,0),on:false};}
+const SHOTS={
+  overview:(m,t)=>{const dir=camDir.clone().applyAxisAngle(UP,Math.sin(t/9000)*.06);return{tgt:camTarget.clone(),pos:camTarget.clone().addScaledVector(dir,D0),fov:30};},
+  tower:()=>({pos:sfoTower.clone(),tgt:jxPos.W.clone().lerp(jxPos.C,.4).setY(5),fov:44}),
+  chase:(m,t,i=SEL)=>{const a=flightAnchor(i);const back=a.on?a.fwd.clone().multiplyScalar(-46):V(-30,0,40);return{pos:a.p.clone().add(back).add(V(0,24,0)),tgt:a.p.clone().addScaledVector(a.fwd,a.on?14:0),fov:40,smooth:true};},
+  storm:(m,t,k=1)=>{const c=storm.position.clone().setY(12);const d=V(.9,.62,.75).normalize().applyAxisAngle(UP,t/26000);return{pos:c.clone().addScaledVector(d,105*k),tgt:c,fov:32};},
+  oak:(m,t)=>{const c=portPos.OAK.clone();const d=V(1,.55,1.1).normalize().applyAxisAngle(UP,Math.sin(t/7000)*.25);return{pos:c.clone().addScaledVector(d,40),tgt:c.clone().setY(H_PORT+2),fov:34};},
+  // cinematic-only shots
+  establish:(m,t)=>{const a=-0.35+m*0.045;const dir=camDir.clone().applyAxisAngle(UP,a);return{tgt:camTarget.clone(),pos:camTarget.clone().addScaledVector(dir,D0*0.95),fov:30};},
+  push:(m)=>SHOTS.storm(m,performance.now(),THREE.MathUtils.lerp(2.1,1.0,THREE.MathUtils.smoothstep(m,7.7,10.6))),
+  follow:(m,t)=>SHOTS.chase(m,t,4),
+  mismatch:(m,t)=>{const a=flightAnchor(SEL);const d=V(-.5,1.5,1.0).normalize().applyAxisAngle(UP,(m-13.4)*.08);return{pos:a.p.clone().addScaledVector(d,80),tgt:a.p.clone().add(V(0,1,0)),fov:34};},
+  recovery:(m,t)=>{const dir=camDir.clone().applyAxisAngle(UP,(m-24)*.02);return{tgt:camTarget.clone().add(V(0,0,-6)),pos:camTarget.clone().addScaledVector(dir,THREE.MathUtils.lerp(D0*.8,D0*1.12,THREE.MathUtils.smoothstep(m,24,30))),fov:30};},
+};
+const PRESETS=[['overview','Bay'],['tower','Tower'],['chase','Chase'],['storm','Storm'],['oak','OAK pad']];
+// auto-director: [from minute, shot, label, cut?]
+const SCRIPT=[[0,'establish','Establishing orbit'],[7.6,'push','Push in · C–E closes'],[11.1,'follow','Follow reroute · SKF105'],[13.4,'mismatch','Close-up · SKF112 readback',true],[19.4,'chase','Chase · SKF112 via W–E'],[24,'recovery','Pull back · recovery'],[36,'oak','Vertiport · OAK'],[44,'tower','SFO tower cab'],[52,'establish','Wide orbit'],[64,'chase','Chase · SKF112',false,19],[70,'recovery','Pull back · final score']];
+let camMode='cine',curShot=null,trans=null,shotLbl='';
+function snap(){return{pos:cam.position.clone(),tgt:controls.target.clone(),fov:cam.fov};}
+let camInit=false;
+function goShot(id,cut){if(curShot===id)return;curShot=id;chaseSm.pos=null;trans=(cut||!camInit)?null:{from:snap(),t0:performance.now()};camInit=true;}
+function cineShot(m){let r=SCRIPT[0];for(const x of SCRIPT)if(m>=x[0])r=x;return r;}
+const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+function stepCamera(m,now,dt){
+  if(camMode==='manual'){controls.update();return;}
+  if(camMode==='cine'){const r=cineShot(m);if(r[1]!==curShot){goShot(r[1],r[3]);}shotLbl=r[2];}
+  let g=SHOTS[curShot](m,now);
+  if(g.smooth){const k=1-Math.exp(-dt*3);if(!chaseSm.pos){chaseSm.pos=g.pos.clone();chaseSm.tgt=g.tgt.clone();}chaseSm.pos.lerp(g.pos,k);chaseSm.tgt.lerp(g.tgt,k);g={...g,pos:chaseSm.pos.clone(),tgt:chaseSm.tgt.clone()};}
+  let fov=g.fov+(camMode==='cine'?Math.sin(now/3800)*.7:0);
+  if(trans){const k=ease(Math.min(1,(now-trans.t0)/1500));g={pos:trans.from.pos.clone().lerp(g.pos,k),tgt:trans.from.tgt.clone().lerp(g.tgt,k)};fov=THREE.MathUtils.lerp(trans.from.fov,fov,k);if(k>=1)trans=null;}
+  cam.position.copy(g.pos);controls.target.copy(g.tgt);cam.lookAt(g.tgt);
+  if(Math.abs(cam.fov-fov)>.01){cam.fov=fov;cam.updateProjectionMatrix();}
+}
+function setMode(mode){camMode=mode;if(mode==='cine'){curShot=null;}renderCamUI();}
+function preset(i){const id=PRESETS[i][0];camMode='preset';curShot=null;goShot(id);shotLbl=PRESETS[i][1];renderCamUI();}
+function zoom(f){camMode='manual';trans=null;const off=cam.position.clone().sub(controls.target);const d=THREE.MathUtils.clamp(off.length()*f,controls.minDistance,controls.maxDistance);cam.position.copy(controls.target).addScaledVector(off.normalize(),d);renderCamUI();}
+controls.addEventListener('start',()=>{if(camMode!=='manual'){camMode='manual';trans=null;renderCamUI();}});
+function renderCamUI(){
+  document.querySelectorAll('.cam-p').forEach((b,i)=>b.classList.toggle('on',camMode==='preset'&&curShot===PRESETS[i][0]));
+  $('cam-cine').classList.toggle('on',camMode==='cine');$('cam-cine').querySelector('span').textContent=camMode==='cine'?'Cinematic on':'Cinematic off';
+  $('resume').style.display=camMode==='cine'?'none':'flex';$('shot').style.display=camMode==='cine'?'flex':'none';
+  document.body.classList.toggle('cine',camMode==='cine'&&letterbox);
+}
+let letterbox=false;
+$('cam-in').onclick=()=>zoom(.78);$('cam-out').onclick=()=>zoom(1.28);
+$('cam-cine').onclick=()=>setMode(camMode==='cine'?'manual':'cine');
+$('resume').onclick=()=>setMode('cine');
+$('cam-lb').onclick=()=>{letterbox=!letterbox;$('cam-lb').classList.toggle('on',letterbox);renderCamUI();};
+document.querySelectorAll('.cam-p').forEach((b,i)=>b.onclick=()=>preset(i));
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key>='1'&&e.key<='5')preset(+e.key-1);else if(e.key==='c'||e.key==='C')setMode(camMode==='cine'?'manual':'cine');else if(e.key==='+'||e.key==='=')zoom(.78);else if(e.key==='-')zoom(1.28);else if(e.key===' '){e.preventDefault();$('play').click();}});
+
+
+/* ---------------- UI state & events ---------------- */
+const AGENTS=[
+ {id:'coord',name:'Coordinator',d:'D0',full:true,budget:60},
+ {id:'secC',name:'Sector Central',d:'D1',budget:30},
+ {id:'secE',name:'Sector East',d:'D1',budget:30},
+ {id:'padOAK',name:'Pad OAK',d:'D2',budget:12},
+ {id:'padBER',name:'Pad BER',d:'D2',budget:12},
+];
+const STLBL={idle:'idle',work:'working',prop:'proposed',ok:'accepted',rej:'rejected',ret:'retired',spawn:'spawning'};
+let S;
+function resetState(){
+  S={m:0,ev:0,ag:{},tx:0,hum:0,alerts:0,log:[],step:-1,stepT:[],kiosk:null,radio:[],hb:null,commit:'awaiting readback',commitCls:'',phase:'calm',minSep:Infinity,sel:{rt:'SF → OAK · filed via C–E'},wave:false};
+  for(const a of AGENTS)S.ag[a.id]={on:a.id==='coord',st:a.id==='coord'?'work':'idle',task:a.id==='coord'?'Monitoring 28-trip plan. 0 conflicts projected.':'',used:a.id==='coord'?4:0,isnew:false};
+  $('p-log').innerHTML='';$('p-alerts').innerHTML='<div class="idle" style="padding:10px 12px;color:var(--ink3)">No active alerts.</div>';$('tx').innerHTML='<div class="quiet" style="color:var(--ink3);padding:8px 12px;font-size:12px">SkyFlow Control · 122.850 · channel quiet. Routine clearances are handled by the controller agent.</div>';
+  renderAgents();renderKiosk();renderHB();renderStepper();drawSel(ROUTES['SF-OAK'].s);
+  ce.material.color.set(0x3aa395);ce.material.opacity=.55;
+  setBadge();
+}
+function ag(id,patch){const a=S.ag[id];const wasOn=a.on;Object.assign(a,patch);if(patch.on&&!wasOn)a.isnew=true;renderAgents();}
+function log(who,text,verdict,cls){
+  const d=document.createElement('div');d.className='ev fresh';
+  d.innerHTML=`<span class="t">${fmt(S.m)}</span><span><span class="who" style="color:${cls||'var(--ink)'}">${who}</span>${text}${verdict?` <span class="verdict ${verdict==='ACCEPT'?'ok':'rej'}">${verdict}</span>`:''}</span>`;
+  const p=$('p-log');p.prepend(d);while(p.children.length>40)p.lastChild.remove();
+}
+function alertBox(kind,title,body){
+  const d=document.createElement('div');d.className='alert '+kind;d.innerHTML=`<b>${title}</b>${body} <span class="mono" style="opacity:.6">· ${fmt(S.m)}</span>`;
+  $('p-alerts').querySelector('.idle')?.remove();$('p-alerts').prepend(d);S.alerts++;setBadge();
+}
+function setBadge(){const b=$('al-badge');b.textContent=S.alerts;b.style.display=S.alerts&&curTab!=='alerts'?'inline':'none';}
+/* ---------------- radio voice (shared SkyRadio module) ---------------- */
+const RL={
+ c0:['CTL','SkyFlow one zero one, San Francisco Control, cleared to Oakland via Charlie, Echo. Climb and maintain one thousand five hundred.'],
+ p0:['PLT','Cleared to Oakland via Charlie, Echo, climb and maintain one thousand five hundred, SkyFlow one zero one.','SKF101'],
+ wx:['CTL','All stations, San Francisco Control. Corridor Charlie Echo is <em>closed</em> for weather until one four two four. Expect reroute via Whiskey.'],
+ c1:['CTL','SkyFlow one one two, San Francisco Control, cleared to Oakland via Whiskey, Echo. Climb and maintain one thousand five hundred. Squawk four two one five.'],
+ p1:['PLT','Cleared to Oakland via <em>Charlie, Echo</em>, climb and maintain one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
+ c2:['CTL','SkyFlow one one two, <em>negative</em>. Charlie Echo is closed for weather. Cleared via <strong>Whiskey, Echo</strong>. Read back.'],
+ p2:['PLT','Via <strong>Whiskey, Echo</strong>, one thousand five hundred, squawk four two one five, SkyFlow one one two.','SKF112'],
+};
+const plainText=h=>h.replace(/<[^>]+>/g,'');
+let voiceBusy=0;
+// the frequency is single-file: hold the scenario clock while a line is on air
+const radioHold=()=>!!(window.SkyRadio&&SkyRadio.enabled&&voiceBusy>0);
+function voice(sp,html,key){
+  if(!window.SkyRadio||(sp!=='CTL'&&sp!=='PLT'))return;
+  voiceBusy++;let done=false;const fin=()=>{if(!done){done=true;voiceBusy=Math.max(0,voiceBusy-1);}};
+  SkyRadio.say(plainText(html),sp==='CTL'?'atc':'pilot',key).then(fin,fin);setTimeout(fin,15000);
+}
+if(window.SkyRadio)SkyRadio.prefetch(Object.values(RL).map(([sp,h,k])=>({text:plainText(h),speaker:sp==='CTL'?'atc':'pilot',key:k})));
+function soundBtn(){const b=document.getElementById('snd');if(!b||!window.SkyRadio)return;const on=SkyRadio.enabled;b.classList.toggle('on',on);b.querySelector('span').textContent=on?'Sound on':'Muted';
+  b.querySelector('svg').innerHTML=on?'<path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>':'<path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 6l4 4M15 6l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';}
+document.addEventListener('skyradio:enabled',soundBtn);
+function radio(sp,html,key,live){
+  voice(sp,html,key);S.tx++;const d=document.createElement('div');d.className='tx'+(live?' live':'');
+  d.innerHTML=`<span class="sp ${sp==='CTL'?'c':sp==='PLT'?'p':'h'}">${sp}</span><span class="say"></span>`;
+  $('tx').querySelector('.quiet')?.remove();$('tx').append(d);while($('tx').children.length>6)$('tx').firstChild.remove();
+  // typewriter
+  const say=d.querySelector('.say');const plain=html;let i=0;d.classList.add('live');
+  // with audio on, type at roughly speaking pace (~15 chars/s)
+  const aud=()=>window.SkyRadio&&SkyRadio.enabled&&(sp==='CTL'||sp==='PLT');
+  const step=()=>{ if(!playing){setTimeout(step,80);return;} i+=aud()?1:3; say.innerHTML=cut(plain,i); if(i<strip(plain).length)setTimeout(step,aud()?62:28); else d.classList.remove('live'); };
+  step();
+}
+const strip=h=>h.replace(/<[^>]+>/g,'');
+function cut(html,n){let out='',c=0,inTag=false;for(const ch of html){if(ch==='<')inTag=true;if(inTag){out+=ch;if(ch==='>')inTag=false;continue;}if(c>=n)break;out+=ch;c++;}return out.replace(/<(em|strong)>([^<]*)$/,'<$1>$2</$1>');}
+const HBF=[['CALLSIGN','SKF112'],['ROUTE','W–E'],['ALT','1,500'],['SQUAWK','4215'],['DEST','OAK']];
+function renderHB(){
+  const hb=S.hb;
+  $('hb-fields').innerHTML=HBF.map(([k,exp],i)=>{const got=hb?hb[i]:null;const ok=got===null?null:got===exp;
+    return `<div class="f ${ok===null?'':ok?'ok':'bad'}"><span class="fk">${k}</span><span>${got===null?'<span style="color:var(--ink3)">'+exp+'</span>':ok?got:got+' ≠ '+exp}</span><span class="m">${ok===null?'·':ok?'✓':'✗'}</span></div>`;}).join('');
+  const c=$('hb-commit');c.textContent=S.commit;c.className='commit '+S.commitCls;
+}
+const STEPS=['Request','Hold','Cleared','Airborne','Land'];
+function renderStepper(){
+  $('stepper').innerHTML=STEPS.map((s,i)=>`${i?`<div class="conn"><i style="right:${S.step>=i?0:100}%"></i></div>`:''}<div class="step ${S.step>i||(S.step===4&&i===4)?'done':S.step===i?'cur':''}"><div class="dot">${S.step>i||(S.step===4&&i===4)?'✓':i+1}</div><div class="lb">${s}</div><div class="tm">${S.stepT[i]?loc(S.stepT[i])+'L':''}</div></div>`).join('');
+}
+function setStep(i){S.step=i;S.stepT[i]=S.m;renderStepper();}
+function renderAgents(){
+  const on=AGENTS.filter(a=>S.ag[a.id].on&&S.ag[a.id].st!=='ret').length;
+  $('ag-sub').textContent=`${on} active · depth cap 2`;
+  $('agents').innerHTML=AGENTS.map(a=>{const s=S.ag[a.id];
+    if(!s.on)return `<div class="agent ghost ${a.full?'full':''}"><div class="nm"><span class="d">${a.d}</span>${a.name}<span class="st idle">standby</span></div></div>`;
+    const html=`<div class="agent ${a.full?'full':''} ${s.isnew?'new':''}" style="${s.st==='ret'?'opacity:.5':''}"><div class="nm"><span class="d">${a.d}</span>${a.name}<span class="st ${s.st}">${STLBL[s.st]}</span></div><div class="task">${s.task}</div><div class="bud"><span>budget</span><div class="bar"><i style="width:${Math.min(100,s.used/a.budget*100)}%;background:${s.used/a.budget>.8?'var(--amber)':'var(--ink2)'}"></i></div><span>${s.used.toFixed(0)}k/${a.budget}k</span></div></div>`;
+    s.isnew=false;return html;}).join('');
+}
+function renderKiosk(){
+  const k=S.kiosk,b=$('ki-body');$('kiosk').classList.toggle('live',!!(k&&k.state==='pending'));
+  if(!k){b.innerHTML='<div class="idle">No pending requests. The kernel escalates ground stops longer than 10 minutes.</div>';return;}
+  b.innerHTML=`<div class="body"><div class="q">Ground stop BER departures · 12 min</div><div class="why">From Pad BER via Sector East. Storm outflow on C–BER approach. Validator: legal, but over the 10-min autonomy limit.</div>
+  ${k.state==='pending'?`<div class="acts"><button class="btn approve" id="k-ok">Approve</button><button class="btn reject" id="k-no">Reject</button><span class="cd" id="k-cd"></span></div>`:''}
+  ${k.res?`<div class="res">${k.res}</div>`:''}</div>`;
+  if(k.state==='pending'){$('k-ok').onclick=()=>decide(true);$('k-no').onclick=()=>decide(false);}
+}
+function decide(ok,timeout){
+  const k=S.kiosk;if(!k||k.state!=='pending')return;k.state='done';
+  if(timeout){k.res='<b>No decision in 9 s.</b> Kernel fallback: Pad BER meters departures at one per five minutes for eight minutes. No ground stop.';log('KERNEL','Kiosk timeout. Fallback metering for BER, 8 min.',null,'var(--ink2)');ag('padBER',{st:'ok',task:'Metering BER departures, 1 per 5 min, for 8 min (fallback).'});}
+  else{S.hum++;k.res=ok?'<b>Approved by supervisor.</b> BER departures held 12 min. Kernel committed GS-BER-01.':'<b>Rejected by supervisor.</b> Pad BER revised it to 8 min of metering, under the autonomy limit.';
+    log('SUPERVISOR',ok?'Approved ground stop BER 12 min.':'Rejected ground stop BER.',null,'var(--amber)');
+    ag('padBER',{st:ok?'ok':'prop',task:ok?'Ground stop BER active until '+loc(S.m+12)+'L.':'Revised: meter BER departures for 8 min.'});}
+  renderKiosk();
+}
+
+// scripted timeline (sim minutes)
+const EV=[
+ [0.2,()=>log('COORD','Plan loaded: 28 trips, 9 corridors, 5 pads. Projected conflicts 0.',null,'var(--ink)')],
+ [0.6,()=>log('WX','METAR KSFO 171856Z 03006KT 10SM CLR. TAF: no convection forecast.',null,'var(--ink2)')],
+ [0.4,()=>radio(...RL.c0)],
+ [1.2,()=>radio(...RL.p0)],
+ [8.0,()=>radio(...RL.wx)],
+ [3.0,()=>log('KERNEL','Reservation RSV-0101 SF→OAK via C–E committed.',null,'var(--ink2)')],
+ [7.9,()=>{S.phase='storm';storm.visible=true;alertBox('r','Convective cell over C–E','Unforecast CB, tops 9,000 ft, moving NE at 8 kt. Kernel closed corridor C–E for 08–24.');log('WX','Cell detected between Charlie and Echo. Not in TAF.',null,'var(--red)');log('KERNEL','NOTAM: corridor C–E CLOSED 14:08–14:24L.',null,'var(--red)');ag('coord',{st:'work',task:'C–E closed. 6 trips affected. Spawning sector agents.',used:9});}],
+ [8.4,()=>{S.phase='replan';ag('secC',{on:true,st:'work',task:'Replanning SF/MAR flows away from C–E.',used:2});ag('secE',{on:true,st:'work',task:'Replanning OAK/BER flows. Spawning pad agents.',used:2});log('COORD','Spawned Sector Central (D1), Sector East (D1).',null,'var(--ink)');}],
+ [8.9,()=>{ag('padOAK',{on:true,st:'work',task:'Sequencing OAK arrivals on W–E.',used:1});ag('padBER',{on:true,st:'work',task:'Assessing BER departures under outflow.',used:1});log('SEC-E','Spawned Pad OAK (D2), Pad BER (D2). Depth cap reached.',null,'var(--blue)');}],
+ [9.4,()=>{ag('padOAK',{st:'prop',task:'Proposed: hold SKF105 on pad SF +1.5 min, then W–E.',used:3});log('PAD-OAK','Proposes: hold SKF105 at SF +1.5 min, reroute W–E.',null,'var(--blue)');}],
+ [9.9,()=>{ag('padOAK',{st:'ok'});log('VALIDATOR','SKF105 hold + W–E: separation ≥ 3.2 NM, capacity OK.','ACCEPT','var(--teal)');}],
+ [10.3,()=>{ag('secC',{st:'prop',task:'Proposed: reroute SKF103, SKF104, SKF112 via W–E (+14% dist).',used:7});log('SEC-C','Proposes: reroute SKF103, SKF104, SKF112 via W–E.',null,'var(--blue)');}],
+ [10.8,()=>{ag('secC',{st:'ok'});log('VALIDATOR','W–E load 4 of 6 slots. No conflicts.','ACCEPT','var(--teal)');S.sel.rt='SF → OAK · rerouted via W–E';drawSel(ROUTES['SF-OAK'].a);}],
+ [11.3,()=>{ag('secE',{st:'prop',task:'Proposed: keep SKF109 on C–E at 800 ft, under the cell.',used:9});log('SEC-E','Proposes: keep SKF109 on C–E at 800 ft, under the cell.',null,'var(--blue)');}],
+ [11.8,()=>{ag('secE',{st:'rej',task:'Rejected. Replanning SKF109 via E–W.'});log('VALIDATOR','C–E is CLOSED 08–24 at all altitudes. Rule R-7: no closed-corridor reservations.','REJECT','var(--red)');alertBox('a','Proposal rejected','Sector East asked to keep SKF109 under the cell on C–E. Validator rule R-7: closed corridors take no reservations at any altitude.');}],
+ [12.0,()=>{setStep(0);log('SKF112','Requests departure SF → OAK.',null,'var(--amber)');}],
+ [12.4,()=>{setStep(1);log('KERNEL','SKF112 held on pad SF pending W–E slot.',null,'var(--ink2)');}],
+ [12.9,()=>{ag('secE',{st:'prop',task:'Revised: SKF109 via E–W–SF (+1.8 min).',used:11});log('SEC-E','Revised: SKF109 via E–W–SF.',null,'var(--blue)');}],
+ [13.3,()=>{ag('secE',{st:'ok'});log('VALIDATOR','SKF109 via E–W–SF. Separation ≥ 2.9 NM.','ACCEPT','var(--teal)');}],
+ [13.6,()=>{radio(...RL.c1);}],
+ [14.8,()=>{radio(...RL.p1);}],
+ [16.0,()=>{S.hb=['SKF112','C–E','1,500','4215','OAK'];S.commit='MISMATCH · route C–E is closed';S.commitCls='bad';renderHB();radio('HBK','Route field mismatch: heard <em>C–E</em>, cleared W–E. Reservation not committed.');alertBox('r','Hearback mismatch · SKF112','Pilot read back closed corridor C–E. Controller agent issues correction.');log('HEARBACK','SKF112 readback route C–E ≠ W–E. Hold commit.',null,'var(--red)');}],
+ [16.7,()=>{radio(...RL.c2);}],
+ [17.8,()=>{radio(...RL.p2);}],
+ [18.7,()=>{S.hb=['SKF112','W–E','1,500','4215','OAK'];S.commit='COMMITTED · RSV-0112 W–E';S.commitCls='ok';renderHB();setStep(2);radio('HBK','All five fields match. Reservation <strong>RSV-0112</strong> committed by kernel.');log('KERNEL','RSV-0112 SKF112 via W–E committed.',null,'var(--teal)');}],
+ [15.2,()=>{S.kiosk={state:'pending',until:S.m+9/SPM};ag('padBER',{st:'prop',task:'Proposed: ground stop BER departures 12 min. Escalated.',used:5});log('PAD-BER','Proposes: ground stop BER 12 min.',null,'var(--blue)');log('VALIDATOR','Legal, but over the 10-min autonomy limit. Escalated to supervisor.',null,'var(--amber)');renderKiosk();}],
+ [19.1,()=>{setStep(3);}],
+ [24.0,()=>{S.phase='recover';ce.material.color.set(0x3aa395);ce.material.opacity=.55;alertBox('t','C–E reopened','Cell moved off NE. Kernel reopened C–E at 14:24L. Agents retiring.');log('KERNEL','NOTAM cancelled: C–E OPEN.',null,'var(--teal)');ag('coord',{task:'Recovery: restoring filed routes for new departures.',used:18});}],
+ [25.5,()=>{ag('padOAK',{st:'ret',task:'Retired. OAK sequence handed back to Sector East.'});ag('padBER',{st:'ret',task:'Retired.'});log('SEC-E','Retired Pad OAK, Pad BER.',null,'var(--blue)');}],
+ [27.0,()=>{ag('secC',{st:'ret',task:'Retired. Flows restored.'});ag('secE',{st:'ret',task:'Retired. Flows restored.'});ag('coord',{st:'work',task:'Steady state. Monitoring 28-trip plan.'});log('COORD','Retired sector agents. Back to single-agent watch.',null,'var(--ink)');}],
+];
+EV.sort((a,b)=>a[0]-b[0]);
+
+/* ---------------- controls ---------------- */
+let playing=true,last=performance.now();
+$('play').onclick=()=>{playing=!playing;$('play').querySelector('span').textContent=playing?'Pause':'Play';$('play').querySelector('svg').innerHTML=playing?'<rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/>':'<path d="M4 2.5v11l9-5.5z"/>';};
+$('restart').onclick=()=>{window.SkyRadio&&SkyRadio.flush();voiceBusy=0;resetState();if(camMode==='cine'){curShot=null;}};
+let curTab='log';
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{curTab=t.dataset.t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+curTab));setBadge();});
+
+/* ---------------- frame ---------------- */
+const tmpV=new THREE.Vector3();
+let lastUI=0;
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000);last=now;
+  if(playing&&!radioHold()){S.m+=dt/SPM*(S.m>30?1.8:1); if(S.m>=END){window.SkyRadio&&SkyRadio.flush();voiceBusy=0;resetState();}}
+  const m=S.m;
+  while(S.ev<EV.length&&EV[S.ev][0]<=m){EV[S.ev][1]();S.ev++;}
+  if(S.kiosk&&S.kiosk.state==='pending'){const left=(S.kiosk.until-m)*SPM;const cd=$('k-cd');if(cd)cd.textContent=Math.max(0,left).toFixed(0)+'s';if(left<=0)decide(false,true);}
+  // storm intensity
+  let si=0;if(m>STORM[0]-0.3&&m<STORM[1]+1.2){si=Math.min(1,(m-STORM[0]+0.3)/1.2,(STORM[1]+1.2-m)/1.8);}
+  storm.visible=si>0.01;storm.scale.setScalar(Math.max(.001,si));
+  storm.position.x=sc.x+(m-16)*0.35;storm.position.z=sc.z-(m-16)*0.2;
+  if(storm.visible){
+    const a=rain.geometry.attributes.position;for(let i=0;i<RN;i++){let y=a.array[i*6+1]-dt*30;if(y<0)y+=14;a.array[i*6+1]=y;a.array[i*6+4]=y-2.4;}a.needsUpdate=true;
+    bolt.intensity=Math.random()<.015?900:bolt.intensity*.8;
+    puffs.forEach((p,i)=>p.position.y+=Math.sin(now/900+i)*.004);
+    wxRing.material.opacity=.45+.3*Math.sin(now/300);
+  }
+  const closed=m>=STORM[0]&&m<STORM[1];
+  if(closed){ce.material.color.set(0xc2412d);ce.material.opacity=.55+.3*Math.sin(now/250);}
+  // aircraft
+  let air=0,onpad=0,sepMin=Infinity;const live=[];
+  FLIGHTS.forEach((f,i)=>{
+    const o=acObjs[i],p=posOf(f,m);
+    const waiting=m>=f.sched-1.2&&m<f.dep, landing=m>f.arr&&m<f.arr+0.8;
+    if(p){
+      air++;const band=p.east?'e':'w';const prog=p.prog,L=f.g.len*K;
+      let h=H_AIR[band];const dEnd=Math.min(prog*L,(1-prog)*L);if(dEnd<14)h=H_PORT+.6+(h-H_PORT-.6)*Math.max(0,dEnd/14);
+      if(f.path[0]==='SF'||1){} // noop
+      o.g.position.set(p.x*K,h,-p.y*K);o.g.rotation.y=p.hd;o.g.visible=true;
+      o.el.className='lbl ac'+(i===SEL?' sel':'');
+      live.push({x:p.x,y:p.y,b:band,f});
+    }else if(waiting||landing){
+      const n=waiting?f.from:f.to;const v=portPos[n];const k=(i%3)-1;
+      o.g.position.set(v.x+k*1.6,H_PORT+.55,v.z+(waiting?1.2:-1.2));o.g.rotation.y=0;o.g.visible=true;onpad++;
+      o.el.className='lbl ac'+(i===SEL?' sel':'')+(waiting&&m>f.sched?' hold':'');o.el.style.display=(i===SEL||(waiting&&m>f.sched))?'':'none';
+    }else o.g.visible=false;
+    if(p)o.el.style.display='';
+    for(const r of o.g.userData.rotors)r.rotation.y+=dt*(p?40:6);
+  });
+  for(let a=0;a<live.length;a++)for(let b=a+1;b<live.length;b++)if(live[a].b===live[b].b){const d=Math.hypot(live[a].x-live[b].x,live[a].y-live[b].y)*60;if(d<sepMin)sepMin=d;}
+  stepCamera(m,now,dt);
+  renderer.render(scene,cam);lr.render(scene,cam);
+  // UI (throttled)
+  if(now-lastUI>150){lastUI=now;updateUI(m,air,onpad,sepMin);}
+  requestAnimationFrame(frame);
+}
+function updateUI(m,air,onpad,sepMin){
+  $('shot-l').textContent=shotLbl;
+  $('clk').textContent='T+'+fmt(m);$('loc').textContent=loc(m);
+  document.querySelectorAll('#phase span').forEach(s=>{const on=s.dataset.p===S.phase;s.className=on?'on '+(S.phase==='storm'?'storm':S.phase==='replan'?'replan':S.phase==='recover'?'recover':''):'';});
+  $('k-air').textContent=air;$('k-air-s').textContent=onpad+' on pads';
+  const landed=FLIGHTS.filter(f=>f.arr<=m);
+  const lastHr=landed.filter(f=>f.arr>m-60).length;const span=Math.min(60,Math.max(m,1));
+  $('k-arr').textContent=landed.length?Math.round(lastHr*60/Math.max(span,10)):0;$('k-arr-s').textContent=landed.length+' of 28 landed';
+  const avg=landed.length?landed.reduce((s,f)=>s+f.delay,0)/landed.length:0,mx=landed.reduce((s,f)=>Math.max(s,f.delay),0);
+  $('k-del').innerHTML=avg.toFixed(1)+'<small>min</small>';$('k-del-s').textContent='max '+mx.toFixed(1)+' min';
+  $('kpi-delay').classList.toggle('warn',avg>1.5);
+  $('k-sep').innerHTML=(isFinite(sepMin)?sepMin.toFixed(1):'--')+'<small>NM</small>';
+  const ont=landed.filter(f=>f.delay<=5).length;$('sc-agent').textContent=ont+'/28';$('sc-agent-bar').style.width=(ont/28*100)+'%';
+  $('sc-note').textContent=landed.length===28?'final · +'+(landed.reduce((s,f)=>s+f.g.len,0)/landed.reduce((s,f)=>s+f.staticLen,0)*100-100).toFixed(1)+'% distance':'static plan vs agent team · live';
+  const deps=FLIGHTS.filter(f=>f.dep<=m&&f.i!==SEL).length;
+  $('sc-tx').textContent=deps*2+S.tx;$('sc-hum').textContent=S.hum;$('sc-conf').textContent='0';
+  $('wave').classList.toggle('on',S.wave);
+  // selected flight header
+  const sf=FLIGHTS[SEL];$('fl-rt').textContent=S.sel.rt;
+  $('fl-del').textContent=m<sf.dep?'sched dep '+loc(sf.sched)+'L':m<sf.arr?'ETA '+loc(sf.arr)+'L · delay +'+sf.delay.toFixed(1)+' min':'landed '+loc(sf.arr)+'L · +'+sf.delay.toFixed(1)+' min';
+  if(S.step===3&&m>=sf.arr){setStep(4);log('SKF112','Landed OAK. Reservation released.',null,'var(--amber)');}
+  // traffic table
+  const rows=FLIGHTS.filter(f=>(m>=f.sched-1.2&&m<=f.arr)).slice(0,12).map(f=>{
+    const st=m<f.dep?(m>f.sched?'<span class="tag hold">HOLD</span>':'<span class="tag">PAD</span>'):f.rr?'<span class="tag rr">REROUTE</span>':'<span class="tag air">AIR</span>';
+    const p=posOf(f,m);const alt=p?(p.east?'1,500':'2,000'):'—';
+    return `<tr class="${f.i===SEL?'sel':''}"><td>SKF${f.cs}</td><td>${f.path.join('-')}</td><td>${alt}</td><td>${loc(f.arr)}</td><td>${st}</td></tr>`;}).join('');
+  $('tr-body').innerHTML=rows||'<tr><td colspan="5" style="color:var(--ink3)">No traffic.</td></tr>';
+}
+if(window.SkyRadio){SkyRadio.onTransmit(e=>{S.wave=e.live;});$('snd').onclick=()=>{SkyRadio.enabled?SkyRadio.disable():SkyRadio.enable();soundBtn();};soundBtn();}
+resetState();requestAnimationFrame(frame);
+window.__sky={get S(){return S},FLIGHTS,get cam(){return {mode:camMode,shot:curShot,trans:trans&&{t0:trans.t0,now:performance.now()},pos:cam.position.toArray().map(v=>+v.toFixed(1)),tgt:controls.target.toArray().map(v=>+v.toFixed(1))}},preset};
+</script>
+</body>
+</html>

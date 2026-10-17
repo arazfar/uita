@@ -1,0 +1,26 @@
+{
+  "name": "skyflow-recursive-atc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "start": "vite --host 0.0.0.0 --port ${PORT:-5190} --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "three": "0.170.0",
+    "d3-geo": "3.1.1",
+    "d3-polygon": "3.0.1",
+    "lucide": "0.468.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.4",
+    "prettier": "3.6.2"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

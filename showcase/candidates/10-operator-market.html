@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Operator Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+:root{
+  --bg:#0a0e11; --panel:#10161a; --panel2:#0d1215; --line:#1e2a31; --line2:#2a3943;
+  --text:#d9e3e8; --dim:#7d8d97; --faint:#4a5a64;
+  --ok:#5ed38c; --bad:#ff5a52; --storm:#e2873f; --k:#3fd0bd;
+  --med:#ff6f7d; --bay:#f2b54a; --sht:#5aa9ff;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;overflow:hidden}
+.app{display:grid;grid-template-rows:54px 1fr 64px;height:100vh;min-width:1240px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:18px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.brand{white-space:nowrap;font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px}
+.brand i{width:9px;height:9px;border-radius:50%;background:var(--k);box-shadow:0 0 10px var(--k)}
+.brand span{color:var(--dim);font-weight:400}
+.sim{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--storm);border:1px solid #5a3a22;padding:3px 7px;border-radius:3px}
+.sub{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.phase{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:4px 9px;border-radius:3px;border:1px solid var(--line2);white-space:nowrap}
+.phase.calm{color:var(--ok);border-color:#24503a}
+.phase.storm{color:var(--storm);border-color:#5a3a22;background:#1d140c}
+.phase.recover{color:var(--k);border-color:#1f4a45}
+.txp{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--faint);white-space:nowrap;min-width:150px}
+.txp i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.txp.live{color:var(--text)}.txp.live i{background:var(--bad);box-shadow:0 0 8px var(--bad);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.35}}
+button.on{color:var(--k);border-color:#1f4a45}
+.tl{flex:1;position:relative;height:22px;display:flex;align-items:center;cursor:pointer;min-width:120px}
+.tl .track{position:absolute;left:0;right:0;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.tl .seg{position:absolute;top:0;bottom:0;background:#5a3a22}
+.tl .head{position:absolute;width:2px;height:16px;background:var(--text);top:3px}
+.tl .lab{position:absolute;top:-4px;font-family:var(--mono);font-size:9px;color:var(--faint)}
+.clock{font-family:var(--mono);font-size:15px;font-weight:500;min-width:52px;text-align:right}
+.btns{display:flex;gap:6px}
+button{white-space:nowrap;font-family:var(--mono);font-size:11px;background:var(--panel);color:var(--text);border:1px solid var(--line2);padding:6px 10px;border-radius:3px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+main{display:grid;grid-template-columns:350px minmax(0,1fr) 380px;min-height:0}
+section{min-height:0;display:flex;flex-direction:column}
+section+section{border-left:1px solid var(--line)}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.ph em{font-style:normal;color:var(--faint);letter-spacing:.03em;text-transform:none}
+/* operators */
+.ops{padding:4px 12px 12px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.op{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:11px 12px;position:relative;transition:border-color .3s, box-shadow .3s;flex:1}
+.op.active{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset}
+.op .top{display:flex;align-items:center;gap:8px}
+.op .sw{width:10px;height:10px;border-radius:2px;background:var(--c)}
+.op .nm{font-weight:600;font-size:14px;white-space:nowrap}
+.op .ty{white-space:nowrap}
+.op .ty{color:var(--dim);font-size:11.5px}
+.op .stat{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.05em}
+.op.active .stat{color:var(--c)}
+.meter{margin-top:10px}
+.meter .row{display:flex;align-items:baseline;justify-content:space-between}
+.meter .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--faint)}
+.meter .lab b{font-weight:500;color:var(--dim)}
+.meter .val{font-family:var(--mono);font-size:22px;font-weight:500}
+.meter .delta{font-family:var(--mono);font-size:11px;color:var(--ok);margin-left:8px;white-space:nowrap}
+.bar{position:relative;height:8px;background:#151d22;border-radius:2px;margin-top:6px;overflow:hidden}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--c);opacity:.85;transition:width .7s cubic-bezier(.3,.7,.2,1)}
+.bar .base{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);opacity:.5}
+.fl{margin-top:9px;display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:11px}
+.fl div{display:grid;grid-template-columns:62px 1fr 58px 50px;gap:6px;color:var(--dim);align-items:center}
+.fl div span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl div b{color:var(--text);font-weight:500}
+.fl .pv{filter:none;color:var(--faint)}
+.fl .dl{text-align:right}
+.swaps{display:flex;gap:4px;margin-top:9px;align-items:center;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.swaps i{width:14px;height:5px;border-radius:1px;background:#1c262c}
+.swaps i.u{background:var(--c)}
+.lock{font-family:var(--mono);font-size:9.5px;color:var(--faint);margin-top:8px;letter-spacing:.02em}
+/* slot board */
+.cap{display:flex;gap:10px;align-items:center;padding:8px 14px 0}
+.capbox{white-space:nowrap;border:1px solid var(--line);border-radius:3px;padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--panel)}
+.capbox b{color:var(--text);font-size:15px;font-weight:500;margin-left:4px}
+.capbox.cut{border-color:#5a3a22;background:#1d140c;color:var(--storm)}
+.capbox.cut b{color:var(--storm)}
+.capbox.k{border-color:#1f4a45;color:var(--k)}
+.board{position:relative;margin:8px 14px 0;font-family:var(--mono)}
+.bh{display:grid;grid-template-columns:70px 120px 1fr 80px 70px;font-size:9.5px;letter-spacing:.12em;color:var(--faint);padding:0 10px 5px}
+.slots{position:relative}
+.slot{display:grid;grid-template-columns:70px 120px 1fr 80px 70px;align-items:center;height:30px;padding:0 10px;border-top:1px solid #151d22;font-size:12px}
+.slot .tm{color:var(--text)}
+.slot .own{font-size:10px;color:var(--faint);letter-spacing:.06em}
+.chip{position:absolute;left:80px;height:24px;width:112px;border-radius:3px;display:flex;align-items:center;gap:7px;padding:0 8px;font-size:12px;font-weight:500;background:#121a1f;border:1px solid var(--line2);transition:top .9s cubic-bezier(.5,0,.2,1), box-shadow .3s, border-color .3s}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.chip.mv{border-color:var(--c);box-shadow:0 0 14px -2px var(--c);z-index:3}
+.cell{position:absolute;font-size:12px;transition:top .9s cubic-bezier(.5,0,.2,1)}
+.slot .ownc{font-size:10px;letter-spacing:.08em}
+.note{padding:6px 14px 0;color:var(--faint);font-size:11px;font-family:var(--mono)}
+/* proposal feed */
+.feed{flex:1;min-height:0;margin:10px 14px 12px;border-top:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column}
+.pr{display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid #151d22;animation:in .3s ease}
+@keyframes in{from{opacity:0;transform:translateY(5px)}}
+.pr .sw{width:4px;height:100%;min-height:30px;border-radius:2px;background:var(--c)}
+.pr .who{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.04em}
+.pr .what{font-size:13px;margin-top:1px}
+.pr .what code{font-family:var(--mono);font-size:12px;color:var(--text)}
+.pr .pvt{font-size:11px;color:var(--faint);margin-top:2px}
+.pr .pvt span{filter:blur(3.2px);color:var(--dim)}
+.badges{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.bdg{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:2px;border:1px solid var(--line2);color:var(--faint);opacity:0;transform:translateY(3px);transition:all .25s}
+.bdg.on{opacity:1;transform:none}
+.bdg.y{color:var(--ok);border-color:#24503a;background:#0f1f17}
+.bdg.n{color:var(--bad);border-color:#5a2724;background:#1e1110}
+.vd{font-family:var(--mono);font-size:10.5px;padding:3px 7px;border-radius:2px;letter-spacing:.06em;opacity:0;transition:opacity .25s}
+.vd.on{opacity:1}
+.vd.acc{color:#0a0e11;background:var(--ok)} .vd.rej{color:#fff;background:#8f2520} .vd.sys{color:var(--storm);background:#2a1a0d}
+/* right */
+.chart{padding:4px 14px 0}
+.chart svg{width:100%;display:block}
+.cmp{padding:6px 14px 0}
+.cb{margin-top:9px}
+.cb .row{display:flex;justify-content:space-between;font-size:12px}
+.cb .row span:first-child{color:var(--text)}
+.cb .row small{color:var(--faint);font-size:10.5px;margin-left:6px}
+.cb .row .v{font-family:var(--mono)}
+.cb .tr{height:12px;background:#141c21;border-radius:2px;margin-top:4px;overflow:hidden}
+.cb .tr div{height:100%;width:0;transition:width 1.1s cubic-bezier(.3,.7,.2,1)}
+.cb .fx{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px}
+.cb.agent .row span:first-child{color:var(--k);font-weight:600}
+.tree{padding:6px 14px 10px;font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.65}
+.tree b{color:var(--text);font-weight:500}
+.tree .kk{color:var(--k)}
+@media (max-width:1380px){main{grid-template-columns:310px minmax(0,1fr) 340px}.sub{display:none}.fl div{grid-template-columns:58px 1fr 56px 46px}}
+footer{display:flex;border-top:1px solid var(--line);background:var(--panel2)}
+.kpi{flex:1;padding:9px 16px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:0}
+.kpi .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+.kpi .n{font-family:var(--mono);font-size:19px;font-weight:500;margin-top:3px}
+.kpi .n small{white-space:nowrap;font-size:11px;color:var(--dim);font-weight:400;margin-left:6px}
+.kpi.g .n{color:var(--ok)}
+header{min-width:0;overflow:hidden}
+@media (max-width:1380px){.tl .lab{display:none}.txp{min-width:0}#kDelay small{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><i></i>SkyFlow <span>/ Operator market · UDPP</span></div>
+  <div class="sim">SIMULATION</div>
+  <div class="phase calm" id="phase">CALM TRAFFIC</div>
+  <div class="txp" id="tx"><i></i><span id="txWho">frequency idle</span></div>
+  <div class="tl" id="tl"><div class="track"><div class="seg" id="seg"></div></div><div class="head" id="head"></div></div>
+  <div class="clock" id="clock">14:00</div>
+  <div class="btns"><button id="bPlay">❚❚ Pause</button><button id="bRestart">↺ Restart</button><button id="bSound">🔇 Radio muted</button></div>
+</header>
+<main>
+  <section>
+    <div class="ph"><span>Operator agents</span><em>costs stay private</em></div>
+    <div class="ops" id="ops"></div>
+  </section>
+  <section>
+    <div class="ph"><span id="boardTitle">OAK arrival schedule</span><em id="boardSub">corridor C–E open</em></div>
+    <div class="cap" id="cap"></div>
+    <div class="board"><div class="bh"><span>SLOT</span><span>FLIGHT</span><span>OWNER</span><span>ORIG ETA</span><span style="text-align:right">DELAY</span></div><div class="slots" id="slots"></div></div>
+    <div class="feed" id="feed"></div>
+  </section>
+  <section>
+    <div class="ph"><span>Throughput vs cost</span><em>per negotiation step</em></div>
+    <div class="chart"><svg id="chart" viewBox="0 0 364 170"></svg></div>
+    <div class="ph" style="margin-top:6px"><span>Total delay cost</span><em>true private costs, same 12 slots</em></div>
+    <div class="cmp" id="cmp"></div>
+    <div class="ph" style="margin-top:12px"><span>Agent tree</span><em>kernel validates every swap</em></div>
+    <div class="tree" id="tree"></div>
+  </section>
+</main>
+<footer>
+  <div class="kpi g"><div class="l">On time · agent team</div><div class="n" id="kOn">0/28</div></div>
+  <div class="kpi"><div class="l">On time · static plan</div><div class="n" id="kStatic">0/28</div></div>
+  <div class="kpi"><div class="l">Max delay · OAK window</div><div class="n" id="kDelay">0 min</div></div>
+  <div class="kpi g"><div class="l">Conflicts</div><div class="n">0</div></div>
+  <div class="kpi"><div class="l">Human interventions</div><div class="n">0</div></div>
+  <div class="kpi"><div class="l">Swaps ok / rejected</div><div class="n" id="kSw">0 / 0</div></div>
+  <div class="kpi"><div class="l">Radio transmissions</div><div class="n" id="kTx">0</div></div>
+</footer>
+</div>
+<script src="radio-audio.js?v=3"></script>
+<script>
+// stop() cuts the line on air; older cached copies of the module only have flush()
+const radioStop=()=>window.SkyRadio&&(SkyRadio.stop?SkyRadio.stop():SkyRadio.flush());
+const LOOP=86, STORM_A=7, STORM_B=66, RBS_T=9.5;
+const simMin = t => t<STORM_A ? t*8/STORM_A : t<STORM_B ? 8+(t-STORM_A)*16/(STORM_B-STORM_A) : 24+(t-STORM_B)*46/(LOOP-STORM_B);
+const hm = m => { const x=Math.round(m); return `${14+Math.floor(x/60)}:${String(x%60).padStart(2,'0')}`; };
+const OPS={
+  MED:{name:'MedAir',type:'medical',c:'var(--med)',hex:'#ff6f7d'},
+  BAY:{name:'Bay Taxi',type:'air taxi',c:'var(--bay)',hex:'#f2b54a'},
+  SHT:{name:'Shuttle Co',type:'scheduled shuttle',c:'var(--sht)',hex:'#5aa9ff'},
+};
+// 12 OAK arrivals inside the closure window. ETA every 2 min from 14:08; storm halves capacity -> slots every 4 min.
+// cost per delay-minute is PRIVATE to each operator ($/min)
+const F=[
+ {id:'BAY-210',op:'BAY',c:80, why:'business commuter'},
+ {id:'SHT-31', op:'SHT',c:60, why:'4 pax'},
+ {id:'MDA-02', op:'MED',c:30, why:'ferry, no patient'},
+ {id:'BAY-213',op:'BAY',c:40, why:'deadhead'},
+ {id:'SHT-34', op:'SHT',c:20, why:'empty reposition'},
+ {id:'MDA-05', op:'MED',c:30, why:'ferry, no patient'},
+ {id:'BAY-216',op:'BAY',c:50, why:'1 pax, flexible'},
+ {id:'SHT-37', op:'SHT',c:140,why:'6 pax, BART link'},
+ {id:'MDA-08', op:'MED',c:600,why:'patient transfer'},
+ {id:'BAY-219',op:'BAY',c:200,why:'SFO long-haul connect'},
+ {id:'SHT-40', op:'SHT',c:90, why:'5 pax'},
+ {id:'SHT-41', op:'SHT',c:120,why:'6 pax'},
+];
+const N=F.length, ETA=i=>8+2*i, SLOT=k=>8+4*k;
+// proposals: a = flight moving to an earlier slot, b = flight giving it up
+const PROPS=[
+ {t:15, op:'MED', a:8,b:5, txt:'Move MDA-08 into slot 14:28, MDA-05 takes 14:40', pvt:'patient transfer, $600/min vs ferry $30/min'},
+ {t:21, op:'BAY', a:9,b:3, txt:'Move BAY-219 into slot 14:20, BAY-213 takes 14:44', pvt:'long-haul connection at SFO 15:05'},
+ {t:27, op:'BAY', a:9,b:6, txt:'Move BAY-219 into slot 14:32, BAY-216 takes 14:44', pvt:'connection still makes it with 14:32'},
+ {t:33, op:'SHT', a:7,b:4, txt:'Move SHT-37 into slot 14:24, SHT-34 takes 14:36', pvt:'6 pax with BART link vs empty reposition'},
+ {t:39, op:'SHT', a:10,b:4,txt:'Move SHT-40 into slot 14:36, SHT-34 takes 14:48', pvt:'push the empty aircraft back again'},
+ {t:45, op:'SHT', a:11,b:9,txt:'Move SHT-41 into slot 14:32 (held by BAY-219)', pvt:'6 pax, $120/min'},
+ {t:50, op:'SHT', a:11,b:4,txt:'Move SHT-41 into slot 14:48, SHT-34 takes 14:52', pvt:'empty aircraft goes last'},
+ {t:56, op:'SHT', a:11,b:10,txt:'Swap SHT-41 and SHT-40', pvt:'marginal $30/min gain'},
+];
+// kernel rule evaluation given current slot assignment
+function evalProp(p, slot, used){
+  const sa=slot[p.b], sb=slot[p.a];          // a goes to b's slot (earlier), b goes to a's slot
+  const sameOp = F[p.a].op===F[p.b].op;
+  const r1 = SLOT(sa) >= ETA(p.a) && SLOT(sb) >= ETA(p.b);
+  const r2 = sameOp;
+  const r3 = used[p.op] < 3;
+  return {r1,r2,r3,ok:r1&&r2&&r3,sa,sb};
+}
+// precompute outcome timeline (deterministic)
+const OUT=[]; (function(){
+  const slot=[...Array(N).keys()], used={MED:0,BAY:0,SHT:0};
+  PROPS.forEach(p=>{ const e=evalProp(p,slot,used); const before=[...slot];
+    if(e.ok){ slot[p.a]=e.sa; slot[p.b]=e.sb; used[p.op]++; }
+    OUT.push({...e, used:used[p.op], after:[...slot], before});
+  });
+})();
+const costOf=(slot,op)=>F.reduce((s,f,i)=>s+((!op||f.op===op)?f.c*(SLOT(slot[i])-ETA(i)):0),0);
+const FCFS=[...Array(N).keys()];
+// optimal assignments by bitmask DP (12 flights, trivial)
+function dp(w){const S=1<<N,D=new Float64Array(S).fill(Infinity),P=new Int8Array(S).fill(-1);D[0]=0;
+  const pc=m=>{let k=0;while(m){k+=m&1;m>>=1;}return k;};
+  for(let m=0;m<S;m++){if(D[m]===Infinity)continue;const k=pc(m);if(k>=N)continue;
+    for(let f=0;f<N;f++){if(m>>f&1)continue;if(SLOT(k)<ETA(f))continue;const v=D[m]+w[f]*(SLOT(k)-ETA(f));if(v<D[m|1<<f]){D[m|1<<f]=v;P[m|1<<f]=f;}}}
+  const s=[];let m=S-1;for(let k=N-1;k>=0;k--){const f=P[m];s[f]=k;m^=1<<f;}return s;}
+const CENTRAL=dp(F.map(f=>f.op==='MED'?300:60));   // public info only: knows "medical operator", not which flight carries a patient
+const ORACLE=dp(F.map(f=>f.c));
+const AGENT=OUT[OUT.length-1].after;
+const CMP=[
+ {k:'FCFS',n:'FCFS',s:'ration-by-schedule, no swaps',v:costOf(FCFS),col:'#4a5a64'},
+ {k:'central',n:'Central optimizer',s:'public info only',v:costOf(CENTRAL),col:'#7d8d97'},
+ {k:'agent',n:'Agent team',s:'own slots only · nobody worse off',v:costOf(AGENT),col:'#3fd0bd'},
+ {k:'oracle',n:'Oracle',s:'all private costs, not realizable',v:costOf(ORACLE),col:'#2a3943'},
+];
+const pct=(a,b)=>Math.round((a/b-1)*100);
+CMP[1].fx=Object.keys(OPS).map(o=>{const d=pct(costOf(CENTRAL,o),costOf(FCFS,o));return `${OPS[o].name} ${d>0?'+':''}${d}%`;}).join(' · ');
+CMP[2].fx=Object.keys(OPS).map(o=>`${OPS[o].name} ${pct(costOf(AGENT,o),costOf(FCFS,o))}%`).join(' · ');
+CMP[0].fx='baseline'; CMP[3].fx='lower bound';
+const $=id=>document.getElementById(id);
+const money=v=>'$'+Math.round(v).toLocaleString('en-US');
+
+// ---------- build static DOM ----------
+const opEl={};
+Object.entries(OPS).forEach(([k,o])=>{
+  const d=document.createElement('div'); d.className='op'; d.style.setProperty('--c',o.c);
+  const mine=F.map((f,i)=>({...f,i})).filter(f=>f.op===k);
+  d.innerHTML=`<div class="top"><span class="sw"></span><span class="nm">${o.name}</span><span class="ty">${o.type} agent</span><span class="stat">idle</span></div>
+   <div class="meter"><div class="row"><span class="lab"><b>DELAY COST</b> · private</span><span><span class="val">$0</span><span class="delta"></span></span></div>
+   <div class="bar"><div class="fill" style="width:0"></div><div class="base" style="left:0;opacity:0"></div></div></div>
+   <div class="fl">${mine.map(f=>`<div data-i="${f.i}"><b>${f.id}</b><span class="pv">${f.why}</span><span>$${f.c}/min</span><span class="dl">—</span></div>`).join('')}</div>
+   <div class="swaps">swaps <i></i><i></i><i></i><span class="sn" style="margin-left:4px">0/3</span></div>`;
+  $('ops').appendChild(d); opEl[k]={d,val:d.querySelector('.val'),delta:d.querySelector('.delta'),fill:d.querySelector('.fill'),base:d.querySelector('.base'),stat:d.querySelector('.stat'),sw:[...d.querySelectorAll('.swaps i')],sn:d.querySelector('.sn'),rows:[...d.querySelectorAll('.fl div')]};
+});
+const ROWH=30;
+const slotsEl=$('slots'); slotsEl.style.height=(N*ROWH)+'px';
+const slotRows=[];
+for(let k=0;k<N;k++){const r=document.createElement('div');r.className='slot';r.style.position='absolute';r.style.left=0;r.style.right=0;r.style.top=(k*ROWH)+'px';
+  r.innerHTML=`<span class="tm"></span><span></span><span class="ownc"></span><span class="eta" style="color:var(--dim)"></span><span class="dl" style="text-align:right"></span>`;slotsEl.appendChild(r);slotRows.push(r);}
+const chips=F.map((f,i)=>{const c=document.createElement('div');c.className='chip';c.style.setProperty('--c',OPS[f.op].c);c.innerHTML=`<i></i>${f.id}`;c.style.top=(i*ROWH+3)+'px';slotsEl.appendChild(c);return c;});
+// comparison bars
+CMP.forEach(c=>{const d=document.createElement('div');d.className='cb '+c.k;d.innerHTML=`<div class="row"><span>${c.n}<small>${c.s}</small></span><span class="v">—</span></div><div class="tr"><div style="background:${c.col}"></div></div><div class="fx">${c.fx}</div>`;$('cmp').appendChild(d);c.el=d;});
+(function initTL(){const tl=$('tl');$('seg').style.left=(STORM_A/LOOP*100)+'%';$('seg').style.width=((STORM_B-STORM_A)/LOOP*100)+'%';
+  [['storm · UDPP round',STORM_A+1],['recovery',STORM_B+1]].forEach(([n,x])=>{const s=document.createElement('span');s.className='lab';s.style.left=(x/LOOP*100)+'%';s.textContent=n;tl.appendChild(s);});
+  tl.onclick=e=>{const r=tl.getBoundingClientRect();seek((e.clientX-r.left)/r.width*LOOP);};})();
+
+// ---------- chart ----------
+const svg=$('chart');
+function drawChart(step,costs){
+  const W=364,H=170,x0=34,x1=W-44,y0=14,y1=H-24, n=PROPS.length;
+  const X=i=>x0+(x1-x0)*i/n;
+  const maxC=costOf(FCFS)*1.05, Yc=v=>(y1-34)-((y1-34)-(y0+10))*v/maxC, Yt=v=>y1-12;
+  let s=`<line x1="${x0}" y1="${y1}" x2="${x1}" y2="${y1}" stroke="#1e2a31"/>`;
+  for(let i=0;i<=n;i++) s+=`<text x="${X(i)}" y="${H-8}" fill="#4a5a64" font-size="9" font-family="IBM Plex Mono" text-anchor="middle">${i===0?'RBS':i}</text>`;
+  // capacity reference
+  if(step>=0){
+    s+=`<polyline points="${X(0)},${Yt(15)} ${X(step)},${Yt(15)}" fill="none" stroke="#5ed38c" stroke-width="2"/>`;
+    s+=`<text x="${x1+4}" y="${Yt(15)+3}" fill="#5ed38c" font-size="9" font-family="IBM Plex Mono">15/h</text>`;
+    s+=`<text x="${x0}" y="${Yt(15)-6}" fill="#5ed38c" font-size="9.5" font-family="IBM Plex Mono">throughput 15/h · constant every step</text>`;
+    const pts=costs.slice(0,step+1).map((v,i)=>`${X(i)},${Yc(v)}`).join(' ');
+    s+=`<polyline points="${pts}" fill="none" stroke="#3fd0bd" stroke-width="2"/>`;
+    costs.slice(0,step+1).forEach((v,i)=>{s+=`<circle cx="${X(i)}" cy="${Yc(v)}" r="2.6" fill="#3fd0bd"/>`;});
+    const v=costs[step]; s+=`<text x="${X(step)+6}" y="${Yc(v)-6}" fill="#3fd0bd" font-size="10" font-family="IBM Plex Mono">${money(v)}</text>`;
+    s+=`<text x="${x0}" y="${y0+2}" fill="#3fd0bd" font-size="9.5" font-family="IBM Plex Mono">total delay cost</text>`;
+  } else {
+    s+=`<text x="${(x0+x1)/2}" y="${(y0+y1)/2}" fill="#4a5a64" font-size="10.5" font-family="IBM Plex Mono" text-anchor="middle">waiting for capacity change</text>`;
+  }
+  svg.innerHTML=s;
+}
+const STEP_COSTS=[costOf(FCFS),...OUT.map(o=>costOf(o.after))];
+
+// ---------- render ----------
+let t=0, playing=true, last=performance.now(), feedKey='';
+function render(){
+  const m=simMin(t), storm=t>=STORM_A&&t<STORM_B, rbs=t>=RBS_T;
+  $('clock').textContent=hm(m);
+  $('head').style.left=(t/LOOP*100)+'%';
+  const ph=$('phase');
+  if(t<STORM_A){ph.className='phase calm';ph.textContent='CALM TRAFFIC';}
+  else if(t<13){ph.className='phase storm';ph.textContent='STORM · C–E CLOSED';}
+  else if(t<59){ph.className='phase storm';ph.textContent='UDPP ROUND · OPERATORS SWAP';}
+  else if(t<STORM_B){ph.className='phase storm';ph.textContent='ROUND COMMITTED';}
+  else {ph.className='phase recover';ph.textContent=t<78?'RECOVERY · C–E OPEN':'RECOVERED';}
+  // which proposals are committed (swap applies 2.6 s after proposal)
+  let idx=-1; OUT.forEach((o,i)=>{ if(t>=PROPS[i].t+2.6) idx=i; });
+  const slot = idx>=0 ? OUT[idx].after : FCFS;
+  // capacity strip
+  $('cap').innerHTML = !storm && t<STORM_A
+    ? `<div class="capbox">OAK arrival rate<b>30/h</b></div><div class="capbox">corridors<b>9/9 open</b></div><div class="capbox">delay<b>0 min</b></div>`
+    : t<STORM_B
+    ? `<div class="capbox cut">C–E closed · OAK rate<b>30→15/h</b></div><div class="capbox k">slot list<b>${rbs?'ration-by-schedule':'computing…'}</b></div><div class="capbox">order preserved<b>${rbs?'✓':'—'}</b></div>`
+    : `<div class="capbox k">C–E reopened · OAK rate<b>30/h</b></div><div class="capbox">slot list<b>committed</b></div><div class="capbox">swaps<b>${OUT.filter(o=>o.ok).length}</b></div>`;
+  $('boardTitle').textContent = rbs ? 'Kernel slot list · OAK arrivals' : 'OAK arrival schedule';
+  $('boardSub').textContent = t<STORM_A?'corridor C–E open · 2 min spacing':t<RBS_T?'storm closes C–E · capacity halved':t<STORM_B?'4 min spacing · swaps only inside own slots':'recovered · spacing restored for later flights';
+  // slot rows
+  for(let k=0;k<N;k++){
+    const f=slot.indexOf(k), r=slotRows[k].children;
+    r[0].textContent = hm(rbs?SLOT(k):ETA(k));
+    r[2].textContent = rbs ? OPS[F[k].op].name.toUpperCase() : '';
+    r[2].style.color = rbs ? OPS[F[k].op].hex : '';
+    r[2].style.opacity = .75;
+    r[3].textContent = hm(ETA(f));
+    const d = rbs ? SLOT(k)-ETA(f) : 0;
+    r[4].textContent = rbs ? `+${d}` : '0';
+    r[4].style.color = d>14?'var(--bad)':d>6?'var(--storm)':'var(--dim)';
+  }
+  const moving = idx>=0 && t < PROPS[idx].t+4.2 && OUT[idx].ok ? [PROPS[idx].a,PROPS[idx].b] : [];
+  chips.forEach((c,i)=>{ c.style.top=(slot[i]*ROWH+3)+'px'; c.classList.toggle('mv',moving.includes(i)); });
+  // operators
+  const active = PROPS.findIndex(p=>t>=p.t-1.2 && t<p.t+3.2);
+  Object.keys(OPS).forEach(k=>{
+    const e=opEl[k], base=costOf(FCFS,k), cur=rbs?costOf(slot,k):0;
+    e.val.textContent=money(cur);
+    const dlt = rbs&&cur<base ? `−${Math.round((1-cur/base)*100)}%` : '';
+    e.delta.textContent=dlt;
+    const scale=costOf(FCFS,'MED')*1.1;
+    e.fill.style.width=(cur/scale*100)+'%';
+    e.base.style.left=(base/scale*100)+'%'; e.base.style.opacity=rbs?0.5:0;
+    const u = idx>=0 ? OUT.slice(0,idx+1).filter((o,i)=>o.ok&&PROPS[i].op===k).length : 0;
+    e.sw.forEach((s,i)=>s.classList.toggle('u',i<u)); e.sn.textContent=`${u}/3`;
+    const isA = active>=0 && PROPS[active].op===k;
+    e.d.classList.toggle('active',isA);
+    e.stat.textContent = isA ? (t<PROPS[active].t?'evaluating…':'proposing') : (t>=13&&t<59?'listening':'idle');
+    e.rows.forEach(r=>{const i=+r.dataset.i;const d=rbs?SLOT(slot[i])-ETA(i):0;r.querySelector('.dl').textContent=rbs?`+${d} min`:'on time';});
+  });
+  // feed
+  const entries=[];
+  entries.push({k:'s0',sys:true,who:'KERNEL',what:'Calm traffic. All 9 corridors open, OAK accepting 30 arrivals per hour. No slot list needed',vd:'NOMINAL',vc:'sys'});
+  if(t>=STORM_A) entries.push({k:'s1',sys:true,who:'KERNEL',what:'Unforecast cell over Central–East. Corridor C–E closed 14:08 to 14:24',vd:'EVENT',vc:'sys'});
+  if(t>=RBS_T) entries.push({k:'s2',sys:true,who:'KERNEL',what:'Issued ration-by-schedule slot list: 12 OAK arrivals, original order, 15/h',vd:'COMMIT',vc:'acc'});
+  if(t>=12) entries.push({k:'s3',sys:true,who:'COORDINATOR → SECTOR-EAST → PAD-OAK',what:'Open swap round. Operators may reorder flights within their own slots',vd:'OPEN',vc:'sys'});
+  PROPS.forEach((p,i)=>{ if(t<p.t) return; const o=OUT[i], dt=t-p.t;
+    entries.push({k:'p'+i+(dt>=0.6?'a':'')+(dt>=0.9?'b':'')+(dt>=1.2?'c':'')+(dt>=1.6?'d':''),op:p.op,who:OPS[p.op].name.toUpperCase()+' AGENT',what:p.txt,pvt:p.pvt,
+      badges:[[dt>=0.6,o.r1,'no flight earlier than its original slot'],[dt>=0.9,o.r2,'no harm to non-participants'],[dt>=1.2,o.r3,`swaps ${o.ok?o.used:Math.min(3,o.used+(o.r3?1:0))}/3`]],
+      vd:dt>=1.6?(o.ok?'COMMIT':'REJECT'):'', vc:o.ok?'acc':'rej'});
+  });
+  if(t>=59) entries.push({k:'s4',sys:true,who:'KERNEL',what:`Round closed: ${OUT.filter(o=>o.ok).length} swaps committed, 3 rejected. Throughput unchanged at 15/h`,vd:'COMMIT',vc:'acc'});
+  if(t>=STORM_B) entries.push({k:'s5',sys:true,who:'KERNEL',what:'Cell has cleared. Corridor C–E reopened, later flights back on 2 min spacing',vd:'EVENT',vc:'sys'});
+  const shown=entries.slice(-5), key=shown.map(e=>e.k).join('|');
+  if(key!==feedKey){ feedKey=key;
+    $('feed').innerHTML=shown.reverse().map(e=>`<div class="pr" style="--c:${e.sys?'var(--k)':OPS[e.op].c}"><span class="sw"></span><div>
+      <div class="who">${e.who}</div><div class="what">${e.what}</div>
+      ${e.pvt?`<div class="pvt">private rationale, never sent to kernel: <span>${e.pvt}</span></div>`:''}
+      ${e.badges?`<div class="badges">${e.badges.map(b=>`<span class="bdg ${b[0]?'on '+(b[1]?'y':'n'):''}">${b[1]?'✓':'✗'} ${b[2]}</span>`).join('')}</div>`:''}
+      </div><span class="vd ${e.vc} ${e.vd?'on':''}">${e.vd||'…'}</span></div>`).join('');
+  }
+  // chart
+  drawChart(rbs?idx+1:-1, STEP_COSTS);
+  // comparison
+  const showCmp=t>=59.5, maxv=CMP[0].v;
+  CMP.forEach(c=>{c.el.querySelector('.tr div').style.width=showCmp?(c.v/maxv*100)+'%':'0';c.el.querySelector('.v').textContent=showCmp?money(c.v):'—';c.el.querySelector('.fx').style.opacity=showCmp?1:0;});
+  // tree
+  const live=t>=12&&t<78;
+  $('tree').innerHTML=`<b>COORDINATOR</b> ${live?'<span class="kk">live</span>':'idle'}<br>└ <b>SECTOR-EAST</b> ${live?'<span class="kk">spawned 14:10</span>':'—'}<br>&nbsp;&nbsp;└ <b>PAD-OAK</b> ${live?'<span class="kk">slot owner</span>':'—'}<br>&nbsp;&nbsp;&nbsp;&nbsp;├ MedAir · Bay Taxi · Shuttle Co agents<br>&nbsp;&nbsp;&nbsp;&nbsp;└ <span class="kk">kernel</span>: 3 rules, commits or rejects`;
+  // footer
+  const arrived=Math.max(0,Math.min(28,Math.floor((m-9)/2.2)+1));
+  $('kOn').textContent=`${arrived}/28`;
+  $('kStatic').innerHTML=`${Math.min(10,arrived)}/28<small>${arrived>10?(arrived-10)+' late':''}</small>`;
+  const md = rbs ? Math.max(...F.map((f,i)=>SLOT(slot[i])-ETA(i))) : 0;
+  $('kDelay').innerHTML = `${md} min<small>${rbs?'SHT-34, empty':''}</small>`;
+  const done=PROPS.filter((p,i)=>t>=p.t+1.6); $('kSw').textContent=`${done.filter((p,i)=>OUT[i].ok).length} / ${done.filter((p,i)=>!OUT[i].ok).length}`;
+  $('kTx').textContent = fired.size;
+}
+// ---------- radio: operator requests and kernel verdicts on the shared frequency ----------
+// While a line is on air the clock may not pass the next line, so each verdict is heard as it appears.
+const SAY=[
+ {t:7.2, s:'atc', text:'All stations, Bay Approach. Corridor Charlie Echo closed. Oakland arrivals reduced to one five per hour, slot list follows.'},
+ {t:12.2,s:'atc', text:'All operators, swap round open. Reorder within your own slots only, maximum three swaps.'},
+ {t:15,  s:'pilot',k:'MedAir', text:'Bay Approach, MedAir, request MedAir zero eight into slot one four two eight, zero five takes one four four zero.'},
+ {t:16.6,s:'atc', text:'MedAir, swap approved. MedAir zero eight, slot one four two eight.'},
+ {t:21,  s:'pilot',k:'Bay Taxi', text:'Bay Taxi, request two one nine into slot one four two zero.'},
+ {t:22.6,s:'atc', text:'Bay Taxi, unable. Two one nine cannot go earlier than its original time.'},
+ {t:27,  s:'pilot',k:'Bay Taxi', text:'Bay Taxi, request two one nine into slot one four three two instead.'},
+ {t:28.6,s:'atc', text:'Bay Taxi, approved. Two one nine, slot one four three two.'},
+ {t:33,  s:'pilot',k:'Shuttle Co', text:'Shuttle Co, request three seven into slot one four two four.'},
+ {t:34.6,s:'atc', text:'Shuttle Co, approved. Three seven, slot one four two four.'},
+ {t:39,  s:'pilot',k:'Shuttle Co', text:'Shuttle Co, request four zero into slot one four three six.'},
+ {t:40.6,s:'atc', text:'Shuttle Co, approved. Four zero, slot one four three six.'},
+ {t:45,  s:'pilot',k:'Shuttle Co', text:'Shuttle Co, request four one into slot one four three two.'},
+ {t:46.6,s:'atc', text:'Shuttle Co, unable. That slot belongs to Bay Taxi.'},
+ {t:50,  s:'pilot',k:'Shuttle Co', text:'Shuttle Co, request four one into slot one four four eight.'},
+ {t:51.6,s:'atc', text:'Shuttle Co, approved. Four one, slot one four four eight. That is your third swap.'},
+ {t:56,  s:'pilot',k:'Shuttle Co', text:'Shuttle Co, request swap four one and four zero.'},
+ {t:57.6,s:'atc', text:'Shuttle Co, unable. Swap limit of three reached.'},
+ {t:59,  s:'atc', text:'All stations, Bay Approach. Slot list committed. Throughput unchanged.'},
+ {t:66,  s:'atc', text:'All stations, corridor Charlie Echo is open again. Normal spacing resumes.'},
+];
+const radio={busy:false,gen:0};
+const fired=new Set();
+SkyRadio.prefetch(SAY.map(l=>({text:l.text,speaker:l.s,key:l.k})));
+SkyRadio.onTransmit(e=>{
+  $('tx').classList.toggle('live',e.live);
+  $('txWho').textContent = e.live ? 'TX  '+(e.speaker==='atc'?'Bay Approach · kernel':e.key+' agent') : 'frequency idle';
+});
+function fireLines(){
+  SAY.forEach((l,i)=>{ if(t>=l.t && !fired.has(i)){ fired.add(i);
+    if(SkyRadio.enabled){ const g=radio.gen; radio.busy=true; SkyRadio.say(l.text,l.s,l.k).finally(()=>{ if(g===radio.gen) radio.busy=false; }); } } });
+}
+function seek(x){ t=x; feedKey=''; radioStop(); radio.gen++; radio.busy=false; fired.clear(); SAY.forEach((l,i)=>{ if(l.t<t) fired.add(i); }); }
+function frame(now){const dt=Math.min(0.1,(now-last)/1000);last=now;
+  if(playing){ const nt=t+dt; if(radio.busy){ const n=SAY.find(l=>l.t>t+1e-6); t=Math.min(nt,Math.max(t,(n?n.t:LOOP)-0.02)); } else t=nt;
+    if(t>=LOOP-0.03 && !radio.busy) seek(0); fireLines(); }
+  render();requestAnimationFrame(frame);}
+function syncSoundBtn(){ const on=SkyRadio.enabled; $('bSound').textContent=on?'🔊 Radio on':'🔇 Radio muted'; $('bSound').classList.toggle('on',on); }
+document.addEventListener('skyradio:enabled',syncSoundBtn);
+$('bSound').onclick=()=>{ if(SkyRadio.enabled){SkyRadio.disable();radioStop();radio.busy=false;} else SkyRadio.enable(); syncSoundBtn(); };
+$('bPlay').onclick=()=>{playing=!playing;if(!playing){radioStop();radio.gen++;radio.busy=false;}$('bPlay').textContent=playing?'❚❚ Pause':'▶ Play';};
+$('bRestart').onclick=()=>{seek(0);playing=true;$('bPlay').textContent='❚❚ Pause';};
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();$('bPlay').click();}});
+const q=new URLSearchParams(location.search); if(q.get('t')) seek(+q.get('t'));
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

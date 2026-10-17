@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow Tower Cab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bar: rgba(14, 17, 21, .78);
+    --line: rgba(210, 220, 230, .18);
+    --ink: #e9eef2;
+    --dim: #94a0ab;
+    --ok: #54d08a;
+    --bad: #ff5b4f;
+    --amber: #ffb547;
+    --teal: #5fd4ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0e12; color: var(--ink);
+    font: 500 13px "Barlow Condensed", system-ui, sans-serif; letter-spacing: .02em; }
+  canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: grab; }
+  canvas#gl:active { cursor: grabbing; }
+
+  /* Tower Sim style command banner */
+  #banner { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); min-width: 560px; max-width: 78vw;
+    display: flex; align-items: stretch; background: var(--bar); border: 1px solid var(--line); border-radius: 3px;
+    backdrop-filter: blur(6px); box-shadow: 0 10px 40px #0007; pointer-events: none; }
+  #banner .tx { width: 64px; display: grid; place-items: center; font: 700 12px "JetBrains Mono", monospace; color: #6b7682;
+    border-right: 1px solid var(--line); }
+  #banner .tx.on { color: #0b0e12; background: var(--ok); }
+  #banner .tx.on.pilot { background: var(--teal); }
+  #banner .cmd { padding: 10px 16px; font: 700 17px "JetBrains Mono", monospace; letter-spacing: .04em; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  #banner .cmd small { display: block; font: 600 11px "Barlow Condensed", sans-serif; letter-spacing: .14em; color: var(--dim); margin-bottom: 2px; }
+  #banner.alert .cmd { color: var(--amber); }
+  #banner.bad .cmd { color: var(--bad); }
+
+  #sim { position: fixed; top: 14px; left: 16px; background: var(--bar); border: 1px solid var(--line); border-radius: 3px;
+    padding: 8px 12px; pointer-events: none; }
+  #sim .k { font-size: 11px; letter-spacing: .16em; color: var(--dim); }
+  #sim .v { font: 700 20px "JetBrains Mono", monospace; }
+  #sim .wx { margin-top: 4px; font: 600 12px "JetBrains Mono", monospace; color: var(--dim); }
+  #sim .wx.closed { color: var(--bad); }
+
+  #score { position: fixed; top: 14px; right: 16px; width: 248px; background: var(--bar); border: 1px solid var(--line);
+    border-radius: 3px; padding: 8px 12px 10px; pointer-events: none; transition: box-shadow .6s, border-color .6s; }
+  #score.reveal { border-color: rgba(84, 208, 138, .7); box-shadow: 0 0 0 1px rgba(84,208,138,.4), 0 12px 40px #0008; }
+  #score h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: .16em; color: var(--dim); font-weight: 600; display: flex; justify-content: space-between; }
+  #score .row { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; border-top: 1px solid rgba(255,255,255,.05); }
+  #score .row b { font: 700 14px "JetBrains Mono", monospace; }
+  #score .row .s { color: #c98b7c; }
+  #score .row .a { color: var(--ok); }
+  #score .row span { color: var(--dim); font-size: 13px; }
+
+  #controls { position: fixed; left: 16px; bottom: 14px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100vw - 340px); }
+  #controls button { font: 600 12px "Barlow Condensed", sans-serif; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink); background: var(--bar); border: 1px solid var(--line); border-radius: 3px; padding: 7px 10px; cursor: pointer; }
+  #controls button:hover { border-color: rgba(255,255,255,.4); }
+  #controls button.on { background: #d7dde2; color: #111; }
+  #controls .sep { width: 1px; background: var(--line); margin: 0 2px; }
+
+  #chip { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); display: none; font: 600 13px "Barlow Condensed";
+    letter-spacing: .1em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--teal);
+    background: rgba(10, 30, 40, .85); color: #dff6ff; cursor: pointer; }
+  #attrib { position: fixed; right: 12px; bottom: 10px; max-width: 33vw; text-align: right; font: 500 11px system-ui, sans-serif;
+    color: rgba(255,255,255,.75); text-shadow: 0 1px 2px #000; pointer-events: none; line-height: 1.35; }
+  #attrib b { font-weight: 700; }
+  #binoc { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s;
+    background:
+      radial-gradient(circle at 38% 50%, transparent 0 24vh, rgba(0,0,0,.0) 24vh, transparent 0),
+      radial-gradient(circle at 62% 50%, transparent 0 24vh, transparent 0); }
+  #binoc svg { width: 100%; height: 100%; }
+  #binoc.on { opacity: 1; }
+  #help { position: fixed; left: 16px; bottom: 52px; font: 500 11px "JetBrains Mono", monospace; color: rgba(233,238,242,.55); pointer-events: none; }
+  #err { position: fixed; left: 16px; top: 96px; max-width: 380px; font: 500 12px system-ui; color: var(--amber); display: none;
+    background: var(--bar); border: 1px solid var(--line); padding: 6px 10px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="banner"><div class="tx" id="tx">TX</div><div class="cmd" id="cmd"><small>KSFO TOWER · 120.5</small>STANDING BY</div></div>
+<div id="sim"><div class="k">SIMULATION · KSFO TWR</div><div class="v" id="clock">18:40:00</div><div class="wx" id="wx">C–E OPEN · VFR</div></div>
+<div id="score">
+  <h4><span>SCOREBOARD</span><span id="scSim">MIN 00</span></h4>
+  <div class="row"><span>On-time arrivals</span><span><b class="s" id="scStatic">10/28</b> <span>static</span> · <b class="a" id="scAgent">—</b> <span>agents</span></span></div>
+  <div class="row"><span>Max delay</span><b id="scDelay">0.0 min</b></div>
+  <div class="row"><span>Conflicts</span><b class="a" id="scConf">0</b></div>
+  <div class="row"><span>Human interventions</span><b id="scHuman">0</b></div>
+  <div class="row"><span>Radio transmissions</span><b id="scTx">0</b></div>
+  <div class="row"><span>Distance vs plan</span><b id="scDist">+0.0%</b></div>
+</div>
+<div id="err"></div>
+<div id="help">DRAG look · WHEEL zoom · 1–6 views · B binoculars · C cinematic · SPACE pause · R restart</div>
+<div id="controls">
+  <button id="bPlay">❚❚ Pause</button><button id="bRestart">↺ Restart</button><button id="bCine" class="on">Cinematic</button>
+  <button id="bSound">🔈 Sound</button><span class="sep"></span>
+  <button data-p="desk">1 Desk</button><button data-p="runway">2 Runway</button><button data-p="ground">3 Ground</button>
+  <button data-p="air">4 Air</button><button data-p="tablet">5 Strips</button><button data-p="side">6 Agents</button>
+  <button id="bBino">B Binoc</button><button id="bZin">＋</button><button id="bZout">－</button>
+</div>
+<div id="chip">▶ Resume cinematic</div>
+<div id="binoc"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><mask id="bm"><rect width="100" height="100" fill="white"/>
+  <ellipse cx="38.5" cy="50" rx="16" ry="27" fill="black"/><ellipse cx="61.5" cy="50" rx="16" ry="27" fill="black"/></mask>
+  <radialGradient id="bg"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".9"/></radialGradient></defs>
+  <rect width="100" height="100" fill="#000" mask="url(#bm)"/></svg></div>
+<div id="attrib"></div>
+
+<script src="radio-audio.js?v=3"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/DRACOLoader.js';
+import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/BufferGeometryUtils.js';
+
+const $ = (id) => document.getElementById(id);
+const D2R = Math.PI / 180;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+// ---------- local frame: origin = SFO tower, x east, y up, z = -north (metres) ----------
+const LAT0 = 37.6158, LON0 = -122.3838;
+const KX = Math.cos(LAT0 * D2R) * 111320, KY = 110540;
+const P = (lon, lat) => [(lon - LON0) * KX, -(lat - LAT0) * KY];
+
+// ---------- SkyFlow network ----------
+const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
+  W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
+const EDGES = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
+const STORM = [8, 24];
+const SIMRATE = 0.5;       // sim minutes per scenario second
+// HLD: holding fix 2.6 km out on the MAR–SF corridor
+const XNODES = { HLD: [NODES.SF[0] + (NODES.MAR[0] - NODES.SF[0]) * 0.24, NODES.SF[1] + (NODES.MAR[1] - NODES.SF[1]) * 0.24] };
+const nodeKm = (n) => { const [x, z] = P(...(NODES[n] || XNODES[n])); return [x / 1000, -z / 1000]; }; // km east/north
+const distKm = (a, b) => { const p = nodeKm(a), q = nodeKm(b); return Math.hypot(p[0] - q[0], p[1] - q[1]); };
+
+// ================= renderer / scene =================
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x3c4a60, 0.000036);
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.05, 90000);
+
+// dusk sky dome
+{
+  const g = new THREE.SphereGeometry(80000, 48, 24);
+  const m = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { sun: { value: new THREE.Vector3(Math.sin(-100 * D2R), 0.02, -Math.cos(-100 * D2R)).normalize() } },
+    vertexShader: `varying vec3 vd; void main(){ vd = normalize(position); vec4 p = projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position = p; gl_Position.z = gl_Position.w*0.99999; }`,
+    fragmentShader: `varying vec3 vd; uniform vec3 sun;
+      void main(){ float h = clamp(vd.y, -0.2, 1.0);
+        vec3 top = vec3(0.035,0.055,0.12), mid = vec3(0.12,0.18,0.31), hor = vec3(0.36,0.42,0.53);
+        vec3 c = mix(hor, mid, smoothstep(0.0, 0.12, h)); c = mix(c, top, smoothstep(0.12, 0.6, h));
+        float s = max(dot(normalize(vec3(vd.x,0.0,vd.z)), normalize(vec3(sun.x,0.0,sun.z))), 0.0);
+        c += vec3(0.45,0.22,0.08) * pow(s, 6.0) * (1.0 - smoothstep(0.0, 0.22, h)) * 0.8;
+        c = mix(c, vec3(0.14,0.16,0.19), smoothstep(0.0,-0.08,h));
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  scene.add(new THREE.Mesh(g, m));
+}
+scene.add(new THREE.HemisphereLight(0x9fb2d0, 0x2a2e34, 1.5));
+const key = new THREE.DirectionalLight(0xb8c6dc, 0.9); key.position.set(-30, 60, -40); scene.add(key);
+scene.add(new THREE.AmbientLight(0x3a4250, 0.6));
+
+// world group: everything outside (overlay drawn on the real ground)
+const world = new THREE.Group(); scene.add(world);
+let groundY = 0;                     // ellipsoid-vs-local fix, refined by raycast on tiles
+const CAB_EYE_H = 70;                // SFO tower cab ~ 67 m AGL; eye above the photogrammetry roof
+const HEADING = 18 * D2R;            // desk faces NNE: runways 28L/R, SF skyline beyond
+
+// ================= cab interior =================
+const cab = new THREE.Group(); scene.add(cab);
+cab.rotation.y = -HEADING;
+const greyMat = new THREE.MeshStandardMaterial({ color: 0x7d8186, roughness: .72, metalness: .15 });
+const greyDk = new THREE.MeshStandardMaterial({ color: 0x4a4e53, roughness: .7, metalness: .2 });
+const blackMat = new THREE.MeshStandardMaterial({ color: 0x111316, roughness: .5, metalness: .3 });
+const frameMat = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: .8, metalness: .2 });
+const whiteKey = new THREE.MeshStandardMaterial({ color: 0xe6e8ea, roughness: .5 });
+const box = (w, h, d, mat, x, y, z, rx = 0, ry = 0, rz = 0, parent = cab, r = 0) => {
+  const m = new THREE.Mesh(r ? new RoundedBoxGeometry(w, h, d, 2, r) : new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z); m.rotation.set(rx, ry, rz); parent.add(m); return m;
+};
+// desk
+box(3.6, 0.06, 1.25, greyMat, 0, 0.74, -0.78, 0, 0, 0, cab, 0.02);
+box(3.6, 0.72, 0.05, greyDk, 0, 0.37, -0.17);
+box(3.6, 0.5, 0.05, greyDk, 0, 0.98, -1.38);       // back riser
+box(3.6, 0.04, 0.3, greyMat, 0, 1.24, -1.42);
+// left keypad console (sloped)
+const kc = new THREE.Group(); kc.position.set(-0.34, 0.78, -0.6); kc.rotation.x = 0.34; kc.scale.setScalar(0.62); cab.add(kc);
+box(0.78, 0.12, 0.5, greyMat, 0, 0.06, 0, 0, 0, 0, kc, 0.015);
+box(0.36, 0.01, 0.22, blackMat, -0.14, 0.125, -0.07, 0, 0, 0, kc);
+box(0.38, 0.012, 0.24, greyDk, -0.14, 0.12, -0.07, 0, 0, 0, kc);
+for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) box(0.06, 0.02, 0.06, blackMat, 0.12 + i * 0.08, 0.13, -0.17 + j * 0.08, 0, 0, 0, kc);
+for (let i = 0; i < 2; i++) box(0.07, 0.015, 0.2, greyDk, 0.3, 0.13, -0.1 + i * 0.0, 0, 0, 0, kc);
+for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) box(0.034, 0.02, 0.034, whiteKey, -0.06 + i * 0.042, 0.13, 0.12 + j * 0.042, 0, 0, 0, kc);
+for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) box(0.03, 0.02, 0.03, whiteKey, -0.3 + i * 0.038, 0.13, 0.06 + j * 0.038, 0, 0, 0, kc);
+// binoculars
+{
+  const bn = new THREE.Group(); bn.position.set(-0.04, 0.8, -0.3); bn.rotation.set(0, 0.6, 0); cab.add(bn);
+  const barrel = new THREE.CylinderGeometry(0.038, 0.042, 0.15, 20);
+  const eye = new THREE.CylinderGeometry(0.022, 0.026, 0.05, 16);
+  for (const sx of [-0.045, 0.045]) {
+    const b = new THREE.Mesh(barrel, blackMat); b.rotation.x = Math.PI / 2; b.position.set(sx, 0, 0); bn.add(b);
+    const e = new THREE.Mesh(eye, blackMat); e.rotation.x = Math.PI / 2; e.position.set(sx * 0.8, 0.01, 0.095); bn.add(e);
+  }
+  box(0.05, 0.03, 0.06, blackMat, 0, 0.01, 0.02, 0, 0, 0, bn);
+}
+
+// ---------- screens with live CanvasTextures ----------
+const screens = {};
+function makeScreen(name, pw, ph, w, h, pos, rot, bezel = 0.025, depth = 0.04) {
+  const c = document.createElement('canvas'); c.width = pw; c.height = ph;
+  const ctx = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const g = new THREE.Group(); g.position.copy(pos); g.rotation.set(rot[0], rot[1], rot[2] || 0, 'YXZ'); cab.add(g);
+  box(w + bezel * 2, h + bezel * 2, depth, blackMat, 0, 0, -depth / 2 - 0.001, 0, 0, 0, g, 0.008);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+  mesh.position.z = 0.0015; g.add(mesh);
+  screens[name] = { c, ctx, tex, g, mesh, w: pw, h: ph };
+  return screens[name];
+}
+makeScreen('ground', 1280, 760, 0.7, 0.416, new THREE.Vector3(-0.38, 1.08, -1.08), [-0.12, 0.1]);
+makeScreen('air', 1280, 760, 0.7, 0.416, new THREE.Vector3(0.38, 1.08, -1.08), [-0.12, -0.1]);
+makeScreen('side', 440, 900, 0.28, 0.573, new THREE.Vector3(0.98, 1.06, -0.8), [-0.1, -0.7]);
+makeScreen('tablet', 1280, 820, 0.56, 0.359, new THREE.Vector3(0.38, 0.84, -0.56), [-0.95, -0.12], 0.03, 0.025);
+makeScreen('log', 420, 560, 0.22, 0.294, new THREE.Vector3(0.9, 0.9, -0.34), [-0.6, -0.75], 0.02, 0.03);
+// monitor stands
+for (const n of ['ground', 'air']) { const p = screens[n].g.position; box(0.06, 0.16, 0.04, greyDk, p.x, 0.81, p.z - 0.05); box(0.26, 0.015, 0.18, greyDk, p.x, 0.775, p.z - 0.02); }
+box(0.05, 0.2, 0.04, greyDk, 1.0, 0.82, -0.84, 0, -0.7);
+const glow = new THREE.PointLight(0x6fb8d6, 0.6, 2.2, 1.6); glow.position.set(0, 1.25, -0.8); cab.add(glow);
+const warm = new THREE.PointLight(0xffd7a8, 0.35, 4, 1.5); warm.position.set(-0.6, 2.6, 0.2); cab.add(warm);
+
+// ---------- window frames: outward-tilted octagon ----------
+{
+  const R = 2.9, N = 8, off = 14 * D2R;
+  for (let k = 0; k < N; k++) {
+    const a = off + (k * 2 * Math.PI) / N; // yaw (left positive)
+    const m = new THREE.Group(); m.rotation.y = a; cab.add(m);
+    const mull = box(0.16, 3.0, 0.22, frameMat, 0, 2.15, -R, -0.2, 0, 0, m);
+    // sill and head beam spanning to the next mullion
+    const a2 = off + ((k + 0.5) * 2 * Math.PI) / N, span = 2 * R * Math.sin(Math.PI / N) + 0.2;
+    const s = new THREE.Group(); s.rotation.y = a2; cab.add(s);
+    const ap = R * Math.cos(Math.PI / N);
+    box(span, 0.12, 0.35, frameMat, 0, 0.82, -ap + 0.05, 0, 0, 0, s);
+    box(span + 0.6, 0.35, 0.4, frameMat, 0, 3.6, -ap - 0.55, 0, 0, 0, s);
+    box(span, 0.9, 0.06, greyDk, 0, 0.4, -ap + 0.1, 0, 0, 0, s);
+    // faint glass reflection
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(span, 2.9), new THREE.MeshBasicMaterial({ color: 0x9fb8d0, transparent: true, opacity: 0.035, depthWrite: false }));
+    glass.position.set(0, 2.25, -ap - 0.3); glass.rotation.x = -0.2; s.add(glass);
+  }
+  const ceil = new THREE.Mesh(new THREE.CircleGeometry(4.2, 8), new THREE.MeshStandardMaterial({ color: 0x0d0f12, roughness: 1 }));
+  ceil.rotation.x = Math.PI / 2; ceil.position.y = 3.75; cab.add(ceil);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(3.2, 8), new THREE.MeshStandardMaterial({ color: 0x1a1d21, roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = 0; cab.add(floor);
+}
+
+// ================= data =================
+const fetchJSON = (u) => fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const [AIRPORTS, METAR] = await Promise.all([fetchJSON('data/airports.geojson'), fetchJSON('data/metar.json')]);
+const sfo = (AIRPORTS?.features || []).filter((f) => f.properties.airport === 'SFO');
+const toXZ = (c) => { const [x, z] = P(c[0], c[1]); return [x, z]; };
+const runwayLine = (ref) => {
+  const segs = sfo.filter((f) => f.properties.kind === 'runway' && f.properties.ref === ref).map((f) => f.geometry.coordinates.map(toXZ));
+  if (!segs.length) return null;
+  const pts = segs.flat(); let a = pts[0], b = pts[0];
+  for (const p of pts) { if (p[0] > a[0]) a = p; if (p[0] < b[0]) b = p; }
+  return { E: a, W: b }; // east end = 28 threshold
+};
+const RWY = {
+  '28R': runwayLine('10L/28R') || { E: [2352, 252], W: [-846, -1430] },
+  '28L': runwayLine('10R/28L') || { E: [2243, 452], W: [-820, -1159] },
+};
+const taxiways = sfo.filter((f) => f.properties.kind === 'taxiway');
+const taxiLen = (c) => c.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - c[i - 1][0], p[1] - c[i - 1][1]) : 0), 0);
+const twPts = taxiways.map((f) => ({ ref: f.properties.ref, pts: f.geometry.coordinates.map(toXZ) })).map((t) => ({ ...t, len: taxiLen(t.pts) }));
+const pickTaxi = (ref) => twPts.filter((t) => t.ref === ref).sort((a, b) => b.len - a.len)[0];
+const metarK = METAR?.metar?.find((m) => m.icaoId === 'KSFO') || { wdir: 30, wspd: 6, rawOb: 'METAR KSFO 171856Z 03006KT 10SM CLR 21/14 A3005', altim: 1017.7, temp: 21, dewp: 14, visib: '10+' };
+
+// polyline helpers (xz arrays)
+function polyAt(pts, s) {
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (acc + L >= s || i === pts.length - 1) { const t = L ? clamp((s - acc) / L, 0, 1) : 0; return { p: [lerp(a[0], b[0], t), lerp(a[1], b[1], t)], d: [(b[0] - a[0]) / (L || 1), (b[1] - a[1]) / (L || 1)] }; }
+    acc += L;
+  }
+  return { p: pts[0], d: [1, 0] };
+}
+
+// ================= Google Photorealistic 3D Tiles (fallback: OSM procedural) =================
+const attrib = $('attrib');
+const credits = 'Aircraft: “Airplane” Poly by Google, “Boeing 747” Miha Lunar (CC BY 3.0) · Airport: © OpenStreetMap contributors (ODbL) · METAR: NOAA/NWS';
+attrib.innerHTML = credits;
+let tiles = null, tilesOK = false, fallbackOn = false;
+const fallback = new THREE.Group(); world.add(fallback);
+const errBox = (t) => { $('err').style.display = 'block'; $('err').textContent = t; };
+
+async function startTiles() {
+  let mapsKey = null;
+  if (new URLSearchParams(location.search).get('tiles') === '0') return enableFallback(true);
+  try { mapsKey = (await (await fetch('/api/maps-key')).json()).key; } catch (e) {}
+  if (!mapsKey) { errBox('Google Maps key unavailable (GET /api/maps-key). Showing the OSM airport fallback.'); return enableFallback(true); }
+  try {
+    const { TilesRenderer } = await import('https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/index.js');
+    const { GoogleCloudAuthPlugin, ReorientationPlugin, GLTFExtensionsPlugin, TilesFadePlugin } = await import('https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/index.plugins.js');
+    tiles = new TilesRenderer();
+    tiles.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: mapsKey, autoRefreshToken: true, useRecommendedSettings: true }));
+    const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/draco/gltf/');
+    tiles.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: draco }));
+    tiles.registerPlugin(new TilesFadePlugin());
+    // origin at SFO tower base; ellipsoid height ~ MSL 4 m + geoid -32 m
+    tiles.registerPlugin(new ReorientationPlugin({ lat: LAT0 * D2R, lon: LON0 * D2R, height: -28, recenter: true }));
+    // performance: coarse error target, small queues and cache so the machine stays responsive
+    tiles.errorTarget = 20;
+    tiles.downloadQueue.maxJobs = 6;
+    tiles.parseQueue.maxJobs = 2;
+    tiles.lruCache.maxSize = 400;
+    // OBJECT_FRAME: +Y up, +Z north, +X west. Rotate to x east, z south.
+    const holder = new THREE.Group(); holder.rotation.y = Math.PI; holder.add(tiles.group); scene.add(holder);
+    tiles.setCamera(camera); tiles.setResolutionFromRenderer(camera, renderer);
+    let loaded = 0, errors = 0;
+    tiles.addEventListener('load-model', ({ scene: s }) => {
+      loaded++;
+      s.traverse((o) => { if (o.material) { o.material.color?.setRGB(0.21, 0.24, 0.34); o.material.fog = true; } });
+      if (loaded > 140 && !tilesOK) { tilesOK = true; enableFallback(false); }
+    });
+    tiles.addEventListener('load-error', () => { errors++; });
+    setTimeout(() => { if (!tilesOK && loaded > 40) { tilesOK = true; enableFallback(false); } }, 25000);
+    setTimeout(() => { if (!tilesOK && loaded < 5) { errBox(`Photoreal tiles did not load (${errors} errors). Showing the OSM airport fallback.`); enableFallback(true); } }, 15000);
+  } catch (e) { console.warn(e); errBox('3D Tiles renderer failed to load. Showing the OSM airport fallback.'); enableFallback(true); }
+}
+function updateAttrib() {
+  let g = 'Google';
+  try { const a = tiles?.getAttributions?.() || []; const s = a.filter((x) => x.type === 'string').map((x) => x.value).join('; '); if (s) g = s; } catch (e) {}
+  attrib.innerHTML = (tilesOK ? `<b>Google</b> · Map data ${g}<br>` : '') + credits;
+}
+
+// ---- fallback: OSM airport + coastline + SF skyline ----
+function buildFallbackGround() {
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(120000, 120000), new THREE.MeshBasicMaterial({ color: 0x1c2a38 }));
+  water.rotation.x = -Math.PI / 2; water.position.y = -1.2; fallback.add(water);
+  const shapeOf = (ring) => { const s = new THREE.Shape(); ring.forEach((c, i) => { const [x, z] = P(c[0], c[1]); i ? s.lineTo(x, -z) : s.moveTo(x, -z); }); return s; };
+  fetchJSON('data/bay-coastline.geojson').then((d) => {
+    if (!d) return;
+    const geos = [];
+    for (const f of d.features) {
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      for (const p of polys) { const s = shapeOf(p[0]); for (const h of p.slice(1)) s.holes.push(shapeOf(h)); geos.push(new THREE.ShapeGeometry(s)); }
+    }
+    const land = new THREE.Mesh(mergeGeometries(geos), new THREE.MeshBasicMaterial({ color: 0x3b4541 }));
+    land.rotation.x = -Math.PI / 2; land.position.y = -0.8; fallback.add(land);
+  });
+  const ribbon = (pts, w, color, y) => {
+    const pos = [];
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i], dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1, nx = (-dz / L) * w / 2, nz = (dx / L) * w / 2;
+      pos.push(a[0] + nx, y, a[1] + nz, a[0] - nx, y, a[1] - nz, b[0] + nx, y, b[1] + nz, a[0] - nx, y, a[1] - nz, b[0] - nx, y, b[1] - nz, b[0] + nx, y, b[1] + nz);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+    return g;
+  };
+  const apr = [], ter = [], rw = [], tw = [];
+  for (const f of sfo) {
+    const k = f.properties.kind;
+    if (k === 'apron' || k === 'terminal') {
+      const ring = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates[0][0];
+      const s = shapeOf(ring);
+      if (k === 'apron') apr.push(new THREE.ShapeGeometry(s).rotateX(-Math.PI / 2).translate(0, -0.3, 0));
+      else ter.push(new THREE.ExtrudeGeometry(s, { depth: 16, bevelEnabled: false }).rotateX(-Math.PI / 2));
+    } else if (k === 'runway') rw.push(ribbon(f.geometry.coordinates.map(toXZ), f.properties.width || 61, 0, -0.1));
+    else if (k === 'taxiway') tw.push(ribbon(f.geometry.coordinates.map(toXZ), 23, 0, -0.2));
+  }
+  const add = (arr, color) => { if (arr.length) fallback.add(new THREE.Mesh(mergeGeometries(arr), new THREE.MeshBasicMaterial({ color }))); };
+  add(apr, 0x565c63); add(tw, 0x4a4f55); add(rw, 0x1a1c1f); add(ter, 0x6a7078);
+}
+let skylineBuilt = false;
+function buildSkyline() {
+  if (skylineBuilt) return; skylineBuilt = true;
+  fetchJSON('data/buildings-sf.geojson').then((d) => {
+    if (!d) return;
+    const geos = [];
+    for (const f of d.features.slice(0, 1500)) {
+      const ring = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates[0][0];
+      const s = new THREE.Shape(); ring.forEach((c, i) => { const [x, z] = P(c[0], c[1]); i ? s.lineTo(x, -z) : s.moveTo(x, -z); });
+      geos.push(new THREE.ExtrudeGeometry(s, { depth: f.properties.h || 20, bevelEnabled: false }).rotateX(-Math.PI / 2));
+    }
+    const m = new THREE.Mesh(mergeGeometries(geos), new THREE.MeshLambertMaterial({ color: 0x2a3140, emissive: 0x0c1018 }));
+    fallback.add(m);
+  });
+}
+function enableFallback(on) {
+  fallbackOn = on; fallback.visible = on;
+  if (on) buildSkyline();
+  updateAttrib();
+}
+buildFallbackGround();
+
+// ---- airfield lights (both modes) ----
+const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, '#fff'); r.addColorStop(0.25, 'rgba(255,255,255,.9)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); return t; })();
+function lightPoints(list, color, size) {
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(list, 3));
+  const m = new THREE.PointsMaterial({ color, size, sizeAttenuation: false, map: dotTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const p = new THREE.Points(g, m); world.add(p); return p;
+}
+{
+  const edge = [], thr = [], end = [], txe = [];
+  for (const r of Object.values(RWY)) {
+    const dx = r.W[0] - r.E[0], dz = r.W[1] - r.E[1], L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, nx = -uz * 32, nz = ux * 32;
+    for (let s = 0; s <= L; s += 60) for (const k of [1, -1]) edge.push(r.E[0] + ux * s + nx * k, 1.2, r.E[1] + uz * s + nz * k);
+    for (let k = -30; k <= 30; k += 5) { thr.push(r.E[0] + nx * k / 32, 1.2, r.E[1] + nz * k / 32); end.push(r.W[0] + nx * k / 32, 1.2, r.W[1] + nz * k / 32); }
+    for (let s = 60; s <= 900; s += 30) thr.push(r.E[0] - ux * s, 3, r.E[1] - uz * s); // approach lights over the bay
+  }
+  for (const t of twPts) for (let s = 0; s < t.len; s += 45) { const q = polyAt(t.pts, s).p; txe.push(q[0], 1.0, q[1]); }
+  lightPoints(edge, 0xfff2d8, 3.2); lightPoints(thr, 0x6dff8e, 3.4); lightPoints(end, 0xff4433, 3.2); lightPoints(txe, 0x4f7dff, 2.2);
+}
+// eVTOL pads near the tower
+const PAD = { 1: [260, -210], 2: [330, -150] };
+for (const [, p] of Object.entries(PAD)) {
+  const ring = []; for (let a = 0; a < 24; a++) ring.push(p[0] + Math.cos(a / 24 * Math.PI * 2) * 14, 1.0, p[1] + Math.sin(a / 24 * Math.PI * 2) * 14);
+  lightPoints(ring, 0x5fd4ff, 3);
+}
+// SkyFlow corridors (faint, at 1,500 ft)
+const corrLines = {};
+for (const e of EDGES) {
+  const [a, b] = e.split('-'), pa = P(...NODES[a]), pb = P(...NODES[b]);
+  const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(pa[0], 457, pa[1]), new THREE.Vector3(pb[0], 457, pb[1])]);
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x5fd4ff, transparent: true, opacity: 0.35, fog: false }));
+  world.add(l); corrLines[e] = l;
+}
+// storm cell over C–E (billboards + lightning)
+const stormGroup = new THREE.Group(); world.add(stormGroup);
+{
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  for (let i = 0; i < 26; i++) { const x = 64 + (Math.random() - .5) * 60, y = 70 + (Math.random() - .5) * 40, r = 18 + Math.random() * 26;
+    const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, 'rgba(255,255,255,.55)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = rg; g.fillRect(0, 0, 128, 128); }
+  const tex = new THREE.CanvasTexture(c);
+  const mid = P((NODES.C[0] + NODES.E[0]) / 2, (NODES.C[1] + NODES.E[1]) / 2);
+  for (let i = 0; i < 9; i++) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0x3a3f48, transparent: true, opacity: 0, depthWrite: false, fog: false }));
+    s.position.set(mid[0] + (Math.random() - .5) * 4000, 1200 + Math.random() * 1600, mid[1] + (Math.random() - .5) * 3000);
+    const sc = 3500 + Math.random() * 3000; s.scale.set(sc, sc * 0.7, 1); stormGroup.add(s);
+  }
+}
+
+// ================= aircraft =================
+const loader = new GLTFLoader();
+const loadGLB = (u) => new Promise((res) => loader.load(u, (g) => res(g.scene), undefined, () => res(null)));
+function normModel(src, len, yawFix) {
+  const holder = new THREE.Group();
+  if (!src) { // procedural stand-in
+    const b = new THREE.Mesh(new THREE.CapsuleGeometry(len * 0.05, len * 0.85, 4, 10).rotateX(Math.PI / 2), greyMat);
+    const w = new THREE.Mesh(new THREE.BoxGeometry(len * 0.9, len * 0.02, len * 0.14), greyMat); w.position.y = len * 0.02;
+    holder.add(b, w); return holder;
+  }
+  const o = src.clone(true);
+  const bb = new THREE.Box3().setFromObject(o), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3());
+  const s = len / Math.max(sz.x, sz.z);
+  o.position.set(-c.x, -bb.min.y, -c.z);
+  const inner = new THREE.Group(); inner.add(o); inner.scale.setScalar(s); inner.rotation.y = yawFix;
+  o.traverse((m) => { if (m.isMesh) { m.material = m.material.clone(); m.material.color?.multiplyScalar(0.8); } });
+  holder.add(inner); return holder;
+}
+const beaconMat = (c) => new THREE.SpriteMaterial({ map: dotTex, color: c, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false, fog: false });
+function addLights(g, h) {
+  const red = new THREE.Sprite(beaconMat(0xff3322)); red.scale.setScalar(0.014); red.position.y = h; g.add(red);
+  const wht = new THREE.Sprite(beaconMat(0xffffff)); wht.scale.setScalar(0.018); wht.position.y = h * 0.5; g.add(wht);
+  const land = new THREE.Sprite(beaconMat(0xfff4dd)); land.scale.setScalar(0.009); land.position.set(0, h * 0.3, h * 1.2); g.add(land);
+  g.userData.lights = { red, wht, land };
+}
+const actors = [];
+const [M747, MAIR, MEV] = await Promise.all([loadGLB('assets/boeing747-mihalunar/model.glb'), loadGLB('assets/airplane-google/model.glb'), loadGLB('assets/evtol.glb')]);
+function mkActor(cs, kind, fn, tag) {
+  const model = kind === '747' ? normModel(M747, 70, Math.PI) : kind === 'air' ? normModel(MAIR, 40, 0) : normModel(MEV, 16, 0);
+  const g = new THREE.Group(); g.add(model); addLights(g, kind === 'evtol' ? 3 : kind === '747' ? 19 : 12); world.add(g);
+  const a = { cs, kind, fn, tag: tag || cs, g, pos: new THREE.Vector3(), dir: new THREE.Vector3(1, 0, 0), vis: false, onGround: true, phase: Math.random() * 6 };
+  actors.push(a); return a;
+}
+// runway kinematics
+const rw = (r) => { const dx = r.W[0] - r.E[0], dz = r.W[1] - r.E[1], L = Math.hypot(dx, dz); return { E: r.E, L, ux: dx / L, uz: dz / L }; };
+const R28R = rw(RWY['28R']), R28L = rw(RWY['28L']);
+mkActor('UAL900', '747', (t) => { // takeoff 28R, period 64 s
+  const T = (t + 4) % 64; let s, y = 0;
+  if (T < 6) s = 90; else { const tt = T - 6, a = 2.1, tr = 34; s = tt < tr ? 90 + 0.5 * a * tt * tt : 90 + 0.5 * a * tr * tr + 72 * (tt - tr); if (tt > tr) y = (tt - tr) * 7.5; }
+  return { x: R28R.E[0] + R28R.ux * s, y, z: R28R.E[1] + R28R.uz * s, dx: R28R.ux, dy: y > 0 ? 0.1 : 0, dz: R28R.uz, vis: T < 62 };
+}, 'UAL900/H');
+mkActor('AAL173', 'air', (t) => { // landing 28L, period 80 s
+  const T = (t + 30) % 80, D0 = 3600, v0 = 70, td = (D0 + 300) / v0; let s, y;
+  if (T < td) { s = -D0 + v0 * T; y = Math.max(0, -(s - 300) * Math.tan(3 * D2R)); }
+  else { const tt = T - td, a = 2.4, tv = (v0 - 14) / a; s = 300 + (tt < tv ? v0 * tt - 0.5 * a * tt * tt : v0 * tv - 0.5 * a * tv * tv + 14 * (tt - tv)); y = 0; }
+  return { x: R28L.E[0] + R28L.ux * s, y, z: R28L.E[1] + R28L.uz * s, dx: R28L.ux, dy: y > 0 ? -0.05 : 0, dz: R28L.uz, vis: T < 78 };
+}, 'AAL173/M');
+const twC = pickTaxi('C'), twA = pickTaxi('A');
+const pingPong = (tw, v, off) => (t) => {
+  if (!tw) return { vis: false };
+  const L = tw.len, q = ((t + off) * v) % (2 * L), fwd = q < L, s = fwd ? q : 2 * L - q, r = polyAt(tw.pts, s);
+  return { x: r.p[0], y: 0, z: r.p[1], dx: fwd ? r.d[0] : -r.d[0], dy: 0, dz: fwd ? r.d[1] : -r.d[1], vis: true };
+};
+mkActor('UAL1210', 'air', pingPong(twC, 9, 120), 'UAL1210/M');
+mkActor('CPA873', '747', pingPong(twA, 7, 40), 'CPA873/H');
+// eVTOLs: scripted lift-offs / landing, plus corridor cruisers
+const evState = {};
+function liftoff(pad, hdg) { return (t, a) => {
+  const st = evState[a.cs]; const p = PAD[pad]; const dx = Math.sin(hdg), dz = -Math.cos(hdg);
+  if (st == null) return { x: p[0], y: 0, z: p[1], dx, dy: 0, dz, vis: true };
+  const T = t - st; if (T < 0) return { x: p[0], y: 0, z: p[1], dx, dy: 0, dz, vis: true };
+  const climb = 90 * smooth(0, 10, T), fwd = T > 9 ? 0.5 * 2.2 * (T - 9) ** 2 : 0, y = climb + Math.max(0, T - 9) * 7;
+  return { x: p[0] + dx * fwd, y, z: p[1] + dz * fwd, dx, dy: 0, dz, vis: T < 70 };
+}; }
+mkActor('SKF105', 'evtol', liftoff(1, -40 * D2R), 'SKF105/L');
+mkActor('SKF384', 'evtol', liftoff(2, -35 * D2R), 'SKF384/L');
+mkActor('SKF122', 'evtol', (t, a) => { // landing pad 1, approach from NNE
+  const st = evState[a.cs], p = PAD[1], hd = 200 * D2R, dx = Math.sin(hd), dz = -Math.cos(hd);
+  if (st == null) return { vis: false };
+  const T = t - st, D = 2600;
+  if (T < 24) { const k = ease(T / 24), d = D * (1 - k); return { x: p[0] - dx * d, y: 70 + 260 * (1 - k), z: p[1] - dz * d, dx, dy: 0, dz, vis: true }; }
+  const y = 70 * (1 - smooth(24, 34, T)); return { x: p[0], y, z: p[1], dx, dy: 0, dz, vis: true };
+}, 'SKF122/L');
+const pW = P(...NODES.W), pS = P(...NODES.SFO);
+for (const [cs, off, dir] of [['SKF119', 0, 1], ['SKF127', 22, -1]]) mkActor(cs, 'evtol', (t) => {
+  const L = Math.hypot(pW[0] - pS[0], pW[1] - pS[1]), q = ((t * 55 + off * 55) % L) / L, k = dir > 0 ? q : 1 - q;
+  const dx = (pW[0] - pS[0]) / L * dir, dz = (pW[1] - pS[1]) / L * dir;
+  return { x: lerp(pS[0], pW[0], k), y: 457, z: lerp(pS[1], pW[1], k), dx, dy: 0, dz, vis: true };
+}, cs + '/L');
+
+function updateActors(visT) {
+  const tmp = new THREE.Vector3();
+  for (const a of actors) {
+    const s = a.fn(visT, a); a.vis = !!s.vis; a.g.visible = a.vis; if (!a.vis) continue;
+    a.pos.set(s.x, s.y + groundY, s.z); a.dir.set(s.dx, s.dy, s.dz).normalize(); a.onGround = s.y < 2;
+    a.g.position.copy(a.pos); tmp.copy(a.pos).add(a.dir); a.g.lookAt(tmp);
+    const L = a.g.userData.lights; const ph = visT + a.phase;
+    L.red.visible = ph % 1.2 < 0.12; L.wht.visible = (ph * 1.7) % 1.5 < 0.06; L.land.visible = !a.onGround || a.kind !== 'evtol';
+  }
+}
+
+// ================= scenario state =================
+const S = {
+  t: 0, paused: false, busy: 0, tx: 0, gen: 0,
+  banner: { text: 'STANDING BY', sub: 'KSFO TOWER · 120.5', cls: '' },
+  log: [], good: 0, strips: [], agents: [], scoreReveal: false,
+  flags: { r412: false, r421: false, mismatch: false, committed412: false },
+  dep412: null, dep384: null, hold421: true, rel421: null,
+};
+const simMin = () => S.t * SIMRATE;
+const stormLevel = () => { const m = simMin(); return smooth(STORM[0] - 1.5, STORM[0], m) * (1 - smooth(STORM[1] - 1.5, STORM[1] + 0.5, m)); };
+const ceClosed = () => { const m = simMin(); return m >= STORM[0] && m < STORM[1]; };
+const clockStr = (addMin = 0) => { const s = Math.floor(18 * 3600 + 40 * 60 + (simMin() + addMin) * 60); const p = (n) => String(n).padStart(2, '0'); return `${p(Math.floor(s / 3600) % 24)}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`; };
+
+// strips
+const STRIP0 = [
+  { cs: 'SKF122', type: 'EV4', rt: 'OAK E W SFO', alt: '010', bay: 'PEND', kind: 'arr' },
+  { cs: 'SKF412', type: 'EV4', rt: 'SF C E OAK', alt: '012', bay: 'PEND', kind: 'arr' },
+  { cs: 'SKF421', type: 'EV4', rt: 'MAR SF C E OAK', alt: '010', bay: 'PEND', kind: 'arr' },
+  { cs: 'SKF117', type: 'EV4', rt: 'OAK BER', alt: '010', bay: 'PEND', kind: 'arr' },
+  { cs: 'SKF109', type: 'EV4', rt: 'BER C SF', alt: '012', bay: 'PEND', kind: 'arr' },
+  { cs: 'SKF384', type: 'EV4', rt: 'SFO W SF', alt: '012', bay: 'GDEP', kind: 'dep' },
+  { cs: 'SKF105', type: 'EV4', rt: 'SFO W SF', alt: '012', bay: 'GDEP', kind: 'dep' },
+  { cs: 'UAL900', type: 'B744', rt: '28R TRUKN2', alt: '050', bay: 'DEPI', kind: 'dep' },
+  { cs: 'AAL173', type: 'A321', rt: '28L ILS', alt: '030', bay: 'ARRC', kind: 'arr' },
+  { cs: 'SKF126', type: 'EV4', rt: 'SFO W E OAK', alt: '012', bay: 'GDEP', kind: 'dep' },
+  { cs: 'UAL1210', type: 'B738', rt: '01R TAXI C', alt: '050', bay: 'GND', kind: 'dep' },
+];
+function resetState() {
+  S.t = 0; S.busy = 0; S.tx = 0; S.log = []; S.good = 0; S.agents = []; S.scoreReveal = false;
+  S.flags = { r412: false, r421: false, mismatch: false, committed412: false }; S.dep412 = null; S.dep384 = null; S.hold421 = true; S.rel421 = null;
+  S.strips = STRIP0.map((s) => ({ ...s, hb: '', note: '', x: null, y: null }));
+  for (const k in evState) delete evState[k];
+  setBanner('STANDING BY', 'KSFO TOWER · 120.5', '');
+  $('score').classList.remove('reveal');
+}
+const strip = (cs) => S.strips.find((s) => s.cs === cs);
+function setBanner(text, sub, cls) { S.banner = { text, sub, cls }; const b = $('banner'); b.className = cls || ''; $('cmd').innerHTML = `<small>${sub}</small>${text}`; }
+function logLine(who, text, cls = '') { S.log.unshift({ t: clockStr(), who, text, cls }); if (S.log.length > 30) S.log.pop(); }
+
+// ---- radio lines (voice text spells numbers as words) ----
+const L = {
+  t384: ['atc', null, 'SkyFlow three eight four, taxi to pad two via Alpha, hold short two eight left.', 'SKF384 TAXI TO PAD 2 VIA A, HOLD SHORT 28L'],
+  t384r: ['pilot', 'SKF384', 'Taxi to pad two via Alpha, hold short two eight left, SkyFlow three eight four.'],
+  d105: ['atc', null, 'SkyFlow one zero five, pad one, cleared for takeoff, via Whiskey, maintain one thousand two hundred.', 'SKF105 PAD 1 CLEARED FOR TAKEOFF, VIA W, MAINTAIN 1200'],
+  d105r: ['pilot', 'SKF105', 'Cleared for takeoff, via Whiskey, one thousand two hundred, SkyFlow one zero five.'],
+  wx: ['atc', null, 'All SkyFlow, corridor Charlie Echo closed, storm cell over the bay.', 'ALL STATIONS: CORRIDOR C–E CLOSED, CELL OVER BAY'],
+  r412: ['atc', null, 'SkyFlow four one two, Charlie Echo closed, proceed via Whiskey then Echo, maintain one thousand two hundred.', 'SKF412 C–E CLOSED, VIA W THEN E, MAINTAIN 1200'],
+  r412bad: ['pilot', 'SKF421', 'Via Whiskey then Echo, one thousand two hundred, SkyFlow four two one.'],
+  neg: ['atc', null, 'SkyFlow four two one, negative, that was for four one two. Four one two, read back.', 'NEGATIVE SKF421 · SKF412 READ BACK'],
+  r412r: ['pilot', 'SKF412', 'Via Whiskey then Echo, maintain one thousand two hundred, SkyFlow four one two.'],
+  open: ['atc', null, 'All SkyFlow, corridor Charlie Echo open, resume normal routing.', 'ALL STATIONS: CORRIDOR C–E OPEN, RESUME NORMAL ROUTING'],
+  l122: ['atc', null, 'SkyFlow one two two, wind zero three zero at six, pad one, cleared to land.', 'SKF122 PAD 1 CLEARED TO LAND, WIND 030/06'],
+  l122r: ['pilot', 'SKF122', 'Cleared to land pad one, SkyFlow one two two.'],
+};
+SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined })));
+const txEl = $('tx');
+SkyRadio.onTransmit(({ speaker, live }) => { txEl.classList.toggle('on', live); txEl.classList.toggle('pilot', live && speaker === 'pilot'); txEl.textContent = live ? (speaker === 'atc' ? 'TWR' : 'ACFT') : 'TX'; });
+
+// ---- async scenario runner ----
+class Abort extends Error {}
+const tick = () => new Promise((r) => requestAnimationFrame(r));
+async function at(T, g) { while (S.t < T) { if (g !== S.gen) throw new Abort(); await tick(); } if (g !== S.gen) throw new Abort(); }
+async function hold(sec, g) { const end = performance.now() + sec * 1000; while (performance.now() < end || S.paused || halted) { if (g !== S.gen) throw new Abort(); await tick(); } }
+async function radio(id, g) {
+  const [sp, k, text, ban] = L[id];
+  if (g !== S.gen) throw new Abort();
+  S.tx++; S.busy++;
+  if (sp === 'atc' && ban) setBanner(ban, 'TWR → ' + ((ban.match(/SKF\d+/) || ['ALL'])[0]), ban.startsWith('NEGATIVE') ? 'bad' : ban.startsWith('ALL') ? 'alert' : '');
+  logLine(sp === 'atc' ? 'TWR' : k, text, sp);
+  const minDur = 0.6 + text.split(' ').length * 0.27;
+  try { await Promise.all([SkyRadio.say(text, sp, k || undefined), hold(minDur, g)]); }
+  finally { S.busy = Math.max(0, S.busy - 1); }
+  if (g !== S.gen) throw new Abort();
+}
+function hearback(cs, ok, note) { const s = strip(cs); if (!s) return; s.hb = ok ? 'ok' : 'bad'; s.note = note || ''; if (ok) { S.good = performance.now(); logLine('HB', `${cs} readback ✓ fields match`, 'ok'); } else logLine('HB', `${cs} ✗ ${note}`, 'bad'); }
+const move = (cs, bay) => { const s = strip(cs); if (s) s.bay = bay; };
+function propose(from, to, text, verdict, reason) { S.agents.unshift({ from, to, text, verdict: null, final: verdict, reason, born: performance.now() }); if (S.agents.length > 7) S.agents.pop(); }
+function decide() { const a = S.agents.find((x) => x.verdict === null); if (a) { a.verdict = a.final; logLine('KERNEL', `${a.final} · ${a.text}${a.final === 'REJECT' ? ' — ' + a.reason : ''}`, a.final === 'ACCEPT' ? 'ok' : 'bad'); } }
+
+async function scenario(g) {
+  resetState();
+  shot('desk');
+  await at(1.2, g);
+  strip('SKF384').hb = 'wait';
+  await radio('t384', g); await radio('t384r', g);
+  hearback('SKF384', true); move('SKF384', 'GND');
+  await at(5.6, g);
+  shot('runway');
+  strip('SKF105').hb = 'wait'; move('SKF105', 'DEPI');
+  await radio('d105', g); await radio('d105r', g);
+  hearback('SKF105', true); move('SKF105', 'DEPC'); evState.SKF105 = visT + 1;
+  await at(10.4, g); shot('tablet');
+  move('UAL900', 'DEPC');
+  await at(12.4, g); move('SKF105', 'DEP'); move('AAL173', 'GND');
+  await at(13.6, g); shot('air'); setBanner('WX CELL BUILDING OVER C–E · RADAR RETURNS 45 dBZ', 'COORDINATOR AGENT', 'alert');
+  logLine('WX', 'Unforecast cell building over C–E', 'bad');
+  await at(16.0, g);
+  await radio('wx', g);
+  await at(17.2, g); shot('side');
+  propose('COORD', 'spawn', 'Spawn SECTOR-C, SECTOR-E, PAD-OAK agents', 'ACCEPT', ''); await hold(0.9, g); decide();
+  await hold(0.6, g);
+  propose('SEC-C', '412', 'REROUTE SKF412 SF–C–E → SF–W–E (+2.1 km)', 'ACCEPT', ''); await hold(1.3, g); decide();
+  move('SKF412', 'DEPI'); strip('SKF412').rt = 'SF W E OAK';
+  propose('SEC-E', '421', 'KEEP SKF421 ON C–E, cell drifting east', 'REJECT', 'C–E closed 08–24, storm polygon intersects leg'); await hold(1.5, g); decide();
+  propose('PAD-OAK', '117', 'HOLD SKF117 at OAK pad 3 min · SKF122 first (batt 18%)', 'ACCEPT', ''); await hold(1.3, g); decide();
+  propose('SEC-E', '421', 'HOLD SKF421 over SF, then SF–W–E', 'ACCEPT', ''); await hold(1.3, g); decide();
+  strip('SKF421').rt = 'HOLD SF · W E OAK';
+  await at(24.0, g); shot('air');
+  strip('SKF412').hb = 'wait';
+  await radio('r412', g);
+  await radio('r412bad', g);
+  S.flags.mismatch = true; hearback('SKF412', false, 'CALLSIGN 421≠412');
+  setBanner('HEARBACK MISMATCH · READBACK FROM SKF421, CLEARANCE WAS SKF412', 'HEARBACK CHECK', 'bad');
+  shot('tablet');
+  await hold(1.4, g);
+  await radio('neg', g);
+  shot('air');
+  await radio('r412r', g);
+  S.flags.mismatch = false; hearback('SKF412', true); S.flags.committed412 = true;
+  logLine('KERNEL', `COMMIT SKF412 W–E ${clockStr(1)}–${clockStr(6)} reserved`, 'ok');
+  S.good = performance.now(); logLine('TWR', 'SKF412 readback correct, pad 2 cleared for takeoff (datalink)', 'ok');
+  move('SKF412', 'DEPC'); S.dep412 = simMin();
+  await at(32.8, g); shot('ground');
+  // routine departures and the agent-approved 421 release go by datalink to keep the frequency clear
+  move('SKF384', 'DEPC'); strip('SKF384').hb = 'ok'; evState.SKF384 = visT + 1; S.dep384 = simMin(); move('SKF412', 'DEP');
+  setBanner('SKF384 PAD 2 CLEARED FOR TAKEOFF, VIA W TO SF', 'DATALINK → SKF384 · WILCO', '');
+  logLine('CPDLC', 'SKF384 cleared for takeoff pad 2 via W · WILCO', 'ok');
+  await at(38.4, g); shot('air');
+  move('SKF421', 'ARRI'); strip('SKF421').hb = 'ok'; S.hold421 = false; S.rel421 = simMin();
+  setBanner('SKF421 LEAVE HOLD, VIA W THEN E TO OAK, MAINTAIN 1000', 'DATALINK → SKF421 · WILCO', '');
+  logLine('CPDLC', 'SKF421 leave hold via W–E, 1000 · WILCO', 'ok');
+  await at(44.8, g); shot('side'); setBanner('CELL DECAYING · C–E RE-OPEN AT 19:04', 'COORDINATOR AGENT', 'alert');
+  propose('COORD', 'all', 'REOPEN C–E at min 24 · restore static routes', 'ACCEPT', ''); await hold(1.2, g); decide();
+  await at(48.4, g); shot('air');
+  await radio('open', g);
+  await at(51.2, g); shot('binoc');
+  strip('SKF122').hb = 'wait'; move('SKF122', 'ARRI');
+  evState.SKF122 = visT;
+  await radio('l122', g); await radio('l122r', g);
+  hearback('SKF122', true); move('SKF122', 'ARRC');
+  await at(59.2, g); shot('desk');
+  S.scoreReveal = true; $('score').classList.add('reveal');
+  setBanner('AGENT TEAM 28/28 ON TIME · STATIC PLAN 10/28 · 0 CONFLICTS', 'SIMULATION RESULT', '');
+  logLine('SCORE', 'Agents 28/28 on time vs static 10/28', 'ok');
+  move('SKF122', 'GND');
+  await at(70.4, g);
+}
+async function runLoop() {
+  while (true) {
+    const g = ++S.gen; (window.__loops ||= []).push(performance.now());
+    try { await scenario(g); } catch (e) { if (!(e instanceof Abort)) { console.error(e); } if (g !== S.gen) continue; }
+  }
+}
+
+// ================= air traffic for DBRIGHT =================
+const ROUTES = [['SF', 'C', 'BER'], ['MAR', 'SF', 'W', 'SFO'], ['OAK', 'E', 'C', 'SF'], ['BER', 'OAK'], ['SFO', 'W', 'E', 'OAK'], ['SF', 'C', 'E', 'OAK'], ['BER', 'C', 'SF', 'MAR'], ['OAK', 'E', 'W', 'SFO']];
+const SCRIPTED = new Set([105, 109, 117, 122, 126, 384, 412, 421]);
+const TRIPS = [];
+for (let i = 0, n = 101; i < 28; i++, n++) {
+  if (SCRIPTED.has(n)) continue;
+  const rel = -12 + i * 2.5; let r = ROUTES[i % ROUTES.length].slice();
+  const usesCE = r.some((v, j) => j && ((r[j - 1] === 'C' && v === 'E') || (r[j - 1] === 'E' && v === 'C')));
+  TRIPS.push({ cs: 'SKF' + n, rel, r, alt: 10 + (i % 3), usesCE });
+}
+const KMPM = 3.1; // 100 kt in km per sim minute
+function routeFor(tr, m) {
+  if (!tr.usesCE) return tr.r;
+  if (tr.rel + 2 < STORM[0] || tr.rel > STORM[1]) return tr.r;
+  const out = []; // C–E → C–SF–W–E
+  for (let j = 0; j < tr.r.length; j++) { const v = tr.r[j], nx = tr.r[j + 1]; out.push(v); if (v === 'C' && nx === 'E') out.push('SF', 'W'); if (v === 'E' && nx === 'C') out.push('W', 'SF'); }
+  return out;
+}
+function posOnRoute(r, km) {
+  for (let j = 1; j < r.length; j++) { const L = distKm(r[j - 1], r[j]); if (km <= L) { const a = nodeKm(r[j - 1]), b = nodeKm(r[j]), t = km / L; return { x: lerp(a[0], b[0], t), y: lerp(a[1], b[1], t), hx: (b[0] - a[0]) / L, hy: (b[1] - a[1]) / L }; } km -= L; }
+  return null;
+}
+function airTraffic() {
+  const m = simMin(), out = [];
+  for (const tr of TRIPS) { const r = routeFor(tr, m), p = posOnRoute(r, (m - tr.rel) * KMPM); if (m >= tr.rel && p) out.push({ cs: tr.cs, ...p, alt: tr.alt, gs: 10, r }); }
+  // scripted
+  const fly = (cs, r, t0, alt) => { if (t0 == null || m < t0) return; const p = posOnRoute(r, (m - t0) * KMPM); if (p) out.push({ cs, ...p, alt, gs: 10, r, special: true }); };
+  fly('SKF105', ['SFO', 'W', 'SF'], 3.4, 12);
+  fly('SKF384', ['SFO', 'W', 'SF'], S.dep384, 12);
+  fly('SKF412', ['SF', 'W', 'E', 'OAK'], S.dep412, 12);
+  if (S.dep412 == null) { const p = nodeKm('SF'); out.push({ cs: 'SKF412', x: p[0] + 0.25, y: p[1] - 0.2, hx: 0, hy: 1, alt: 0, gs: 0, r: S.flags.committed412 || simMin() > 9 ? ['SF', 'W', 'E', 'OAK'] : ['SF', 'C', 'E', 'OAK'], special: true }); }
+  // 421: MAR→SF, then hold over SF, then SF–W–E–OAK
+  { const t0 = 6.5, r1 = ['MAR', 'HLD'], L1 = distKm('MAR', 'HLD'), d = (m - t0) * KMPM;
+    if (d < L1) { const p = posOnRoute(r1, Math.max(0, d)); out.push({ cs: 'SKF421', ...p, alt: 10, gs: 10, r: ['MAR', 'SF', 'C', 'E', 'OAK'], special: true }); }
+    else if (S.hold421 || S.rel421 == null) { const c = nodeKm('HLD'), ang = (m - t0 - L1 / KMPM) * 2.2; out.push({ cs: 'SKF421', x: c[0] + 0.8 - Math.cos(ang) * 0.8, y: c[1] - Math.sin(ang) * 0.8, hx: -Math.sin(ang), hy: Math.cos(ang), alt: 10, gs: 9, r: ['HLD', 'SF', 'W', 'E', 'OAK'], special: true, holding: true }); }
+    else fly('SKF421', ['HLD', 'SF', 'W', 'E', 'OAK'], S.rel421, 10); }
+  // 122 inbound OAK–E–W–SFO, timed to reach SFO ~ min 27
+  { const r = ['OAK', 'E', 'W', 'SFO'], L = distKm('OAK', 'E') + distKm('E', 'W') + distKm('W', 'SFO'); const t0 = 26.5 - L / KMPM; fly('SKF122', r, t0, 10); }
+  { const p = nodeKm('OAK'); out.push({ cs: 'SKF117', x: p[0] + 0.2, y: p[1] + 0.15, hx: 0, hy: 1, alt: 0, gs: 0, r: null, special: true, holding: simMin() > 9 && simMin() < 18 }); }
+  return out;
+}
+
+// ================= screen painters =================
+const FONT = (w, s, f = 'Barlow Condensed') => `${w} ${s}px "${f}", system-ui, sans-serif`;
+function toolbar(ctx, W, title, items, clock, active) {
+  ctx.fillStyle = '#e9eaec'; ctx.fillRect(0, 0, W, 26); ctx.fillStyle = '#2a2d31'; ctx.font = FONT(600, 17); ctx.fillText(title, 12, 19);
+  ctx.fillStyle = '#c9cbce'; ctx.fillRect(0, 26, W, 62);
+  const n = items.length, cw = (W - (clock ? 150 : 16)) / n;
+  items.forEach((it, i) => {
+    const x = 8 + i * cw; const on = active === i;
+    ctx.fillStyle = on ? '#8e9297' : '#b7babe'; ctx.fillRect(x, 32, cw - 6, 50); ctx.strokeStyle = '#8a8d92'; ctx.strokeRect(x + .5, 32.5, cw - 7, 49);
+    ctx.fillStyle = on ? '#fff' : '#2c2f33'; ctx.font = FONT(700, 15); ctx.textAlign = 'center';
+    const lines = it.split('\n'); lines.forEach((l, k) => ctx.fillText(l, x + (cw - 6) / 2, 52 + k * 18 - (lines.length - 1) * 4));
+    if (lines.length === 1) { ctx.fillStyle = '#6d7176'; ctx.fillRect(x + 12, 68, cw - 30, 4); ctx.fillStyle = '#2a7ec0'; ctx.fillRect(x + 12 + (cw - 30) * (0.3 + 0.5 * ((i * 37) % 10) / 10), 64, 8, 12); }
+    ctx.textAlign = 'left';
+  });
+  if (clock) { ctx.fillStyle = '#3a3e43'; ctx.fillRect(W - 140, 32, 132, 50); ctx.fillStyle = '#fff'; ctx.font = FONT(700, 30, 'JetBrains Mono'); ctx.fillText(clock, W - 134, 68); }
+}
+
+// ---- ground radar (ASDE) ----
+const GR = { cx: 650, cy: -350, s: 0.255 }; // centre (x east, z) metres; px per metre
+const grXY = (x, z, W, H) => [W / 2 + (x - GR.cx) * GR.s, 88 + (H - 88) / 2 + (z - GR.cy) * GR.s];
+const grStatic = (() => {
+  const W = 1280, H = 760, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#2f86a6'; g.fillRect(0, 88, W, H - 88);
+  const path = (pts) => { g.beginPath(); pts.forEach((p, i) => { const [x, y] = grXY(p[0], p[1], W, H); i ? g.lineTo(x, y) : g.moveTo(x, y); }); };
+  for (const f of sfo) {
+    const k = f.properties.kind;
+    if (k === 'apron' || k === 'terminal') { const ring = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates[0][0]; path(ring.map(toXZ)); g.closePath();
+      g.fillStyle = k === 'apron' ? '#3a93b2' : '#246b86'; g.fill(); if (k === 'terminal') { g.strokeStyle = '#1b5068'; g.lineWidth = 2; g.stroke(); } }
+  }
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const t of twPts) { path(t.pts); g.strokeStyle = '#21566e'; g.lineWidth = 7; g.stroke(); }
+  for (const f of sfo.filter((f) => f.properties.kind === 'runway')) { path(f.geometry.coordinates.map(toXZ)); g.strokeStyle = '#0d1418'; g.lineWidth = (f.properties.width || 61) * GR.s; g.stroke(); }
+  // taxiway labels
+  g.font = FONT(700, 13); g.textAlign = 'center';
+  const seen = new Set();
+  for (const t of twPts.sort((a, b) => b.len - a.len)) {
+    if (!t.ref || t.ref === 'None' || seen.has(t.ref) || t.len < 250) continue; seen.add(t.ref);
+    const q = polyAt(t.pts, t.len / 2).p, [x, y] = grXY(q[0], q[1], W, H); if (y < 96 || y > H - 8 || x < 8 || x > W - 8) continue;
+    g.fillStyle = '#e8e9ea'; g.fillRect(x - 11, y - 9, 22, 17); g.fillStyle = '#20262b'; g.fillText(t.ref, x, y + 5);
+  }
+  for (const [n, r] of Object.entries(RWY)) { const [x, y] = grXY(r.E[0], r.E[1], W, H); g.fillStyle = '#fff'; g.font = FONT(700, 18); g.fillText(n, x - 18, y + 22); }
+  for (const [k, p] of Object.entries(PAD)) { const [x, y] = grXY(p[0], p[1], W, H); g.strokeStyle = '#9ff0ff'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 9, 0, 7); g.stroke(); g.fillStyle = '#9ff0ff'; g.font = FONT(700, 13); g.fillText('P' + k, x, y + 4); }
+  g.textAlign = 'left';
+  return c;
+})();
+const PARKED = sfo.filter((f) => f.properties.kind === 'apron').slice(0, 7).map((f, i) => {
+  const ring = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates[0][0]; const pts = ring.map(toXZ);
+  const c = pts.reduce((s, p) => [s[0] + p[0] / pts.length, s[1] + p[1] / pts.length], [0, 0]);
+  return { cs: ['ASA318', 'UAL1532', 'DAL552', 'JBU1534', 'SWA2191', 'UAL837', 'ANA7'][i], x: c[0], z: c[1], h: i * 1.3 };
+});
+function planeGlyph(ctx, x, y, ang, s, col) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.fillStyle = col; ctx.beginPath();
+  const R = [[0, -1], [.12, -.8], [.12, -.25], [1, .2], [1, .36], [.12, .14], [.1, .66], [.38, .86], [.38, .98], [0, .9]];
+  R.forEach(([a, b], i) => (i ? ctx.lineTo(a * s, b * s) : ctx.moveTo(a * s, b * s)));
+  for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(-R[i][0] * s, R[i][1] * s);
+  ctx.fill(); ctx.restore();
+}
+function evGlyph(ctx, x, y, s, col) { ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s); ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s); ctx.stroke(); for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { ctx.beginPath(); ctx.arc(x + a * s, y + b * s, s * 0.45, 0, 7); ctx.stroke(); } }
+function drawGround() {
+  const { ctx: g, w: W, h: H } = screens.ground;
+  g.drawImage(grStatic, 0, 0);
+  toolbar(g, W, 'ASDE-X · KSFO', ['ORIENTATION', 'ICON SIZE', 'TAG SIZE', 'TAG DISTANCE', 'POV SIZE', 'LINE STRENGTH', 'RUNWAY TAG', 'TAXIWAY TAG'], clockStr().slice(0, 5) + clockStr().slice(5, 8).replace(/:\d\d/, (m) => m), -1);
+  g.save(); g.beginPath(); g.rect(0, 88, W, H - 88); g.clip();
+  // tower view cone (POV)
+  { const [x, y] = grXY(0, 0, W, H); g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 2; g.beginPath(); const a0 = -Math.PI / 2 + HEADING + camState.yawOffset();
+    const half = (camera.fov * camera.aspect / 2) * D2R; g.moveTo(x, y); g.lineTo(x + Math.cos(a0 - half) * 700, y + Math.sin(a0 - half) * 700); g.moveTo(x, y); g.lineTo(x + Math.cos(a0 + half) * 700, y + Math.sin(a0 + half) * 700); g.stroke();
+    g.fillStyle = '#fff'; g.fillRect(x - 5, y - 5, 10, 10); }
+  g.font = FONT(600, 22);
+  for (const p of PARKED) { const [x, y] = grXY(p.x, p.z, W, H); planeGlyph(g, x, y, p.h, 9, '#4fa9e8'); g.fillStyle = '#9a8cf2'; g.fillText(p.cs, x + 10, y - 8); }
+  for (const a of actors) {
+    if (!a.vis || a.pos.y - groundY > 600) continue;
+    const [x, y] = grXY(a.pos.x, a.pos.z, W, H); if (x < -50 || x > W + 50 || y < 60 || y > H + 40) continue;
+    const ang = Math.atan2(a.dir.x, -a.dir.z);
+    if (a.kind === 'evtol') evGlyph(g, x, y, 6, '#7fd8ff'); else planeGlyph(g, x, y, ang, a.kind === '747' ? 17 : 13, '#55b0f0');
+    const air = a.pos.y - groundY > 3;
+    g.fillStyle = a.cs === 'SKF412' && S.flags.mismatch ? '#ff5b4f' : air ? '#c9bfff' : '#9a8cf2'; g.font = FONT(700, 24);
+    g.fillText(a.tag, x + 14, y - 12);
+    if (air) { g.font = FONT(600, 17); g.fillText(String(Math.round((a.pos.y - groundY) * 3.28 / 100)).padStart(3, '0'), x + 14, y + 8); }
+  }
+  g.restore();
+}
+
+// ---- air radar (DBRIGHT) ----
+const AR = { lon: -122.345, lat: 37.758, pxkm: 23.5 };
+const arC = P(AR.lon, AR.lat);
+const arXY = (kx, ky, W, H) => [W / 2 + (kx - arC[0] / 1000) * AR.pxkm, 88 + (H - 88) / 2 - (ky + arC[1] / 1000) * AR.pxkm];
+const hist = new Map();
+const BLOCK_OFF = { SKF412: [-190, 46], SKF421: [30, -64], SKF117: [30, 44], SKF122: [-170, 10] };
+let lastHist = -1;
+function drawAir(now) {
+  const { ctx: g, w: W, h: H } = screens.air;
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  toolbar(g, W, 'DBRIGHT · NORCAL', ['SEPARATION\n3 NM', 'SEPARATION\n5 NM', 'SEPARATION\n10 NM', 'ICON SIZE', 'TAG SIZE', 'LINE STRENGTH'], null, 1);
+  g.save(); g.beginPath(); g.rect(0, 88, W, H - 88); g.clip();
+  const cx = W / 2, cy = 88 + (H - 88) / 2, nm = 1.852 * AR.pxkm;
+  g.strokeStyle = 'rgba(200,210,220,.32)'; g.lineWidth = 1.5;
+  for (const r of [3, 5, 10, 15]) { g.beginPath(); g.arc(cx, cy, r * nm, 0, 7); g.stroke(); }
+  g.fillStyle = 'rgba(200,210,220,.45)'; g.font = FONT(600, 15); for (const r of [5, 10]) g.fillText(r + ' NM', cx + r * nm * 0.71 + 4, cy - r * nm * 0.71);
+  // coastline hint
+  if (coast) { g.strokeStyle = 'rgba(120,140,150,.35)'; g.lineWidth = 1.2; for (const ring of coast) { g.beginPath(); ring.forEach((p, i) => { const [x, y] = arXY(p[0], p[1], W, H); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); } }
+  // storm cell
+  const sl = stormLevel();
+  if (sl > 0.01) {
+    const mid = [(nodeKm('C')[0] + nodeKm('E')[0]) / 2, (nodeKm('C')[1] + nodeKm('E')[1]) / 2 + 0.3];
+    const [sx, sy] = arXY(mid[0] + Math.sin(now * 0.05) * 0.3, mid[1], W, H);
+    for (let i = 0; i < 14; i++) { const a = i * 2.4 + now * 0.03, rr = (14 + (i % 4) * 12) * sl, ox = Math.cos(a) * (30 + (i * 13) % 40), oy = Math.sin(a * 1.3) * (20 + (i * 7) % 30);
+      const gr = g.createRadialGradient(sx + ox, sy + oy, 0, sx + ox, sy + oy, rr * 2.4); gr.addColorStop(0, `rgba(255,170,40,${0.5 * sl})`); gr.addColorStop(0.6, `rgba(220,120,20,${0.22 * sl})`); gr.addColorStop(1, 'rgba(200,100,0,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(sx + ox, sy + oy, rr * 2.4, 0, 7); g.fill(); }
+    g.fillStyle = `rgba(255,190,80,${sl})`; g.font = FONT(700, 18); g.fillText('WX CELL  45 dBZ', sx - 50, sy - 64);
+  }
+  // corridors
+  const closed = ceClosed();
+  for (const e of EDGES) {
+    const [a, b] = e.split('-'), [x1, y1] = arXY(...nodeKm(a), W, H), [x2, y2] = arXY(...nodeKm(b), W, H);
+    const ce = e === 'C-E';
+    g.strokeStyle = ce && closed ? `rgba(255,80,70,${0.6 + 0.4 * Math.abs(Math.sin(now * 3))})` : 'rgba(95,212,255,.42)';
+    g.lineWidth = ce && closed ? 4 : 2.5; g.setLineDash(ce && closed ? [10, 8] : []); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.setLineDash([]);
+    if (ce && closed) { g.fillStyle = '#ff5b4f'; g.font = FONT(700, 16); g.fillText('C–E CLOSED', (x1 + x2) / 2 - 36, (y1 + y2) / 2 + 26); }
+  }
+  for (const [k, v] of Object.entries(NODES)) { const [x, y] = arXY(...nodeKm(k), W, H), pad = !['W', 'C', 'E'].includes(k);
+    g.strokeStyle = pad ? '#d9e1e7' : '#5fd4ff'; g.lineWidth = 2; g.beginPath(); pad ? g.rect(x - 6, y - 6, 12, 12) : g.arc(x, y, 5, 0, 7); g.stroke();
+    g.fillStyle = pad ? '#d9e1e7' : '#5fd4ff'; g.font = FONT(700, 15); g.fillText(k, x + 9, y + 18); }
+  // traffic
+  const tr = airTraffic();
+  if (now - lastHist > 0.8) { lastHist = now; for (const f of tr) { const h = hist.get(f.cs) || []; h.push([f.x, f.y]); if (h.length > 6) h.shift(); hist.set(f.cs, h); } }
+  for (const f of tr) {
+    const [x, y] = arXY(f.x, f.y, W, H);
+    const mism = S.flags.mismatch && (f.cs === 'SKF412' || f.cs === 'SKF421');
+    const sel = f.special;
+    const col = mism ? (Math.sin(now * 10) > 0 ? '#ff5b4f' : '#ffd0cc') : sel ? '#f2e94e' : '#f4f6f8';
+    (hist.get(f.cs) || []).forEach(([hx, hy], i) => { const [px, py] = arXY(hx, hy, W, H); g.fillStyle = `rgba(200,220,235,${0.12 + i * 0.06})`; g.fillRect(px - 2, py - 2, 4, 4); });
+    if (f.cs === 'SKF412' && f.r) { g.strokeStyle = S.flags.committed412 ? 'rgba(84,208,138,.8)' : 'rgba(242,233,78,.5)'; g.setLineDash([6, 6]); g.lineWidth = 2; g.beginPath(); f.r.forEach((n, i) => { const [px, py] = arXY(...nodeKm(n), W, H); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); g.setLineDash([]); }
+    g.fillStyle = col; g.font = FONT(700, 22); g.textAlign = 'center'; g.fillText('T', x, y + 8); g.textAlign = 'left';
+    if (f.gs) { g.strokeStyle = col; g.lineWidth = 1.5; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(x, y); g.lineTo(x + f.hx * 46, y - f.hy * 46); g.stroke(); g.setLineDash([]); }
+    // data block + leader
+    const [ox, oy] = BLOCK_OFF[f.cs] || [26, -52], bx = x + ox, by = y + oy; g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x + (ox < 0 ? -6 : 6), y - 8); g.lineTo(ox < 0 ? bx + 150 : bx - 2, by + 10); g.stroke();
+    g.fillStyle = col; g.font = FONT(700, 22, 'JetBrains Mono'); g.fillText(f.cs + (f.holding ? ' H' : ''), bx, by);
+    g.font = FONT(500, 20, 'JetBrains Mono'); g.fillText(`${String(f.alt).padStart(3, '0')} ${String(f.gs * 9 + 6).padStart(3, '0')}`, bx, by + 22);
+    if (mism) { g.fillStyle = '#ff5b4f'; g.font = FONT(700, 17); g.fillText(f.cs === 'SKF421' ? 'READBACK ≠ ADDRESSEE' : 'NO VALID READBACK', bx, by + 44); }
+  }
+  g.restore();
+}
+let coast = null;
+fetchJSON('data/bay-coastline.geojson').then((d) => { if (!d) return; coast = [];
+  for (const f of d.features) { const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates; for (const p of polys) coast.push(p[0].filter((_, i) => i % 2 === 0).map((c) => { const [x, z] = P(c[0], c[1]); return [x / 1000, -z / 1000]; })); } });
+
+// ---- strip tablet (FT3200) ----
+const BAYS = { ARRI: [0, 0, 'ARRIVAL INITIAL'], ARRC: [1, 0, 'ARRIVAL CLEARED'], GND: [2, 0, 'GND'], DEPI: [0, 1, 'DEPARTURE INITIAL'], DEPC: [1, 1, 'DEPARTURE CLEARED'], DEP: [2, 1, 'DEP'] };
+function stripTarget(s, idx, W, H) {
+  const L0 = 48, T0 = 92, colW = 300, rightX = L0 + colW + 14, bw = (W - 48 - rightX - 12) / 3, bh = (H - 48 - T0 - 10) / 2;
+  if (s.bay === 'PEND' || s.bay === 'GDEP') return [L0 + 6, (s.bay === 'PEND' ? T0 + 30 : T0 + 30 + (H - T0 - 48) / 2) + idx * 50];
+  const [c, r] = BAYS[s.bay]; return [rightX + c * (bw + 6) + 8, T0 + r * (bh + 10) + 34 + idx * 50];
+}
+function drawStrip(g, s, x, y, now) {
+  const w = 284, h = 44;
+  const bad = s.hb === 'bad';
+  const base = bad ? (Math.sin(now * 8) > -0.3 ? '#e0524a' : '#b83a33') : s.kind === 'arr' ? '#e2a58e' : '#93b5da';
+  g.fillStyle = base; g.fillRect(x, y, w, h); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x, y + h - 3, w, 3);
+  g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x + 92, y + 4, 1, h - 8); g.fillRect(x + 200, y + 4, 1, h - 8);
+  g.fillStyle = bad ? '#fff' : '#1d2126'; g.font = FONT(700, 22); g.fillText(s.cs, x + 6, y + 22);
+  g.font = FONT(600, 15); g.fillText(s.type, x + 6, y + 39); g.fillText(bad ? s.note : s.rt, x + 98, y + 20); g.fillText(s.alt, x + 98, y + 38);
+  g.fillText(s.kind === 'arr' ? 'ARR' : 'DEP', x + 206, y + 20);
+  // hearback badge
+  const bx = x + w - 40, by = y + 6; g.fillStyle = s.hb === 'ok' ? '#2f9e5c' : s.hb === 'bad' ? '#7a1712' : s.hb === 'wait' ? '#c68a1b' : '#d5d7da';
+  g.fillRect(bx, by, 34, 32); g.strokeStyle = 'rgba(0,0,0,.35)'; g.strokeRect(bx + .5, by + .5, 33, 31);
+  g.fillStyle = s.hb ? '#fff' : '#3a3e43'; g.font = FONT(700, s.hb ? 22 : 15); g.textAlign = 'center';
+  g.fillText(s.hb === 'ok' ? '✓' : s.hb === 'bad' ? '✗' : s.hb === 'wait' ? '…' : 'GO', bx + 17, by + (s.hb ? 24 : 21)); g.textAlign = 'left';
+  if (s.hb) { g.font = FONT(700, 10); g.fillStyle = bad ? '#fff' : '#1d2126'; g.fillText('HEARBACK', x + 196, y + 38); }
+}
+function drawTablet(now, dt) {
+  const { ctx: g, w: W, h: H } = screens.tablet;
+  g.fillStyle = '#1b1d20'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#4b4f55'; g.font = FONT(600, 18); g.fillText('SkyFlow  FT3200', W - 190, 30);
+  g.fillStyle = '#7a7e84'; g.font = FONT(500, 14); g.fillText('Feel the frequency', 52, 30);
+  const L0 = 48, T0 = 92, colW = 300, rightX = L0 + colW + 14;
+  g.fillStyle = '#e8e9ea'; g.fillRect(L0, 44, W - 96, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 17); g.fillText('STRIP', L0 + 10, 65);
+  g.fillStyle = '#c7c9cc'; g.fillRect(L0, T0 - 14, W - 96, H - 48 - T0 + 14);
+  // left column
+  const half = (H - T0 - 48) / 2;
+  g.fillStyle = '#d7b7a9'; g.fillRect(L0, T0, colW, half - 4); g.fillStyle = '#a9bdd6'; g.fillRect(L0, T0 + half, colW, half - 4);
+  g.fillStyle = '#2a2d31'; g.font = FONT(700, 15); g.fillText('PEND ARR (PENDING)', L0 + 80, T0 + 20); g.fillText('GND DEP (PENDING)', L0 + 82, T0 + half + 20);
+  const bw = (W - 48 - rightX - 12) / 3, bh = (H - 48 - T0 - 10) / 2;
+  for (const [k, [c, r, name]] of Object.entries(BAYS)) {
+    const x = rightX + c * (bw + 6), y = T0 + r * (bh + 10);
+    g.fillStyle = '#d4d5d7'; g.fillRect(x, y, bw, bh); g.fillStyle = '#1d1f22'; g.fillRect(x, y, bw, 22);
+    g.fillStyle = '#e9eaeb'; g.font = FONT(700, 14); g.textAlign = 'center'; g.fillText(name, x + bw / 2, y + 16); g.textAlign = 'left';
+  }
+  // OPEN BIN + clock
+  g.fillStyle = '#1d1f22'; g.fillRect(W - 360, 46, 110, 26); g.fillStyle = '#fff'; g.font = FONT(700, 15); g.fillText('OPEN BIN', W - 343, 65);
+  g.fillStyle = '#25282c'; g.font = FONT(700, 26, 'JetBrains Mono'); g.fillText(clockStr(), W - 200, 68);
+  // strips
+  const counts = {};
+  for (const s of S.strips) {
+    const i = counts[s.bay] = (counts[s.bay] ?? -1) + 1; const [tx, ty] = stripTarget(s, i, W, H);
+    if (s.x == null) { s.x = tx; s.y = ty; }
+    const k = 1 - Math.exp(-dt * 6); s.x += (tx - s.x) * k; s.y += (ty - s.y) * k;
+  }
+  for (const s of S.strips) drawStrip(g, s, s.x, s.y, now);
+}
+
+// ---- side panel: METAR / wind + AGENT ----
+function drawSide(now) {
+  const { ctx: g, w: W, h: H } = screens.side;
+  g.fillStyle = '#c3c6ca'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#e9eaec'; g.fillRect(0, 0, W, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 18); g.fillText('METAR · KSFO', 12, 22);
+  g.fillStyle = '#f2f3f4'; g.fillRect(12, 40, W - 24, 104); g.strokeStyle = '#8b8f94'; g.strokeRect(12.5, 40.5, W - 25, 103);
+  g.fillStyle = '#25282c'; g.textAlign = 'center'; g.font = FONT(700, 40, 'JetBrains Mono');
+  g.fillText(String(metarK.wdir).padStart(3, '0'), W / 2, 84); g.font = FONT(700, 26); g.fillText(`DEGREES · ${String(metarK.wspd).padStart(2, '0')} KT`, W / 2, 124); g.textAlign = 'left';
+  g.font = FONT(500, 15, 'JetBrains Mono'); g.fillStyle = '#2b2e32';
+  const raw = (metarK.rawOb || '').replace(/^METAR /, '').split(' ').slice(0, 7).join(' ');
+  g.fillText(raw.slice(0, 30), 14, 166); g.fillText(raw.slice(30, 60), 14, 184);
+  g.fillText(`QNH ${Math.round(metarK.altim)}  T ${Math.round(metarK.temp)}/${Math.round(metarK.dewp)}  VIS ${metarK.visib}SM`, 14, 204);
+  const rws = [['28L', 'ARR'], ['28R', 'DEP'], ['01L', '—'], ['01R', '—']];
+  rws.forEach(([n, u], i) => { const y = 218 + i * 34; g.fillStyle = '#b1b4b8'; g.fillRect(12, y, W - 24, 28); g.fillStyle = '#25282c'; g.font = FONT(700, 18); g.fillText(n, 22, y + 21);
+    g.fillStyle = u === '—' ? '#8d9196' : '#2f9e5c'; g.fillRect(W - 92, y + 4, 70, 20); g.fillStyle = '#fff'; g.font = FONT(700, 14); g.fillText(u, W - 78, y + 19); });
+  // AGENT
+  const y0 = 364;
+  g.fillStyle = '#1d1f22'; g.fillRect(0, y0, W, 30); g.fillStyle = '#e9eaeb'; g.font = FONT(700, 17); g.fillText('AGENT · PROPOSE → KERNEL', 12, y0 + 21);
+  g.fillStyle = '#111316'; g.fillRect(0, y0 + 30, W, H - y0 - 90);
+  // spawn tree
+  const spawned = S.agents.length > 0;
+  g.font = FONT(700, 14, 'JetBrains Mono');
+  const tree = [['COORD', W / 2, y0 + 52], ['SEC-C', 70, y0 + 92], ['SEC-E', W / 2, y0 + 92], ['PAD-OAK', W - 70, y0 + 92]];
+  tree.slice(1).forEach(([, x, y]) => { g.strokeStyle = spawned ? '#5fd4ff' : '#33383e'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(W / 2, y0 + 58); g.lineTo(x, y - 12); g.stroke(); });
+  tree.forEach(([n, x, y], i) => { const on = i === 0 || spawned; g.fillStyle = on ? '#16323e' : '#1c1f23'; g.fillRect(x - 46, y - 14, 92, 22); g.strokeStyle = on ? '#5fd4ff' : '#3a3f45'; g.strokeRect(x - 45.5, y - 13.5, 91, 21);
+    g.fillStyle = on ? '#bfefff' : '#59616a'; g.textAlign = 'center'; g.fillText(n, x, y + 2); g.textAlign = 'left'; });
+  let y = y0 + 120;
+  for (const a of S.agents.slice(0, 5)) {
+    const pending = a.verdict === null;
+    g.fillStyle = '#1a1d21'; g.fillRect(8, y, W - 16, 68);
+    g.fillStyle = pending ? '#c68a1b' : a.verdict === 'ACCEPT' ? '#2f9e5c' : '#d2453b'; g.fillRect(8, y, 5, 68);
+    g.fillStyle = '#8fa0ad'; g.font = FONT(700, 13, 'JetBrains Mono'); g.fillText(a.from, 20, y + 16);
+    g.fillStyle = pending ? '#c68a1b' : a.verdict === 'ACCEPT' ? '#54d08a' : '#ff6a5f'; g.font = FONT(700, 14, 'JetBrains Mono');
+    g.textAlign = 'right'; g.fillText(pending ? 'VALIDATING…' : a.verdict, W - 16, y + 16); g.textAlign = 'left';
+    g.fillStyle = '#e6eaee'; g.font = FONT(600, 16);
+    wrap(g, a.text, 20, y + 36, W - 36, 17, 2);
+    if (a.verdict === 'REJECT') { g.fillStyle = '#ff8a80'; g.font = FONT(600, 14); g.fillText('✗ ' + a.reason, 20, y + 64); }
+    y += 74;
+  }
+  g.fillStyle = '#e9eaec'; g.fillRect(10, H - 52, W - 20, 40); g.strokeStyle = '#8b8f94'; g.strokeRect(10.5, H - 51.5, W - 21, 39);
+  g.fillStyle = '#25282c'; g.font = FONT(700, 20); g.textAlign = 'center'; g.fillText('AIRPORT LIGHTS', W / 2, H - 25); g.textAlign = 'left';
+}
+function wrap(g, text, x, y, w, lh, max) { const words = text.split(' '); let line = '', n = 0; for (const wd of words) { const t = line ? line + ' ' + wd : wd; if (g.measureText(t).width > w && line) { g.fillText(line, x, y); y += lh; line = wd; if (++n >= max - 1) { } } else line = t; } g.fillText(line, x, y); }
+
+// ---- message log ----
+function drawLog(now) {
+  const { ctx: g, w: W, h: H } = screens.log;
+  g.fillStyle = '#0d0f12'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#e9eaec'; g.fillRect(0, 0, W, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 17); g.fillText('LAST MSG', 12, 21);
+  g.fillStyle = '#c3c6ca'; g.fillRect(10, 38, 90, 30); g.fillRect(108, 38, W - 118, 30);
+  g.fillStyle = '#25282c'; g.font = FONT(700, 16); g.fillText('CLEAR', 30, 59); g.fillText(S.log.find((l) => /^SKF/.test(l.who))?.who || 'SKF384', 120, 59);
+  let y = 92;
+  const goodAge = (performance.now() - S.good) / 1000;
+  if (S.good && goodAge < 6) { g.fillStyle = `rgba(255,255,255,${1 - smooth(4.5, 6, goodAge)})`; g.font = FONT(700, 46); g.fillText('Good job.', 12, y + 18); y += 50; }
+  g.font = FONT(500, 14, 'JetBrains Mono');
+  for (const l of S.log) {
+    if (y > H - 10) break;
+    g.fillStyle = l.cls === 'bad' ? '#ff6a5f' : l.cls === 'ok' ? '#54d08a' : l.cls === 'pilot' ? '#bfe8ff' : '#f1e6a6';
+    const txt = `${l.t.slice(0, 8)} ${l.who}: ${l.text}`;
+    const words = txt.split(' '); let line = '';
+    for (const wd of words) { const t = line ? line + ' ' + wd : wd; if (g.measureText(t).width > W - 20) { g.fillText(line, 10, y); y += 17; line = '  ' + wd; } else line = t; }
+    g.fillText(line, 10, y); y += 21;
+  }
+}
+
+// ================= camera =================
+const EYE = new THREE.Vector3(0.02, 1.45, 0.32);
+const worldToCab = (v) => cab.worldToLocal(v.clone());
+function aimFrom(eye, targetLocal, fov) { const d = targetLocal.clone().sub(eye); return { eye: eye.clone(), yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)), fov }; }
+const screenTarget = (n) => { const s = screens[n].g; return s.position.clone(); };
+function presets() {
+  const rwMid = new THREE.Vector3((R28R.E[0] + R28L.E[0]) / 2 + (R28R.ux) * 1500, groundY, (R28R.E[1] + R28L.E[1]) / 2 + R28R.uz * 1500);
+  const pad = new THREE.Vector3(PAD[1][0], groundY + 20, PAD[1][1]);
+  return {
+    desk: { eye: EYE.clone(), yaw: -0.08, pitch: -0.33, fov: 58 },
+    runway: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(rwMid), 34),
+    binoc: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(pad.clone().lerp(rwMid, 0.25)), 9),
+    ground: aimFrom(new THREE.Vector3(-0.3, 1.14, -0.2), screenTarget('ground'), 36),
+    air: aimFrom(new THREE.Vector3(0.3, 1.14, -0.2), screenTarget('air'), 36),
+    tablet: aimFrom(new THREE.Vector3(0.3, 1.3, 0.05), screenTarget('tablet'), 40),
+    side: aimFrom(new THREE.Vector3(0.45, 1.12, -0.25), screenTarget('side'), 46),
+  };
+}
+const cur = { eye: EYE.clone(), yaw: -0.08, pitch: -0.33, fov: 58 };
+let tween = null, cine = true, curShot = 'desk', binoOn = false;
+const camState = { yawOffset: () => cur.yaw };
+function goTo(name, dur = 1.5) {
+  const p = presets()[name]; if (!p) return; curShot = name;
+  tween = { from: { eye: cur.eye.clone(), yaw: cur.yaw, pitch: cur.pitch, fov: cur.fov }, to: p, t0: performance.now(), dur: dur * 1000 };
+  binoOn = name === 'binoc'; $('binoc').classList.toggle('on', binoOn);
+}
+function shot(name) { if (cine) goTo(name); }
+function userTook() { if (cine) { cine = false; $('bCine').classList.remove('on'); $('chip').style.display = 'block'; } tween = null; }
+function setCine(on) { cine = on; $('bCine').classList.toggle('on', on); $('chip').style.display = on ? 'none' : 'block'; if (on) goTo(shotFor()); }
+function shotFor() { const t = S.t; const tl = [[0.0, 'desk'], [5.6, 'runway'], [10.4, 'tablet'], [13.6, 'air'], [17.2, 'side'], [24.0, 'air'], [32.8, 'ground'], [38.4, 'air'], [44.8, 'side'], [48.4, 'air'], [51.2, 'binoc'], [59.2, 'desk']]; let s = 'desk'; for (const [a, n] of tl) if (t >= a) s = n; return s; }
+function applyCamera(now) {
+  if (tween) {
+    const k = ease(clamp((performance.now() - tween.t0) / tween.dur, 0, 1)), f = tween.from, t = tween.to;
+    cur.eye.lerpVectors(f.eye, t.eye, k);
+    let dy = t.yaw - f.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cur.yaw = f.yaw + dy * k;
+    cur.pitch = lerp(f.pitch, t.pitch, k); cur.fov = lerp(f.fov, t.fov, k);
+    if (k >= 1) tween = null;
+  }
+  cab.position.set(0, groundY + CAB_EYE_H - 1.45, 0);
+  cab.updateMatrixWorld();
+  camera.position.copy(cab.localToWorld(cur.eye.clone()));
+  const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(cur.pitch, cur.yaw, 0, 'YXZ'));
+  camera.quaternion.copy(cab.quaternion).multiply(q);
+  camera.fov = cur.fov * (cine ? 1 + Math.sin(now * 0.45) * 0.012 : 1);
+  camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+}
+// input
+let drag = null;
+canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); userTook(); });
+canvas.addEventListener('pointermove', (e) => { if (!drag) return; const k = (cur.fov / 60) * 0.0042; cur.yaw += (e.clientX - drag.x) * k; cur.pitch = clamp(cur.pitch + (e.clientY - drag.y) * k, -1.2, 0.6); drag = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerup', () => (drag = null));
+const zoom = (f) => { userTook(); cur.fov = clamp(cur.fov * f, 5, 75); };
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); zoom(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
+const keyMap = { 1: 'desk', 2: 'runway', 3: 'ground', 4: 'air', 5: 'tablet', 6: 'side' };
+function toggleBino() { userTook(); if (binoOn) goTo(prevShot || 'desk', 0.8); else { prevShot = curShot === 'binoc' ? 'runway' : curShot; goTo('binoc', 0.8); } }
+let prevShot = 'desk';
+addEventListener('keydown', (e) => {
+  if ((e.key === 't' || e.key === 'T') && !e.repeat) { if (window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); return; }
+  if (keyMap[e.key]) { userTook(); goTo(keyMap[e.key]); }
+  else if (e.key === 'b' || e.key === 'B') toggleBino();
+  else if (e.key === 'c' || e.key === 'C') setCine(!cine);
+  else if (e.key === ' ') { e.preventDefault(); togglePause(); }
+  else if (e.key === 'r' || e.key === 'R') restart();
+  else if (e.key === '+' || e.key === '=') zoom(0.85); else if (e.key === '-') zoom(1.18);
+});
+document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { userTook(); goTo(b.dataset.p); }));
+$('bBino').onclick = toggleBino; $('bZin').onclick = () => zoom(0.85); $('bZout').onclick = () => zoom(1.18);
+$('bCine').onclick = () => setCine(!cine); $('chip').onclick = () => setCine(true);
+function togglePause() { S.paused = !S.paused; $('bPlay').textContent = S.paused ? '▶ Play' : '❚❚ Pause'; }
+$('bPlay').onclick = togglePause;
+function restart() { SkyRadio.flush(); S.gen++; }
+$('bRestart').onclick = restart;
+const syncSound = () => { $('bSound').textContent = SkyRadio.enabled ? '🔊 Sound' : '🔈 Muted'; $('bSound').classList.toggle('on', SkyRadio.enabled); };
+$('bSound').onclick = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSound(); };
+document.addEventListener('skyradio:enabled', syncSound); syncSound();
+
+// ================= main loop =================
+let last = performance.now(), visT = 0, frame = 0, rayT = 0, lastDraw = -1, halted = false, extPause = false;
+const ray = new THREE.Raycaster();
+function refineGround(now) {
+  if (!tilesOK || now - rayT < 2 || frame > 4000) return; rayT = now;
+  ray.set(new THREE.Vector3(600, 800, -500), new THREE.Vector3(0, -1, 0));
+  const hit = ray.intersectObject(tiles.group, true)[0];
+  if (hit) { const y = hit.point.y; if (Math.abs(y - groundY) > 0.5 && Math.abs(y) < 80) { groundY = y; world.position.y = 0; worldOffset(); } }
+}
+function worldOffset() { for (const c of world.children) if (c !== fallback && !actors.some((a) => a.g === c)) c.position.y = groundY; }
+function loop() {
+  const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000); last = now; frame++;
+  const ns = now / 1000;
+  if (!S.paused) { visT += dt; S.t += dt * (S.busy ? 0.6 : 1); }
+  updateActors(visT);
+  // storm visuals
+  const sl = stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
+  corrLines['C-E'].material.color.setHex(ceClosed() ? 0xff4a3d : 0x5fd4ff); corrLines['C-E'].material.opacity = ceClosed() ? 0.5 + 0.4 * Math.abs(Math.sin(ns * 3)) : 0.35;
+  applyCamera(ns);
+  // screens: redraw at ~10 fps
+  if (ns - lastDraw >= 0.1) {
+    const sdt = Math.min(0.5, ns - lastDraw); lastDraw = ns;
+    drawGround(); drawAir(ns); drawTablet(ns, sdt); drawSide(ns); drawLog(ns);
+    for (const k in screens) screens[k].tex.needsUpdate = true;
+  }
+  // HUD
+  $('clock').textContent = clockStr();
+  const wx = $('wx'); const cl = ceClosed(); wx.textContent = cl ? 'C–E CLOSED · CELL OVER BAY' : stormLevel() > 0.05 ? 'WX CELL C–E · WATCH' : 'C–E OPEN · VFR ' + String(metarK.wdir).padStart(3, '0') + '/' + String(metarK.wspd).padStart(2, '0'); wx.className = 'wx' + (cl ? ' closed' : '');
+  $('scSim').textContent = 'MIN ' + String(Math.floor(simMin())).padStart(2, '0');
+  $('scTx').textContent = S.tx;
+  const prog = clamp(simMin() / 28, 0, 1);
+  $('scAgent').textContent = S.scoreReveal ? '28/28' : Math.round(prog * 28) + '/28';
+  $('scStatic').textContent = S.scoreReveal ? '10/28' : Math.round(prog * 10) + '/28';
+  $('scDelay').textContent = (S.scoreReveal ? 3.1 : Math.min(3.1, Math.max(0, simMin() - 8) * 0.25)).toFixed(1) + ' min';
+  $('scDist').textContent = '+' + (S.scoreReveal ? 14.3 : 14.3 * smooth(8, 26, simMin())).toFixed(1) + '%';
+  if (tiles) { tiles.setResolutionFromRenderer(camera, renderer); tiles.update(); refineGround(ns); if (frame % 120 === 0) updateAttrib(); }
+  renderer.render(scene, camera);
+  if (!halted) requestAnimationFrame(loop);
+}
+// pause rendering when hidden or when the iframe host asks (postMessage {skyflow:'pause'|'resume'})
+function setHalted() {
+  const h = document.hidden || extPause;
+  if (h === halted) return;
+  halted = h;
+  if (!halted) { last = performance.now(); requestAnimationFrame(loop); }
+}
+document.addEventListener('visibilitychange', setHalted);
+addEventListener('message', (e) => {
+  if (e.data?.skyflow === 'pause') { extPause = true; setHalted(); }
+  else if (e.data?.skyflow === 'resume') { extPause = false; setHalted(); }
+});
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+window.__sky = { S, presets, goTo, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors };
+startTiles();
+loop();
+runLoop();
+</script>
+</body>
+</html>
