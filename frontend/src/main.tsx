@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import '@fontsource-variable/dm-sans';
 import '@fontsource/ibm-plex-mono/400.css';
 import App from './App';
+import HistoricalReplay from './HistoricalReplay';
 import './style.css';
 class AppBoundary extends React.Component<{children:React.ReactNode},{failed:boolean}>{state={failed:false};static getDerivedStateFromError(){return {failed:true}}render(){return this.state.failed?<main className="startup" role="alert"><div className="wordmark">uita<span>.</span></div><h1>The interface needs to reload</h1><p>The simulation state is held by the backend. Reload this interface to reconnect and continue.</p><button className="primary" onClick={()=>window.location.reload()}>Reload interface</button></main>:this.props.children}}
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><AppBoundary><App/></AppBoundary></React.StrictMode>);
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><AppBoundary>{new URLSearchParams(window.location.search).get('mode') === 'simulation' ? <App/> : <HistoricalReplay/>}</AppBoundary></React.StrictMode>);

@@ -80,6 +80,8 @@ export default function Kpis({ ds, kpis, t, fmt, onSelect }: Props) {
   const dayTracked = dayFlights.filter((flight) => ds.tracks.has(flight.id)).length
   const coverage = dayFlights.length ? Math.round(100 * dayTracked / dayFlights.length) : null
 
+  const hasAdsbProvenance = (kpis.coverage.adsb_paths ?? 0) > 0 && kpis.coverage.museum_fallback_paths !== undefined
+
   return (
     <section className="kpis" aria-labelledby="kpi-title">
       <div className="kpi-heading">
@@ -93,7 +95,8 @@ export default function Kpis({ ds, kpis, t, fmt, onSelect }: Props) {
             <div><b className={separationEvaluable ? '' : 'unavailable'}>{separationEvaluable ? separationCount : 'Unavailable'}</b><span>separation candidates</span></div>
             <div><b className={goAroundEvaluable ? '' : 'unavailable'}>{goAroundEvaluable ? goAroundCount : 'Unavailable'}</b><span>go-around candidates</span></div>
           </div>
-          <p>{separationEvaluable ? `${separationsLastHour} separation candidates in the last hour. Sparse reported-altitude coverage.` : 'No usable reported-altitude track segments for separation checks.'}</p>
+          <p>{separationEvaluable ? `${separationsLastHour} separation candidates in the last hour. Reported-altitude segments only.` : 'No usable reported-altitude track segments for separation checks.'}</p>
+          <p className="metric-scope">Full-week evidence: {separationEvaluable.toLocaleString()} separation tracks · {goAroundEvaluable.toLocaleString()} low-altitude arrivals</p>
           {!goAroundEvaluable && <p>No usable low-altitude arrival observations for go-around detection.</p>}
           {active.map((event) => (
             <div key={`${event.a}-${event.b}-${event.t_start}`} className="alert">
@@ -147,19 +150,22 @@ export default function Kpis({ ds, kpis, t, fmt, onSelect }: Props) {
           <div className="metric-value"><b>{coverage === null ? '—' : `${coverage}%`}</b><span>of roster operations</span></div>
           <p>{dayTracked.toLocaleString()} of {dayFlights.length.toLocaleString()} operations have a path</p>
           <p className="metric-scope">Full week: {weekTracked.toLocaleString()} / {ds.flights.length.toLocaleString()} operations</p>
+          {hasAdsbProvenance && <p className="metric-scope">{kpis.coverage.adsb_paths!.toLocaleString()} ADS-B paths · {kpis.coverage.museum_fallback_paths!.toLocaleString()} Museum fallbacks</p>}
         </div>
       </div>
       <details className="kpi-methods">
         <summary>How to read these metrics</summary>
         <p>Safety counts are track-derived candidates, not verified incidents. Missing paths cannot contribute to safety counts.</p>
-        <p>Separation candidates are under 3 NM horizontally and under 1,000 ft vertically. Checks use reported beacon altitude, sampled every 10 seconds. Assigned altitude is excluded. Observation gaps over 120 seconds are excluded.</p>
+        <p>Separation candidates are under 3 NM horizontally and under 1,000 ft vertically. Checks use {hasAdsbProvenance ? 'ADS-B barometric altitude or Museum reported beacon altitude' : 'reported beacon altitude'}, sampled every 10 seconds. Assigned and geometric altitudes are excluded. Observation gaps over 120 seconds are excluded.</p>
+        {hasAdsbProvenance && <p>ADS-B paths match aircraft identity and an airborne flight leg near the recorded operation time. Ground observations and separate flight legs are excluded. Museum paths remain where no ADS-B leg matches.</p>}
         <p>The paired-approach exclusion is a demo heuristic: opposite 28L/28R arrivals, below 3,000 ft, up to 8 NM before their thresholds, within 0.5 NM of their centerlines, heading inbound within 20°. It does not establish visual separation.</p>
-        <p>Go-around candidates descend below 1,500 ft within 6 NM, then climb at least 1,000 ft. These rules cannot establish controller clearance.</p>
+        <p>Go-around candidates descend at least 100 ft to below 1,500 ft within 6 NM, then climb at least 1,000 ft. These rules cannot establish controller clearance.</p>
         <p>Across the full week, {separationEvaluable.toLocaleString()} tracks have usable altitude segments for separation checks; {goAroundEvaluable.toLocaleString()} arrivals have usable low-altitude observations for go-around checks. Zero candidates does not establish safe separation.</p>
         <p>The 54 arrivals per hour figure is a demo reference, not measured capacity for this week.</p>
         <p>Throughput, runway use, and spacing include the full roster. Schedule offsets include tracked arrivals with a schedule. Departure schedules are unavailable.</p>
         <p>Windows end at the replay clock. Safety totals start at the beginning of the week. Coverage starts at local midnight.</p>
-        <p>Sources: <a href="https://data.sf.gov/d/43zc-xw3x" target="_blank" rel="noreferrer">DataSF SFO operations</a> (PDDL); <a href="https://github.com/sfomuseum-data/sfomuseum-data-flights-2026-08" target="_blank" rel="noreferrer">SFO Museum flight paths</a> (CDLA-Permissive-1.0).</p>
+        <p>Sources: <a href="https://data.sf.gov/d/43zc-xw3x" target="_blank" rel="noreferrer">DataSF SFO operations</a> (PDDL); <a href="https://github.com/sfomuseum-data/sfomuseum-data-flights-2026-08" target="_blank" rel="noreferrer">SFO Museum flight paths</a> (CDLA-Permissive-1.0){hasAdsbProvenance && <>; <a href="https://github.com/adsblol/globe_history_2026" target="_blank" rel="noreferrer">ADSB.lol</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noreferrer">ODbL 1.0</a>)</>}.</p>
+        {hasAdsbProvenance && <p><a href="/data/adsb-provenance.json" target="_blank" rel="noreferrer">Archive and matching provenance</a> · <a href="/data/adsb-backfill.json.gz" download>Download the derived ADS-B database</a></p>}
       </details>
     </section>
   )

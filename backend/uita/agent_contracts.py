@@ -23,7 +23,7 @@ class AgentLimits(AgentStrict):
     revisions: int = Field(1, ge=0, le=2)
     input_tokens: int = Field(60000, ge=1000, le=100000)
     output_tokens: int = Field(6000, ge=256, le=12000)
-    request_output_tokens: int = Field(1000, ge=256, le=1500)
+    request_output_tokens: int = Field(1000, ge=256, le=4096)
     wall_seconds: int = Field(120, ge=10, le=300)
     spend_usd: float = Field(.02, gt=0, le=.05)
 

@@ -14,7 +14,9 @@ import httpx
 from .models import Policy
 from .planner import STATIC
 
-MODEL='nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B'
+MODEL='nvidia/NVIDIA-Nemotron-3.5-Super-VL'
+THINKING={'enable_thinking':True,'medium_effort':True}
+MODEL_GUIDANCE='https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-BF16#text-and-reasoning'
 PRICING_UNIT_SOURCE='https://www.crusoe.ai/cloud/pricing'
 BASE='https://api.inference.crusoecloud.com/v1'
 PROMPT_VERSION='observation-dsl-2'
@@ -68,7 +70,7 @@ class SpendLedger:
 def status():
     try:cap=_cap();configuration_error=None
     except ProviderError as exc:cap=0;configuration_error=str(exc)
-    return {'provider':'Crusoe','model':MODEL,'configured':bool(os.getenv('CRUSOE_API_KEY')),'mode':'offline-fixture','live_verified':False,'prompt_version':PROMPT_VERSION,'spend_cap_usd':cap,'budget_scope':'persistent aggregate reservation; ambiguous failures remain reserved','configuration_error':configuration_error}
+    return {'provider':'Crusoe','model':MODEL,'configured':bool(os.getenv('CRUSOE_API_KEY')),'mode':'offline-fixture','live_verified':False,'thinking_enabled':True,'reasoning_effort':'medium','prompt_version':PROMPT_VERSION,'spend_cap_usd':cap,'budget_scope':'persistent aggregate reservation; ambiguous failures remain reserved','configuration_error':configuration_error}
 
 
 def _pricing(model):
@@ -109,8 +111,8 @@ def propose_policy(weakness,ledger=None,cancel=None):
     # framing. Oversized prompts fail closed rather than truncating evidence.
     prompt_bytes=len(json.dumps(messages,ensure_ascii=False).encode('utf-8'))
     if prompt_bytes>3500:raise ProviderError('Development prompt exceeds bounded input size')
-    input_bound=prompt_bytes*2+1024;output_bound=512
-    usage={'calls':0,'input_tokens':0,'output_tokens':0,'cost_usd':None,'provider':'Crusoe','model':MODEL,'prompt_version':PROMPT_VERSION,'temperature':0,'max_tokens':output_bound,'paid_retries':0}
+    input_bound=prompt_bytes*2+1024;output_bound=4096
+    usage={'calls':0,'input_tokens':0,'output_tokens':0,'cost_usd':None,'provider':'Crusoe','model':MODEL,'prompt_version':PROMPT_VERSION,'temperature':1.0,'top_p':.95,'thinking_enabled':True,'max_tokens':output_bound,'paid_retries':0}
     with httpx.Client(timeout=httpx.Timeout(20,connect=5),base_url=BASE,headers={'Authorization':f'Bearer {key}'},follow_redirects=False) as client:
         try:
             discovered=client.get('/models');discovered.raise_for_status();catalog=discovered.json()
@@ -119,7 +121,7 @@ def propose_policy(weakness,ledger=None,cancel=None):
             if not model:raise ProviderError('Pinned NVIDIA model unavailable in authenticated Crusoe discovery')
             supported=model.get('supported_parameters')
             if not isinstance(supported,(list,dict)):raise ProviderError('Discovery did not establish supported generation parameters')
-            if 'temperature' not in supported:raise ProviderError('Pinned model does not advertise temperature control')
+            if not all(parameter in supported for parameter in ('temperature','top_p','chat_template_kwargs')):raise ProviderError('Pinned model does not advertise required thinking and sampling controls')
             token_parameter='max_tokens' if 'max_tokens' in supported else 'max_completion_tokens' if 'max_completion_tokens' in supported else None
             if token_parameter is None:raise ProviderError('Pinned model does not advertise an output token bound')
             context=model.get('context_length',(model.get('limits') or {}).get('context_length'))
@@ -131,9 +133,9 @@ def propose_policy(weakness,ledger=None,cancel=None):
             if ledger.cap>cap:raise ProviderError('Supplied ledger exceeds currently approved aggregate cap')
             if cancel is not None and cancel.is_set():raise ProviderError('Inference cancelled before generation')
             reservation=ledger.reserve(worst);usage['reserved_usd']=worst;usage['reservation_id']=reservation
-            body={'model':MODEL,'messages':messages,'temperature':0,token_parameter:output_bound}
+            body={'model':MODEL,'messages':messages,'temperature':1.0,'top_p':.95,token_parameter:output_bound}
             if 'response_format' in supported:body['response_format']={'type':'json_object'}
-            if 'chat_template_kwargs' in supported:body['chat_template_kwargs']={'enable_thinking':False}
+            body['chat_template_kwargs']=dict(THINKING)
             # Never retry an ambiguous paid POST: a timeout can still be billed.
             usage['calls']=1;response=client.post('/chat/completions',json=body);response.raise_for_status()
             result=response.json();choice=result['choices'][0]

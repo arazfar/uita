@@ -15,6 +15,8 @@ export interface Flight {
   port: string
   runway: string
   has_track: boolean
+  track_source?: 'adsb.lol' | 'SFO Museum'
+  icao24?: string
   /** Museum scheduled arrival time, unix s; exact gate/runway semantics unverified. */
   sched?: number | null
 }
@@ -30,7 +32,7 @@ export interface FlightsFile {
   flights: Flight[]
 }
 
-/** [UTC unix seconds, lon, lat, reported beacon feet | null, derived knots | null] */
+/** [UTC unix seconds, lon, lat, reported barometric/beacon feet | null, derived knots | null] */
 export type TrackPoint = [number, number, number, number | null, number | null]
 export type TracksFile = Record<string, TrackPoint[]>
 
@@ -83,7 +85,11 @@ export interface KpiCoverage {
   separation_evaluable_tracks: number
   separation_evaluable_arrivals: number
   go_around_evaluable_arrivals: number
-  beacon_points: number
+  measured_altitude_points?: number
+  /** Legacy Museum-only bundles use beacon_points. */
+  beacon_points?: number
+  adsb_paths?: number
+  museum_fallback_paths?: number
   total_points: number
 }
 
@@ -93,5 +99,6 @@ export interface KpisFile {
   /** sorted by t_start */
   sep_events: SepEvent[]
   /** sorted by t */
-  go_arounds: { t: number; id: string }[]
+  /** t is the time the sustained climb is confirmed, not the earlier low point. */
+  go_arounds: { t: number; low_t: number; low_ft: number; confirmed_ft: number; id: string }[]
 }

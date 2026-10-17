@@ -91,7 +91,7 @@ class Parts(io.RawIOBase):
         return 0
 
 
-def normalized_points(doc):
+def normalized_points(doc, include_stale=False):
     """Retain observed samples and altitude reference; do not interpolate."""
     base = doc.get("timestamp")
     if not number(base) or not isinstance(doc.get("trace"), list):
@@ -106,10 +106,12 @@ def normalized_points(doc):
         # Bit 1 marks stale positions; bit 8 marks geometric altitude. Bit 4
         # describes vertical-rate reference, so it does not null altitude.
         # The compact tuple cannot describe reference; keep flags separately.
-        if flags & 1:
+        if flags & 1 and not include_stale:
             continue
         altitude_ft = altitude if number(altitude) and not flags & 8 else None
-        points.append(dict(t=base + offset, lat=lat, lon=lon, alt=altitude_ft,
+        # The source uses millisecond base times and centisecond offsets. Avoid
+        # binary-float duplicates when the same sample appears on adjacent days.
+        points.append(dict(t=round(base + offset, 3), lat=lat, lon=lon, alt=altitude_ft,
                            gs=speed if number(speed) else None,
                            ground=altitude == "ground", flags=flags))
     return sorted(points, key=lambda p: p["t"])
@@ -122,6 +124,8 @@ def consider(doc, source, by_reg, by_hex, candidates, stats):
         raise ValueError(f"Invalid ICAO/source address in {source['member']}")
     operations = {o["id"]: o for o in by_reg.get(reg, [])}
     operations.update({o["id"]: o for o in by_hex.get(hex_id, [])})
+    if not any(op["eligible"] for op in operations.values()):
+        return
     points = normalized_points(doc)
     stats["observed_points_read"] += len(points)
     for op in operations.values():
@@ -168,19 +172,48 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--allow-partial", action="store_true", help="Write an explicitly incomplete archive sample")
     parser.add_argument("--include-covered", action="store_true", help="Also report candidates for operations which already have Museum paths")
+    parser.add_argument("--retain-matched", type=Path, help="Keep original identity-matched traces for cross-UTC-day matching")
     args = parser.parse_args()
     if not re.fullmatch(r"v\d{4}\.\d{2}\.\d{2}-planes-readsb-(?:prod|staging)-\d+", args.release):
         parser.error("Expected a daily prod/staging release tag, such as v2026.08.03-planes-readsb-prod-0")
     by_reg, by_hex, operation_count = load_operations(args.include_covered)
-    candidates, stats = {}, defaultdict(int)
+    candidates, stats, retained_sources = {}, defaultdict(int), []
     complete, scan_error = False, None
 
     def consume(name, content):
+        # Most global traces cannot match this airport roster. Readsb writes
+        # identity metadata before the trace array. When a complete header with
+        # an explicit registration is available, avoid inflating/parsing its
+        # entire unrelated flight history. Unknown layouts take the full path.
+        if content[:2] == b'\x1f\x8b':
+            with gzip.GzipFile(fileobj=io.BytesIO(content)) as compressed:
+                prefix = compressed.read(4096).decode('utf-8', errors='ignore')
+        else:
+            prefix = content[:4096].decode('utf-8', errors='ignore')
+        marker = re.search(r'"trace"\s*:', prefix)
+        if marker:
+            try:
+                header = json.loads(prefix[:marker.start()].rstrip().rstrip(',') + '}')
+            except (ValueError, TypeError):
+                header = {}
+            if (header.get('r') and registration(header['r']) not in by_reg
+                    and header.get('icao') not in by_hex):
+                stats['trace_files_scanned'] += 1
+                stats['identity_prefiltered_traces'] += 1
+                return
         doc = json.loads(gzip.decompress(content) if content[:2] == b"\x1f\x8b" else content)
         if not isinstance(doc, dict) or "trace" not in doc:
             return
         source = dict(member=name, sha256=hashlib.sha256(content).hexdigest(), bytes=len(content))
         stats["trace_files_scanned"] += 1
+        if args.retain_matched and (registration(doc.get("r")) in by_reg or doc.get("icao") in by_hex):
+            # Retain original compressed bytes, not a rewritten trace. The flat
+            # hash name cannot escape the destination through a tar member path.
+            args.retain_matched.mkdir(parents=True, exist_ok=True)
+            suffix = ".json.gz" if content[:2] == b"\x1f\x8b" else ".json"
+            (args.retain_matched / (source["sha256"] + suffix)).write_bytes(content)
+            source["retained_file"] = source["sha256"] + suffix
+            retained_sources.append(source)
         consider(doc, source, by_reg, by_hex, candidates, stats)
 
     if args.trace_directory:
@@ -230,7 +263,7 @@ def main():
         raise ValueError("No original readsb traces found; inspect input layout")
     result = dict(source=SOURCE, release=SOURCE + "/releases/tag/" + args.release,
         format=FORMAT, license="ODbL-1.0", license_url="https://opendatacommons.org/licenses/odbl/1-0/", mode="review_candidates_only",
-        archive_scan_complete=complete, scan_error=scan_error,
+        archive_scan_complete=complete, scan_error=scan_error, retained_sources=retained_sources,
         generated_at=datetime.now(timezone.utc).isoformat(),
         point_columns=["timestamp_unix_utc", "longitude", "latitude", "barometric_altitude_ft_or_null", "groundspeed_kt_or_null"],
         limits=["No replay files changed", "Identity/time/airport matches require review", "No coverage claim before complete extraction and review", "No interpolated points; stale positions excluded; ground and geometric altitudes remain null"],

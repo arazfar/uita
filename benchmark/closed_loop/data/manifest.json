@@ -1,0 +1,69 @@
+{
+  "traffic_version": "historical-closed-loop-traffic-v1",
+  "source_dataset_id": "sfo-2026-08-03_09-v1",
+  "source_database": "pipeline/build/sfo.duckdb",
+  "split_dates": {
+    "train": [
+      "2026-08-03",
+      "2026-08-04",
+      "2026-08-05",
+      "2026-08-06"
+    ],
+    "validation": [
+      "2026-08-07"
+    ]
+  },
+  "source_queries": {
+    "episodes": "SELECT id, split, CAST(local_date AS VARCHAR) AS local_date,\n       warmup_start, start, \"end\", drain_end, flight_ids\nFROM episodes\nWHERE local_date BETWEEN DATE '2026-08-03' AND DATE '2026-08-07'\n  AND split IN ('train', 'validation')\nORDER BY local_date, start, id",
+    "entries": "SELECT flight_id, callsign, aircraft_type, origin, spawn_time, position,\n       groundspeed_kt, track_deg_true, position_provenance, altitude_provenance,\n       motion_provenance\nFROM entries\nWHERE local_date BETWEEN DATE '2026-08-03' AND DATE '2026-08-07'\n  AND split IN ('train', 'validation')\nORDER BY spawn_time, flight_id",
+    "weather": "SELECT id, observed_at, available_at, availability_assumption, wind_direction_deg_true,\n       wind_speed_kt, wind_gust_kt, visibility_sm, altimeter_inhg, temperature_f,\n       cloud_layers, metar, source\nFROM weather\nWHERE available_at >= ? AND available_at < ? AND observed_at < ?\nORDER BY available_at, id"
+  },
+  "weather_query_parameters": [
+    1785674700.0,
+    1786172400.0,
+    1786172400.0
+  ],
+  "selected_source_hashes": {
+    "episodes": "64f6000dd1948b64a32646ef4085d861f81460578c757235b26a35e9bceb9e22",
+    "entries": "14af41bf9ed08f1bbf722b21b527eac5f83857eb4a067d15394a2283ee3873ec",
+    "weather": "8055e8866734f0be26568048e9d0421149846733e0e55b104c11542302279ea8"
+  },
+  "artifacts": {
+    "train.json": {
+      "sha256": "0df9f611e3b3b227a24a9f8463ea539ed17e83c213df724c7fd5d3a34eb005ea",
+      "bytes": 245017,
+      "episodes": 24,
+      "source_arrival_operations": 572,
+      "position_strata": {
+        "synthetic_training_template": 290,
+        "observed": 282
+      },
+      "per_day": {
+        "2026-08-03": 6,
+        "2026-08-04": 6,
+        "2026-08-05": 6,
+        "2026-08-06": 6
+      }
+    },
+    "validation.json": {
+      "sha256": "7a174f3aa780e161f87ab1e663e12d58c00e9fd31a615757ada7393e7e709537",
+      "bytes": 59560,
+      "episodes": 6,
+      "source_arrival_operations": 136,
+      "position_strata": {
+        "synthetic_training_template": 61,
+        "observed": 75
+      },
+      "per_day": {
+        "2026-08-07": 6
+      }
+    }
+  },
+  "loader_sha256": "710b255c327cada60bf9a8717ed54770ea7bf62ecd19754d218fbdb2d07ba6e7",
+  "privacy": "Trusted runner only. Entries and weather are future queues; release them causally. Never send whole episode objects to a controller.",
+  "outcomes": "No arrivals table or recorded operation times, assigned runways, future paths or template donor identities were read or exported.",
+  "held_out": "August 8\u20139 source scenario files and episode/outcome rows remain unqueried; weather observed/available cutoff is August 8 local midnight exclusive.",
+  "motion": "Only initial states seed the runner. Subsequent motion must be reconstructed and controlled; historical paths are not replayed.",
+  "strata": "Observed entries and synthetic_training_template entries remain labeled. Synthetic entry timing can derive from historical operation times upstream; do not call them observed.",
+  "source_identity": "flight_id identifies a recorded arrival operation, not a unique physical airframe."
+}

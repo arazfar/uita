@@ -42,6 +42,8 @@ def create_app(database_url=None):
             if process.is_alive():process.terminate();process.join(timeout=2)
 
     app=FastAPI(title='Uita research simulation',version='0.1.0',lifespan=lifespan)
+    from .history import router as history_router
+    app.include_router(history_router)
     app.state.store=store;app.state.lock=lock
     origins=os.getenv('UITA_ALLOWED_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(',')
     app.add_middleware(CORSMiddleware,allow_origins=origins,allow_methods=['GET','POST'],allow_headers=['Content-Type','Authorization'])
@@ -257,7 +259,7 @@ def create_app(database_url=None):
                 parent=Policy(**parent_record['program']);parent_id=parent_record['id'];ancestry=memory.get('ancestry',[])
             else:
                 parent=STRONG_STATIC;parent_id='static-v2';ancestry=[]
-            id=str(uuid.uuid4());limits=AgentLimits(revisions=command.revisions)
+            id=str(uuid.uuid4());limits=AgentLimits(revisions=command.revisions,**({'request_output_tokens':4096,'output_tokens':12000,'wall_seconds':180} if command.source=='crusoe' else {}))
             job={'id':id,'status':'queued','stage':'queued','generations':command.generations,'source':'crusoe-live' if command.source=='crusoe' else 'offline-fixture','created_at':time.time(),'parent_id':parent_id,'parent_program':parent.model_dump(),'ancestry':ancestry,'memory_mode':'persistent','provider_usage':{'calls':0,'input_tokens':0,'output_tokens':0,'cost_usd':0,'reserved_usd':0,'paid_retries':0},'limits':limits.model_dump(),'events':[],'grammar_version':GRAMMAR_VERSION,'prompt_version':PROMPT_VERSION,'evaluator_version':AGENT_EVALUATOR_VERSION,'config_hash':AGENT_CONFIG_HASH,'heldout_consumed':bool(store.list('heldout',1))}
             with store.transaction() as db:
                 store.put('job-'+id,'job',job,db);record_command(command,'train',job,db)
