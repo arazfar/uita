@@ -2,6 +2,8 @@
 
 This benchmark measures whether a model predicts the recorded order of two SFO arrivals from causal observed entry snapshots. It does not recover authentic controller commands. No human ATC safety, delay or command-performance score exists in the source bundle.
 
+For controller safety and added-delay evaluation, use the separate [historical-demand closed-loop benchmark](closed_loop/README.md). It executes checked plans and replans after traffic arrives. Its objective differs from this pair-prediction task.
+
 The five-model comparison is complete. Read [results](reports/2026-10-17/comparison.md), [how to test and the exact objective function](TESTING.md), and [Railway verification](reports/2026-10-17/railway-verification.json). The database upload contains only the 141 validation cases, predictions/results, and verification metadata. Fine-tuning is deferred.
 
 Two designs were considered. Reusing the backend planner would preserve its richer scheduling constraints, but its current cases are synthetic mixed arrivals/departures and its model revises observation programs rather than directly ordering real arrivals. A dedicated arrival-pair task supports the same compact input/action contract across different untuned models. We chose the dedicated task for this experiment and report its narrow scope.

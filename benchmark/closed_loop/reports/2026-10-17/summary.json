@@ -1,0 +1,289 @@
+{
+  "status": "completed",
+  "plan_sha256": "dd9b856ca8591ba25d9eef94c29f5934523ce86bdd8cbcbb8e65cea503c6f6e1",
+  "split": "validation",
+  "controllers": {
+    "scripted": {
+      "episodes": 6,
+      "spawned": 136,
+      "landed": 64,
+      "completed": 62,
+      "backlog": 74,
+      "nominal_due_arrivals": 136,
+      "not_nominally_due_arrivals": 0,
+      "executed_violations": 0,
+      "safe_episodes": 6,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 160182.639,
+      "mean_added_delay_seconds_all_demand": 1177.8135220588235,
+      "p95_added_delay_seconds_all_demand": 2228.001,
+      "mean_added_delay_seconds_completed_only": 873.7490483870968,
+      "penalized_added_delay_seconds": 426582.639,
+      "controller_failures": 0,
+      "fallback_decisions": 0,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 83,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 83
+      },
+      "source_strata": {
+        "observed": {
+          "spawned": 75,
+          "completed": 33,
+          "mean_added_delay_seconds_all_demand": 1231.75168
+        },
+        "synthetic_training_template": {
+          "spawned": 61,
+          "completed": 29,
+          "mean_added_delay_seconds_all_demand": 1111.4961147540985
+        }
+      }
+    },
+    "deterministic": {
+      "episodes": 6,
+      "spawned": 136,
+      "landed": 65,
+      "completed": 63,
+      "backlog": 73,
+      "nominal_due_arrivals": 136,
+      "not_nominally_due_arrivals": 0,
+      "executed_violations": 0,
+      "safe_episodes": 6,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 158383.639,
+      "mean_added_delay_seconds_all_demand": 1164.585580882353,
+      "p95_added_delay_seconds_all_demand": 2520.477,
+      "mean_added_delay_seconds_completed_only": 731.0518571428571,
+      "penalized_added_delay_seconds": 421183.639,
+      "controller_failures": 0,
+      "fallback_decisions": 0,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 83,
+      "solver_status_counts": {
+        "OPTIMAL": 25,
+        "FEASIBLE": 58
+      },
+      "source_strata": {
+        "observed": {
+          "spawned": 75,
+          "completed": 35,
+          "mean_added_delay_seconds_all_demand": 1165.7783466666667
+        },
+        "synthetic_training_template": {
+          "spawned": 61,
+          "completed": 28,
+          "mean_added_delay_seconds_all_demand": 1163.1190655737705
+        }
+      }
+    },
+    "ai": {
+      "episodes": 6,
+      "spawned": 136,
+      "landed": 64,
+      "completed": 63,
+      "backlog": 73,
+      "nominal_due_arrivals": 136,
+      "not_nominally_due_arrivals": 0,
+      "executed_violations": 0,
+      "safe_episodes": 6,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 158965.639,
+      "mean_added_delay_seconds_all_demand": 1168.864992647059,
+      "p95_added_delay_seconds_all_demand": 2585.13,
+      "mean_added_delay_seconds_completed_only": 648.9560476190476,
+      "penalized_added_delay_seconds": 421765.639,
+      "controller_failures": 50,
+      "fallback_decisions": 50,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 83,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 33,
+        "OPTIMAL": 7,
+        "FEASIBLE": 43
+      },
+      "source_strata": {
+        "observed": {
+          "spawned": 75,
+          "completed": 39,
+          "mean_added_delay_seconds_all_demand": 1156.2450133333334
+        },
+        "synthetic_training_template": {
+          "spawned": 61,
+          "completed": 24,
+          "mean_added_delay_seconds_all_demand": 1184.3813606557378
+        }
+      }
+    }
+  },
+  "paired_reference": "scripted",
+  "paired": {
+    "deterministic": [
+      {
+        "episode_id": "2026-08-07-0600",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": -59.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-0900",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": 315.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-1200",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": 272.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-1500",
+        "completed_delta": 1,
+        "backlog_delta": -1,
+        "added_delay_seconds_delta": -694.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-1800",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": -622.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-2100",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": -1011.0,
+        "executed_violations_delta": 0
+      }
+    ],
+    "ai": [
+      {
+        "episode_id": "2026-08-07-0600",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": 339.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-0900",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": -132.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-1200",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": 430.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-1500",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": -275.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-1800",
+        "completed_delta": 1,
+        "backlog_delta": -1,
+        "added_delay_seconds_delta": -568.0,
+        "executed_violations_delta": 0
+      },
+      {
+        "episode_id": "2026-08-07-2100",
+        "completed_delta": 0,
+        "backlog_delta": 0,
+        "added_delay_seconds_delta": -1011.0,
+        "executed_violations_delta": 0
+      }
+    ]
+  },
+  "source_hashes": {
+    "benchmark/closed_loop/traffic.py": "710b255c327cada60bf9a8717ed54770ea7bf62ecd19754d218fbdb2d07ba6e7",
+    "benchmark/closed_loop/controllers.py": "71af9bd21e2ad5421a8953fe63a6caafe70e82d8fc2843915d7278981a011fcb",
+    "benchmark/closed_loop/engine.py": "1e89a176399d4c9378e9b8f54df79d80a2a6d4d84b72741d9b1d8dbf690ac71d",
+    "benchmark/closed_loop/ai.py": "da4c28855596417ba83ee2cc03037e79a4b77494b7d2630c10129026ef32c8b3",
+    "benchmark/closed_loop/run.py": "b647323360692aec780c882841390202f1ff200f401ad6489e0f233db76b658a",
+    "backend/uita/airport.py": "70aba9142b0a432938a25b61b33bff1bf586bd98810fb20f43884e5eb1fe4b21",
+    "backend/uita/simulator.py": "c88b274462cf790c1eb783cd1e2fef0fa045b8c22926a9ad001e0f1ba38d3052",
+    "backend/uita/verifier.py": "7ec7eae2a9026b939b60de4b77dee30119a62189b3a79523a55b75440bf5d439",
+    "backend/uita/objectives.py": "0d92c1f3cf0ccaa11302002a521c520e67eeb135e82dbbd80189f70c9136b9a6",
+    "benchmark/provider.py": "ea7a8267b2f0df26faad9f7d5efc6cf38ef22572a72aa056ca0f3277b395b225"
+  },
+  "ai_usage": {
+    "calls": 83,
+    "successful_calls": 33,
+    "statuses": {
+      "completed": 33,
+      "ambiguous_failure": 28,
+      "invalid_response": 21,
+      "http_failure": 1
+    },
+    "paid_retries": 0,
+    "reported_cost_usd": 0.0692799,
+    "unknown_cost_requests": 29,
+    "reserved_usd": 0.23644940000000003,
+    "budget": {
+      "budget_id": "uita-historical-closed-loop-20261017",
+      "cap_usd": 1.0,
+      "requests": 87,
+      "reserved_usd": 0.2456414,
+      "reported_cost_usd": 0.0699686,
+      "unknown_cost_requests": 30
+    }
+  },
+  "execution": {
+    "independent_episode_workers": true,
+    "worker_sha256": "e9d51c8b801a1c0fcec91f60fa2f85ee6f7c8b71981579fa4a221883bbf741ec",
+    "unused_partial_audit_records": 0
+  },
+  "artifacts": {
+    "plan.json": "dd9b856ca8591ba25d9eef94c29f5934523ce86bdd8cbcbb8e65cea503c6f6e1",
+    "runs.json": "cd21f40f19258edf97e0b7cc032256ddc2654b641dec93eb21db56884a1792cc"
+  },
+  "limits": [
+    "Historical demand with reconstructed feeder and fixed final approaches; upstream feeder and waiting are not safety-modeled.",
+    "Added delay is modeled admission waiting. Unfinished values are right-censored at the common drain end; backlog penalty is 3600 seconds.",
+    "All controllers have the same announced synthetic occupancy and safety envelope. Safety is enforced by common synthesis and verification.",
+    "AI outcomes include explicitly recorded deterministic/scripted fallbacks for API, contract, or verification failures.",
+    "Simulation time pauses for controller computation. API wall latency is not added to simulated flight time.",
+    "One nominal seed and six validation windows from one historical day do not establish operational safety or human-controller superiority.",
+    "Independent AI windows ran concurrently to bound wall time; per-model dispatch pacing and the aggregate $1 cap remained enforced.",
+    "August 8\u20139 remain held out."
+  ]
+}
