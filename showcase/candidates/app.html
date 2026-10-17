@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <link rel="preconnect" href="https://tile.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>UITA Control</title>
     <style>
@@ -84,8 +83,8 @@
   </head>
   <body>
     <div class="loading" id="loading">Loading SFO…</div>
-    <iframe id="dash" title="SkyFlow dashboard" src="11-photoreal-sfo.html" allow="autoplay; microphone"></iframe>
-    <iframe id="cab" title="SkyFlow tower cab" hidden allow="autoplay; microphone"></iframe>
+    <iframe id="dash" title="UITA dashboard" allow="autoplay; microphone"></iframe>
+    <iframe id="cab" title="UITA tower cab" hidden allow="autoplay; microphone"></iframe>
     <div class="switch" role="group" aria-label="View">
       <button data-view="dash" aria-pressed="true">Dashboard<kbd>T</kbd></button
       ><button data-view="cab" aria-pressed="false">Tower cab</button>
@@ -93,11 +92,35 @@
     <script>
       const frames = { dash: document.getElementById("dash"), cab: document.getElementById("cab") };
       const src = { dash: "11-photoreal-sfo.html", cab: "19-tower-cab-interior.html" };
-      let view = "dash";
-      // The dashboard shows its own tile progress; never hold the whole page behind ours.
+      // Load only the view being shown; warm the other one once it has settled,
+      // so the two never compete for bandwidth on slow venue wifi.
+      let view = location.hash === "#cab" ? "cab" : "dash";
+      const other = view === "cab" ? "dash" : "cab";
       const clearLoading = () => document.getElementById("loading")?.remove();
-      frames.dash.addEventListener("load", clearLoading, { once: true });
+      frames[view].hidden = false;
+      frames[other].hidden = true;
+      frames[view].src = src[view];
+      frames[view].addEventListener(
+        "load",
+        () => {
+          clearLoading();
+          setTimeout(() => {
+            if (!frames[other].src) {
+              frames[other].src = src[other];
+              frames[other].addEventListener(
+                "load",
+                () => frames[other].contentWindow?.postMessage({ skyflow: "pause" }, "*"),
+                { once: true },
+              );
+            }
+          }, 8000);
+        },
+        { once: true },
+      );
       setTimeout(clearLoading, 1500);
+      document
+        .querySelectorAll("[data-view]")
+        .forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
       function show(next) {
         if (next === view) return;
         const prev = frames[view];
@@ -117,7 +140,6 @@
       addEventListener("keydown", (e) => e.key.toLowerCase() === "t" && !e.repeat && toggle());
       // Iframes forward their T presses here so the shortcut works wherever focus is.
       addEventListener("message", (e) => e.data?.skyflow === "toggle" && toggle());
-      if (location.hash === "#cab") show("cab");
     </script>
   </body>
 </html>
