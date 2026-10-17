@@ -145,3 +145,82 @@ def test_recording_window_is_bounded_and_keeps_fallback_context(tmp_path):
     broken["manifest"]["checksums"]["frames"] = digest(broken["frames"])
     with pytest.raises(ValueError, match="Incompatible"):
         validate_recording(broken)
+
+
+def test_public_demo_access_and_team_boundary(tmp_path, monkeypatch):
+    from uita.research import security
+
+    monkeypatch.setenv("UITA_SHOWCASE", "1")
+    monkeypatch.setenv("UITA_ACCESS_MODE", "public_demo")
+    database = Database("sqlite:///" + str(tmp_path / "public.db"))
+    Base.metadata.create_all(database.engine)
+    with database.transaction() as db:
+        scenario = frozen_fixture()
+        save_artifact(db, scenario["id"], "scenario", scenario)
+        db.add(Budget(id="validation-v2", cap=5, reserved=0))
+        # Even a valid administrator cookie must not elevate a public visitor.
+        security.add_user(db, "admin", "test-password-long", "other", "administrator")
+        token = security.login(db, "admin", "test-password-long")
+    with TestClient(create_app(database, False)) as client:
+        client.cookies.set("uita_session", token)
+        identity = client.get("/api/v2/me").json()
+        assert identity["role"] == "operator"
+        assert identity["team"] == "research"
+        assert identity["access_mode"] == "public_demo"
+        client.cookies.clear()
+        assert client.get("/api/v2/me").json() == identity
+        for path in [
+            "/",
+            "/candidates/11-photoreal-sfo.html",
+            "/candidates/19-tower-cab-interior.html",
+            "/api/v2/scenarios",
+            "/api/v2/recordings",
+        ]:
+            assert client.get(path).status_code == 200
+        assert client.get("/login", follow_redirects=False).headers["location"] == "/"
+        assert client.get("/uita/api/history/window?start=1").status_code == 422
+        result = client.post(
+            "/api/v2/runs",
+            json={"scenario_id": scenario["id"], "idempotency_key": "public-run"},
+        )
+        assert result.status_code == 200
+        run_id = result.json()["id"]
+        assert client.get(f"/api/v2/runs/{run_id}/presentation").status_code == 200
+        assert client.get(f"/api/v2/runs/{run_id}/export").status_code == 200
+        assert (
+            client.post(
+                "/api/v2/runs", headers={"origin": "https://other.example"}, json={}
+            ).status_code
+            == 403
+        )
+        live = client.post(
+            "/api/v2/runs",
+            json={
+                "scenario_id": scenario["id"],
+                "controller": "crusoe",
+                "idempotency_key": "public-live-run",
+                "spend_cap_usd": 0.5,
+            },
+        )
+        assert live.status_code == 200
+        assert live.json()["state"]["controller"] == "crusoe"
+        with database.sessions() as db:
+            assert db.get(Budget, "validation-v2").reserved == 0
+        from uita.research.database import Run
+
+        with database.transaction() as db:
+            db.get(Run, run_id).team = "other"
+        assert client.get(f"/api/v2/runs/{run_id}").status_code == 404
+        assert client.get(f"/api/v2/runs/{run_id}/stream").status_code in (
+            404,
+            422,
+        )
+        with database.sessions() as db:
+            assert security.resolve_principal(db, None, "public_demo") == identity
+            assert security.resolve_principal(db, None, "private") is None
+
+
+def test_invalid_access_mode_fails_closed(monkeypatch):
+    monkeypatch.setenv("UITA_ACCESS_MODE", "public")
+    with pytest.raises(ValueError, match="UITA_ACCESS_MODE"):
+        create_app()

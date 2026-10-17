@@ -27,6 +27,6 @@ COPY --from=showcase /app/showcase/node_modules/three186 ./showcase/node_modules
 COPY --from=showcase /app/showcase/node_modules/cesium/Build/Cesium ./showcase/node_modules/cesium/Build/Cesium
 RUN useradd --create-home uita
 USER uita
-ENV PYTHONPATH=/app/backend UITA_SHOWCASE=1
+ENV PYTHONPATH=/app/backend UITA_SHOWCASE=1 UITA_ACCESS_MODE=public_demo
 EXPOSE 8001
 CMD ["sh", "-c", "exec uvicorn uita.research.api:create_app --factory --host 0.0.0.0 --port ${PORT:-8001}"]

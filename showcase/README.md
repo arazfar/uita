@@ -93,3 +93,8 @@ PDT dates. The source comparison checked five observations in each day's noon
 window: all **35 matched** the database's timestamp, coordinates, measurements,
 identity and metadata. This is a sample-based wiring check, not a claim of
 complete flight coverage or validated safety detection.
+
+The connected showcase defaults to login-free public demo access. Visitors share
+the research workspace, including explicit budgeted live runs. Set
+`UITA_ACCESS_MODE=private` to require accounts. See
+[access and startup instructions](../docs/research/v2/SHOWCASE.md).

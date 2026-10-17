@@ -20,13 +20,13 @@ python scripts/verify_showcase_package.py
 export PYTHONPATH="$PWD/backend"
 export DATABASE_URL="sqlite:///$PWD/uita-showcase.db"
 export UITA_SHOWCASE=1
+export UITA_ACCESS_MODE=public_demo
 alembic upgrade head
 python -m uita.research.cli bootstrap
-python -m uita.research.cli user demo --team research --role administrator
 python scripts/run_research_local.py
 ```
 
-Open http://127.0.0.1:8012/login. In another terminal, activate the environment,
+Open http://127.0.0.1:8012/. In another terminal, activate the environment,
 set the same `PYTHONPATH` and `DATABASE_URL`, then run:
 
 ```sh
@@ -44,7 +44,7 @@ forwards application credentials. Missing source service is an explicit error.
 
 ## Presentation script
 
-1. Sign in. The saved August 6 recording loads automatically, initially paused.
+1. Open the demo. The saved August 6 recording loads automatically, initially paused.
 2. Select Historical to inspect available observed positions, missing heights and
    source ages. The metered variant alters spawn timing; historical paths provide
    context and are not a matched human-controller baseline.
@@ -124,8 +124,8 @@ useful commands are not substituted with fabricated visuals or decisions.
 With the API and worker running, open and sign in using Playwright CLI, then run:
 
 ```sh
-npx --yes --package @playwright/cli playwright-cli open http://127.0.0.1:8012/login --headed
-# Sign in to the private team account in this browser.
+npx --yes --package @playwright/cli playwright-cli open http://127.0.0.1:8012/ --headed
+# Public demo needs no login; sign in only when using private mode.
 npx --yes --package @playwright/cli playwright-cli run-code --filename showcase/scripts/browser-acceptance.js
 ```
 
@@ -133,3 +133,16 @@ The script creates free fixture runs, tests the recorded comparison and faults,
 and ends by clearing its own browser session to verify expiry. It makes no paid
 calls. Worker SIGKILL/takeover and Docker/hosted checks are separate gates in the
 [release checklist](SHOWCASE-CHECKLIST.md).
+
+## Access mode
+
+The showcase image defaults to `UITA_ACCESS_MODE=public_demo`: no account or cookie
+is needed. All visitors share the `research` team's operator controls and runs,
+including explicitly started paid live runs. Existing per-run, daily-team and
+aggregate budget reservations still apply. Recorded playback remains the default.
+Other teams are inaccessible. No provider secret is exposed to the browser.
+
+Set `UITA_ACCESS_MODE=private` to restore login and session expiration. In that mode,
+create an account with `python -m uita.research.cli user demo --team research`.
+Non-showcase deployments default to private mode. Production configuration is
+unchanged; hosted staging and container acceptance remain separate release gates.

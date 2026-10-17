@@ -521,11 +521,14 @@ setInterval(() => {
     });
 }, 2000);
 await action(async () => {
-  const [catalog, scenarios, benchmark] = await Promise.all([
+  const [catalog, scenarios, benchmark, identity] = await Promise.all([
     api("/recordings"),
     api("/scenarios"),
     api("/published-benchmark"),
+    api("/me"),
   ]);
+  $("logout").hidden = identity.access_mode === "public_demo";
+  $("access-mode").textContent = identity.access_mode === "public_demo" ? "Public demo" : identity.username;
   recordings = catalog;
   $("recordings").innerHTML = catalog
     .map((r) => `<option value="${esc(r.id)}">${esc(r.title)}</option>`)

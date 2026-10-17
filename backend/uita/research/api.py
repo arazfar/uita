@@ -48,6 +48,9 @@ log = logging.getLogger(__name__)
 
 
 def create_app(database=None, secure_cookies=True):
+    access_mode = os.getenv("UITA_ACCESS_MODE", "private")
+    if access_mode not in {"private", "public_demo"}:
+        raise ValueError("UITA_ACCESS_MODE must be private or public_demo")
     database = database or Database()
 
     @asynccontextmanager
@@ -62,6 +65,8 @@ def create_app(database=None, secure_cookies=True):
     async def boundary(request, call_next):
         started = time.monotonic()
         path = request.url.path
+        if path == "/login" and access_mode == "public_demo":
+            return RedirectResponse("/", status_code=303)
         public = path in (
             "/health/live",
             "/health/ready",
@@ -78,17 +83,14 @@ def create_app(database=None, secure_cookies=True):
                 return JSONResponse({"detail": "Origin not allowed"}, 403)
         if not public:
             with database.sessions() as db:
-                user = security.authenticate(db, request.cookies.get("uita_session"))
+                user = security.resolve_principal(
+                    db, request.cookies.get("uita_session"), access_mode
+                )
                 if user is None:
                     if path == "/":
                         return RedirectResponse("/login", status_code=303)
                     return JSONResponse({"detail": "Sign in required"}, 401)
-                request.state.user = {
-                    "id": user.id,
-                    "team": user.team,
-                    "role": user.role,
-                    "username": user.username,
-                }
+                request.state.user = user
             if (
                 request.method not in ("GET", "HEAD", "OPTIONS")
                 and request.state.user["role"] == "viewer"
@@ -458,12 +460,12 @@ def create_app(database=None, secure_cookies=True):
             nonlocal cursor
             while not await request.is_disconnected():
                 with database.sessions() as db:
-                    current_user = security.authenticate(
-                        db, request.cookies.get("uita_session")
+                    current_user = security.resolve_principal(
+                        db, request.cookies.get("uita_session"), access_mode
                     )
                     if (
                         current_user is None
-                        or current_user.team != request.state.user["team"]
+                        or current_user["team"] != request.state.user["team"]
                     ):
                         return
                 batch = events(run_id, request, cursor)

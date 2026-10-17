@@ -1,10 +1,10 @@
 # Showcase release blockers
 
 Completed locally:
-- Backend regression suite: 277 passed. Showcase suite: 16 passed.
+- Backend regression suite: 279 passed. Showcase suite: 16 passed.
 - Rebuilt early-August historical replay passes the source audit (8,439 operations,
   4,128 paths); no new source collection.
-- Authenticated shell, shared dashboard/tower frame, historical context,
+- Login-free public-demo shell (private mode retained), shared dashboard/tower frame, historical context,
   immutable Nemotron recording, closure evidence, matched comparison and export.
 - Browser model-failure/budget fixtures, unsafe proposal rejection, run reload, offline/reconnect, scenario
   failure at 151 seconds, synchronized recorded comparison, expired session and
@@ -16,6 +16,9 @@ Completed locally:
 - Both frontend builds and explicit packaged-asset verification pass.
 - One predefined paid recording retained: $0.000797 known / $0.001867 reserved.
   No model-issued flight clearance and no improvement over the baseline.
+
+- Public demo browser acceptance passes without cookies, including reload, reconnect,
+  closure, comparison, export, fault fixtures and 390px layout. No paid calls used.
 
 Remaining gates:
 - **Next blocker: Docker image build and isolated Railway staging acceptance.**

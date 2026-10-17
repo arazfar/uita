@@ -1,7 +1,8 @@
 // Run with playwright-cli run-code --filename showcase/scripts/browser-acceptance.js
-// against a signed-in local/staging page with its worker running. No paid calls.
+// against a public-demo or signed-in local/staging page with its worker running. No paid calls.
 async (page) => {
   const origin = new URL(page.url()).origin;
+  const identity = await (await page.request.get(origin + "/api/v2/me")).json();
   await page.goto(origin + "/");
   await page
     .locator("#recordings option")
@@ -132,7 +133,12 @@ async (page) => {
   await page
     .getByRole("button", { name: "Load recording", exact: true })
     .click();
-  await page.waitForFunction(() =>
-    document.querySelector("#error").textContent.includes("Session expired"),
-  );
+  if (identity.access_mode === "public_demo") {
+    await page.reload();
+    await page.locator("#recordings option").first().waitFor({state: "attached"});
+    if (await page.locator("#logout").isVisible()) throw Error("Public demo shows sign out");
+    if (!(await page.locator("#access-mode").innerText()).includes("Public demo")) throw Error("Missing public identity");
+  } else {
+    await page.waitForFunction(() => document.querySelector("#error").textContent.includes("Session expired"));
+  }
 }

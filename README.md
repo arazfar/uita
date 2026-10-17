@@ -226,3 +226,8 @@ The [replay README](web/README.md) includes browser tests. The [pipeline README]
 | [Research sources](docs/research/SOURCES.md) | Primary references behind the research implementation. |
 
 The source data contains no authentic ATC clearances, radio transcripts, or complete pilot intent. Dialogue, reconstructed entries, and responses to new commands are simulated. Comparisons within this project cannot establish that an agent outperforms real controllers.
+
+The connected showcase defaults to login-free public demo access. Visitors share
+the research workspace, including explicit budgeted live runs. Set
+`UITA_ACCESS_MODE=private` to require accounts. See
+[access and startup instructions](docs/research/v2/SHOWCASE.md).

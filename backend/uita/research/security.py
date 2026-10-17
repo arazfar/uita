@@ -66,3 +66,25 @@ def authenticate(db, token):
 
 def logout(db, token):
     db.execute(delete(Session).where(Session.token_hash == token_hash(token or "")))
+
+
+def resolve_principal(db, token, access_mode):
+    """Use one shared operator in public demos; never grant admin privileges."""
+    if access_mode == "public_demo":
+        return {
+            "id": "public-demo",
+            "team": "research",
+            "role": "operator",
+            "username": "Public demo",
+            "access_mode": access_mode,
+        }
+    user = authenticate(db, token)
+    if user is None:
+        return None
+    return {
+        "id": user.id,
+        "team": user.team,
+        "role": user.role,
+        "username": user.username,
+        "access_mode": access_mode,
+    }

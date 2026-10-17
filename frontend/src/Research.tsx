@@ -168,7 +168,7 @@ function TrafficMap({
 }
 
 export default function Research() {
-  const [user, setUser] = useState<{ username: string; role: string } | null>(
+  const [user, setUser] = useState<{ username: string; role: string; access_mode: "private" | "public_demo" } | null>(
       null,
     ),
     [checking, setChecking] = useState(true);
@@ -223,7 +223,7 @@ export default function Research() {
     }
   }, []);
   useEffect(() => {
-    api<{ username: string; role: string }>("/me")
+    api<{ username: string; role: string; access_mode: "private" | "public_demo" }>("/me")
       .then(setUser)
       .catch(() => {})
       .finally(() => setChecking(false));
@@ -474,7 +474,7 @@ export default function Research() {
           <span>
             {user.username} · {user.role}
           </span>
-          <button
+          {user.access_mode !== "public_demo" && <button
             aria-label="Sign out"
             onClick={() =>
               perform(async () => {
@@ -485,7 +485,7 @@ export default function Research() {
             }
           >
             <LogOut size={17} />
-          </button>
+          </button>}
         </div>
       </header>
       <section className="research-toolbar">
