@@ -1,0 +1,59 @@
+{
+  "dataset": "SFO runway departures, 2026-08-03 through 2026-08-09",
+  "prepared_for": "Up in the Air hackathon prototype",
+  "retrieved_and_extracted_date_utc": "2026-10-17",
+  "format_version": 1,
+  "timezone_interpretation": "America/Los_Angeles; source DataSF timestamps are naive and preserved; timezone interpretation is an extraction assumption supported by UTC path matches",
+  "source_inputs": [
+    {
+      "name": "sfomuseum-data-flights-2026-08.parquet",
+      "url": "https://static.sfomuseum.org/parquet/sfomuseum-data-flights-2026-08.parquet",
+      "size_bytes": 66135198,
+      "sha256": "c3bfa8320110aba8d3c9f5a0ab30dd2a7ddf53ac7f4dc9debd596a20a9f27c43",
+      "included_in_bundle": false
+    },
+    {
+      "name": "datasf-departures-2026-08-01_13.json",
+      "url": "https://data.sf.gov/resource/43zc-xw3x.json",
+      "size_bytes": 1683654,
+      "sha256": "c05e9164c5e009da72504b7ac35f81668b3ee5768d35cb4c4bbc1a97b13b7ac5",
+      "included_in_bundle": false
+    }
+  ],
+  "datasf_query": {
+    "$select": "operation_no,flight_date_time,runway_name,aircraft_type,airline,other_port,flight_no,tail_number,airport_code",
+    "$group": "operation_no,flight_date_time,runway_name,aircraft_type,airline,other_port,flight_no,tail_number,airport_code",
+    "$where": "operation_type='D' AND airport_code='SFO' AND flight_date_time >= '2026-08-01T00:00:00' AND flight_date_time < '2026-08-14T00:00:00'",
+    "$order": "flight_date_time,operation_no",
+    "$limit": 50000
+  },
+  "datasf_grouped_rows_retrieved": 7843,
+  "operation_time_filter": {
+    "inclusive": "2026-08-03T00:00:00-07:00",
+    "exclusive": "2026-08-10T00:00:00-07:00"
+  },
+  "operation_runway_pattern": "(?:0?1|10|19|28)[LR]",
+  "museum_geometry_variant": "swim-path",
+  "match_window_seconds": 1200,
+  "path_points_maximum_distance_nm": 80,
+  "center_wgs84": {
+    "latitude": 37.6213,
+    "longitude": -122.379
+  },
+  "altitude_and_speed_units": "Unnormalized raw source fields; validate before physics use",
+  "synthetic_records_added": 0,
+  "notes": [
+    "Derived extraction; counts are our audit results, not publisher-certified completeness.",
+    "Each operation and each matched Museum ID appear at most once.",
+    "Paths anchored on first timestamp/point (departures); metadata joined on wof:id with flysfo:event='D'; geometry rows have null metadata.",
+    "swim-takeoff and swim-approach alternates excluded.",
+    "Read README.md for transformations, matching details, limits, attribution and source licenses."
+  ],
+  "roster_rows_dropped": {
+    "outside_week": 3591,
+    "non_runway_pad": 31,
+    "no_named_runway": 2
+  },
+  "path_start_maximum_distance_nm": 5.0,
+  "match_basis": "DataSF operation time vs first path timestamp"
+}

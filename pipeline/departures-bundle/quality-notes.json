@@ -1,0 +1,21 @@
+{
+  "status": "Raw observations; not normalized or physically cleaned",
+  "diagnostic_speed_threshold_knots": 700,
+  "adjacent_pairs_above_diagnostic_threshold": 258,
+  "tracks_with_pairs_above_diagnostic_threshold": 106,
+  "maximum_implied_groundspeed_knots": 1473.0,
+  "maximum_adjacent_sample_gap_seconds": 865,
+  "tracks_with_fewer_than_five_retained_points": 1,
+  "operation_minus_track_start_seconds": {
+    "minimum": -797.0,
+    "p05": -130.0,
+    "median": -70.0,
+    "p95": -51.0,
+    "maximum": 880.0
+  },
+  "operation_minus_track_start_sign": {
+    "op_before_track_start": 1961,
+    "op_after_track_start": 3
+  },
+  "note": "Departure paths are anchored on the FIRST point (near SFO); the DataSF time is the recorded departure-operation time, not wheels-up. Threshold is a diagnostic, not an ATC rule."
+}

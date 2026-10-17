@@ -1,0 +1,15 @@
+{
+  "status": "Raw observations; not normalized or physically cleaned",
+  "diagnostic_speed_threshold_knots": 700,
+  "adjacent_pairs_above_diagnostic_threshold": 385,
+  "tracks_with_pairs_above_diagnostic_threshold": 231,
+  "maximum_implied_groundspeed_knots": 1460.5,
+  "maximum_adjacent_sample_gap_seconds": 297,
+  "tracks_with_fewer_than_five_retained_points": 56,
+  "operation_minus_track_end_seconds": {
+    "minimum": 13.0,
+    "median": 157.0,
+    "maximum": 337.0
+  },
+  "note": "The speed threshold is an extraction diagnostic, not an operational ATC rule. Values are derived from coordinate differences and time gaps. Handle outliers and short tracks before deriving motion; source points remain unchanged."
+}
