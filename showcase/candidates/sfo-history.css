@@ -1,0 +1,446 @@
+html[data-traffic="recorded"]
+  :is(#banner, #score, #feedp, .details, #cambar, #fcard, #fcTag, .lb) {
+  display: none !important;
+}
+body.recorded {
+  overflow: hidden;
+}
+.recorded > #banner,
+.recorded > #score,
+.recorded > #feedp,
+.recorded > .details,
+.recorded > #cambar,
+.recorded > #fcard,
+.recorded > #fcTag,
+.recorded > .lb {
+  display: none !important;
+}
+.recorded #cesium {
+  position: absolute;
+  top: 158px;
+  bottom: 216px;
+  left: 0;
+  right: 326px;
+  height: auto;
+  min-height: 0;
+}
+.recorded #credits {
+  right: 326px;
+  bottom: 216px;
+  max-height: 48px;
+  overflow: auto;
+  white-space: normal;
+}
+#history {
+  --hr-panel: var(--atc-panel, #b8b0a0);
+  --hr-ink: var(--atc-ink, #25231e);
+  font: 14px/1.4 var(--atc-font-ui, sans-serif);
+}
+#history * {
+  box-sizing: border-box;
+}
+#history button,
+#history select,
+#history input {
+  font: 500 14px var(--atc-font-ui, sans-serif);
+}
+#history button,
+#history select,
+#history input[type="time"] {
+  min-height: 44px;
+  min-width: 44px;
+  border: 1px solid #5c564a;
+  border-radius: 2px;
+  padding: 8px;
+  background: #ccc3b3;
+  color: #25231e;
+}
+#history button:hover {
+  background: #e6dfce;
+}
+#history button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+#history button[aria-pressed="true"],
+#hr-play {
+  background: #f6c45a;
+  color: #25231e;
+  box-shadow: inset 0 -2px #25231e;
+}
+#history :is(button, input, select, summary, a):focus-visible {
+  outline: 2px solid #83d8dd;
+  outline-offset: 2px;
+}
+#history h1 {
+  font: 600 24px/1.2 var(--atc-font-ui, sans-serif);
+  margin: 2px 0 0;
+}
+.hr-head {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 76px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+  background: #b8b0a0;
+  color: #25231e;
+  border-bottom: 4px solid #221b17;
+}
+.hr-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+#hr-clock {
+  display: block;
+  font: 500 18px/1.4 var(--atc-font-data, monospace);
+}
+#hr-status {
+  display: block;
+  font-size: 12px;
+  text-align: right;
+}
+.hr-metrics {
+  position: absolute;
+  top: 76px;
+  left: 0;
+  right: 0;
+  height: 82px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: #060c0b;
+  border-bottom: 1px solid #657a6c;
+}
+.hr-metrics > div {
+  padding: 8px 18px;
+  border-right: 1px solid #35433b;
+}
+.hr-metrics span,
+.hr-metrics small {
+  display: block;
+  color: #a9b6a3;
+  font-size: 12px;
+}
+.hr-metrics strong {
+  font: 500 24px/1.2 var(--atc-font-data, monospace);
+  color: #a8d5a3;
+}
+.hr-metrics .hr-pending {
+  font-size: 18px;
+  color: #f6c45a;
+}
+.hr-sidebar {
+  position: absolute;
+  right: 0;
+  top: 158px;
+  bottom: 216px;
+  width: 326px;
+  background: #060c0b;
+  border-left: 1px solid #657a6c;
+  overflow: auto;
+}
+.hr-sidebar details {
+  border-bottom: 1px solid #35433b;
+}
+.hr-sidebar summary {
+  min-height: 44px;
+  padding: 12px;
+  background: #101a17;
+  color: #e8e3d5;
+  cursor: pointer;
+}
+#hr-detail,
+.hr-source {
+  padding: 12px 16px;
+  font-size: 13px;
+}
+#hr-detail h2 {
+  margin: 0;
+  color: #a8d5a3;
+  font: 500 20px var(--atc-font-data, monospace);
+}
+#hr-detail p {
+  margin: 6px 0;
+}
+#hr-detail dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+#hr-detail dt {
+  color: #a9b6a3;
+}
+#hr-detail dd {
+  margin: 0;
+  text-align: right;
+  font: 12px/1.5 var(--atc-font-data, monospace);
+  overflow-wrap: anywhere;
+}
+#hr-detail small {
+  display: block;
+  font-size: 12px;
+  color: #a9b6a3;
+}
+#hr-list {
+  max-height: 260px;
+  overflow: auto;
+  padding: 6px;
+}
+#hr-list button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 4px;
+  font-family: var(--atc-font-data, monospace);
+}
+#hr-list p {
+  padding: 8px;
+}
+.hr-source a {
+  color: #83d8dd;
+}
+#hr-refresh {
+  display: block;
+  margin-top: 12px;
+}
+.hr-transport {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 216px;
+  background: #b8b0a0;
+  color: #25231e;
+  padding: 8px 14px;
+  border-top: 4px solid #221b17;
+}
+.hr-days {
+  display: flex;
+  gap: 6px;
+}
+.hr-days button {
+  flex: 1;
+  min-height: 44px;
+  padding: 4px;
+}
+.hr-days small {
+  display: block;
+  font-size: 12px;
+}
+.hr-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+.hr-actions label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+#hr-seek {
+  width: 100%;
+  height: 20px;
+  margin: 3px 0 0;
+  accent-color: #775012;
+}
+.hr-timeline-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.hr-camera {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.hr-camera > span {
+  margin-left: auto;
+  font-size: 12px;
+}
+.hr-camera label {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 6px;
+}
+#hr-error {
+  position: fixed;
+  left: 18px;
+  top: 180px;
+  background: #351b14;
+  border: 1px solid #ff7165;
+  color: #ffe5dc;
+  padding: 14px;
+  max-width: calc(100vw - 370px);
+  z-index: 30;
+}
+#hr-retry {
+  position: fixed;
+  left: 18px;
+  top: 256px;
+  z-index: 30;
+}
+@media (max-width: 1100px) {
+  .hr-camera > span {
+    display: none;
+  }
+  .hr-actions {
+    gap: 4px;
+  }
+  .hr-actions label {
+    font-size: 12px;
+  }
+}
+@media (max-width: 799px) {
+  body.recorded {
+    height: auto;
+    min-height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .recorded #cesium {
+    position: relative;
+    inset: auto;
+    order: 1;
+    height: 48svh;
+    min-height: 300px;
+    width: 100%;
+  }
+  .recorded #credits {
+    position: relative;
+    inset: auto;
+    order: 3;
+    width: auto;
+    max-height: none;
+  }
+  #history {
+    display: contents;
+  }
+  .hr-head,
+  .hr-metrics,
+  .hr-sidebar,
+  .hr-transport {
+    position: relative;
+    inset: auto;
+    width: auto;
+    height: auto;
+  }
+  .hr-head {
+    order: 0;
+    flex-wrap: wrap;
+    padding: 10px;
+    gap: 6px;
+  }
+  #history h1 {
+    font-size: 21px;
+  }
+  #hr-clock {
+    font-size: 16px;
+  }
+  #hr-status {
+    text-align: left;
+  }
+  .hr-metrics {
+    order: 4;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hr-metrics > div {
+    padding: 12px;
+    min-height: 95px;
+  }
+  .hr-sidebar {
+    order: 5;
+    border-left: 0;
+    overflow: visible;
+  }
+  .hr-transport {
+    order: 2;
+    padding: 8px;
+  }
+  .hr-days {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .hr-actions,
+  .hr-camera {
+    flex-wrap: wrap;
+  }
+  .hr-actions label {
+    flex-wrap: wrap;
+  }
+  .hr-sidebar details {
+    margin: 0;
+  }
+  #hr-error {
+    top: 100px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+  #hr-retry {
+    top: 220px;
+    left: 10px;
+  }
+}
+
+/* The app shell also works without the optional shared candidate theme. */
+body[data-view] iframe {
+  height: calc(100% - 64px);
+}
+body[data-view] .switch {
+  inset: auto 0 0;
+  height: 64px;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  gap: 8px;
+  border-radius: 0;
+  background: #b8b0a0;
+  border: 0;
+  border-top: 4px solid #221b17;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+body[data-view] .switch::before {
+  content: "UITA / SFO · SIMULATION";
+  margin-right: auto;
+  align-self: center;
+  color: #25231e;
+  font: 600 14px var(--atc-font-ui, sans-serif);
+  letter-spacing: 0.04em;
+}
+body[data-view] .switch button {
+  min-height: 44px;
+  font: 500 14px var(--atc-font-ui, sans-serif);
+  border: 1px solid #5c564a;
+  border-radius: 2px;
+  color: #25231e;
+  background: #ccc3b3;
+}
+body[data-view] .switch button[aria-pressed="true"] {
+  background: #25231e;
+  color: #e6dfce;
+  box-shadow: inset 0 -3px #f6c45a;
+}
+@media (max-width: 799px) {
+  body[data-view] .switch {
+    padding: 8px;
+  }
+  body[data-view] .switch::before {
+    content: "UITA";
+  }
+}
+body[data-view="dash"] .switch::before {
+  content: "UITA / SFO · RECORDED WEEK";
+}
+@media (max-width: 799px) {
+  body[data-view="dash"] .switch::before {
+    content: "UITA";
+  }
+}

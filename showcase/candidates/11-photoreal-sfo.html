@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preload" as="script" href="/vendor/cesium/Cesium.js" />
 <title>UITA Tower SFO</title>
+<script>if (new URLSearchParams(location.search).get('mode') !== 'simulation') document.documentElement.dataset.traffic = 'recorded';</script>
+<link rel="stylesheet" href="sfo-history.css">
 <script>window.CESIUM_BASE_URL = '/vendor/cesium/';</script>
 <link rel="stylesheet" href="/vendor/cesium/Widgets/widgets.css">
 <script src="radio-audio.js?v=3"></script>
@@ -170,6 +172,7 @@ body.details .details{display:block}
 const Cesium = window.Cesium;
 (async () => {
 const C = Cesium;
+const RECORDED = new URLSearchParams(location.search).get('mode') !== 'simulation';
 const LOOP = 90;                 // seconds per scripted loop
 const SIMRATE = 0.85;            // sim minutes per wall second (eVTOL timeline)
 const GEOID = -32.2;             // EGM96 undulation at SFO (m): ellipsoid = MSL + GEOID
@@ -211,7 +214,7 @@ function nearOrPicked(ent, posFn) {
 }
 { const p = orbitPose(SFO_C, 300, -30, 4200); scene.camera.setView({ destination: p.eye, orientation: { heading: p.hdg * D2R, pitch: p.pitch * D2R, roll: 0 } }); }
 scene.backgroundColor = C.Color.fromCssColorString('#9fb8cc');
-viewer.creditDisplay.addStaticCredit(new C.Credit('Aircraft models: “Airplane” by Poly by Google (CC BY 3.0) · “Boeing 747” by Miha Lunar (CC BY 3.0) · ADS-B: The OpenSky Network · Imagery: USGS NAIP · Buildings and map data © OpenStreetMap contributors · <b>Simulation</b>', true));
+if (!RECORDED) viewer.creditDisplay.addStaticCredit(new C.Credit('Aircraft models: “Airplane” by Poly by Google (CC BY 3.0) · “Boeing 747” by Miha Lunar (CC BY 3.0) · ADS-B: The OpenSky Network · Imagery: USGS NAIP · Buildings and map data © OpenStreetMap contributors · <b>Simulation</b>', true));
 
 // ---------- base map: Google photoreal when online, offline SFO pack as fallback ----------
 const PACK = 'sfo-pack/';
@@ -219,6 +222,11 @@ const hideLoading = () => { document.getElementById('loading').style.display = '
 let buildings = null, tileset = null, photoreal = false, tilesSeen = false;
 scene.globe.baseColor = C.Color.fromCssColorString('#16303f'); // plain water beyond the SFO imagery
 try {
+  // Cesium stretches the first imagery layer to the globe. Keep the small SFO
+  // image as an overlay so its edge pixels do not smear across the Bay.
+  const base = document.createElement('canvas'); base.width = base.height = 1;
+  const baseContext = base.getContext('2d'); baseContext.fillStyle = '#16303f'; baseContext.fillRect(0, 0, 1, 1);
+  viewer.imageryLayers.addImageryProvider(await C.SingleTileImageryProvider.fromUrl(base.toDataURL()));
   const pb = await (await fetch(PACK + 'bounds.json')).json();
   // SFO detail only (1.2 m NAIP), clipped to its own rectangle; no Bay overview (no-data edges smear)
   const b = pb.images.sfo.lonlat_bounds, rect = C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north);
@@ -241,7 +249,7 @@ function applyBase() {
   const g = pr ? 4 + GEOID : 0;
   if (g !== GROUND || VOFF !== (pr ? GEOID : 0)) {
     GROUND = g; VOFF = pr ? GEOID : 0;
-    try { for (const a of airliners) a.pos = buildAirliner(a); } catch (e) { /* not built yet; they read GROUND when built */ }
+    try { if (!RECORDED) for (const a of airliners) a.pos = buildAirliner(a); } catch (e) { /* not built yet; they read GROUND when built */ }
   }
   const bp = document.getElementById('bPhoto'); if (bp) bp.classList.toggle('on', photoreal);
 }
@@ -260,7 +268,7 @@ async function setPhotoreal(on) {
       tileset.tileVisible.addEventListener(() => {
         if (tilesSeen) return;
         tilesSeen = true; applyBase();
-        setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
+        if (!RECORDED) setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
           try {
             const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
             const [r] = await scene.sampleHeightMostDetailed([c]);
@@ -278,6 +286,16 @@ async function setPhotoreal(on) {
 // default: try photoreal; fall back to the pack if nothing has rendered within 6 s
 setPhotoreal(true);
 setTimeout(() => { if (photoreal && !tilesSeen) { console.warn('photoreal: no tiles in 6 s, offline SFO pack'); setPhotoreal(false); } }, 6000);
+
+// Historical replay owns its clock, traffic and UI. Return before creating any
+// scripted aircraft, radio, weather, scores, or shared simulation connection.
+if (RECORDED) {
+  const { mountHistory } = await import('./sfo-history.js');
+  mountHistory({ C, viewer, altitudeOffset: () => VOFF, ground: () => GROUND,
+    setPhotoreal, isPhotoreal: () => photoreal });
+  hideLoading();
+  return;
+}
 
 // ---------- clock ----------
 const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');

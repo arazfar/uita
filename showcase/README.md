@@ -33,3 +33,56 @@ Server-side environment variables, read by the dev server and never exposed to p
 - `candidates/data/` holds the Bay coastline, SFO/OAK aeroways (OSM, ODbL), OpenSky tracks and METAR. Sources are in its README.
 
 Credits: Google Maps Platform 3D Tiles; OpenStreetMap contributors (ODbL); US Census; OpenSky Network; NOAA/NWS; "Airplane" by Poly by Google and "Boeing 747" by Miha Lunar (CC BY 3.0).
+
+## Recorded SFO week
+
+The default dashboard now shows **August 24–30, 2026, America/Los_Angeles**.
+`/` redirects to `/candidates/app.html`. The dashboard reads PostgreSQL through
+`/uita/api/history/catalog` and `/uita/api/history/window`; credentials stay on
+FastAPI. The tower switch is explicitly **Tower simulation**. The old dashboard
+remains available at `/candidates/11-photoreal-sfo.html?mode=simulation`.
+
+Start the existing FastAPI service with a server-side `UITA_HISTORY_DATABASE_URL`
+pointing at the imported database (`atc_sfo_w35`). A PostgreSQL `DATABASE_URL` or
+repository `.env.local` is also supported. Replay connections enforce read-only
+transactions. In local development, the showcase history proxy defaults to
+`http://127.0.0.1:8001`; override with `UITA_SERVER_URL` for another backend.
+Hosted instances require `UITA_SERVER_URL` as before.
+
+Playback includes play/pause, 1×–600× speed, seven date selectors, a week slider,
+PDT time input, ±15-minute jumps, +10 seconds, restart and week end. The browser
+owns its replay clock. It holds while loading and stops at the week boundary.
+Each displayed target uses an original observation at or before the replay time,
+within 15 seconds. Trails break at gaps and new legs. Ground flags permit surface
+placement; airborne targets without altitude remain in the source list.
+
+The panel reports current regional targets, map placement coverage, and FAA
+OPSNET's daily SFO operation totals. Regional targets include surface vehicles,
+nearby airports and overflights. This is not an airport-matched flight roster.
+Safety events, landing delay, arrival rate, runway use and operation-level path
+coverage remain unevaluated. No scripted radio, agent decisions or fabricated
+scores appear in recorded mode. Photoreal tiles need the existing Maps key; the
+local imagery pack is the fallback.
+
+The API reads one actual sample per five-second bucket, in 15-minute windows.
+The catalog is cached for five minutes; windows are bounded in memory and keyed
+by import revision. A cold database read can take tens of seconds. Loading and
+errors are explicit, and unavailable dates are disabled.
+
+Verification (run both local servers first):
+
+```sh
+# Source-row comparison, using the same server-side database configuration:
+PYTHONPATH=backend UITA_HISTORY_VERIFY_URL=http://127.0.0.1:8001/api/history \
+  .venv/bin/python showcase/scripts/verify-history.py
+
+# Browser suite uses showcase on port 5190; test dependencies live in web/:
+cd web
+npx e2e run tests/showcase-history.e2e.ts --config e2e.showcase.config.ts
+```
+
+Verified on October 17, 2026: **12,394,470 source observations** across the seven
+PDT dates. The source comparison checked five observations in each day's noon
+window: all **35 matched** the database's timestamp, coordinates, measurements,
+identity and metadata. This is a sample-based wiring check, not a claim of
+complete flight coverage or validated safety detection.

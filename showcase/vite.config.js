@@ -256,7 +256,7 @@ function voiceApi(env) {
         });
       }
       server.middlewares.use((req, res, next) => {
-        if (req.url === "/" && (env.DEMO_PASSWORD || env.DEMO_PUBLIC === "1")) {
+        if (req.url === "/") {
           res.statusCode = 302;
           res.setHeader("location", "/candidates/app.html");
           return res.end();
@@ -267,7 +267,9 @@ function voiceApi(env) {
       // never reaches the browser; GETs pass through unchanged.
       server.middlewares.use(async (req, res, next) => {
         if (!req.url.startsWith("/uita/")) return next();
-        if (!env.UITA_SERVER_URL)
+        const backend = env.UITA_SERVER_URL ||
+          (!hosted && req.url.startsWith("/uita/api/history/") ? "http://127.0.0.1:8001" : null);
+        if (!backend)
           return send(res, 503, { error: "UITA_SERVER_URL not configured" });
         try {
           const headers = { accept: req.headers.accept || "application/json" };
@@ -297,7 +299,7 @@ function voiceApi(env) {
               headers.authorization = "Bearer " + env.UITA_API_TOKEN;
           }
           const r = await fetch(
-            env.UITA_SERVER_URL.replace(/\/$/, "") +
+            backend.replace(/\/$/, "") +
               req.url.slice("/uita".length),
             { method: req.method, headers, body },
           );
@@ -438,10 +440,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
     plugins: [voiceApi(env)],
-    // Candidate pages are static and baked audio lands in candidates/audio; don't
-    // full-reload open demos every time a clip or another candidate is written.
+    // Keep generated media quiet, but watch replay source so Vite invalidates
+    // transformed modules after edits (ignoring all candidates served stale JS).
     server: {
-      watch: { ignored: ["**/candidates/**"] },
+      watch: { ignored: ["**/candidates/audio/**", "**/candidates/assets/**", "**/candidates/sfo-pack/**", "**/candidates/data/**"] },
       // Only the hosted showcase (password-gated) accepts its public hostnames.
       allowedHosts: env.DEMO_HOSTS ? env.DEMO_HOSTS.split(",") : [],
     },

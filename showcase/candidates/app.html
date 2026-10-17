@@ -79,21 +79,22 @@
         z-index: 5;
       }
     </style>
+    <link rel="stylesheet" href="sfo-history.css">
   </head>
   <body>
     <div class="loading" id="loading">Loading SFO…</div>
     <iframe id="dash" title="UITA dashboard" allow="autoplay; microphone"></iframe>
     <iframe id="cab" title="UITA tower cab" hidden allow="autoplay; microphone"></iframe>
     <div class="switch" role="group" aria-label="View">
-      <button data-view="dash" aria-pressed="true">Dashboard<kbd>T</kbd></button
-      ><button data-view="cab" aria-pressed="false">Tower cab</button>
+      <button data-view="dash" aria-pressed="true">Recorded week<kbd>T</kbd></button
+      ><button data-view="cab" aria-pressed="false">Tower simulation</button>
     </div>
     <script>
       const frames = { dash: document.getElementById("dash"), cab: document.getElementById("cab") };
       const src = { dash: "11-photoreal-sfo.html", cab: "19-tower-cab-interior.html" };
-      // Load only the view being shown; warm the other one once it has settled,
-      // so the two never compete for bandwidth on slow venue wifi.
+      // Load the tower simulation only on request, keeping recorded replay isolated.
       let view = location.hash === "#cab" ? "cab" : "dash";
+      document.body.dataset.view = view;
       const other = view === "cab" ? "dash" : "cab";
       const clearLoading = () => document.getElementById("loading")?.remove();
       frames[view].hidden = false;
@@ -103,16 +104,6 @@
         "load",
         () => {
           clearLoading();
-          setTimeout(() => {
-            if (!frames[other].src) {
-              frames[other].src = src[other];
-              frames[other].addEventListener(
-                "load",
-                () => frames[other].contentWindow?.postMessage({ skyflow: "pause" }, "*"),
-                { once: true },
-              );
-            }
-          }, 8000);
         },
         { once: true },
       );
@@ -132,6 +123,7 @@
         f.focus();
         view = next;
         document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === view));
+        document.body.dataset.view = view;
         history.replaceState(null, "", view === "cab" ? "#cab" : location.pathname);
       }
       document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
