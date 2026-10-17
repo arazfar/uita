@@ -24,83 +24,77 @@
   canvas#gl:active { cursor: grabbing; }
 
   /* Tower Sim style command banner */
-  #banner { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); min-width: 560px; max-width: 78vw;
+  #banner { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); max-width: 62vw;
     display: flex; align-items: stretch; background: var(--bar); border: 1px solid var(--line); border-radius: 3px;
     backdrop-filter: blur(6px); box-shadow: 0 10px 40px #0007; pointer-events: none; }
   #banner .tx { width: 64px; display: grid; place-items: center; font: 700 12px "JetBrains Mono", monospace; color: #6b7682;
     border-right: 1px solid var(--line); }
   #banner .tx.on { color: #0b0e12; background: var(--ok); }
   #banner .tx.on.pilot { background: var(--teal); }
-  #banner .cmd { padding: 10px 16px; font: 700 17px "JetBrains Mono", monospace; letter-spacing: .04em; white-space: nowrap;
+  #banner .cmd { padding: 8px 14px; font: 700 15px "JetBrains Mono", monospace; letter-spacing: .04em; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; }
   #banner .cmd small { display: block; font: 600 11px "Barlow Condensed", sans-serif; letter-spacing: .14em; color: var(--dim); margin-bottom: 2px; }
   #banner.alert .cmd { color: var(--amber); }
   #banner.bad .cmd { color: var(--bad); }
 
-  #sim { position: fixed; top: 14px; left: 16px; background: var(--bar); border: 1px solid var(--line); border-radius: 3px;
-    padding: 8px 12px; pointer-events: none; }
-  #sim .k { font-size: 11px; letter-spacing: .16em; color: var(--dim); }
-  #sim .v { font: 700 20px "JetBrains Mono", monospace; }
-  #sim .wx { margin-top: 4px; font: 600 12px "JetBrains Mono", monospace; color: var(--dim); }
-  #sim .wx.closed { color: var(--bad); }
+  /* tiny scoreboard: on-time agents vs static · conflicts · humans */
+  #score { position: fixed; top: 14px; right: 16px; display: flex; gap: 14px; align-items: baseline; background: var(--bar);
+    border: 1px solid var(--line); border-radius: 3px; padding: 8px 12px; pointer-events: none; transition: border-color .6s, box-shadow .6s; }
+  #score.reveal { border-color: rgba(84, 208, 138, .7); box-shadow: 0 0 0 1px rgba(84,208,138,.35); }
+  #score div { display: flex; flex-direction: column; align-items: flex-end; }
+  #score b { font: 700 15px "JetBrains Mono", monospace; }
+  #score b i { font-style: normal; color: #c98b7c; font-weight: 500; font-size: 13px; }
+  #score span { font-size: 10px; letter-spacing: .14em; color: var(--dim); text-transform: uppercase; }
+  #score .a { color: var(--ok); }
 
-  #score { position: fixed; top: 14px; right: 16px; width: 248px; background: var(--bar); border: 1px solid var(--line);
-    border-radius: 3px; padding: 8px 12px 10px; pointer-events: none; transition: box-shadow .6s, border-color .6s; }
-  #score.reveal { border-color: rgba(84, 208, 138, .7); box-shadow: 0 0 0 1px rgba(84,208,138,.4), 0 12px 40px #0008; }
-  #score h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: .16em; color: var(--dim); font-weight: 600; display: flex; justify-content: space-between; }
-  #score .row { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; border-top: 1px solid rgba(255,255,255,.05); }
-  #score .row b { font: 700 14px "JetBrains Mono", monospace; }
-  #score .row .s { color: #c98b7c; }
-  #score .row .a { color: var(--ok); }
-  #score .row span { color: var(--dim); font-size: 13px; }
-
-  #controls { position: fixed; left: 16px; bottom: 14px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100vw - 340px); }
-  #controls button { font: 600 12px "Barlow Condensed", sans-serif; letter-spacing: .08em; text-transform: uppercase;
-    color: var(--ink); background: var(--bar); border: 1px solid var(--line); border-radius: 3px; padding: 7px 10px; cursor: pointer; }
-  #controls button:hover { border-color: rgba(255,255,255,.4); }
+  /* minimal camera bar */
+  #controls { position: fixed; left: 16px; bottom: 14px; display: flex; gap: 4px; align-items: center; background: var(--bar);
+    border: 1px solid var(--line); border-radius: 4px; padding: 4px; }
+  #controls button { min-width: 28px; height: 28px; font: 600 12px "JetBrains Mono", monospace; color: var(--ink);
+    background: transparent; border: 0; border-radius: 3px; padding: 0 7px; cursor: pointer; }
+  #controls button:hover { background: rgba(255,255,255,.08); }
   #controls button.on { background: #d7dde2; color: #111; }
-  #controls .sep { width: 1px; background: var(--line); margin: 0 2px; }
+  #controls .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
 
-  #chip { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); display: none; font: 600 13px "Barlow Condensed";
-    letter-spacing: .1em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--teal);
-    background: rgba(10, 30, 40, .85); color: #dff6ff; cursor: pointer; }
-  #attrib { position: fixed; right: 12px; bottom: 10px; max-width: 33vw; text-align: right; font: 500 11px system-ui, sans-serif;
-    color: rgba(255,255,255,.75); text-shadow: 0 1px 2px #000; pointer-events: none; line-height: 1.35; }
+  #attrib { position: fixed; right: 12px; bottom: 10px; max-width: 40vw; text-align: right; font: 500 10px system-ui, sans-serif;
+    color: rgba(255,255,255,.6); text-shadow: 0 1px 2px #000; pointer-events: none; }
   #attrib b { font-weight: 700; }
-  #binoc { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s;
-    background:
-      radial-gradient(circle at 38% 50%, transparent 0 24vh, rgba(0,0,0,.0) 24vh, transparent 0),
-      radial-gradient(circle at 62% 50%, transparent 0 24vh, transparent 0); }
+  #binoc { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s; }
   #binoc svg { width: 100%; height: 100%; }
   #binoc.on { opacity: 1; }
-  #help { position: fixed; left: 16px; bottom: 52px; font: 500 11px "JetBrains Mono", monospace; color: rgba(233,238,242,.55); pointer-events: none; }
-  #err { position: fixed; left: 16px; top: 96px; max-width: 380px; font: 500 12px system-ui; color: var(--amber); display: none;
-    background: var(--bar); border: 1px solid var(--line); padding: 6px 10px; border-radius: 3px; }
+  #help { position: fixed; left: 16px; bottom: 56px; width: 360px; display: none; background: rgba(14,17,21,.92); border: 1px solid var(--line);
+    border-radius: 4px; padding: 12px 14px; font: 500 12px "JetBrains Mono", monospace; color: var(--ink); line-height: 1.7; }
+  #help.on { display: block; }
+  #help kbd { display: inline-block; min-width: 54px; color: var(--teal); font: inherit; }
+  #help p { margin: 8px 0 0; font: 500 10px system-ui, sans-serif; color: var(--dim); line-height: 1.4; }
+  #skyradio-gate { display: none !important; }
 </style>
 </head>
 <body>
 <canvas id="gl"></canvas>
 <div id="banner"><div class="tx" id="tx">TX</div><div class="cmd" id="cmd"><small>KSFO TOWER · 120.5</small>STANDING BY</div></div>
-<div id="sim"><div class="k">SIMULATION · KSFO TWR</div><div class="v" id="clock">18:40:00</div><div class="wx" id="wx">C–E OPEN · VFR</div></div>
 <div id="score">
-  <h4><span>SCOREBOARD</span><span id="scSim">MIN 00</span></h4>
-  <div class="row"><span>On-time arrivals</span><span><b class="s" id="scStatic">10/28</b> <span>static</span> · <b class="a" id="scAgent">—</b> <span>agents</span></span></div>
-  <div class="row"><span>Max delay</span><b id="scDelay">0.0 min</b></div>
-  <div class="row"><span>Conflicts</span><b class="a" id="scConf">0</b></div>
-  <div class="row"><span>Human interventions</span><b id="scHuman">0</b></div>
-  <div class="row"><span>Radio transmissions</span><b id="scTx">0</b></div>
-  <div class="row"><span>Distance vs plan</span><b id="scDist">+0.0%</b></div>
+  <div><b><span class="a" id="scAgent">0/28</span> <i id="scStatic">vs 0</i></b><span>on time · agents vs static</span></div>
+  <div><b class="a" id="scConf">0</b><span>conflicts</span></div>
+  <div><b id="scHuman">0</b><span>humans</span></div>
 </div>
-<div id="err"></div>
-<div id="help">DRAG look · WHEEL zoom · 1–6 views · B binoculars · C cinematic · SPACE pause · R restart</div>
+<div id="help">
+  <div><kbd>drag</kbd>look around the cab</div>
+  <div><kbd>wheel</kbd>zoom · <kbd style="min-width:0">B</kbd> binoculars</div>
+  <div><kbd>1–6</kbd>desk · runway · ground · air · strips · agents</div>
+  <div><kbd>C</kbd>cinematic on/off</div>
+  <div><kbd>space</kbd>pause · <kbd style="min-width:0">R</kbd> restart · <kbd style="min-width:0">M</kbd> sound</div>
+  <p>Simulation. Aircraft: “Airplane” Poly by Google, “Boeing 747” Miha Lunar (CC BY 3.0). Airport © OpenStreetMap contributors (ODbL). METAR: NOAA/NWS.</p>
+</div>
 <div id="controls">
-  <button id="bPlay">❚❚ Pause</button><button id="bRestart">↺ Restart</button><button id="bCine" class="on">Cinematic</button>
-  <button id="bSound">🔈 Sound</button><span class="sep"></span>
-  <button data-p="desk">1 Desk</button><button data-p="runway">2 Runway</button><button data-p="ground">3 Ground</button>
-  <button data-p="air">4 Air</button><button data-p="tablet">5 Strips</button><button data-p="side">6 Agents</button>
-  <button id="bBino">B Binoc</button><button id="bZin">＋</button><button id="bZout">－</button>
+  <button id="bPlay" title="Pause (space)">❚❚</button><button id="bRestart" title="Restart (R)">↺</button><button id="bSound" title="Sound (M)">🔈</button>
+  <span class="sep"></span>
+  <button data-p="desk" title="Desk">1</button><button data-p="runway" title="Runway 28L/R">2</button><button data-p="ground" title="Ground radar">3</button>
+  <button data-p="air" title="Air radar">4</button><button data-p="tablet" title="Strip tablet">5</button><button data-p="side" title="Agents / METAR">6</button>
+  <span class="sep"></span>
+  <button id="bBino" title="Binoculars (B)">B</button><button id="bZin" title="Zoom in">＋</button><button id="bZout" title="Zoom out">－</button>
+  <button id="bCine" class="on" title="Cinematic (C)">CINE</button><button id="bHelp" title="Help (?)">?</button>
 </div>
-<div id="chip">▶ Resume cinematic</div>
 <div id="binoc"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><mask id="bm"><rect width="100" height="100" fill="white"/>
   <ellipse cx="38.5" cy="50" rx="16" ry="27" fill="black"/><ellipse cx="61.5" cy="50" rx="16" ry="27" fill="black"/></mask>
   <radialGradient id="bg"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".9"/></radialGradient></defs>
@@ -308,11 +302,11 @@ function polyAt(pts, s) {
 
 // ================= Google Photorealistic 3D Tiles (fallback: OSM procedural) =================
 const attrib = $('attrib');
-const credits = 'Aircraft: “Airplane” Poly by Google, “Boeing 747” Miha Lunar (CC BY 3.0) · Airport: © OpenStreetMap contributors (ODbL) · METAR: NOAA/NWS';
+const credits = 'Simulation · © OpenStreetMap · models CC BY 3.0 (?)';
 attrib.innerHTML = credits;
 let tiles = null, tilesOK = false, fallbackOn = false;
 const fallback = new THREE.Group(); world.add(fallback);
-const errBox = (t) => { $('err').style.display = 'block'; $('err').textContent = t; };
+const errBox = (t) => console.warn('[tiles]', t);
 
 async function startTiles() {
   let mapsKey = null;
@@ -351,7 +345,7 @@ async function startTiles() {
 function updateAttrib() {
   let g = 'Google';
   try { const a = tiles?.getAttributions?.() || []; const s = a.filter((x) => x.type === 'string').map((x) => x.value).join('; '); if (s) g = s; } catch (e) {}
-  attrib.innerHTML = (tilesOK ? `<b>Google</b> · Map data ${g}<br>` : '') + credits;
+  attrib.innerHTML = (tilesOK ? `<b>Google</b> · ${g} · ` : '') + credits;
 }
 
 // ---- fallback: OSM airport + coastline + SF skyline ----
@@ -1042,8 +1036,8 @@ function goTo(name, dur = 1.5) {
   binoOn = name === 'binoc'; $('binoc').classList.toggle('on', binoOn);
 }
 function shot(name) { if (cine) goTo(name); }
-function userTook() { if (cine) { cine = false; $('bCine').classList.remove('on'); $('chip').style.display = 'block'; } tween = null; }
-function setCine(on) { cine = on; $('bCine').classList.toggle('on', on); $('chip').style.display = on ? 'none' : 'block'; if (on) goTo(shotFor()); }
+function userTook() { if (cine) { cine = false; $('bCine').classList.remove('on'); } tween = null; }
+function setCine(on) { cine = on; $('bCine').classList.toggle('on', on); if (on) goTo(shotFor()); }
 function shotFor() { const t = S.t; const tl = [[0.0, 'desk'], [5.6, 'runway'], [10.4, 'tablet'], [13.6, 'air'], [17.2, 'side'], [24.0, 'air'], [32.8, 'ground'], [38.4, 'air'], [44.8, 'side'], [48.4, 'air'], [51.2, 'binoc'], [59.2, 'desk']]; let s = 'desk'; for (const [a, n] of tl) if (t >= a) s = n; return s; }
 function applyCamera(now) {
   if (tween) {
@@ -1078,17 +1072,21 @@ addEventListener('keydown', (e) => {
   else if (e.key === 'c' || e.key === 'C') setCine(!cine);
   else if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'r' || e.key === 'R') restart();
+  else if (e.key === '?' || e.key === '/') toggleHelp();
+  else if (e.key === 'm' || e.key === 'M') toggleSound();
   else if (e.key === '+' || e.key === '=') zoom(0.85); else if (e.key === '-') zoom(1.18);
 });
 document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { userTook(); goTo(b.dataset.p); }));
 $('bBino').onclick = toggleBino; $('bZin').onclick = () => zoom(0.85); $('bZout').onclick = () => zoom(1.18);
-$('bCine').onclick = () => setCine(!cine); $('chip').onclick = () => setCine(true);
-function togglePause() { S.paused = !S.paused; $('bPlay').textContent = S.paused ? '▶ Play' : '❚❚ Pause'; }
+$('bCine').onclick = () => setCine(!cine);
+const toggleHelp = () => $('help').classList.toggle('on'); $('bHelp').onclick = toggleHelp;
+function togglePause() { S.paused = !S.paused; $('bPlay').textContent = S.paused ? '▶' : '❚❚'; }
 $('bPlay').onclick = togglePause;
 function restart() { SkyRadio.flush(); S.gen++; }
 $('bRestart').onclick = restart;
-const syncSound = () => { $('bSound').textContent = SkyRadio.enabled ? '🔊 Sound' : '🔈 Muted'; $('bSound').classList.toggle('on', SkyRadio.enabled); };
-$('bSound').onclick = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSound(); };
+const syncSound = () => { $('bSound').textContent = SkyRadio.enabled ? '🔊' : '🔈'; $('bSound').classList.toggle('on', SkyRadio.enabled); };
+const toggleSound = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSound(); };
+$('bSound').onclick = toggleSound;
 document.addEventListener('skyradio:enabled', syncSound); syncSound();
 
 // ================= main loop =================
@@ -1117,15 +1115,9 @@ function loop() {
     for (const k in screens) screens[k].tex.needsUpdate = true;
   }
   // HUD
-  $('clock').textContent = clockStr();
-  const wx = $('wx'); const cl = ceClosed(); wx.textContent = cl ? 'C–E CLOSED · CELL OVER BAY' : stormLevel() > 0.05 ? 'WX CELL C–E · WATCH' : 'C–E OPEN · VFR ' + String(metarK.wdir).padStart(3, '0') + '/' + String(metarK.wspd).padStart(2, '0'); wx.className = 'wx' + (cl ? ' closed' : '');
-  $('scSim').textContent = 'MIN ' + String(Math.floor(simMin())).padStart(2, '0');
-  $('scTx').textContent = S.tx;
   const prog = clamp(simMin() / 28, 0, 1);
-  $('scAgent').textContent = S.scoreReveal ? '28/28' : Math.round(prog * 28) + '/28';
-  $('scStatic').textContent = S.scoreReveal ? '10/28' : Math.round(prog * 10) + '/28';
-  $('scDelay').textContent = (S.scoreReveal ? 3.1 : Math.min(3.1, Math.max(0, simMin() - 8) * 0.25)).toFixed(1) + ' min';
-  $('scDist').textContent = '+' + (S.scoreReveal ? 14.3 : 14.3 * smooth(8, 26, simMin())).toFixed(1) + '%';
+  $('scAgent').textContent = (S.scoreReveal ? 28 : Math.round(prog * 28)) + '/28';
+  $('scStatic').textContent = 'vs ' + (S.scoreReveal ? 10 : Math.round(prog * 10));
   if (tiles) { tiles.setResolutionFromRenderer(camera, renderer); tiles.update(); refineGround(ns); if (frame % 120 === 0) updateAttrib(); }
   renderer.render(scene, camera);
   if (!halted) requestAnimationFrame(loop);

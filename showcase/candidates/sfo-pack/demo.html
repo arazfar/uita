@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFO Offline Pack</title>
+<style>
+  :root { --bg:#cfdde8; --panel:rgba(15,20,28,.78); --fg:#eef2f6; --accent:#ffd23f; }
+  html, body { margin:0; height:100%; background:var(--bg); overflow:hidden; font:13px/1.35 system-ui, sans-serif; }
+  canvas { display:block; }
+  #ui { position:fixed; left:12px; top:12px; background:var(--panel); color:var(--fg); padding:10px 12px; border-radius:8px; max-width:min(320px, calc(100vw - 48px)); }
+  #ui b { color:var(--accent); }
+  #ui button { margin:6px 4px 0 0; padding:5px 9px; border:0; border-radius:5px; background:#2c3a4c; color:var(--fg); cursor:pointer; }
+  #ui button.on { background:var(--accent); color:#111; }
+  #attr { position:fixed; right:8px; bottom:6px; color:#fff; background:rgba(0,0,0,.55); padding:2px 6px; border-radius:4px; font-size:11px; }
+</style>
+<!-- Pinned three@0.170.0, vendored under ./vendor so the page runs with no network.
+     Online equivalent: https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js and .../examples/jsm/ -->
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three@0.170.0/build/three.module.js",
+  "three/addons/": "./vendor/three@0.170.0/addons/"
+} }
+</script>
+</head>
+<body>
+<div id="ui">
+  <div><b>SFO offline pack</b> &middot; NAIP ortho + OSM 3D</div>
+  <div id="status">loading&hellip;</div>
+  <div>
+    <button data-view="tower">Tower eye</button><button data-view="sfo">SFO overview</button><button data-view="bay">Bay</button><button id="lines" class="on">OSM outlines</button>
+  </div>
+</div>
+<div id="attr">Imagery: USGS NAIP (public domain) &middot; &copy; OpenStreetMap contributors (ODbL)</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const R = 6378137;
+const bounds = await (await fetch('./bounds.json')).json();
+const { origin_lonlat: [LON0, LAT0], m_per_deg_lon: MLON, m_per_deg_lat: MLAT } = bounds.enu;
+// local ENU metres -> three.js (x=east, y=up, z=-north)
+const toV = (lon, lat, y = 0) => new THREE.Vector3((lon - LON0) * MLON, y, -(lat - LAT0) * MLAT);
+const mercY = lat => R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfdde8);
+scene.fog = new THREE.Fog(0xcfdde8, 12000, 45000);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 200000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x667788, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(-3000, 6000, 2000); scene.add(sun);
+
+// Drape a Web Mercator image on a flat ENU grid. Rows are resampled per vertex so the
+// non-linear Mercator Y maps exactly onto latitude (matters for the 40 km bay image).
+function ortho(img, y, order) {
+  const b = img.lonlat_bounds, e = img.epsg3857_extent, nx = 8, ny = 128;
+  const pos = [], uv = [], idx = [];
+  for (let j = 0; j <= ny; j++) {
+    const lat = b.south + (b.north - b.south) * j / ny, v = (mercY(lat) - e.ymin) / (e.ymax - e.ymin);
+    for (let i = 0; i <= nx; i++) {
+      const lon = b.west + (b.east - b.west) * i / nx, p = toV(lon, lat, y);
+      pos.push(p.x, p.y, p.z); uv.push(i / nx, v);
+    }
+  }
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const a = j * (nx + 1) + i, c = a + nx + 1;
+    idx.push(a, a + 1, c, a + 1, c + 1, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  const tex = new THREE.TextureLoader().load('./' + img.file);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex }));
+  m.renderOrder = order; scene.add(m);
+}
+ortho(bounds.images.bay, -2, 0);
+ortho(bounds.images.sfo, 0, 1);
+
+// OSM runway edge outlines (centreline +- width/2) and terminal footprints, for alignment checks.
+const lines = new THREE.Group(); scene.add(lines);
+const aero = await (await fetch('./sfo-aeroway.geojson')).json();
+const LM = { runway: new THREE.LineBasicMaterial({ color: 0xff2bd6 }), center: new THREE.LineBasicMaterial({ color: 0xffd23f }),
+             other: new THREE.LineBasicMaterial({ color: 0x00e5ff }) };
+const addLine = (pts, mat, loop) => lines.add(new (loop ? THREE.LineLoop : THREE.Line)(new THREE.BufferGeometry().setFromPoints(pts), mat));
+for (const f of aero.features) {
+  const k = f.properties.kind, g = f.geometry;
+  if (k === 'runway' && g.type === 'LineString') {
+    const c = g.coordinates.map(([lo, la]) => toV(lo, la, 1.5)), hw = (+f.properties.width || 61) / 2, L = [], Rr = [];
+    c.forEach((p, i) => {
+      const d = c[Math.min(i + 1, c.length - 1)].clone().sub(c[Math.max(i - 1, 0)]).normalize();
+      const n = new THREE.Vector3(-d.z, 0, d.x).multiplyScalar(hw);
+      L.push(p.clone().add(n)); Rr.push(p.clone().sub(n));
+    });
+    addLine(c, LM.center); addLine([...L, ...Rr.reverse()], LM.runway, true);
+  } else if (g.type === 'Polygon') {
+    addLine(g.coordinates[0].map(([lo, la]) => toV(lo, la, 1.5)), LM.other, false);
+  }
+}
+
+const draco = new DRACOLoader().setDecoderPath('./vendor/three@0.170.0/addons/libs/draco/gltf/');
+const gltf = await new GLTFLoader().setDRACOLoader(draco).loadAsync('./sfo-buildings.glb');
+gltf.scene.traverse(o => { if (o.isMesh) o.material.side = THREE.DoubleSide; });
+scene.add(gltf.scene);
+
+const VIEWS = {
+  // SFO ATCT cab is ~60 m AGL; look NE across 28L/28R and 1L/1R.
+  tower: { pos: [0, 62, 0], target: toV(-122.371, 37.6225, 0) },
+  sfo: { pos: [-900, 3200, 2400], target: toV(-122.377, 37.618, 0) },
+  bay: { pos: [-6000, 22000, 18000], target: toV(-122.40, 37.70, 0) },
+};
+function setView(k) {
+  const v = VIEWS[k] || VIEWS.sfo;
+  camera.position.set(...v.pos); controls.target.copy(v.target); controls.update();
+  document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === k));
+}
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+document.getElementById('lines').onclick = e => { lines.visible = !lines.visible; e.target.classList.toggle('on', lines.visible); };
+setView(new URLSearchParams(location.search).get('view') || 'sfo');
+document.getElementById('status').textContent = 'ready: magenta = OSM runway edges, yellow = centrelines, cyan = terminals/aprons';
+window.__sfoReady = true;
+
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

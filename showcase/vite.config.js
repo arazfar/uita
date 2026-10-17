@@ -115,10 +115,13 @@ function voiceApi(env) {
     name: "skyflow-voice-api",
     configureServer(server) {
       // Hosted showcase: one shared password guards the pages and the keyed API.
-      // Fail closed: a server bound beyond loopback must have a password.
+      // Fail closed: a server bound beyond loopback needs a password unless the
+      // operator explicitly opts into a public demo (DEMO_PUBLIC=1).
       const host = server.config.server.host;
+      const hosted = host && host !== "127.0.0.1" && host !== "localhost";
       if (
         !env.DEMO_PASSWORD &&
+        env.DEMO_PUBLIC !== "1" &&
         host &&
         host !== "127.0.0.1" &&
         host !== "localhost"
@@ -141,13 +144,96 @@ function voiceApi(env) {
           res.setHeader("www-authenticate", 'Basic realm="SkyFlow"');
           res.end("SkyFlow demo: password required");
         });
+      // Public mode: per-visitor limits on anything that spends money or mutates
+      // the shared simulation. Cached clips and GETs stay unlimited.
+      if (hosted) {
+        const hits = new Map();
+        const LIMITS = {
+          "/api/tts": 200,
+          "/api/stt": 10,
+          "/api/agent": 20,
+          "/uita/": 30,
+        };
+        server.middlewares.use((req, res, next) => {
+          if (req.method === "GET") return next();
+          const key = Object.keys(LIMITS).find((k) => req.url.startsWith(k));
+          if (!key) return next();
+          // Railway's edge appends the real client as the right-most hop; earlier
+          // hops are client-supplied, so never trust them.
+          const xff = String(req.headers["x-forwarded-for"] || "")
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean);
+          const ip = xff.pop() || req.socket.remoteAddress;
+          const id = key + "|" + ip,
+            now = Date.now(),
+            recent = (hits.get(id) || []).filter((t) => now - t < 10 * 60e3),
+            all = (hits.get(key) || []).filter((t) => now - t < 10 * 60e3);
+          // Global cap per endpoint bounds spend even across many addresses.
+          if (recent.length >= LIMITS[key] || all.length >= LIMITS[key] * 10)
+            return send(res, 429, { error: "rate limited" });
+          recent.push(now);
+          all.push(now);
+          hits.set(id, recent);
+          hits.set(key, all);
+          next();
+        });
+      }
       server.middlewares.use((req, res, next) => {
-        if (req.url === "/" && env.DEMO_PASSWORD) {
+        if (req.url === "/" && (env.DEMO_PASSWORD || env.DEMO_PUBLIC === "1")) {
           res.statusCode = 302;
           res.setHeader("location", "/candidates/app.html");
           return res.end();
         }
         next();
+      });
+      // /uita/* → the Uita FastAPI server. The mutation token is added here so it
+      // never reaches the browser; GETs pass through unchanged.
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url.startsWith("/uita/")) return next();
+        if (!env.UITA_SERVER_URL)
+          return send(res, 503, { error: "UITA_SERVER_URL not configured" });
+        try {
+          const headers = { accept: req.headers.accept || "application/json" };
+          let body;
+          if (req.method !== "GET") {
+            // Sign only same-origin JSON calls to known endpoints; never paid learning jobs.
+            const origin = req.headers.origin;
+            const path = req.url.slice("/uita".length).split("?")[0];
+            const allowed =
+              /^\/api\/(control|disruptions|proposals|compare)$/.test(path) ||
+              /^\/api\/proposals\/[\w-]+\/(verify|commit)$/.test(path);
+            if (
+              !allowed ||
+              !origin ||
+              new URL(origin).host !== req.headers.host ||
+              !(req.headers["content-type"] || "").startsWith(
+                "application/json",
+              )
+            )
+              return send(res, 403, { error: "forbidden" });
+            const chunks = [];
+            for await (const c of req) chunks.push(c);
+            body = Buffer.concat(chunks);
+            headers["content-type"] =
+              req.headers["content-type"] || "application/json";
+            if (env.UITA_API_TOKEN)
+              headers.authorization = "Bearer " + env.UITA_API_TOKEN;
+          }
+          const r = await fetch(
+            env.UITA_SERVER_URL.replace(/\/$/, "") +
+              req.url.slice("/uita".length),
+            { method: req.method, headers, body },
+          );
+          res.statusCode = r.status;
+          res.setHeader(
+            "content-type",
+            r.headers.get("content-type") || "application/json",
+          );
+          return res.end(Buffer.from(await r.arrayBuffer()));
+        } catch (e) {
+          return send(res, 502, { error: String(e?.message || e) });
+        }
       });
       server.middlewares.use(async (req, res, next) => {
         if (!req.url.startsWith("/api/")) return next();

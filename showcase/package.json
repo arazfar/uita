@@ -11,14 +11,16 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "three": "0.170.0",
+    "cesium": "1.146.0",
     "d3-geo": "3.1.1",
     "d3-polygon": "3.0.1",
-    "lucide": "0.468.0"
+    "lucide": "0.468.0",
+    "three": "0.170.0",
+    "three186": "npm:three@0.186.1"
   },
   "devDependencies": {
-    "vite": "8.3.4",
-    "prettier": "3.6.2"
+    "prettier": "3.6.2",
+    "vite": "8.3.4"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -10,102 +10,92 @@
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css">
 <script src="radio-audio.js?v=3"></script>
+<script src="uita-live.js"></script>
 <style>
 :root{
-  --panel:rgba(12,16,20,.82); --panel2:rgba(20,26,32,.9); --line:rgba(255,255,255,.09);
-  --ink:#e8ecef; --mute:#8b97a1; --amber:#ffb547; --red:#ff5a4f; --green:#4fdc8a; --cyan:#5fd4ff; --blue:#7aa7ff;
+  --panel:rgba(10,13,16,.72); --ink:#eef1f3; --mute:#8e989f; --line:rgba(255,255,255,.08);
+  --accent:#ffb547; --red:#ff5a4f; --green:#4fdc8a;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#0b0f13;color:var(--ink);font-family:var(--sans);overflow:hidden}
 #cesium{position:absolute;inset:0}
 .cesium-viewer-bottom{display:none!important}
-#credits{position:absolute;left:0;right:0;bottom:0;height:26px;padding:3px 10px;background:rgba(0,0,0,.55);font-size:10.5px;color:#cfd6db;z-index:20;display:flex;align-items:center;gap:10px;overflow:hidden;white-space:nowrap}
+#credits{position:absolute;left:0;right:0;bottom:0;height:24px;padding:3px 10px;background:rgba(0,0,0,.45);font-size:10.5px;color:#cfd6db;z-index:20;display:flex;align-items:center;gap:10px;overflow:hidden;white-space:nowrap}
 #credits .cesium-credit-textContainer,#credits .cesium-credit-logoContainer{display:inline}
 #credits img{height:16px;vertical-align:middle}
 #credits a{color:#cfd6db}
-.panel{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:6px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:10;overflow:hidden}
-.ph{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font:600 10.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
+.panel{position:absolute;background:var(--panel);border-radius:8px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:10;overflow:hidden}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 4px;font:600 10.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
 .ph b{color:var(--ink);font-weight:600}
 /* banner */
-#banner{left:50%;transform:translateX(-50%);top:12px;width:min(880px,calc(100% - 760px));min-width:520px;padding:0}
-#banner .row{display:flex;align-items:stretch}
-#banner .freq{padding:9px 12px;font:600 11px/1.25 var(--mono);color:var(--amber);border-right:1px solid var(--line);min-width:98px}
-#banner .freq span{display:block;color:var(--mute);font-weight:400}
-#banner .txt{padding:9px 14px;font:500 15px/1.35 var(--sans);flex:1}
-#banner .txt small{display:block;font:500 10.5px/1.3 var(--mono);color:var(--mute);margin-bottom:2px;letter-spacing:.06em}
-#banner.alert{border-color:rgba(255,90,79,.6)}
-#banner.alert .freq{color:var(--red)}
-#stormflag{display:none;position:absolute;right:10px;top:9px;font:700 10px/1 var(--mono);color:#1b0b09;background:var(--red);padding:4px 6px;border-radius:3px;letter-spacing:.08em}
-#banner.alert #stormflag{display:block}
-/* sim chip */
-#simchip{left:14px;top:12px;padding:8px 12px;font:600 11px/1.4 var(--mono)}
-#simchip .big{font-size:18px;color:var(--ink)}
-#simchip .lab{color:var(--amber);letter-spacing:.14em}
-/* strips */
-#strips{left:14px;top:84px;width:318px;max-height:calc(100% - 400px)}
-#striplist{padding:6px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
-.strip{display:grid;grid-template-columns:6px 78px 1fr 52px;align-items:center;background:#e9e3cf;color:#1b1d1f;border-radius:2px;font:600 11px/1.15 var(--mono);min-height:34px;transition:opacity .4s}
-.strip .bar{height:100%;border-radius:2px 0 0 2px}
-.strip.dep .bar{background:#3a8ee6}.strip.arr .bar{background:#e6a23a}.strip.evt .bar{background:#2fb37a}
-.strip.reroute{background:#f3d9a8}
-.strip.hold{background:#f2c1b9}
-.strip .cs{padding:3px 6px;border-right:1px dashed #9b9682;font-size:12px}
-.strip .cs i{display:block;font-style:normal;font-weight:400;font-size:9.5px;color:#55534a}
-.strip .rt{padding:3px 6px;font-weight:500;font-size:10.5px;border-right:1px dashed #9b9682;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.strip .rt i{display:block;font-style:normal;color:#55534a;font-size:9.5px}
-.strip .st{padding:3px 5px;font-size:9.5px;text-align:center}
-.sect{font:600 9.5px/1 var(--sans);letter-spacing:.14em;color:var(--mute);padding:5px 2px 1px;text-transform:uppercase}
-/* radar */
-#radar{left:14px;bottom:36px;width:318px;height:256px}
-#radar canvas{display:block}
-/* right column */
-#agents{right:14px;top:84px;width:388px;height:calc(50% - 70px)}
-#radio{right:14px;bottom:36px;width:388px;top:calc(50% + 22px)}
-.feed{padding:6px 8px;display:flex;flex-direction:column;gap:5px;overflow:hidden;height:calc(100% - 26px);justify-content:flex-end}
-.ev{font:12px/1.35 var(--sans);padding:6px 8px;border-radius:4px;background:var(--panel2);border-left:3px solid var(--blue);animation:in .35s ease}
+#banner{left:50%;transform:translateX(-50%);top:14px;width:min(720px,calc(100% - 800px));min-width:420px;padding:9px 16px 11px}
+#banner .meta{display:flex;gap:12px;font:600 10.5px/1.2 var(--mono);color:var(--mute);letter-spacing:.06em;margin-bottom:4px}
+#banner .meta #bfreq{color:var(--accent)}
+#banner .meta .sp{flex:1}
+#bmsg{font:500 17px/1.35 var(--sans)}
+#stormflag{display:none;color:var(--red)}
+#banner.alert{box-shadow:inset 0 0 0 1px rgba(255,90,79,.55)}
+#banner.alert #stormflag{display:inline}
+/* merged radio + agent feed */
+#feedp{right:14px;top:14px;width:340px;max-height:calc(100% - 140px)}
+.feed{padding:4px 10px 10px;display:flex;flex-direction:column;gap:8px}
+.it{font:13px/1.4 var(--sans);animation:in .35s ease;padding-left:9px;border-left:2px solid var(--line)}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.ev .who{font:600 10px/1.2 var(--mono);color:var(--mute);display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}
-.ev .tag{font:700 9.5px/1 var(--mono);padding:3px 5px;border-radius:3px;letter-spacing:.06em}
-.ev.acc{border-left-color:var(--green)}.ev.acc .tag{background:rgba(79,220,138,.16);color:var(--green)}
-.ev.rej{border-left-color:var(--red);background:rgba(255,90,79,.1)}.ev.rej .tag{background:var(--red);color:#1b0b09}
-.ev.sys{border-left-color:var(--amber)}.ev.sys .tag{background:rgba(255,181,71,.16);color:var(--amber)}
-.ev.spawn{border-left-color:var(--cyan)}.ev.spawn .tag{background:rgba(95,212,255,.14);color:var(--cyan)}
-.ev .why{font:11px/1.35 var(--mono);color:#ffb3ad;margin-top:3px}
-.tx{font:12.5px/1.35 var(--sans);padding:5px 8px;border-radius:4px;background:var(--panel2);animation:in .35s ease}
-.tx .who{font:600 10px/1.2 var(--mono);color:var(--cyan);margin-bottom:1px}
-.tx.plt .who{color:var(--amber)}
-.tx.plt{margin-left:18px}
-.hb{display:flex;gap:4px;flex-wrap:wrap;margin:-1px 0 0 18px;animation:in .35s ease}
-.chip{font:600 9.5px/1 var(--mono);padding:3px 5px;border-radius:3px;background:rgba(79,220,138,.14);color:var(--green)}
-.chip.bad{background:var(--red);color:#1b0b09}
-.chip.commit{background:rgba(95,212,255,.15);color:var(--cyan)}
-/* score */
-#score{left:50%;transform:translateX(-50%);bottom:36px;width:min(700px,calc(100% - 760px));min-width:520px;padding:0}
-#score .grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr}
-#score .c{padding:8px 10px;border-right:1px solid var(--line)}
-#score .c:last-child{border:none}
-#score .k{font:600 9.5px/1.2 var(--sans);color:var(--mute);letter-spacing:.1em;text-transform:uppercase}
-#score .v{font:600 20px/1.2 var(--mono);margin-top:3px}
-#score .v small{font-size:11px;color:var(--mute);font-weight:500}
-#score .cmp{display:flex;gap:12px;align-items:baseline}
-#score .cmp .bad{color:var(--red)}#score .cmp .good{color:var(--green)}
-#controls{display:flex;gap:6px;padding:6px 8px;border-top:1px solid var(--line);align-items:center}
-button{font:600 11px/1 var(--sans);color:var(--ink);background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:4px;padding:6px 9px;cursor:pointer;letter-spacing:.03em}
-button:hover{background:rgba(255,255,255,.14)}
-button.on{background:var(--amber);color:#1b1408;border-color:var(--amber)}
-#controls .sp{flex:1}
-#camlabel{font:600 10.5px/1 var(--mono);color:var(--amber);letter-spacing:.08em}
-#cambar{left:50%;transform:translateX(-50%);top:98px;width:max-content;display:flex;gap:4px;padding:5px;align-items:center;white-space:nowrap}
+.it .who{font:600 10px/1.3 var(--mono);color:var(--mute);letter-spacing:.04em}
+.it .who .tag{margin-left:6px}
+.it.plt{margin-left:12px}
+.it.live{border-left-color:var(--accent)}
+.it.ag{color:#c9d0d5}
+.it.ag.rej{border-left-color:var(--red)}
+.it.ag.rej .tag{color:var(--red)}
+.it.ag.acc .tag{color:var(--green)}
+.it .why{font:11px/1.35 var(--mono);color:#ffb3ad;margin-top:2px}
+.hb{margin-top:3px;font:600 10px/1.3 var(--mono);color:var(--green)}
+.hb .bad{color:var(--red)}
+#live{display:none;color:var(--green)}
+#bPVC{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:9px;background:rgba(79,220,138,.16);color:var(--green)}
+#bPVC:disabled{opacity:.45;cursor:default}
+.live-sep{font:600 9.5px/1 var(--mono);color:var(--green);letter-spacing:.1em;margin-top:2px}
+#txlive{font-style:normal;color:var(--red);margin-left:6px;letter-spacing:.08em}
+/* scoreboard: four numbers */
+#score{left:14px;top:14px;display:flex;padding:10px 6px}
+#score .c{padding:0 9px;width:88px}
+#score .v{font:600 30px/1 var(--mono)}
+#score .v small{font-size:13px;color:var(--mute);font-weight:500}
+#score .v.good{color:var(--green)}
+#score .v.dim{color:var(--mute)}
+#score .k{font:600 9.5px/1.3 var(--sans);color:var(--mute);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+/* camera bar */
+#cambar{left:50%;transform:translateX(-50%);bottom:36px;width:max-content;display:flex;gap:4px;padding:5px;align-items:center;white-space:nowrap}
 #cambar .sep{width:1px;height:18px;background:var(--line);margin:0 3px}
 #cambar #bZout,#cambar #bZin{width:28px;font-size:14px;padding:4px 0}
-#resume{display:none;background:var(--cyan);color:#06222c;border-color:var(--cyan)}
+#camlabel{font:600 10px/1 var(--mono);color:var(--mute);letter-spacing:.06em;padding:0 6px}
+button{font:600 11px/1 var(--sans);color:var(--ink);background:rgba(255,255,255,.06);border:0;border-radius:5px;padding:7px 9px;cursor:pointer}
+button:hover{background:rgba(255,255,255,.14)}
+button.on{background:var(--accent);color:#1b1408}
+#resume{display:none;background:var(--accent);color:#1b1408}
 .lb{position:absolute;left:0;right:0;height:9vh;background:#000;z-index:4;transform:scaleY(0);transition:transform .6s ease;pointer-events:none}
 .lb.top{top:0;transform-origin:top}.lb.bot{bottom:0;transform-origin:bottom}
 body.letterbox .lb{transform:scaleY(1)}
-#txlive{font-style:normal;color:var(--red);margin-left:6px;letter-spacing:.08em}
-.tx.live{outline:1px solid rgba(255,90,79,.7)}
-#bSnd.on{background:var(--green);color:#06240f;border-color:var(--green)}
+/* keep the shared module's one-time sound gate clear of the camera bar */
+#skyradio-gate{top:108px!important;bottom:auto!important;font-size:12px!important;padding:8px 14px!important}
+/* details layer (key D): strips + radar */
+.details{display:none}
+body.details .details{display:block}
+#strips{left:14px;top:96px;width:300px;max-height:calc(100% - 470px)}
+#striplist{padding:4px 6px 6px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+.strip{display:grid;grid-template-columns:5px 74px 1fr 50px;align-items:center;background:#e9e3cf;color:#1b1d1f;border-radius:2px;font:600 11px/1.15 var(--mono);min-height:32px}
+.strip .bar{height:100%}
+.strip.dep .bar{background:#3a8ee6}.strip.arr .bar{background:#e6a23a}.strip.evt .bar{background:#2fb37a}
+.strip.reroute{background:#f3d9a8}
+.strip .cs{padding:3px 6px;border-right:1px dashed #9b9682}
+.strip .cs i,.strip .rt i{display:block;font-style:normal;font-weight:400;font-size:9.5px;color:#55534a}
+.strip .rt{padding:3px 6px;font-weight:500;font-size:10.5px;border-right:1px dashed #9b9682;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip .st{padding:3px 4px;font-size:9.5px;text-align:center}
+.sect{font:600 9.5px/1 var(--sans);letter-spacing:.14em;color:var(--mute);padding:5px 2px 1px;text-transform:uppercase}
+#radar{left:14px;bottom:36px;width:300px;height:250px}
+#radar canvas{display:block}
 #err{display:none;position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);z-index:30;padding:14px 18px;max-width:420px;font:13px/1.4 var(--sans)}
 #loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;font:600 11px/1 var(--mono);color:var(--mute);letter-spacing:.14em}
 </style>
@@ -114,38 +104,29 @@ body.letterbox .lb{transform:scaleY(1)}
 <div id="cesium"></div>
 <div id="loading">STREAMING PHOTOREALISTIC 3D TILES…</div>
 
-<div id="simchip" class="panel"><div class="lab">SIMULATION · SKYFLOW TWR</div><div class="big" id="clk">T+00:00</div><div id="metar" style="color:var(--mute);font-weight:400">KSFO 03006KT 10SM CLR</div></div>
+<div id="banner" class="panel"><div class="meta"><span id="bfreq">SFO TWR 120.500</span><span id="clk">T+00:00</span><span id="stormflag">C–E CLOSED</span><span class="sp"></span><span id="simtag">SIMULATION</span><span id="live">● LIVE · Uita server</span></div><div id="bmsg">Standing by.</div></div>
 
-<div id="banner" class="panel"><div class="row"><div class="freq" id="bfreq">TWR<span>120.500</span></div><div class="txt" id="btxt"><small id="bsrc">CONTROLLER AGENT · CLEARANCE</small><span id="bmsg">Standing by.</span></div></div><div id="stormflag">C–E CLOSED</div></div>
-
-<div id="strips" class="panel"><div class="ph"><span>Flight strips</span><b id="stripcount">0 active</b></div><div id="striplist"></div></div>
-
-<div id="radar" class="panel"><div class="ph"><span>Approach radar · NCT</span><b>20 NM</b></div><canvas id="rc" width="318" height="230"></canvas></div>
-
-<div id="agents" class="panel"><div class="ph"><span>Agent decisions → kernel</span><b id="agentcount">0 proposals</b></div><div class="feed" id="agentfeed"></div></div>
-
-<div id="radio" class="panel"><div class="ph"><span>Radio · hearback check <i id="txlive"></i></span><b id="txcount">0 tx</b></div><div class="feed" id="radiofeed"></div></div>
+<div id="feedp" class="panel"><div class="ph"><span>Radio · agents <i id="txlive"></i></span><b id="feedcount"></b></div><div class="feed" id="feed"></div><button id="bPVC" disabled title="Live Uita server required">Agents propose → Kernel verify → Commit</button></div>
 
 <div id="score" class="panel">
-  <div class="grid">
-    <div class="c"><div class="k">On-time arrivals · static vs agents</div><div class="v cmp"><span class="bad" id="sStatic">0/28</span><span class="good" id="sAgent">0/28</span></div><div class="k" id="sDist" style="text-transform:none;letter-spacing:0;margin-top:2px;font-family:var(--mono)"></div></div>
-    <div class="c"><div class="k">Max delay</div><div class="v" id="sDelay">0.0<small> min</small></div></div>
-    <div class="c"><div class="k">Conflicts</div><div class="v good" style="color:var(--green)" id="sConf">0</div></div>
-    <div class="c"><div class="k">Human interv.</div><div class="v" id="sHuman">0</div></div>
-    <div class="c"><div class="k">Radio tx</div><div class="v" id="sTx">0</div></div>
-  </div>
-  <div id="controls">
-    <button id="bPlay">Pause</button><button id="bRestart">Restart</button>
-    <span class="sp"></span>
-    <span id="camlabel">CINEMATIC</span>
-  </div>
+  <div class="c"><div class="v good"><span id="sAgent">0</span><small id="sAgentDen">/28</small></div><div class="k" id="k1">On time · agents</div></div>
+  <div class="c"><div class="v dim"><span id="sStatic">0</span><small id="sStaticDen">/28</small></div><div class="k" id="k2">Static plan</div></div>
+  <div class="c"><div class="v" id="sConf">0</div><div class="k">Conflicts</div></div>
+  <div class="c"><div class="v" id="sHuman">0</div><div class="k">Human interv.</div></div>
+</div>
+
+<div class="details">
+<div id="strips" class="panel"><div class="ph"><span>Flight strips</span><b id="stripcount">0 active</b></div><div id="striplist"></div></div>
+<div id="radar" class="panel"><div class="ph"><span>Approach radar</span><b>20 NM</b></div><canvas id="rc" width="300" height="224"></canvas></div>
 </div>
 
 <div id="cambar" class="panel">
+  <button id="bPlay" title="Space">Pause</button><button id="bRestart">Restart</button>
+  <span class="sep"></span>
   <button data-preset="1" title="Key 1">1 Overview</button><button data-preset="2" title="Key 2">2 Tower</button><button data-preset="3" title="Key 3: chase the selected flight (click one to select)">3 Chase</button><button data-preset="4" title="Key 4">4 Storm</button><button data-preset="5" title="Key 5">5 OAK pad</button>
   <span class="sep"></span><button id="bZout" title="Zoom out (−)" aria-label="Zoom out">−</button><button id="bZin" title="Zoom in (+)" aria-label="Zoom in">+</button>
-  <span class="sep"></span><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bCine" class="on" title="Key C">Cinematic</button><button id="bBox" title="Key L">Letterbox</button>
-  <button id="resume">Resume cinematic</button>
+  <span class="sep"></span><button id="bCine" class="on" title="Key C">Cinematic</button><button id="resume">Resume cinematic</button><button id="bSnd" title="Radio voice on/off">Sound off</button><button id="bDet" title="Key D: strips, radar, labels">Details</button><button id="bBox" title="Key L">Letterbox</button>
+  <span id="camlabel">CINEMATIC</span>
 </div>
 <div class="lb top"></div><div class="lb bot"></div>
 <div id="err" class="panel"></div>
@@ -290,7 +271,7 @@ for (const a of airliners) {
     position: new C.CallbackProperty(time => a.pos.getValue(time), false),
     orientation: ori,
     model: { uri: a.model, scale: a.scale, minimumPixelSize: 28, maximumScale: 4000 },
-    label: { text: a.label, font: '600 12px ui-monospace,Menlo,monospace', fillColor: C.Color.WHITE, outlineColor: C.Color.BLACK, outlineWidth: 3,
+    label: { text: new C.CallbackProperty(() => details ? a.label : a.id, false), font: '600 12px ui-monospace,Menlo,monospace', fillColor: C.Color.WHITE, outlineColor: C.Color.BLACK, outlineWidth: 3,
       style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -30), showBackground: true, backgroundColor: C.Color.fromCssColorString('rgba(10,14,18,.65)'),
       disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 25000) },
   });
@@ -332,7 +313,7 @@ for (const [k, v] of Object.entries(NODES)) {
   viewer.entities.add({
     position: C.Cartesian3.fromDegrees(v[0], v[1], cAlt),
     point: { pixelSize: pad ? 9 : 6, color: pad ? C.Color.fromCssColorString('#e8ecef') : C.Color.fromCssColorString('#5fd4ff'), outlineColor: C.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-    label: { text: pad ? k : `FIX ${k}`, font: '600 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString(pad ? '#ffffff' : '#9fe6ff'), outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE,
+    label: { show: pad ? true : new C.CallbackProperty(() => details, false), text: pad ? k : `FIX ${k}`, font: '600 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString(pad ? '#ffffff' : '#9fe6ff'), outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE,
       pixelOffset: new C.Cartesian2(0, 14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
   });
 }
@@ -386,7 +367,7 @@ for (const f of flights) {
   f.entity = viewer.entities.add({
     position: new C.CallbackProperty(() => { const p = routePoint(f, simMin()); return C.Cartesian3.fromDegrees(p[0], p[1], cAlt + 25); }, false),
     point: { show: f.visible, pixelSize: 10, color: C.Color.fromCssColorString(f.rerouted ? '#ffb547' : '#4fdc8a'), outlineColor: C.Color.BLACK, outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-    label: { show: f.visible, text: `${f.callsign}  ${f.o}→${f.d}`, font: '600 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString(f.rerouted ? '#ffd38a' : '#b9f5d2'),
+    label: { show: f.visible, text: new C.CallbackProperty(() => details ? `${f.callsign}  ${f.o}→${f.d}` : f.callsign, false), font: '600 11px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString(f.rerouted ? '#ffd38a' : '#b9f5d2'),
       outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(10, -10), horizontalOrigin: C.HorizontalOrigin.LEFT,
       disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 60000) },
   });
@@ -414,7 +395,7 @@ for (const b of bg.slice(0, 40)) {
   viewer.entities.add({
     position: new C.CallbackProperty(() => { const p = bgPos(b, tNow()); return C.Cartesian3.fromDegrees(p[0], p[1], p[2] + GEOID); }, false),
     point: { pixelSize: 5, color: C.Color.fromCssColorString('#d7dde2'), outlineColor: C.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-    label: { text: b.cs, font: '10px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#c8d0d6'), outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE,
+    label: { show: new C.CallbackProperty(() => details, false), text: b.cs, font: '10px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#c8d0d6'), outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE,
       pixelOffset: new C.Cartesian2(8, 0), horizontalOrigin: C.HorizontalOrigin.LEFT, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 30000), disableDepthTestDistance: Number.POSITIVE_INFINITY },
   });
 }
@@ -457,28 +438,25 @@ const AGENTS = [
 ];
 const STATIC_ON_TIME = new Set([0, 1, 2, 7, 8, 9, 10, 11, 12, 13].map(i => 101 + i)); // static plan: 10/28
 
-const radioFeed = document.getElementById('radiofeed'), agentFeed = document.getElementById('agentfeed');
-let shownRadio = -1, shownAgents = -1;
-function renderRadio(n) {
-  radioFeed.innerHTML = '';
-  for (const r of RADIO.slice(Math.max(0, n - 4), n)) {
-    const d = document.createElement('div'); d.className = 'tx' + (r.plt ? ' plt' : '');
-    d.innerHTML = `<div class="who">${r.who}${r.f ? ' · ' + r.f : ''}</div>${r.txt}`;
-    radioFeed.appendChild(d);
-    if (r.hb) {
-      const h = document.createElement('div'); h.className = 'hb';
-      h.innerHTML = r.hb.map(([k, bad]) => `<span class="chip${bad ? ' bad' : ''}">${bad ? 'MISMATCH ' : '✓ '}${k}</span>`).join('') + (r.commit ? `<span class="chip commit">COMMIT ${r.commit}</span>` : '');
-      radioFeed.appendChild(h);
-    }
+const feedEl = document.getElementById('feed');
+let shownRadio = -1, shownAgents = -1, details = false;
+// One concise feed: the latest radio calls and kernel decisions, readback check inline.
+function radioItem(r) {
+  let hb = '';
+  if (r.hb) {
+    const bad = r.hb.find(h => h[1]);
+    hb = `<div class="hb">${bad ? `<span class="bad">✗ readback ${bad[0]}</span>` : '✓ readback' + (r.commit ? ` · committed ${r.commit.split(' ')[0]}` : '')}</div>`;
   }
+  return `<div class="it tx${r.plt ? ' plt' : ''}"><div class="who">${r.who}</div>${r.txt}${hb}</div>`;
 }
-function renderAgents(n) {
-  agentFeed.innerHTML = '';
-  for (const a of AGENTS.slice(Math.max(0, n - 6), n)) {
-    const d = document.createElement('div'); d.className = 'ev ' + a.cls;
-    d.innerHTML = `<div class="who"><span>${a.who}</span><span class="tag">${a.tag}</span></div>${a.txt}${a.why ? `<div class="why">${a.why}</div>` : ''}`;
-    agentFeed.appendChild(d);
-  }
+function agentItem(a) {
+  return `<div class="it ag ${a.cls}"><div class="who">${a.who}<span class="tag">${a.tag}</span></div>${a.txt}${a.why ? `<div class="why">${a.why}</div>` : ''}</div>`;
+}
+function renderFeed(nR, nA) {
+  const items = [...RADIO.slice(0, nR).map(r => [r.t, radioItem(r)]), ...AGENTS.slice(0, nA).map(a => [a.t, agentItem(a)])].sort((x, y) => x[0] - y[0]);
+  const lv = liveOn ? liveItems.slice(-3) : [];
+  feedEl.innerHTML = items.slice(-(5 - lv.length)).map(i => i[1]).join('') + (lv.length ? '<div class="live-sep">LIVE · UITA</div>' + lv.join('') : '');
+  $('feedcount').textContent = `${nR} tx · ${nA} decisions`;
 }
 
 // ---------- radar inset ----------
@@ -553,20 +531,17 @@ function renderScore(t, nTx) {
   const m = simMin();
   const done = flights.filter(f => m >= f.dep + f.dur);
   const final = t >= 84; // last trips land just past the loop; show the settled tally
-  $('sAgent').textContent = `${final ? 28 : done.length}/28`;
-  $('sStatic').textContent = `${final ? 10 : done.filter(f => STATIC_ON_TIME.has(f.cs)).length}/28`;
-  $('sDist').textContent = final ? 'distance +14.3%' : `${done.length} landed · ${28 - done.length} in plan`;
-  const delay = m < STORM[0] ? 0 : Math.min(2.1, (m - STORM[0]) * 0.4);
-  $('sDelay').innerHTML = `${delay.toFixed(1)}<small> min · static ${m < STORM[0] ? '0.0' : Math.min(16.4, m - STORM[0]).toFixed(1)}</small>`;
-  $('sTx').textContent = nTx; $('txcount').textContent = `${nTx} tx`;
+  if (!live) {
+    $('sAgent').textContent = final ? 28 : done.length;
+    $('sStatic').textContent = final ? 10 : done.filter(f => STATIC_ON_TIME.has(f.cs)).length;
+  }
   $('clk').textContent = `T+${String(Math.floor(m)).padStart(2, '0')}:${String(Math.floor((m % 1) * 60)).padStart(2, '0')}`;
 }
 function renderBanner(n) {
   const ctl = RADIO.slice(0, n).filter(r => !r.plt);
   const r = ctl[ctl.length - 1];
   if (!r) { $('bmsg').textContent = 'Standing by. Traffic calm, all corridors open.'; $('banner').classList.remove('alert'); return; }
-  $('bfreq').innerHTML = `${r.who === 'TWR' ? 'SFO TWR' : 'SKYFLOW'}<span>${r.f}</span>`;
-  $('bsrc').textContent = r.who === 'TWR' ? 'TOWER · LOCAL CONTROL' : 'CONTROLLER AGENT · CLEARANCE';
+  $('bfreq').textContent = `${r.who === 'TWR' ? 'SFO TWR' : 'SKYFLOW CTL'} ${r.f}`;
   $('bmsg').textContent = r.txt;
   const m = simMin();
   $('banner').classList.toggle('alert', m >= STORM[0] && m <= STORM[1]);
@@ -708,12 +683,14 @@ document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => preset
 $('bZin').onclick = () => zoom(1); $('bZout').onclick = () => zoom(-1);
 $('bCine').onclick = () => camMode === 'cine' ? pauseCine() : resumeCine();
 $('resume').onclick = resumeCine;
+$('bDet').onclick = () => { details = !details; document.body.classList.toggle('details', details); $('bDet').classList.toggle('on', details); lastStripKey = ''; };
 $('bBox').onclick = () => { letterbox = !letterbox; document.body.classList.toggle('letterbox', letterbox); $('bBox').classList.toggle('on', letterbox); };
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
   if (e.key >= '1' && e.key <= '5') preset(+e.key);
   else if (e.key === 'c' || e.key === 'C') $('bCine').onclick();
   else if (e.key === 'l' || e.key === 'L') $('bBox').onclick();
+  else if (e.key === 'd' || e.key === 'D') $('bDet').onclick();
   else if ((e.key === 't' || e.key === 'T') && window.parent !== window) parent.postMessage({ skyflow: 'toggle' }, '*'); // app.html view switch
   else if (e.key === '+' || e.key === '=') zoom(1);
   else if (e.key === '-' || e.key === '_') zoom(-1);
@@ -737,7 +714,7 @@ function radioStep(t) {
 }
 SkyRadio.onTransmit(({ speaker, key, live }) => {
   $('txlive').textContent = live ? `● TX ${speaker === 'atc' ? 'CTL' : key}` : '';
-  const last = radioFeed.querySelectorAll('.tx'); last.forEach(x => x.classList.remove('live'));
+  const last = feedEl.querySelectorAll('.tx'); last.forEach(x => x.classList.remove('live'));
   if (live && last.length) last[last.length - 1].classList.add('live');
 });
 const syncSnd = () => { $('bSnd').textContent = SkyRadio.enabled ? 'Sound on' : 'Sound off'; $('bSnd').classList.toggle('on', SkyRadio.enabled); };
@@ -758,20 +735,122 @@ if (document.hidden) setPaused(true);
 $('bPlay').onclick = () => { userPaused = !userPaused; clock.shouldAnimate = !userPaused && !holding; $('bPlay').textContent = userPaused ? 'Play' : 'Pause'; };
 $('bRestart').onclick = () => { userPaused = false; clock.currentTime = T0.clone(); clock.shouldAnimate = true; $('bPlay').textContent = 'Pause'; };
 
+// ---------- live Uita backend (uita-live.js) ----------
+// Online: live airliners + metrics + events + the propose/verify/commit beat. Offline: scripted demo only.
+const HIDDEN_STATUS = new Set(['pending', 'taxi', 'gate', 'complete']); // ramp point sits off-airport
+const liveEnts = new Map();
+let live = null, liveOn = false;
+const seenEvents = new Set();
+function liveSimTime() {
+  if (!live) return 0;
+  return live.time + (live.running ? (live.speed || 1) * (Date.now() - live.receivedAt) / 1000 : 0);
+}
+// Interpolate along the backend trajectory at sim time; otherwise dead-reckon from heading/speed.
+function livePose(a) {
+  const ts = liveSimTime(), p = a.path;
+  if (p && p.length > 1 && ts >= p[0][3] && ts <= p[p.length - 1][3]) {
+    let i = 1; while (i < p.length - 1 && p[i][3] < ts) i++;
+    const q0 = p[i - 1], q1 = p[i], k = (ts - q0[3]) / ((q1[3] - q0[3]) || 1);
+    const lon = q0[0] + (q1[0] - q0[0]) * k, lat = q0[1] + (q1[1] - q0[1]) * k, alt = q0[2] + (q1[2] - q0[2]) * k;
+    const hdg = Math.atan2((q1[0] - q0[0]) * mPerLon, (q1[1] - q0[1]) * mPerLat) / D2R;
+    return { lon, lat, alt, hdg: Number.isFinite(hdg) && (q1[0] !== q0[0] || q1[1] !== q0[1]) ? hdg : a.heading };
+  }
+  const dt = Math.min(15, Math.max(0, ts - live.time)), d = (a.speedKt || 0) * 0.5144 * dt, h = (a.heading || 0) * D2R;
+  return { lon: a.lon + Math.sin(h) * d / mPerLon, lat: a.lat + Math.cos(h) * d / mPerLat, alt: a.altFt || 0, hdg: a.heading || 0 };
+}
+function liveCart(pose) { return C.Cartesian3.fromDegrees(pose.lon, pose.lat, Math.max(GROUND, (pose.alt || 0) * 0.3048 + GEOID)); }
+function liveEntity(a) {
+  let e = liveEnts.get(a.id);
+  if (e) return e;
+  const heavy = a.wake === 'heavy', uri = heavy ? 'assets/boeing747-mihalunar/model.glb' : 'assets/airplane-google/model.glb';
+  const rec = { a };
+  rec.entity = viewer.entities.add({
+    position: new C.CallbackProperty(() => liveCart(livePose(rec.a)), false),
+    orientation: new C.CallbackProperty(() => {
+      const ps = livePose(rec.a), pos = liveCart(ps);
+      return C.Transforms.headingPitchRollQuaternion(pos, new C.HeadingPitchRoll(((ps.hdg || 0) - 90 + (yawFix[uri] ?? 0)) * D2R, 0, 0));
+    }, false),
+    show: true,
+    model: { uri, scale: heavy ? 46 : 0.4, minimumPixelSize: 28, maximumScale: 4000, color: a.emergency ? C.Color.RED : undefined, colorBlendAmount: a.emergency ? 0.5 : 0 },
+    label: { text: a.callsign, font: '600 12px ui-monospace,Menlo,monospace', fillColor: C.Color.fromCssColorString('#ffd38a'), outlineColor: C.Color.BLACK, outlineWidth: 3,
+      style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -30), disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new C.DistanceDisplayCondition(0, 40000) },
+  });
+  liveEnts.set(a.id, rec);
+  return rec;
+}
+const liveItems = [];
+function pushLive(html) { liveItems.push(html); if (liveItems.length > 8) liveItems.shift(); shownRadio = -1; }
+const esc = x => String(x ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+UitaLive.on('online', () => { liveOn = true; $('live').style.display = 'inline'; $('simtag').style.display = 'none'; $('bPVC').disabled = false; })
+  .on('offline', () => {
+    liveOn = false; live = null; $('live').style.display = 'none'; $('simtag').style.display = 'inline'; $('bPVC').disabled = true;
+    for (const r of liveEnts.values()) r.entity.show = false;
+    setScoreMode(false);
+  })
+  .on('state', s => {
+    live = s; setScoreMode(true);
+    const ids = new Set();
+    for (const a of s.aircraft) {
+      if (HIDDEN_STATUS.has(a.status)) continue;
+      ids.add(a.id); const r = liveEntity(a); r.a = a; r.entity.show = true;
+    }
+    for (const [id, r] of liveEnts) if (!ids.has(id)) r.entity.show = false;
+    const fresh = s.events.filter(ev => !seenEvents.has(ev.time + '|' + ev.message));
+    fresh.forEach(ev => seenEvents.add(ev.time + '|' + ev.message));
+    for (const ev of (seenEvents.size === fresh.length ? fresh.slice(-2) : fresh))
+      pushLive(`<div class="it ag live-ev"><div class="who">UITA · ${esc(ev.type).toUpperCase()}</div>${esc(ev.message)}</div>`);
+    const m = s.metrics || {};
+    $('sAgent').textContent = m.completed ?? 0; $('sAgentDen').textContent = '/' + (m.total ?? 0);
+    $('sStatic').textContent = m.mean_delay != null ? Math.round(m.mean_delay / 60) : '–';
+    $('sConf').textContent = m.conflicts ?? 0;
+  });
+function setScoreMode(on) {
+  $('k1').textContent = on ? 'Completed · live' : 'On time · agents';
+  $('k2').textContent = on ? 'Mean delay' : 'Static plan';
+  $('sStaticDen').textContent = on ? 'm' : '/28';
+  if (!on) { $('sAgentDen').textContent = '/28'; $('sConf').textContent = 0; }
+}
+// Kernel beat: agent proposes, kernel verifies independently, commit only on PASS.
+function stepReason(step, r) {
+  if (!r) return '';
+  if (!r.ok) return `${r.status || ''} ${r.error || ''}`.trim();
+  const v = r.result && r.result.verification;
+  if (step === 'verify' && v) {
+    const bad = (v.violations || v.failures || v.errors || (v.checks || []).filter(c => c.pass === false || c.ok === false)).map(x => x.message || x.rule || x.name || x.reason || JSON.stringify(x));
+    return [v.status, v.reason || v.message || v.summary, bad.slice(0, 2).join('; ')].filter(Boolean).join(' · ');
+  }
+  if (step === 'commit') return `plan committed · revision ${(UitaLive.state && UitaLive.state.revision) ?? '?'}`;
+  const res = r.result || {};
+  return res.summary || res.message || (res.id ? `proposal ${String(res.id).slice(0, 8)} from ${res.source || 'agent'}` : '');
+}
+UitaLive.on('step', ({ step, phase }) => { if (phase === 'start') pushLive(`<div class="it ag"><div class="who">KERNEL · ${step.toUpperCase()}</div>running…</div>`); });
+$('bPVC').onclick = async () => {
+  $('bPVC').disabled = true;
+  const r = await UitaLive.proposeVerifyCommit();
+  for (const k of ['propose', 'verify', 'commit']) {
+    const x = r[k]; if (!x) continue;
+    const pass = x.ok && (k !== 'verify' || r.verdict === 'pass');
+    pushLive(`<div class="it ag ${pass ? 'acc' : 'rej'}"><div class="who">${k.toUpperCase()}<span class="tag">${pass ? 'PASS' : 'FAIL'}</span> · ${x.ms} ms</div>${esc(stepReason(k, x)) || (pass ? 'ok' : '')}</div>`);
+  }
+  if (r.verify && r.verdict !== 'pass') pushLive(`<div class="it ag rej"><div class="who">COMMIT<span class="tag">SKIPPED</span></div>Kernel did not verify the proposal (${esc(r.verdict)}).</div>`);
+  $('bPVC').disabled = !liveOn;
+};
+UitaLive.start({ intervalMs: 1000 });
+
 // ---------- main tick ----------
 let lastT = 0, lastHud = -1;
 scene.preRender.addEventListener(() => {
   const t = tNow(); const dt = Math.max(0, Math.min(0.2, t - lastT)); lastT = t;
   setCam(t, dt || 0.016);
-  drawRadar(t);
+  if (details) drawRadar(t);
   radioStep(t);
   if (Math.abs(t - lastHud) > 0.2 || revealed !== shownRadio) {
     lastHud = t;
     const nR = revealed, nA = AGENTS.filter(a => a.t <= t).length;
-    if (nR !== shownRadio) { shownRadio = nR; renderRadio(nR); renderBanner(nR); }
-    if (nA !== shownAgents) { shownAgents = nA; renderAgents(nA); $('agentcount').textContent = `${nA} decisions · 1 veto`; }
+    if (nR !== shownRadio || nA !== shownAgents) { shownRadio = nR; shownAgents = nA; renderFeed(nR, nA); }
     renderBanner(nR);
-    renderStrips(t); renderScore(t, nR);
+    if (details) renderStrips(t);
+    renderScore(t, nR);
   }
 });
 

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Uita Live Test</title>
+<style>
+  :root { --bg:#0b0f14; --fg:#d8e1ea; --dim:#6b7a8a; --rwy:#3a4756; --osm:#8fa3b8; --arr:#4fc3f7; --dep:#ffb74d; --emg:#ff5252; --ok:#66bb6a; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:13px/1.4 ui-monospace,Menlo,monospace; }
+  #wrap { display:flex; height:100%; }
+  canvas { flex:1; min-width:0; display:block; }
+  #side { width:300px; padding:12px; box-sizing:border-box; overflow:auto; border-left:1px solid #1c2530; }
+  h1 { font-size:14px; margin:0 0 8px; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:9px; background:#333; }
+  .pill.on { background:var(--ok); color:#000; } .pill.off { background:var(--emg); color:#000; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  td { padding:1px 0; } td:last-child { text-align:right; }
+  button { background:#1c2530; color:var(--fg); border:1px solid #2c3a4a; padding:4px 8px; margin:2px 2px 0 0; font:inherit; cursor:pointer; }
+  #log { white-space:pre-wrap; color:var(--dim); margin-top:8px; font-size:11px; }
+  @media (max-width:700px){ #wrap{flex-direction:column} #side{width:auto;border-left:0;border-top:1px solid #1c2530;max-height:45%} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="side">
+    <h1>Uita live <span id="st" class="pill">connecting</span></h1>
+    <div>sim t=<span id="t">-</span>s rev <span id="rev">-</span> <span id="run"></span></div>
+    <div style="color:var(--dim)">grey = OSM runways, blue/orange = backend runways via fit</div>
+    <table id="m"></table>
+    <div style="margin-top:8px">
+      <button data-a="play">play</button><button data-a="pause">pause</button>
+      <button id="kernel">propose → verify → commit</button>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+<script src="uita-live.js"></script>
+<script>
+(async function () {
+  const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+  const gj = await fetch("data/airports.geojson").then(r => r.json());
+  const osm = gj.features.filter(f => f.properties.aeroway === "runway" && f.properties.airport === "SFO");
+  const view = { lon: -122.372, lat: 37.616, span: 0.16 }; // degrees of longitude across
+  let st = null;
+  function px(lon, lat) {
+    const w = cv.width, h = cv.height, k = w / view.span, ky = k / Math.cos(view.lat * Math.PI / 180);
+    return [w / 2 + (lon - view.lon) * k, h / 2 - (lat - view.lat) * ky];
+  }
+  function draw() {
+    const dpr = devicePixelRatio || 1;
+    cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
+    ctx.fillStyle = "#0b0f14"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#8fa3b8"; ctx.lineWidth = 9 * dpr;
+    for (const f of osm) { ctx.beginPath(); f.geometry.coordinates.forEach((c, i) => { const p = px(c[0], c[1]); i ? ctx.lineTo(...p) : ctx.moveTo(...p); }); ctx.stroke(); }
+    if (!st) return;
+    for (const r of st.runways) {
+      const a = px(...r.a), b = px(...r.b);
+      ctx.strokeStyle = r.closed ? "#ff5252" : (/^28/.test(r.id) ? "#4fc3f7" : "#ffb74d"); ctx.lineWidth = 2 * dpr;
+      ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+      ctx.fillStyle = "#d8e1ea"; ctx.font = `${11 * dpr}px Menlo`; ctx.fillText(r.id, a[0] + 6 * dpr, a[1] + 12 * dpr);
+    }
+    for (const a of st.aircraft) {
+      const col = a.emergency ? "#ff5252" : a.op === "arrival" ? "#4fc3f7" : "#ffb74d";
+      ctx.globalAlpha = 0.35; ctx.strokeStyle = col; ctx.lineWidth = 1 * dpr; ctx.beginPath();
+      a.path.forEach((p, i) => { const q = px(p[0], p[1]); i ? ctx.lineTo(...q) : ctx.moveTo(...q); }); ctx.stroke();
+      ctx.globalAlpha = a.status === "complete" ? 0.4 : 1;
+      const p = px(a.lon, a.lat), hd = (a.heading || 0) * Math.PI / 180, s = 7 * dpr;
+      ctx.fillStyle = col; ctx.beginPath();
+      ctx.moveTo(p[0] + Math.sin(hd) * s, p[1] - Math.cos(hd) * s);
+      ctx.lineTo(p[0] + Math.sin(hd + 2.5) * s, p[1] - Math.cos(hd + 2.5) * s);
+      ctx.lineTo(p[0] + Math.sin(hd - 2.5) * s, p[1] - Math.cos(hd - 2.5) * s); ctx.fill();
+      ctx.fillStyle = "#d8e1ea"; ctx.font = `${10 * dpr}px Menlo`;
+      ctx.fillText(`${a.callsign} ${a.status} ${Math.round(a.altFt)}ft`, p[0] + 8 * dpr, p[1] - 4 * dpr);
+      ctx.globalAlpha = 1;
+    }
+  }
+  addEventListener("resize", draw);
+  cv.addEventListener("wheel", e => { e.preventDefault(); view.span *= e.deltaY > 0 ? 1.2 : 1 / 1.2; draw(); }, { passive: false });
+  const $ = id => document.getElementById(id), log = m => { $("log").textContent = new Date().toLocaleTimeString() + " " + m + "\n" + $("log").textContent.slice(0, 2000); };
+  UitaLive.on("online", () => { $("st").textContent = "online"; $("st").className = "pill on"; log("online"); })
+    .on("offline", e => { $("st").textContent = "offline"; $("st").className = "pill off"; log("offline " + (e && e.message || "")); })
+    .on("step", s => log(`kernel ${s.step} ${s.phase}`))
+    .on("state", s => {
+      st = s; $("t").textContent = Math.round(s.time); $("rev").textContent = s.revision; $("run").textContent = s.running ? "running" : "paused";
+      const m = s.metrics, rows = [["completed", `${m.completed}/${m.total}`], ["mean delay s", m.mean_delay], ["p95 delay s", m.p95_delay], ["conflicts", m.conflicts], ["throughput", m.throughput], ["backlog", m.backlog], ["score", m.score], ["proposals", s.proposals.length], ["events", s.events.length]];
+      $("m").innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1] ?? "-"}</td></tr>`).join("");
+      draw();
+    });
+  document.querySelectorAll("button[data-a]").forEach(b => b.onclick = () => UitaLive.control(b.dataset.a).then(() => log(b.dataset.a + " ok"), e => log(e.message)));
+  $("kernel").onclick = async () => { const r = await UitaLive.proposeVerifyCommit(); log("kernel verdict=" + r.verdict + " ok=" + r.ok + " " + ["propose", "verify", "commit"].map(k => r[k] ? `${k}:${r[k].ok ? "ok" : "err " + r[k].status}/${r[k].ms}ms` : "").join(" ")); window.lastKernel = r; };
+  draw();
+  UitaLive.start({ intervalMs: 1000 });
+})();
+</script>
+</body>
+</html>

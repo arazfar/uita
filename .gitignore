@@ -26,3 +26,6 @@ pipeline/.venv/
 supabase/.temp/
 .venv-agent/
 .e2e/
+
+# SkyFlow showcase: baked TTS clips are generated on demand
+showcase/candidates/audio/

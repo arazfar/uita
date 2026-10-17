@@ -1,0 +1,69 @@
+{
+  "projection": "EPSG:3857 (Web Mercator), north-up, pixel rows linear in Mercator Y",
+  "enu": {
+    "origin_lonlat": [
+      -122.3826,
+      37.6164
+    ],
+    "origin_name": "SFO ATCT",
+    "units": "m",
+    "formula": "east = (lon-lon0)*m_per_deg_lon; north = (lat-lat0)*m_per_deg_lat (local equirectangular)",
+    "m_per_deg_lon": 88288.08474587766,
+    "m_per_deg_lat": 110989.20390546018,
+    "gltf_axes": "three.js x=east, y=up, z=-north"
+  },
+  "images": {
+    "sfo": {
+      "file": "sfo-ortho.jpg",
+      "width_px": 4000,
+      "height_px": 3673,
+      "source": "USGS NAIP via imagery.nationalmap.gov USGSNAIPImagery ImageServer",
+      "lonlat_bounds": {
+        "west": -122.405,
+        "south": 37.59999858085355,
+        "east": -122.35,
+        "north": 37.64000141838309
+      },
+      "epsg3857_extent": {
+        "xmin": -13626062.27055065,
+        "ymin": 4523072.119713667,
+        "xmax": -13619939.698557021,
+        "ymax": 4528694.171446816
+      },
+      "enu_extent_m": {
+        "west": -1977.653098308069,
+        "south": -1820.3804539839732,
+        "east": 2878.191562715804,
+        "north": 2619.5026373793626
+      },
+      "mercator_m_per_px": 1.5306429984071293,
+      "ground_m_per_px_approx": 1.2139611652559683
+    },
+    "bay": {
+      "file": "bay-ortho.jpg",
+      "width_px": 3420,
+      "height_px": 4000,
+      "source": "USGS NAIP via imagery.nationalmap.gov USGSNAIPImagery ImageServer",
+      "lonlat_bounds": {
+        "west": -122.5500071304114,
+        "south": 37.550000000000004,
+        "east": -122.14999286958862,
+        "north": 37.92000000000001
+      },
+      "epsg3857_extent": {
+        "xmin": -13642204.390469443,
+        "ymin": 4516049.501323952,
+        "xmax": -13597675.006644603,
+        "ymax": 4568130.651996281
+      },
+      "enu_extent_m": {
+        "west": -14780.054916826326,
+        "south": -7369.683139321941,
+        "east": 20536.438042255424,
+        "north": 33696.32230569883
+      },
+      "mercator_m_per_px": 13.020287668081926,
+      "ground_m_per_px_approx": 10.326459929556068
+    }
+  }
+}
