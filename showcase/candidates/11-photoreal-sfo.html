@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://tile.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SkyFlow Tower SFO</title>
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css">
@@ -191,7 +194,7 @@ if (key) {
   scene.primitives.add(tileset);
   // hold the scripted loop at T+0 until the first view has streamed in
   const hideLoading = () => { if (document.getElementById('loading').style.display === 'none') return; document.getElementById('loading').style.display = 'none'; if (extPaused) wasAnim = true; else viewer.clock.shouldAnimate = true; };
-  tileset.initialTilesLoaded.addEventListener(hideLoading); tileset.allTilesLoaded.addEventListener(hideLoading); setTimeout(hideLoading, 12000);
+  tileset.initialTilesLoaded.addEventListener(hideLoading); tileset.allTilesLoaded.addEventListener(hideLoading); setTimeout(hideLoading, 4000);
 } else {
   const err = document.getElementById('err');
   err.style.display = 'block';
