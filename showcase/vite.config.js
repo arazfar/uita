@@ -151,6 +151,12 @@ function voiceApi(env) {
       const VENDOR = {
         "/vendor/cesium/": resolve("node_modules/cesium/Build/Cesium"),
         "/vendor/three/": resolve("node_modules/three186"),
+        // Static demo assets: same compression and caching, so a second visit
+        // (or a reload on stage) never re-downloads imagery and models.
+        "/candidates/sfo-pack/": resolve("candidates/sfo-pack"),
+        "/candidates/assets/": resolve("candidates/assets"),
+        "/candidates/data/": resolve("candidates/data"),
+        "/candidates/audio/": resolve("candidates/audio"),
       };
       const TYPES = {
         ".js": "text/javascript",
@@ -164,6 +170,8 @@ function voiceApi(env) {
         ".glb": "model/gltf-binary",
         ".ktx2": "image/ktx2",
         ".xml": "application/xml",
+        ".geojson": "application/geo+json",
+        ".mp3": "audio/mpeg",
       };
       const packed = new Map();
       server.middlewares.use((req, res, next) => {
@@ -198,7 +206,13 @@ function voiceApi(env) {
           );
         }
         res.setHeader("content-type", type);
-        res.setHeader("cache-control", "public, max-age=31536000, immutable");
+        // Versioned libraries never change; demo assets might, so cache them a day.
+        res.setHeader(
+          "cache-control",
+          prefix.startsWith("/vendor/")
+            ? "public, max-age=31536000, immutable"
+            : "public, max-age=86400",
+        );
         res.setHeader("access-control-allow-origin", "*");
         if (textual && enc) {
           res.setHeader("content-encoding", enc);
