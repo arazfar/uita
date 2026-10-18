@@ -52,15 +52,25 @@ test("visual interpolation preserves entry, status and unknown altitude", () => 
     {
       clock: 10,
       aircraft: [
-        { ...a, longitude: 10 },
+        { ...a, longitude: 0.1 },
         { ...a, id: "future" },
       ],
     },
   ];
   const shown = displayFrame(frames, 5);
   assert.equal(shown.aircraft.length, 1);
-  assert.equal(shown.aircraft[0].longitude, 5);
+  assert.equal(shown.aircraft[0].longitude, 0.05);
   assert.equal(shown.clock, 0);
   frames[0].aircraft[0] = { ...a, altitude_ft: null };
   assert.equal(displayFrame(frames, 5).aircraft[0].altitude_ft, null);
+});
+
+test("heading wraps and discontinuities never interpolate", () => {
+ const a={id:"a",longitude:0,latitude:0,altitude_ft:100,status:"approach",track_deg_true:350,provenance:{segment_id:1}};
+ const frames=[{clock:0,aircraft:[a]},{clock:10,aircraft:[{...a,longitude:.1,track_deg_true:10}]}];
+ assert.equal(displayFrame(frames,5).aircraft[0].track_deg_true,0);
+ frames[1].aircraft[0].provenance={segment_id:2};
+ assert.equal(displayFrame(frames,5).aircraft[0].longitude,0);
+ frames[1].clock=100;
+ assert.equal(displayFrame(frames,50).aircraft[0].longitude,0);
 });

@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>if(new URLSearchParams(location.search).get('mode')==='connected')document.documentElement.classList.add('research-connected');</script>
+<style>.research-connected #banner,.research-connected #feedp,.research-connected #score,.research-connected .details,.research-connected #cambar,.research-connected #card{display:none!important}</style>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preload" as="script" href="/vendor/cesium/Cesium.js" />
@@ -196,6 +198,7 @@ body.details .details{display:block}
 const Cesium = window.Cesium;
 (async () => {
 const C = Cesium;
+const CONNECTED = new URLSearchParams(location.search).get('mode') === 'connected';
 const RECORDED = new URLSearchParams(location.search).get('mode') === 'recorded'; // simulation is the default
 let details = false; // declared early: labels built before the recorded-mode return read it
 const LOOP = 90;                 // seconds per scripted loop
@@ -293,7 +296,7 @@ async function setPhotoreal(on) {
       tileset.tileVisible.addEventListener(() => {
         if (tilesSeen) return;
         tilesSeen = true; applyBase();
-        if (!RECORDED) setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
+        if (!RECORDED && !CONNECTED) setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
           try {
             const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
             const [r] = await scene.sampleHeightMostDetailed([c]);
@@ -320,6 +323,12 @@ clock.startTime = T0.clone(); clock.stopTime = T1.clone(); clock.currentTime = T
 clock.clockRange = C.ClockRange.LOOP_STOP; clock.multiplier = 1; clock.shouldAnimate = true;
 const at = s => C.JulianDate.addSeconds(T0, s, new C.JulianDate());
 const tNow = () => C.JulianDate.secondsDifference(clock.currentTime, T0);
+
+if (new URLSearchParams(location.search).get('mode') === 'connected') {
+  const { mountDashboard } = await import('./research-renderer.js');
+  mountDashboard({C, viewer, altitudeOffset: () => VOFF, setPhotoreal});
+  hideLoading(); return;
+}
 
 // ---------- data ----------
 const getJSON = async p => { try { const r = await fetch(p); return r.ok ? r.json() : null; } catch (e) { return null; } };
@@ -410,11 +419,6 @@ yawFix['assets/airplane-google/model.glb'] = 0;
 
 // Historical replay owns its clock, traffic and UI. Return before creating any
 // scripted aircraft, radio, weather, scores, or shared simulation connection.
-if (new URLSearchParams(location.search).get('mode') === 'connected') {
-  const { mountDashboard } = await import('./research-renderer.js');
-  mountDashboard({C, viewer, altitudeOffset: () => VOFF, setPhotoreal});
-  hideLoading(); return;
-}
 if (RECORDED) {
   const { mountHistory } = await import('./sfo-history.js');
   mountHistory({ C, viewer, altitudeOffset: () => VOFF, ground: () => GROUND,

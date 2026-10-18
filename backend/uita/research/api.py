@@ -17,6 +17,7 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select, text
+from starlette.middleware.gzip import GZipMiddleware
 
 from . import security, service
 from .contracts import (
@@ -60,6 +61,7 @@ def create_app(database=None, secure_cookies=True):
 
     app = FastAPI(title="Uita Research", version="2.0.0", lifespan=lifespan)
     app.state.database = database
+    app.add_middleware(GZipMiddleware, minimum_size=1500)
 
     @app.middleware("http")
     async def boundary(request, call_next):
@@ -70,6 +72,7 @@ def create_app(database=None, secure_cookies=True):
         public = path in (
             "/health/live",
             "/health/ready",
+            "/health/demo",
             "/api/v2/login",
             "/login",
             "/favicon.svg",
@@ -98,10 +101,17 @@ def create_app(database=None, secure_cookies=True):
             ):
                 return JSONResponse({"detail": "Operator permission required"}, 403)
         response = await call_next(request)
+        static_content = path.startswith(
+            ("/vendor/", "/candidates/assets/", "/candidates/sfo-pack/")
+        )
         response.headers["Cache-Control"] = (
-            "no-store"
-            if not path.startswith("/assets/")
-            else "public, max-age=31536000, immutable"
+            "public, max-age=86400"
+            if static_content
+            else (
+                "no-store"
+                if not path.startswith("/assets/")
+                else "public, max-age=31536000, immutable"
+            )
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "same-origin"
@@ -148,6 +158,35 @@ def create_app(database=None, secure_cookies=True):
             return {"status": "ready"}
         except Exception:
             return JSONResponse({"status": "not_ready"}, 503)
+
+    @app.get("/health/demo")
+    def demo_ready():
+        try:
+            with database.sessions() as db:
+                if db.get(Artifact, "early-august-history-v1") is None:
+                    raise ValueError("Historical pack missing")
+                recordings = list(
+                    db.scalars(
+                        select(Artifact).where(Artifact.kind == "demo_recording")
+                    )
+                )
+                if not recordings:
+                    raise ValueError("Recording missing")
+                from .presentation import validate_recording
+
+                for row in recordings:
+                    manifest = validate_recording(row.payload)
+                    scenario = db.get(Artifact, manifest.scenario_id)
+                    if (
+                        scenario is None
+                        or scenario.checksum != manifest.scenario_checksum
+                    ):
+                        raise ValueError("Recording scenario missing")
+            return {"status": "ready", "demo": "immersive-v1"}
+        except Exception:
+            return JSONResponse(
+                {"status": "not_ready", "detail": "Demo data validation failed"}, 503
+            )
 
     @app.post("/api/v2/login")
     def login(command: Login, request: Request):
@@ -631,4 +670,14 @@ def create_app(database=None, secure_cookies=True):
         if os.getenv("UITA_SHOWCASE") != "1":
             app.add_api_route("/", index)
 
+    if os.getenv("UITA_HISTORY_LOCAL") == "1":
+        from ..history import router
+
+        # Exact routes take precedence over the optional upstream adapter.
+        app.router.routes = [
+            r
+            for r in app.router.routes
+            if getattr(r, "path", "") != "/uita/api/history/{endpoint}"
+        ]
+        app.include_router(router, prefix="/uita")
     return app

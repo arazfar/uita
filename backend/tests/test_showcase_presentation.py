@@ -45,7 +45,7 @@ def test_private_showcase_and_read_only_frames(tmp_path, monkeypatch):
             json={"username": "tester", "password": "test-password-long"},
         )
         shell = client.get("/")
-        assert "Traffic, decisions, evidence" in shell.text
+        assert "evidence-drawer" in shell.text
         assert shell.headers["x-frame-options"] == "SAMEORIGIN"
         assert (
             client.post(

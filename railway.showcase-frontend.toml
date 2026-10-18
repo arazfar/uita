@@ -1,0 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.showcase-frontend"
+[deploy]
+healthcheckPath = "/health/demo"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"

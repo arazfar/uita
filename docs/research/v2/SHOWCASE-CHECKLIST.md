@@ -1,36 +1,33 @@
-# Showcase release blockers
+# Immersive demo release checklist
 
-Completed locally:
-- Backend regression suite: 279 passed. Showcase suite: 16 passed.
-- Rebuilt early-August historical replay passes the source audit (8,439 operations,
-  4,128 paths); no new source collection.
-- Login-free public-demo shell (private mode retained), shared dashboard/tower frame, historical context,
-  immutable Nemotron recording, closure evidence, matched comparison and export.
-- Browser model-failure/budget fixtures, unsafe proposal rejection, run reload, offline/reconnect, scenario
-  failure at 151 seconds, synchronized recorded comparison, expired session and
-  renderer failure with accessible aircraft table.
-- Desktop and 390px layout inspected; no page-width overflow. Legacy score and
-  radio loops are excluded from connected views.
-- Actual local worker SIGKILL/recovery passed: fencing token 1 → 2, committed
-  clock continued after lease expiry; the browser surfaced the stall and recovery.
-- Both frontend builds and explicit packaged-asset verification pass.
-- One predefined paid recording retained: $0.000797 known / $0.001867 reserved.
-  No model-issued flight clearance and no improvement over the baseline.
+Verified locally:
+- 282 backend tests; 17 showcase tests. Fresh-database pack import/checksums,
+  geographic interpolation boundaries, public/private access and atomic budgets.
+- Both frontend builds and explicit shipped-asset checks pass.
+- PostgreSQL additive migration and demo-pack installation completed. All source
+  collections preserved. Backup restored all 209 legacy records into an isolated DB.
+- Guided scripted episode: 20 presented minutes, 4 completions, 28 backlog,
+  no modeled violations/rejected proposals. Authentic episodes retained separately.
+- Browser checks cover baseline/map/table alignment, run replacement, closure,
+  rejected proposals, model/budget fixtures, failed scenario, exports and reconnect.
+- Prior worker SIGKILL/lease takeover check passed; hosted takeover remains separate.
 
-- Public demo browser acceptance passes without cookies, including reload, reconnect,
-  closure, comparison, export, fault fixtures and 390px layout. No paid calls used.
+Current gates:
+- Finish final browser rerun after camera/reconnect fixes.
+- Build matched Railway frontend/server/worker images and verify the public domain.
+- Hosted SSE, worker recovery and production demo smoke acceptance.
 
-Remaining gates:
-- **Next blocker: Docker image build and isolated Railway staging acceptance.**
-  Docker daemon is unavailable; staging privileges were previously unavailable.
-  Production service configuration has not been changed.
-- Hosted PostgreSQL restoration rehearsal, worker takeover and HTTPS/session/SSE
-  checks must pass before cutover. Existing runtime recovery/concurrency tests
-  remain in the backend suite.
-- Late-August archive and Google photoreal tiles need their optional upstream
-  configuration; local acceptance used the bundled imagery fallback.
+Performance sample: local macOS, headless Chromium 155, 10 reported hardware threads,
+1280×720, five-second animation-frame samples: 60.2 FPS normal, 55.3 FPS with an
+explicit synthetic 200-target rendering fixture; p95 frame interval 16.8 ms.
+390×844 viewport emulation measured 60.1 FPS. These are short browser scheduling
+samples, not GPU benchmarks or physical-mobile results. Extended memory, mobile
+hardware and four concurrent 200-aircraft simulations are not certified here.
 
-Product limitation: the recording demonstrates honest model failure handling,
-not successful Nemotron flight control or a measured improvement. More favorable
-outcomes must never be manufactured or selected from undisclosed attempts.
-See [startup, demo and deferred work](SHOWCASE.md).
+Limits: historical hour has 14 tracks/438 points, only 18 measured altitude samples.
+Unknown altitude stays unknown. New Nemotron episode 2 had 10 rejected proposals,
+3 completions versus baseline 4; no superiority claim. Guided mode is visibly
+scripted, never labeled authentic model output. Unsupported ATC capabilities remain
+unresolved. New campaign known cost $0.0054961; reservations $0.0980682.
+
+See [startup, demo script, outcomes and rollback](SHOWCASE.md).

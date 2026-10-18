@@ -4,7 +4,7 @@
     <base href="/candidates/" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>UITA · Research control</title>
+    <title>UITA · San Francisco tower</title>
     <link rel="stylesheet" href="research-shell.css" />
   </head>
   <body>
@@ -15,8 +15,12 @@
         ><button data-mode="simulation" aria-pressed="true">Simulation</button
         ><button data-mode="compare">Compare</button>
       </nav>
-      <span class="research">Research simulation · not operational ATC</span
-      ><a href="/workbench">Workbench</a><span id="access-mode"></span><button id="logout">Sign out</button>
+        <div class="view-controls" role="group" aria-label="Camera">
+          <button data-camera="dashboard" aria-pressed="true">Dashboard</button
+          ><button data-camera="tower">Tower</button>
+        </div>
+      <span class="research">San Francisco · Research simulation</span
+      ><button id="drawer-toggle" aria-expanded="false" aria-controls="evidence-drawer">Traffic & evidence</button><a href="/workbench">Workbench</a><span id="access-mode"></span><button id="logout">Sign out</button>
     </header>
     <main>
       <section class="view" aria-label="Traffic visualization">
@@ -25,17 +29,17 @@
           title="SFO dashboard"
           src="11-photoreal-sfo.html?mode=connected"
         ></iframe>
-        <div class="view-controls" role="group" aria-label="Camera">
-          <button data-camera="dashboard" aria-pressed="true">Dashboard</button
-          ><button data-camera="tower">Tower</button>
-        </div>
+
+        <div id="scene-caption"><span id="scene-source">SFO · loading recording</span><span id="scene-state"></span></div>
         <div id="render-status" role="status">
           Loading renderer · traffic and evidence remain available below
         </div>
       </section>
-      <aside>
-        <h1>Traffic, decisions, evidence</h1>
+      <aside id="evidence-drawer" inert>
+        <button id="drawer-close" aria-label="Close evidence">Close</button>
+        <h1>Traffic & decisions</h1>
         <p id="source">Loading saved Nemotron recordings…</p>
+        <label id="history-picker">Historical hour<select id="history-datasets"></select></label>
         <label>Recording<select id="recordings"></select></label>
         <div class="row">
           <button id="recorded">Load recording</button
@@ -104,6 +108,7 @@ Select an aircraft on the map or in this table.</pre
             ><input id="speech" type="checkbox" /> Speak new clearance
             events</label
           >
+          <p id="evidence-source">Selected run decision evidence</p>
           <div id="events"><p>No events at this playback time.</p></div>
         </details>
         <details>

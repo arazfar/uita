@@ -17,7 +17,7 @@ from .contracts import (
     RecordingWindow,
 )
 from .data import digest, save_artifact
-from .database import Artifact, Event, Reservation
+from .database import Artifact, Checkpoint, Event, Reservation
 from .dynamics import public_state
 from .geometry import geographic
 
@@ -64,12 +64,10 @@ def validate_recording(payload):
     for key in ("frames", "events", "comparison", "responses", "baseline_frames"):
         if digest(payload[key]) != manifest.checksums[key]:
             raise ValueError("Recording checksum mismatch: " + key)
-    if (
-        not payload["frames"]
-        or not payload["responses"]
-        or manifest.model_responses < 1
-    ):
-        raise ValueError("Recording requires authentic model responses")
+    if not payload["frames"]:
+        raise ValueError("Recording requires motion frames")
+    if manifest.provenance == "fixture" and manifest.model_responses:
+        raise ValueError("Fixture cannot claim model responses")
     observed_responses = [e for e in payload["events"] if e["kind"] == "model_response"]
     if len(observed_responses) != manifest.model_responses:
         raise ValueError("Model response count does not match journal")
@@ -110,6 +108,125 @@ def install_recording(db, payload):
 
 
 def routes(app, database):
+    validated = {}
+
+    @app.get("/api/v2/history/catalog")
+    def history_catalog():
+        with database.sessions() as db:
+            return [
+                {k: v for k, v in a.payload.items() if k != "tracks"}
+                for a in db.scalars(
+                    select(Artifact).where(Artifact.kind == "history_window")
+                )
+            ]
+
+    @app.get("/api/v2/history/{dataset_id}/window", response_model=RecordingWindow)
+    def history_window(
+        dataset_id: str, clock: float, seconds: int = Query(120, ge=1, le=120)
+    ):
+        from bisect import bisect_right
+
+        with database.sessions() as db:
+            row = db.get(Artifact, dataset_id)
+            if row is None or row.kind != "history_window":
+                raise HTTPException(404, "History dataset not found")
+            data = row.payload
+        if not math.isfinite(clock) or not data["start"] <= clock <= data["end"]:
+            raise HTTPException(422, "Clock outside historical coverage")
+        frames = []
+        tracks = [(t, [p["t"] for p in t["points"]]) for t in data["tracks"]]
+        for tick in range(int(clock), min(int(clock) + seconds + 2, data["end"] + 1)):
+            aircraft = []
+            for t, times in tracks:
+                i = bisect_right(times, tick) - 1
+                if i < 0 or tick - times[i] > 60:
+                    continue
+                p = t["points"][i]
+                position = dict(p)
+                interpolated = False
+                if i + 1 < len(times):
+                    q = t["points"][i + 1]
+                    gap = q["t"] - p["t"]
+                    if (
+                        0 < gap <= 60
+                        and p.get("altitude_ft") is not None
+                        and q.get("altitude_ft") is not None
+                        and p.get("segment_id") == q.get("segment_id")
+                        and math.hypot(q["lat"] - p["lat"], q["lon"] - p["lon"]) <= 0.3
+                    ):
+                        fraction = (tick - p["t"]) / gap
+                        for key in ("lat", "lon", "altitude_ft"):
+                            position[key] = p[key] + (q[key] - p[key]) * fraction
+                        if (
+                            p.get("track_deg_true") is not None
+                            and q.get("track_deg_true") is not None
+                        ):
+                            position["track_deg_true"] = (
+                                p["track_deg_true"]
+                                + (
+                                    (q["track_deg_true"] - p["track_deg_true"] + 180)
+                                    % 360
+                                    - 180
+                                )
+                                * fraction
+                            ) % 360
+                        interpolated = fraction > 0
+                aircraft.append(
+                    PresentationAircraft(
+                        id=t["id"],
+                        callsign=t.get("callsign") or t["id"],
+                        longitude=position["lon"],
+                        latitude=position["lat"],
+                        altitude_ft=position.get("altitude_ft"),
+                        altitude_reference=p.get("altitude_reference", "unknown"),
+                        track_deg_true=position.get("track_deg_true"),
+                        status="observed",
+                        source_time=p["t"],
+                        age_seconds=tick - p["t"],
+                        provenance={
+                            "kind": "observed",
+                            "segment_id": p.get("segment_id"),
+                            "presentation_interpolation": interpolated,
+                        },
+                    )
+                )
+            frames.append(
+                PresentationFrame(
+                    source_id=dataset_id,
+                    mode="historical",
+                    clock=tick,
+                    revision=0,
+                    status="recorded",
+                    event_cursor=0,
+                    aircraft=aircraft,
+                    metrics={},
+                    closed_runways=[],
+                    controller="Historical observations",
+                    simulator_version="observed",
+                    rule_version="not-applicable",
+                    provenance=data["provenance"],
+                )
+            )
+        return {"frames": frames, "baseline_frames": [], "events": []}
+
+    @app.get("/api/v2/runs/{run_id}/motion", response_model=RecordingWindow)
+    def motion(run_id: str, request: Request):
+        with database.sessions() as db:
+            service.get_run(db, run_id, request.state.user["team"])
+            rows = list(
+                db.scalars(
+                    select(Checkpoint)
+                    .where(Checkpoint.run_id == run_id)
+                    .order_by(Checkpoint.revision.desc())
+                    .limit(8)
+                )
+            )
+            frames = [
+                frame(c.state, run_id, c.revision, c.state["event_sequence"])
+                for c in reversed(rows)
+            ]
+            return {"frames": frames, "baseline_frames": [], "events": []}
+
     @app.get("/api/v2/runs/{run_id}/presentation", response_model=PresentationFrame)
     def live_frame(run_id: str, request: Request):
         with database.sessions() as db:
@@ -144,19 +261,30 @@ def routes(app, database):
     def recordings():
         with database.sessions() as db:
             return [
-                validate_recording(a.payload)
+                RecordingManifest.model_validate(recording(db, a.id)["manifest"])
                 for a in db.scalars(
                     select(Artifact).where(Artifact.kind == "demo_recording")
                 )
             ]
 
     def recording(db, recording_id):
-        row = db.get(Artifact, recording_id)
-        if row is None or row.kind != "demo_recording":
+        checksum = db.scalar(
+            select(Artifact.checksum).where(
+                Artifact.id == recording_id, Artifact.kind == "demo_recording"
+            )
+        )
+        if checksum is None:
             raise LookupError("Recording not found")
-        if digest(row.payload) != row.checksum:
+        key = (recording_id, checksum)
+        if key in validated:
+            return validated[key]
+        row = db.get(Artifact, recording_id)
+        if digest(row.payload) != checksum:
             raise ValueError("Recording integrity check failed")
         validate_recording(row.payload)
+        if len(validated) >= 4:
+            validated.pop(next(iter(validated)))
+        validated[key] = row.payload
         return row.payload
 
     @app.get("/api/v2/recordings/{recording_id}/window", response_model=RecordingWindow)

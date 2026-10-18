@@ -28,7 +28,8 @@ log = logging.getLogger(__name__)
 
 
 class Worker:
-    def __init__(self, database):
+    def __init__(self, database, capture_campaign=None):
+        self.capture_campaign = capture_campaign
         self.database = database
         self.id = str(uuid.uuid4())
         self.stopped = False
@@ -83,6 +84,10 @@ class Worker:
             request_model = (
                 state["controller"] == "crusoe"
                 and state["status"] == "running"
+                and any(
+                    a["status"] in ("approach", "runway", "holding")
+                    for a in state["aircraft"]
+                )
                 and state["clock"] - state["last_model_clock"] >= 30
                 and run.id not in self.pending
                 and len(self.pending) < 4
@@ -94,7 +99,7 @@ class Worker:
             run_id, team, fence, revision = run.id, run.team, run.fence, run.revision
         if request_model:
             future = self.inference_pool.submit(
-                generate, self.database, run_id, team, state
+                generate, self.database, run_id, team, state, self.capture_campaign
             )
             self.pending[run_id] = (
                 future,

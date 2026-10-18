@@ -75,19 +75,35 @@ export function displayFrame(frames, clock) {
   const before = atClock(frames, clock);
   const after = frames.find((f) => f.clock > clock);
   if (!before || !after || after.clock === before.clock) return before;
+  if (after.clock - before.clock > 60) return before;
   const fraction = (clock - before.clock) / (after.clock - before.clock);
   const next = new Map(after.aircraft.map((a) => [a.id, a]));
   return {
     ...before,
     aircraft: before.aircraft.map((a) => {
       const b = next.get(a.id);
-      if (!b || b.status !== a.status || !plottable(a) || !plottable(b))
+      if (
+        !b ||
+        b.status !== a.status ||
+        !plottable(a) ||
+        !plottable(b) ||
+        a.provenance?.segment_id !== b.provenance?.segment_id ||
+        Math.hypot(b.latitude - a.latitude, b.longitude - a.longitude) > 0.3
+      )
         return a;
       return {
         ...a,
         longitude: a.longitude + (b.longitude - a.longitude) * fraction,
         latitude: a.latitude + (b.latitude - a.latitude) * fraction,
         altitude_ft: a.altitude_ft + (b.altitude_ft - a.altitude_ft) * fraction,
+        track_deg_true:
+          Number.isFinite(a.track_deg_true) && Number.isFinite(b.track_deg_true)
+            ? (a.track_deg_true +
+                (((b.track_deg_true - a.track_deg_true + 540) % 360) - 180) *
+                  fraction +
+                360) %
+              360
+            : a.track_deg_true,
         provenance: { ...a.provenance, presentation_interpolation: true },
       };
     }),

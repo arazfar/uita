@@ -1,13 +1,18 @@
-# Connected showcase demo
+# Immersive research showcase
 
-The existing SFO dashboard and tower cab now share the research backend's runs,
-coordinates, selected aircraft, event journal and playback position. The default
-is a read-only, authentic Nemotron recording. Fixture runs are explicitly labeled.
-The legacy hosted Vite entry remains unchanged; staging uses FastAPI directly.
+Dashboard and tower share the same geographic aircraft states, selected aircraft,
+clock and evidence. The full-screen scene keeps its original imagery/models;
+Traffic & evidence opens a drawer (a bottom sheet on narrow screens). Camera
+switches retain loaded renderers. Animation uses committed trajectory buffers;
+interpolation never controls simulation or crosses missing altitude/segment gaps.
 
-## Reproducible local startup
+The default is **Scripted demo**, a clearly labeled deterministic simulation.
+It is not Nemotron output. Authentic Nemotron attempts, including failures, remain
+selectable in the recording catalog. Playback never makes inference calls.
 
-From the repository root (Python 3.11, Node 22.12+):
+## Reproducible startup without source data or provider access
+
+Python 3.11 and Node 22.12+; from the repository root:
 
 ```sh
 python3.11 -m venv .venv-demo
@@ -19,130 +24,130 @@ VITE_RESEARCH_V2=true npm --prefix frontend run build
 python scripts/verify_showcase_package.py
 export PYTHONPATH="$PWD/backend"
 export DATABASE_URL="sqlite:///$PWD/uita-showcase.db"
-export UITA_SHOWCASE=1
-export UITA_ACCESS_MODE=public_demo
+export UITA_SHOWCASE=1 UITA_ACCESS_MODE=public_demo
 alembic upgrade head
 python -m uita.research.cli bootstrap
-python scripts/run_research_local.py
+uvicorn uita.research.api:create_app --factory --host 127.0.0.1 --port 8001
 ```
 
-Open http://127.0.0.1:8012/. In another terminal, activate the environment,
-set the same `PYTHONPATH` and `DATABASE_URL`, then run:
+In another terminal, use the same Python environment and database settings:
 
 ```sh
 python -m uita.research.worker
 ```
 
-No provider key is needed for the recording, fixture runs or comparison.
-For live inference, set `CRUSOE_API_KEY` on the worker service, not in browser
-configuration.
-The optional server-side `GOOGLE_MAPS_API_KEY` supplies photoreal tiles; restrict
-its browser use by HTTP referrer. The local SFO imagery/building pack remains the
-fallback. Set `UITA_HISTORY_SERVER_URL` to the existing history API's base URL to
-browse the separate late-August archive. Its allowlisted read-only adapter never
-forwards application credentials. Missing source service is an explicit error.
-
-## Presentation script
-
-1. Open the demo. The saved August 6 recording loads automatically, initially paused.
-2. Select Historical to inspect available observed positions, missing heights and
-   source ages. The metered variant alters spawn timing; historical paths provide
-   context and are not a matched human-controller baseline.
-3. Select Simulation and Play. At +30 seconds inspect `model response`; at +60
-   seconds inspect `controller fallback`; at +90 seconds inspect the closure and
-   its verifier evidence. Aircraft motion after fallback is deterministic.
-4. Switch Dashboard/Tower. Clock, run and aircraft selection remain shared. Use
-   the aircraft table when imagery, WebGL or altitude coverage is unavailable.
-5. Select Compare. Switch the rendered controller at the same playback position;
-   inspect final completion, backlog and delay together. Export evidence includes
-   the response records, checksums, full event journal and comparison.
-6. For an interactive demonstration, expand Run a new simulation. Choose the
-   authored fixture, create a run, Play, Pause, Close 28R, then freeze and compare.
-   New runs are isolated; reloading their `?run=` URL reconnects to the same run.
-
-Recorded playback is immutable. Live run reads do not advance time; only the
-worker does. Completed-only delay must be considered alongside unfinished demand.
-Comparison uses the executed horizon and the same timed disruption tape. The
-published August 7 admission benchmark is a separate expandable report.
-
-## Actual Nemotron result
-
-The single predefined capture used scenario `2026-08-06-1500-research-v2-metered`,
-seed 42, 28R closure at +90 seconds and a 1,200-second horizon. Nemotron returned
-one valid no-aircraft/no-clearance proposal, followed by an invalid response.
-The worker visibly switched to the deterministic baseline. No flight-changing
-Nemotron clearance was executed in this recording.
-
-Both candidate-plus-fallback and baseline completed **3** arrivals, with **29**
-unfinished, **0** modeled violations and **77.01 seconds** completed-only mean
-and P95 delay. There is **no demonstrated efficiency improvement**. Final
-candidate state is paused at the presentation horizon, not scenario completion.
-The baseline's `running` result likewise means unfinished at that fixed horizon.
-
-This capture incurred **$0.000797 known cost**, reserving **$0.001867**. Prior
-research probes remain in the same ledger. Reservations are never refunded after
-ambiguous failures. Default playback makes no calls. Optional live Nemotron runs
-require a server-side `CRUSOE_API_KEY` and enforce $0.50/run, $5/team/day and the
-existing $5 validation ceiling. No automatic paid retry or alternate provider.
-
-`record_showcase.py` captures this single predetermined episode through the real
-worker and publishes an integrity-checked recording. Its stable idempotency key
-prevents rerunning the same capture. Preserve the original ledger and outcomes;
-do not reset it or choose successful attempts for presentation.
-
-## Isolated staging
-
-Use `Dockerfile.showcase`, `railway.showcase.toml` for the API, and
-`railway.showcase-worker.toml` for its worker. Both share a separate staging
-PostgreSQL database. The API pre-deploy command runs Alembic and bootstrap;
-startup never creates tables. Only the API needs a domain. Configure
-`UITA_ALLOWED_ORIGINS` to that exact HTTPS origin. Create team accounts explicitly.
-Keep the live key unset for initial staging acceptance.
-
-The image explicitly packages candidate pages, models, imagery, Three.js and
-Cesium rather than relying on the unrelated showcase Vite build output.
-Authentication guards showcase pages, vendor assets, data and event streams.
-Same-origin framing is permitted; other origins cannot embed the application.
-The diagnostic research workbench remains at `/workbench`.
-
-Do not repoint existing production services. The existing Vite server preserves
-`app-legacy.html` until a deliberate cutover. Staging deployment, image build,
-backup restoration and hosted worker restart still require their release gates.
-Docker is unavailable in the current environment; no hosted deployment is claimed.
-
-## Deferred
-
-No new datasets, procedure coverage, aircraft models, policy evolution,
-fine-tuning, microphone control or human-controller superiority claims. Live
-comparison currently exports final metrics/evidence; synchronized controller
-animation is provided by immutable recordings. All unsupported ATC capabilities
-retain unresolved verdicts. Photoreal provider coverage and a new model producing
-useful commands are not substituted with fabricated visuals or decisions.
-
-## Repeat browser acceptance
-
-With the API and worker running, open and sign in using Playwright CLI, then run:
+Open http://127.0.0.1:8001/. To exercise the production frontend gateway:
 
 ```sh
-npx --yes --package @playwright/cli playwright-cli open http://127.0.0.1:8012/ --headed
-# Public demo needs no login; sign in only when using private mode.
-npx --yes --package @playwright/cli playwright-cli run-code --filename showcase/scripts/browser-acceptance.js
+UITA_ACCESS_MODE=public_demo UITA_SERVER_URL=http://127.0.0.1:8001 \
+  PORT=5190 node showcase/server.mjs
 ```
 
-The script creates free fixture runs, tests the recorded comparison and faults,
-and ends by clearing its own browser session to verify expiry. It makes no paid
-calls. Worker SIGKILL/takeover and Docker/hosted checks are separate gates in the
-[release checklist](SHOWCASE-CHECKLIST.md).
+The source database and provider key are unnecessary for packaged playback,
+fixture runs and comparison. `bootstrap` verifies checksums and installs immutable
+artifacts idempotently. It does not replace original source collections.
+`GOOGLE_MAPS_API_KEY` on the API enables browser photoreal tiles; retain referrer
+restrictions. Bundled imagery is the fallback. Optional `UITA_HISTORY_LOCAL=1`
+mounts the existing read-only late-August router against PostgreSQL. It is separate
+from the packaged early-August demo and is not needed for startup.
 
-## Access mode
+## Demo script
 
-The showcase image defaults to `UITA_ACCESS_MODE=public_demo`: no account or cookie
-is needed. All visitors share the `research` team's operator controls and runs,
-including explicitly started paid live runs. Existing per-run, daily-team and
-aggregate budget reservations still apply. Recorded playback remains the default.
-Other teams are inaccessible. No provider secret is exposed to the browser.
+1. Open the guided simulation at its occupied +300-second opening. Play at 30×,
+   select aircraft, or use Airport / Overview / Follow selected. Traffic & evidence
+   contains the keyboard-accessible table and full event journal.
+2. At +90 seconds from the opening, 28R closes. Inspect runway closure, verification,
+   pilot responses and executed outcomes. Switch Dashboard/Tower without changing
+   the source or clock. Missing altitude appears as labeled ground-projected map
+   markers, never as a fabricated aircraft height; the tower omits those targets.
+3. Compare the synchronized baseline, then export its complete evidence. The guided
+   controller is the baseline: it makes no improvement claim.
+4. Select Historical for real early-August observations. Coverage and source ages
+   remain visible. Historical traffic is context, not a measured human counterfactual.
+5. In the drawer, select Nemotron episode 2 for authentic model proposals,
+   explanations, rejected actions and fallback. Episode 1 retains a provider timeout.
+6. For interactive controls, create a free fixture run, play/pause, close 28R and
+   freeze a comparison. A live Nemotron run requires explicit selection/action and
+   a server-side worker key. Refreshing a live run URL reconnects to the same run.
 
-Set `UITA_ACCESS_MODE=private` to restore login and session expiration. In that mode,
-create an account with `python -m uita.research.cli user demo --team research`.
-Non-showcase deployments default to private mode. Production configuration is
-unchanged; hosted staging and container acceptance remain separate release gates.
+## Packaged data and actual outcomes
+
+The best available frozen early-August development hour contains **14 tracks,
+438 observations and 18 measured-altitude samples**. It begins at Unix 1785956400;
+selection maximizes measured-altitude samples with an earliest-hour tie break.
+This sparse altitude coverage is a real limitation. Unknown heights stay unknown.
+Thirteen scenario replay artifacts are included; no late-August observations were
+mixed into early-August scenarios.
+
+The metered development scenario uses seed 42, 300 seconds of deterministic
+pre-roll, closure at +390 seconds and a 1,500-second total horizon (20 presented
+minutes). Up to seven aircraft are active; the opening has two. Only seven arrivals
+are admitted during the horizon; unfinished demand is retained in backlog.
+
+| Recording | Authentic model responses | Completions | Backlog | Modeled violations | Rejected proposals |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Guided scripted demo | 0 | 4 | 28 | 0 | 0 |
+| Nemotron episode 1, provider timeout + fallback | 0 | 4 | 28 | 0 | 0 |
+| Nemotron episode 2 | 40 | 3 | 29 | 0 | 10 |
+| Matched deterministic baseline | 0 | 4 | 28 | 0 | 0 |
+
+Episode 2 includes 19 proposed clearances, two go-arounds and one diversion.
+It did **not** outperform the deterministic planner. Both attempted captures are
+retained; episode 3 was not run. The older failure recording and published admission
+benchmark remain separate. Passing means satisfying implemented research checks,
+not operational safety certification or support for every FAA capability.
+
+New capture campaign: **$0.0054961 known cost**, **$0.0980682 conservatively reserved**,
+including a **$0.002347 uncertain timeout reservation**. No reservation was refunded.
+The administrative capture process alone can use the $10 campaign/$2 episode caps.
+Public live runs retain $0.50/run, $5/team/day and the existing aggregate allowance.
+The old recording separately incurred $0.000797 known/$0.001867 reserved.
+
+## Deployment and rollback
+
+Keep the existing Railway frontend and server identities. All services build from
+the same repository-root commit:
+
+| Service | Config | Image / command |
+| --- | --- | --- |
+| frontend | `railway.showcase-frontend.toml` | `Dockerfile.showcase-frontend`; Node static gateway |
+| server | `railway.showcase.toml` | `Dockerfile.showcase`; FastAPI |
+| research-worker | `railway.showcase-worker.toml` | same backend image; durable worker |
+
+Frontend: `UITA_SERVER_URL=http://server.railway.internal:8001`,
+`UITA_ACCESS_MODE=public_demo`. Server: shared PostgreSQL `DATABASE_URL`,
+`UITA_SHOWCASE=1`, `UITA_ACCESS_MODE=public_demo`, `UITA_HISTORY_LOCAL=1`, valid HTTPS
+`UITA_ALLOWED_ORIGINS`. Worker: same PostgreSQL database; optional Crusoe key.
+Server pre-deploy runs `alembic upgrade head` and `bootstrap`. `/health/demo` fails
+if required data, recordings or scenario checksums are absent. Deploy API and worker
+before frontend. The gateway proxies API/SSE/config/history to the API on the same
+public origin; mutable API responses are uncached. Assets use ETags and compression.
+
+Before cutover save service settings/deployment IDs and a PostgreSQL public-schema
+backup. This release used `pg_dump` 18.6; restoration of all 209 legacy records was
+rehearsed in an isolated PostgreSQL instance. Source schemas were untouched.
+Rollback restores the previous frontend/server deployments and their saved build,
+root and start settings, then stops the new worker. Additive research tables may
+remain. Never restore over a live database; restore into an isolated database,
+reconcile subsequent writes, then repoint services if database recovery is needed.
+The workstation's backup and service snapshot are under ignored `output/` and
+must be retained securely by the operator.
+
+Public visitors share the `research` team operator workspace. Other teams and
+administrator actions remain inaccessible. `UITA_ACCESS_MODE=private` restores
+sessions and login; only private mode requires `python -m uita.research.cli user
+ demo --team research`. Secrets remain server-side. The diagnostic UI is `/workbench`.
+
+## Validation and deferred work
+
+Run backend pytest, showcase tests, both frontend builds, packaging checks, then
+`showcase/scripts/browser-acceptance.js` with Playwright CLI against the API or
+production gateway. That suite uses fixtures only and covers closure, comparison,
+exports, rejected proposals, failed scenarios, reconnect and renderer failure.
+See [current release evidence and blockers](SHOWCASE-CHECKLIST.md).
+
+Deferred: new datasets, broader procedures/aircraft physics, policy evolution,
+fine-tuning, microphone control, automatic promotion and operational ATC use.
+Live comparisons export metrics/evidence; synchronized baseline animation uses
+immutable recordings. No guaranteed model success or superiority over controllers
+is claimed. Unsupported capabilities remain unresolved.

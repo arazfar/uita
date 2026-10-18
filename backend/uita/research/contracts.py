@@ -226,6 +226,10 @@ class RecordingManifest(Contract):
     event_tape: list[dict]
     checksums: dict[str, str]
     limitations: list[str]
+    recommended_start: float | None = None
+    sample_seconds: float = 5
+    provenance: str = "model_recording"
+    coverage: dict = Field(default_factory=dict)
 
 
 class RecordingWindow(Contract):

@@ -34,6 +34,23 @@ def main():
                 if digest(artifact["payload"]) != artifact["checksum"]:
                     raise ValueError("Bundled demo checksum mismatch")
                 save_artifact(db, artifact["id"], artifact["kind"], artifact["payload"])
+            pack_path = Path(__file__).parent / "assets/showcase_data.json.gz"
+            if pack_path.exists():
+                pack = json.loads(gzip.decompress(pack_path.read_bytes()))
+                if digest(pack["artifacts"]) != pack["checksum"]:
+                    raise ValueError("Demo pack checksum mismatch")
+                for a in pack["artifacts"]:
+                    if digest(a["payload"]) != a["checksum"]:
+                        raise ValueError("Demo artifact checksum mismatch")
+                    save_artifact(db, a["id"], a["kind"], a["payload"])
+            for recording_path in sorted(
+                (Path(__file__).parent / "assets/recordings").glob("*.json.gz")
+            ):
+                from .presentation import install_recording
+
+                install_recording(
+                    db, json.loads(gzip.decompress(recording_path.read_bytes()))
+                )
             recording = Path(__file__).parent / "assets/showcase_recording.json.gz"
             if recording.exists():
                 from .presentation import install_recording
