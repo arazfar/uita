@@ -262,9 +262,9 @@ export function mountLanding(ctx) {
     // min_slot_s carries a margin for the agent's own latency (sim time keeps running while it thinks)
     const margin = Math.round(Math.min(120, 8 * ctx.speed()));
     const up = (v, n) => String(v || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, n) || 'UNK';
-    const queue = live.map(a => ({ id: a.qid, callsign: up(a.cs, 12), type: up(a.type, 6).replace(/-/g, ''), wake: a.wake, flag: a.flag === 'MEDICAL' ? 'MED' : a.flag === 'LOW_FUEL' ? 'FUEL' : null,
-      frozen: !!frozen(a), ...(a.slot ? { runway: a.slot.rwy, slot_s: Math.round(a.slot.t - T) } : {}),
-      eta_s: Math.round(a.eta - T), min_slot_s: Math.round(minSlot(a, T) - T) + margin, suggested_fix: a.holdFix || nearestFix(posOf(a, T).ll),
+    const queue = live.map(a => ({ id: a.qid, callsign: up(a.cs, 12), type: up(a.type, 6).replace(/-/g, '') || 'UNK', wake: a.wake === 'heavy' ? 'H' : 'M', flag: a.flag === 'MEDICAL' ? 'MED' : a.flag === 'LOW_FUEL' ? 'FUEL' : null,
+      frozen: !!frozen(a), ...(a.slot ? { runway: a.slot.rwy, slot_s: Math.max(-600, Math.min(7200, Math.round(a.slot.t - T))) } : {}),
+      eta_s: Math.max(-7200, Math.min(7200, Math.round(a.eta - T))), min_slot_s: Math.max(-600, Math.min(7200, Math.round(minSlot(a, T) - T) + margin)), suggested_fix: a.holdFix || nearestFix(posOf(a, T).ll),
       state: frozen(a) ? 'final' : a.slot ? 'cleared' : a.leg.type === 'hold' ? 'holding' : 'inbound' }));
     // the kernel's legal free slots, so the agent picks from times that will pass (no veto storms)
     const free_slots = {};
@@ -274,7 +274,7 @@ export function mountLanding(ctx) {
       for (; out.length < 10 && t < T + 3600; t += 5) if (freeAt(rwy, t)) { out.push(Math.round(t - T)); t += 85; }
       free_slots[rwy] = out;
     }
-    const runways = ['28L', '28R'].map(id => ({ id, open: !(S.closure && S.closure.rwy === id), ...(S.closure && S.closure.rwy === id ? { closed_for_s: Math.round(S.closure.t1 - T) } : {}) }));
+    const runways = Object.fromEntries(['28L', '28R'].map(id => [id, { open: !(S.closure && S.closure.rwy === id), ...(S.closure && S.closure.rwy === id ? { until: Math.max(0, Math.min(7200, Math.round(S.closure.t1 - T))) } : {}) }]));
     S.inflight = true; S.inflightN = queue.filter(q => !q.frozen).length; S.agentInfo = 'agent thinking…'; render(T);
     let res;
     try { const r = await fetch('/api/sequence', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ queue, runways, free_slots, now: Math.round(T) }) }); res = await r.json(); if (!r.ok) throw new Error(res.error || r.status); }

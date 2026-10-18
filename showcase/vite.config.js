@@ -167,32 +167,46 @@ async function readCapped(req, max) {
   return Buffer.concat(chunks).toString("utf8");
 }
 function sanitizeSequence(body) {
-  const ID = /^[A-Z0-9-]{1,12}$/, FIXSET = ["MENLO", "DUMBA", "ARCHI", "BDEGA"], RWY = ["28L", "28R"];
-  if (!body || !Array.isArray(body.queue) || body.queue.length > 16 || !Array.isArray(body.runways) || num(body.now) == null) return null;
+  const ID = /^[A-Z0-9-]{1,12}$/, TYPE = /^[A-Z0-9]{1,6}$/, FIXSET = ["MENLO", "DUMBA", "ARCHI", "BDEGA"], RWY = ["28L", "28R"];
+  const STATES = ["inbound", "holding", "cleared", "final"], WAKES = { L: "light", M: "medium", H: "heavy", J: "super" };
+  const inRange = (v, lo, hi) => typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
+  if (!body || typeof body !== "object" || !inRange(body.now, 0, 1e10)) return null;
+  if (!Array.isArray(body.queue) || body.queue.length > 16) return null;
   const queue = [];
   for (const q of body.queue) {
-    if (!q || !ID.test(q.id) || !ID.test(q.callsign) || typeof q.type !== "string" || !/^[A-Z0-9]{1,6}$/.test(q.type)) return null;
-    for (const k of ["eta_s", "min_slot_s"]) if (num(q[k]) == null) return null;
-    if (q.slot_s != null && num(q.slot_s) == null) return null;
-    if (![null, undefined, "MED", "FUEL"].includes(q.flag)) return null;
-    queue.push({ id: q.id, callsign: q.callsign, type: q.type, wake: q.wake === "heavy" ? "heavy" : "medium", flag: q.flag || null,
-      frozen: q.frozen === true, state: ["inbound", "holding", "cleared", "final"].includes(q.state) ? q.state : "inbound",
-      eta_s: num(q.eta_s), min_slot_s: num(q.min_slot_s), suggested_fix: FIXSET.includes(q.suggested_fix) ? q.suggested_fix : "MENLO",
-      ...(q.slot_s != null && RWY.includes(q.runway) ? { runway: q.runway, slot_s: num(q.slot_s) } : {}) });
+    if (!q || typeof q !== "object" || !ID.test(q.id) || !ID.test(q.callsign) || typeof q.type !== "string" || !TYPE.test(q.type)) return null;
+    if (!(q.wake in WAKES) || ![null, undefined, "MED", "FUEL"].includes(q.flag)) return null;
+    if (!inRange(q.eta_s, -7200, 7200) || !inRange(q.min_slot_s, -600, 7200)) return null;
+    if (q.frozen != null && typeof q.frozen !== "boolean") return null;
+    if (q.state != null && !STATES.includes(q.state)) return null;
+    if (q.suggested_fix != null && !FIXSET.includes(q.suggested_fix)) return null;
+    const slotted = q.slot_s != null || q.runway != null;
+    if (slotted && (!inRange(q.slot_s, -600, 7200) || !RWY.includes(q.runway))) return null;
+    queue.push({ id: q.id, callsign: q.callsign, type: q.type, wake: WAKES[q.wake], flag: q.flag || null, frozen: q.frozen === true,
+      state: q.state || "inbound", eta_s: Math.round(q.eta_s), min_slot_s: Math.round(q.min_slot_s), suggested_fix: q.suggested_fix || "MENLO",
+      ...(slotted ? { runway: q.runway, slot_s: Math.round(q.slot_s) } : {}) });
   }
+  // runways: { "28L": { open, until? }, "28R": { open, until? } }
+  const rw = body.runways;
+  if (!rw || typeof rw !== "object" || Array.isArray(rw) || Object.keys(rw).some((k) => !RWY.includes(k))) return null;
   const runways = [];
-  for (const r of body.runways) {
-    if (!r || !RWY.includes(r.id) || typeof r.open !== "boolean" || (r.closed_for_s != null && num(r.closed_for_s) == null)) return null;
-    runways.push({ id: r.id, open: r.open, ...(r.closed_for_s != null ? { closed_for_s: num(r.closed_for_s) } : {}) });
+  for (const id of RWY) {
+    const r = rw[id];
+    if (r == null) continue;
+    if (typeof r !== "object" || typeof r.open !== "boolean" || (r.until != null && !inRange(r.until, 0, 7200))) return null;
+    runways.push({ id, open: r.open, ...(r.until != null ? { closed_for_s: Math.round(r.until) } : {}) });
   }
   const free = {};
-  for (const id of RWY) {
-    const arr = body.free_slots && body.free_slots[id];
-    if (arr == null) continue;
-    if (!Array.isArray(arr) || arr.length > 16 || arr.some((x) => num(x) == null)) return null;
-    free[id] = arr.map(num);
+  if (body.free_slots != null) {
+    if (typeof body.free_slots !== "object" || Object.keys(body.free_slots).some((k) => !RWY.includes(k))) return null;
+    for (const id of RWY) {
+      const arr = body.free_slots[id];
+      if (arr == null) continue;
+      if (!Array.isArray(arr) || arr.length > 16 || arr.some((x) => !inRange(x, 0, 7200))) return null;
+      free[id] = arr.map(Math.round);
+    }
   }
-  return { queue, runways, now: num(body.now), free };
+  return { queue, runways, now: Math.round(body.now), free };
 }
 
 async function readJson(req) {
