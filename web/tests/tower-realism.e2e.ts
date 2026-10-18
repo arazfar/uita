@@ -58,6 +58,18 @@ test(
     await demo.getByRole("button", "Pause", { exact: true }).tap();
     const paused = await state();
     expect(paused.paused).toBe(true);
+    // Parent shortcuts must not restart the hidden recording behind the independent demo.
+    expect(
+      await browser.evaluate(() => {
+        (document.activeElement as HTMLElement)?.blur();
+        document.body.focus();
+        return document.activeElement === document.body;
+      }),
+    ).toBe(true);
+    await browser.keyboard.press("Space");
+    expect((await state()).paused).toBe(true);
+    expect((await state()).time).toBe(paused.time);
+    await expect(browser.locator("#play")).toContainText("Play recording");
     await demo.getByLabel("Demonstration speed").selectOption({ value: "10" });
     expect((await state()).time).toBe(paused.time);
     await demo.getByRole("button", "Watch takeoff").tap();

@@ -1051,6 +1051,8 @@ document.querySelectorAll("[data-camera]").forEach(
 );
 $("render-controller").onchange = render;
 function presentationAction(name, value) {
+  // The demo owns playback; parent shortcuts must not mutate the hidden source.
+  if (camera === "runway" && name !== "view") return;
   if (name === "speed-step" && [-1, 1].includes(value)) {
     const rates = [1, 5, 10, 20, 30, 60];
     presentationAction(
