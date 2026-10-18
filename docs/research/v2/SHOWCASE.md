@@ -127,7 +127,10 @@ existing Config-as-Code deployments. See [Railway configuration reference](https
 Server pre-deploy runs `python -m uita.research.predeploy`, which executes Alembic
 and checksummed bootstrap with checked exit codes. `/health/demo` fails
 if required data, recordings or scenario checksums are absent. Deploy API and worker
-before frontend. The gateway proxies API/SSE/config/history to the API on the same
+before frontend. The supplied Railway project token can deploy the worker but
+`serviceConnect` for its GitHub auto-deploy hook returned **Not Authorized**.
+Until an account with repository-linking access connects it, explicitly deploy the
+worker at the release commit; pushing main alone is insufficient. The gateway proxies API/SSE/config/history to the API on the same
 public origin; mutable API responses are uncached. Assets use ETags and compression.
 
 Before cutover save service settings/deployment IDs and a PostgreSQL public-schema

@@ -34,6 +34,10 @@ Unknown altitude stays unknown. New Nemotron episode 2 had 10 rejected proposals
 scripted, never labeled authentic model output. Unsupported ATC capabilities remain
 unresolved. New campaign known cost $0.0054961; reservations $0.0980682.
 
+Deployment limitation: Railway denied the worker's GitHub auto-deploy connection
+(`serviceConnect`: Not Authorized). The worker is deployed explicitly; each future
+release must deploy it at the selected commit until repository access is granted.
+
 Nonblocking validation limitation: the standalone gallery tower suite passed its wind
 and connected-authority checks (2/3); its real-time landing-roll → stopped assertion
 exceeded 30 seconds under SwiftShader. The connected research flow passed. That
