@@ -72,10 +72,11 @@ from the packaged early-August demo and is not needed for startup.
 
 ## Packaged data and actual outcomes
 
-The best available frozen early-August development hour contains **14 tracks,
-438 observations and 18 measured-altitude samples**. It begins at Unix 1785956400;
+The best available frozen early-August development hour contains **55 tracks,
+868 observations and 61 measured-altitude samples**. It begins at Unix 1785952800;
 selection maximizes measured-altitude samples with an earliest-hour tie break.
 This sparse altitude coverage is a real limitation. Unknown heights stay unknown.
+The earlier 14-track/18-altitude-sample artifact is retained.
 Thirteen scenario replay artifacts are included; no late-August observations were
 mixed into early-August scenarios.
 
@@ -118,6 +119,11 @@ Frontend: `UITA_SERVER_URL=http://server.railway.internal:8001`,
 `UITA_ACCESS_MODE=public_demo`. Server: shared PostgreSQL `DATABASE_URL`,
 `UITA_SHOWCASE=1`, `UITA_ACCESS_MODE=public_demo`, `UITA_HISTORY_LOCAL=1`, valid HTTPS
 `UITA_ALLOWED_ORIGINS`. Worker: same PostgreSQL database; optional Crusoe key.
+For services that cannot opt into legacy Config as Code, apply those settings via
+Railway's service API/dashboard: builder `RAILPACK`, explicit Dockerfile path,
+repository root `/`, server health `/health/demo`, and the commands above. Railway
+detects and builds the configured Dockerfile. The legacy TOML templates remain for
+existing Config-as-Code deployments. See [Railway configuration reference](https://docs.railway.com/config-as-code/reference).
 Server pre-deploy runs `alembic upgrade head` and `bootstrap`. `/health/demo` fails
 if required data, recordings or scenario checksums are absent. Deploy API and worker
 before frontend. The gateway proxies API/SSE/config/history to the API on the same

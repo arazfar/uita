@@ -1,5 +1,5 @@
 [build]
-builder = "DOCKERFILE"
+builder = "RAILPACK"
 dockerfilePath = "Dockerfile.showcase"
 [deploy]
 preDeployCommand = "sh -c 'alembic upgrade head && python -m uita.research.cli bootstrap'"

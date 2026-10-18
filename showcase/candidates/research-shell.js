@@ -619,6 +619,7 @@ document.querySelectorAll("[data-camera]").forEach(
       }
       scene = cameras.get(camera);
       scene.hidden = false;
+      scene.contentWindow?.postMessage({type:"uita:visibility",active:true},location.origin);
       scene.contentWindow?.postMessage({ uita: "resume" }, location.origin);
       if (sentBuffers.has(scene)) {
         $("render-status").hidden = true;
@@ -691,6 +692,7 @@ action(async () => {
   $("logout").hidden = identity.access_mode === "public_demo";
   $("access-mode").textContent =
     identity.access_mode === "public_demo" ? "Public demo" : identity.username;
+  histories.sort((a,b) => b.coverage.measured_altitude_points - a.coverage.measured_altitude_points);
   historyCatalog = histories;
   historyDataset = histories[0];
   $("history-datasets").innerHTML = histories

@@ -1,5 +1,5 @@
 [build]
-builder = "DOCKERFILE"
+builder = "RAILPACK"
 dockerfilePath = "Dockerfile.showcase"
 [deploy]
 startCommand = "python -m uita.research.worker"

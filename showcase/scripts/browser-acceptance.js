@@ -109,6 +109,7 @@ async (page) => {
     );
   }
   const activeUrl = page.url();
+  const activeSource = await page.locator("#source").innerText();
   await page.route("**/recordings/*/window?*", (route) =>
     route.fulfill({
       status: 503,
@@ -118,7 +119,7 @@ async (page) => {
   );
   await page.locator("#recorded").click();
   await page.locator("#error").waitFor({ state: "visible" });
-  if (page.url() !== activeUrl || (await page.locator("#close").isDisabled()))
+  if (page.url() !== activeUrl || (await page.locator("#source").innerText()) !== activeSource)
     throw Error("Failed recording load discarded live run");
   await page.unroute("**/recordings/*/window?*");
   // Exercise an unsafe structured proposal through the authenticated API, then

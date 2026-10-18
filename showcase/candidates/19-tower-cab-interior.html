@@ -1428,7 +1428,7 @@ function drawConnected(){
     if(!g)continue;
     g.fillStyle='#101c20';g.fillRect(0,0,screen.w,screen.h);
     g.fillStyle='#b8e6df';g.font='24px monospace';
-    g.fillText(connectedFrame ? `${connectedFrame.mode.toUpperCase()} · ${connectedFrame.status}` : 'WAITING FOR BACKEND',14,26);
+    if(name!=='ground' && name!=='air') g.fillText(connectedFrame ? `${connectedFrame.mode.toUpperCase()} · ${connectedFrame.status}` : 'WAITING FOR BACKEND',14,26);
     const rows=connectedFrame?.aircraft||[];
     screen.hits=[];
     if(name==='ground'||name==='air'){

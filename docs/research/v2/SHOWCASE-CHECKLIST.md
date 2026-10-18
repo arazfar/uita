@@ -13,18 +13,18 @@ Verified locally:
 - Prior worker SIGKILL/lease takeover check passed; hosted takeover remains separate.
 
 Current gates:
-- Finish final browser rerun after camera/reconnect fixes.
-- Build matched Railway frontend/server/worker images and verify the public domain.
+- Local final browser rerun passed; hosted final rerun is in progress.
+- Matched Railway images built; public health, catalog, recordings and data return 200.
 - Hosted SSE, worker recovery and production demo smoke acceptance.
 
-Performance sample: local macOS, headless Chromium 155, 10 reported hardware threads,
+Performance sample: Apple M1 Pro/macOS, headless Chromium 155, 10 reported hardware threads,
 1280×720, five-second animation-frame samples: 60.2 FPS normal, 55.3 FPS with an
 explicit synthetic 200-target rendering fixture; p95 frame interval 16.8 ms.
 390×844 viewport emulation measured 60.1 FPS. These are short browser scheduling
 samples, not GPU benchmarks or physical-mobile results. Extended memory, mobile
 hardware and four concurrent 200-aircraft simulations are not certified here.
 
-Limits: historical hour has 14 tracks/438 points, only 18 measured altitude samples.
+Limits: historical hour has 55 tracks/868 points, 61 measured altitude samples.
 Unknown altitude stays unknown. New Nemotron episode 2 had 10 rejected proposals,
 3 completions versus baseline 4; no superiority claim. Guided mode is visibly
 scripted, never labeled authentic model output. Unsupported ATC capabilities remain
