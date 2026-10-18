@@ -85,12 +85,39 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
     entities,
     setPhotoreal,
   });
-  const projections = new Map();
+  const trails = new Map(); // aircraft id -> { line, proj, positions, ahead, color, width }
+  // Test hook: visible trail lengths and projections per aircraft.
+  window.__uitaTrails = () => [...trails].map(([id, t]) => ({ id, points: t.line.show ? t.positions.length : 0, projection: t.proj.show }));
+  // Per-aircraft position history (sim clock -> [clock, lon, lat, alt_ft]), up to 8 minutes.
+  // Reset when the source changes or the playhead seeks backwards.
+  const history = new Map();
   let trailClock = -Infinity,
     trailSource = null;
+  function remember(frames, clock) {
+    for (const f of frames) {
+      if (f.clock > clock || f.clock < clock - 480) continue;
+      for (const x of f.aircraft) {
+        if (!plottable(x)) continue;
+        let h = history.get(x.id);
+        if (!h) history.set(x.id, (h = new Map()));
+        if (!h.has(f.clock)) h.set(f.clock, [f.clock, x.longitude, x.latitude, x.altitude_ft]);
+      }
+    }
+    for (const [id, h] of history) {
+      for (const t of h.keys()) if (t < clock - 480) h.delete(t);
+      if (!h.size) history.delete(id);
+      else if (h.size > 1) history.set(id, new Map([...h].sort((p, q) => p[0] - q[0])));
+    }
+  }
   connectRenderer(
     (frame, selected, frames, clock) => {
       paintedFrame = frame;
+      const trailDue =
+        clock - trailClock >= 2 ||
+        clock < trailClock ||
+        trailSource !== frame.source_id;
+      if (trailSource !== frame.source_id || clock < trailClock - 5) history.clear();
+      if (trailDue) remember(frames, clock);
       updateControls(frame, selected);
       const routeAircraft = frame.aircraft.find((a) => a.id === selected);
       const route = routeAircraft?.route;
@@ -231,27 +258,16 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
             ? C.Color.YELLOW
             : C.Color.fromCssColorString(TONE_CSS[arrivalTone(a)]);
         entity.show = true;
-        if (
-          clock - trailClock >= 2 ||
-          clock < trailClock ||
-          trailSource !== frame.source_id
-        ) {
+        if (trailDue) {
           // Route trail: the last 8 minutes, coloured by what the aircraft is doing
           // (descending cyan, climbing amber, level grey, ground faint), plus a dashed
-          // 2-minute projection ahead for airborne traffic.
-          const pts = frames
-            .filter((f) => f.clock <= clock && f.clock >= clock - 480)
-            .map((f) => [f.clock, f.aircraft.find((x) => x.id === a.id)])
-            .filter(([, x]) => x && plottable(x));
-          const positions = pts.map(([, x]) =>
-            C.Cartesian3.fromDegrees(
-              x.longitude,
-              x.latitude,
-              x.altitude_ft * 0.3048 + altitudeOffset(),
-            ),
-          );
+          // 2-minute projection ahead for airborne traffic. Points come from the
+          // renderer's own history: the shell only buffers the current 2-minute window.
+          const pts = [...(history.get(a.id)?.values() || [])].filter((p) => p[0] < clock);
+          pts.push([clock, a.longitude, a.latitude, a.altitude_ft]);
+          const toCart = (p) => C.Cartesian3.fromDegrees(p[1], p[2], p[3] * 0.3048 + altitudeOffset());
           const recent = pts.filter(([t]) => t >= clock - 60);
-          const dAlt = recent.length > 1 ? recent.at(-1)[1].altitude_ft - recent[0][1].altitude_ft : 0;
+          const dAlt = recent.length > 1 ? recent.at(-1)[3] - recent[0][3] : 0;
           const onGround = a.altitude_ft < 150;
           const tone =
             selected === a.id
@@ -263,38 +279,47 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
                   : dAlt > 150
                     ? "#ffb547"
                     : "#c9d3da";
-          if (positions.length > 1)
-            entity.polyline = {
-              positions,
-              width: selected === a.id ? 3 : 2,
-              material: C.Color.fromCssColorString(tone).withAlpha(onGround ? 0.35 : 0.85),
-            };
-          else entity.polyline = undefined;
-          let proj = projections.get(a.id);
-          if (!proj) {
-            proj = viewer.entities.add({ polyline: { positions: [], width: 1.5,
-              material: new C.PolylineDashMaterialProperty({ color: C.Color.WHITE.withAlpha(0.6), dashLength: 12 }) } });
-            projections.set(a.id, proj);
+          // Created once with callback properties: Cesium draws dynamic polylines every
+          // frame, whereas re-assigning static polylines rebuilds them asynchronously
+          // and they can be replaced again before ever appearing.
+          let t = trails.get(a.id);
+          if (!t) {
+            t = { positions: [], ahead: [], color: C.Color.WHITE, width: 2 };
+            t.line = viewer.entities.add({
+              polyline: {
+                positions: new C.CallbackProperty(() => t.positions, false),
+                width: new C.CallbackProperty(() => t.width, false),
+                material: new C.ColorMaterialProperty(new C.CallbackProperty(() => t.color, false)),
+                arcType: C.ArcType.NONE,
+              },
+            });
+            t.proj = viewer.entities.add({
+              polyline: {
+                positions: new C.CallbackProperty(() => t.ahead, false),
+                width: 1.5,
+                material: new C.PolylineDashMaterialProperty({
+                  color: new C.CallbackProperty(() => t.color.withAlpha(0.7), false),
+                  dashLength: 12,
+                }),
+                arcType: C.ArcType.NONE,
+              },
+            });
+            trails.set(a.id, t);
           }
+          t.positions = pts.length > 1 ? pts.map(toCart) : [];
+          t.color = C.Color.fromCssColorString(tone).withAlpha(onGround ? 0.35 : 0.85);
+          t.width = selected === a.id ? 3 : 2;
+          t.line.show = t.positions.length > 1;
           const last = pts.at(-1), prev = recent.length > 1 ? recent[0] : null;
-          if (!onGround && last && prev && last[0] > prev[0]) {
+          if (!onGround && prev && last[0] > prev[0]) {
             const k = 120 / (last[0] - prev[0]);
-            const [, l] = last, [, q] = prev;
-            proj.polyline.positions = [
-              C.Cartesian3.fromDegrees(l.longitude, l.latitude, l.altitude_ft * 0.3048 + altitudeOffset()),
-              C.Cartesian3.fromDegrees(
-                l.longitude + (l.longitude - q.longitude) * k,
-                l.latitude + (l.latitude - q.latitude) * k,
-                Math.max(0, l.altitude_ft + (l.altitude_ft - q.altitude_ft) * k) * 0.3048 + altitudeOffset(),
-              ),
-            ];
-            proj.polyline.material = new C.PolylineDashMaterialProperty({ color: C.Color.fromCssColorString(tone).withAlpha(0.7), dashLength: 12 });
-            proj.show = true;
-          } else proj.show = false;
+            t.ahead = [toCart(last), toCart([0, last[1] + (last[1] - prev[1]) * k, last[2] + (last[2] - prev[2]) * k, Math.max(0, last[3] + (last[3] - prev[3]) * k)])];
+            t.proj.show = true;
+          } else t.proj.show = false;
         }
       }
       for (const [id, e] of entities) if (!ids.has(id)) e.show = false;
-      for (const [id, e] of projections) if (!ids.has(id)) e.show = false;
+      for (const [id, t] of trails) if (!ids.has(id)) t.line.show = t.proj.show = false;
       if (
         clock - trailClock >= 2 ||
         clock < trailClock ||
