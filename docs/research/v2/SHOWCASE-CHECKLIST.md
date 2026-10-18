@@ -17,7 +17,9 @@ Hosted release checks:
 - Matched Railway images built; public health, catalog, recordings and data return 200.
 - Hosted SSE and worker replacement recovery passed (same run, revision 2 → 94).
 - Dedicated pre-deploy job installed v2 history (55 tracks); readiness checks every packaged artifact.
-- Public release: https://uita.up.railway.app. Final alias/merged-overlay smoke check pending.
+- Public release: https://uita.up.railway.app. Historical → authentic Nemotron →
+  closure → synchronized comparison → 2.65 MB evidence export passed.
+- No remaining blocker for the core connected demo; limitations below remain.
 
 Performance sample: Apple M1 Pro/macOS, headless Chromium 155, 10 reported hardware threads,
 1280×720, five-second animation-frame samples: 60.2 FPS normal, 55.3 FPS with an

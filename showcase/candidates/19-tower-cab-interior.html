@@ -1404,7 +1404,7 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, fal
 window.__sky = { S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 if (CONNECTED) {
-  const connectedStyle=document.createElement('style');connectedStyle.textContent='#score,#banner,#card,#bPlay,#bRestart,#bSound,#help{display:none!important}';document.head.append(connectedStyle);
+  const connectedStyle=document.createElement('style');connectedStyle.textContent='#score,#banner,#card,#bPlay,#bRestart,#bSound,#help{display:none!important} #controls{bottom:156px;max-width:calc(100vw - 28px);overflow-x:auto} #controls button{flex-shrink:0}';document.head.append(connectedStyle);
   for (const id of ['score','banner','card','bPlay','bRestart','bSound','help']) { const el=$(id); if(el)el.hidden=true; }
   Object.values(corrLines).forEach(x=>x.visible=false);
   stormGroup.visible=false;
