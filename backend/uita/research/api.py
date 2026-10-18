@@ -692,4 +692,5 @@ def create_app(database=None, secure_cookies=True):
             if getattr(r, "path", "") != "/uita/api/history/{endpoint}"
         ]
         app.include_router(router, prefix="/uita")
+        app.include_router(router)  # Preserve existing history-service clients.
     return app

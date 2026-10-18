@@ -32,7 +32,9 @@ def test_fresh_demo_pack_without_source_or_provider(tmp_path, monkeypatch):
             save_artifact(db, a["id"], a["kind"], a["payload"])
         for p in (assets / "recordings").glob("*.json.gz"):
             install_recording(db, json.loads(gzip.decompress(p.read_bytes())))
-    with TestClient(create_app(database, False)) as c:
+    app = create_app(database, False)
+    assert {"/api/history/catalog", "/uita/api/history/catalog"} <= {r.path for r in app.routes}
+    with TestClient(app) as c:
         assert c.get("/health/demo").status_code == 200
         cat = c.get("/api/v2/history/catalog").json()[0]
         w = c.get(
