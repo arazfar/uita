@@ -20,6 +20,8 @@ test(
     await expect(browser.locator("#play")).toBeEnabled();
     await expect(browser.locator("#play")).toContainText("Play recording");
     const recordedTime = await browser.locator("#seek").inputValue();
+    await browser.locator("#sandbox-toggle").tap();
+    await expect(browser.locator("#sandbox-panel")).toBeVisible();
     await browser.locator('[data-camera="runway"]').tap();
     const demo = browser.frameLocator(demoFrame);
     await expect(
@@ -32,6 +34,7 @@ test(
     ).toBeVisible();
     await expect(browser.locator("footer")).toBeHidden();
     await expect(browser.locator("#source-controls")).toBeHidden();
+    await expect(browser.locator("#sandbox-panel")).toBeHidden();
     const state = () =>
       browser.evaluate(() => {
         const w = document.querySelector('iframe[src*="mode=runway-demo"]')!
@@ -135,6 +138,8 @@ test(
     await browser.locator('[data-camera="tower"]').tap();
     await expect(browser.locator("footer")).toBeVisible();
     await expect(browser.locator("#source-controls")).toBeVisible();
+    await expect(browser.locator("#sandbox-toggle")).toBeVisible();
+    await expect(browser.locator("#sandbox-panel")).toBeVisible();
     await expect(browser.locator("#play")).toContainText("Play recording");
     expect(await browser.locator("#seek").inputValue()).toBe(recordedTime);
     await expect
