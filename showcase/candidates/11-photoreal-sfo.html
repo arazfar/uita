@@ -198,6 +198,8 @@ const C = Cesium;
 const RECORDED = new URLSearchParams(location.search).get('mode') === 'recorded'; // simulation is the default
 let details = false; // declared early: labels built before the recorded-mode return read it
 const LOOP = 90;                 // seconds per scripted loop
+// Scripted mock scenario (eVTOL fleet, corridors, storm, radio/agent script, scripted airliners) is off by default; ?mock=1 restores it.
+const MOCK = new URLSearchParams(location.search).get('mock') === '1';
 const SIMRATE = 0.85;            // sim minutes per wall second (eVTOL timeline)
 const GEOID = -32.2;             // EGM96 undulation at SFO (m): ellipsoid = MSL + GEOID
 // Offline pack: imagery on the bare ellipsoid, so ground = 0 and MSL heights are used as-is.
@@ -557,6 +559,7 @@ for (const [code, lon, lat] of [['SFO', -122.375, 37.619], ['OAK', -122.221, 37.
 scene.preRender.addEventListener(recTick);
 
 // ---------- UITA eVTOL network (fleet callsign "UITA") ----------
+const mockFrom = viewer.entities.values.length;
 const NODES = { SF: [-122.41, 37.785], MAR: [-122.485, 37.862], SFO: [-122.375, 37.622], OAK: [-122.235, 37.722], BER: [-122.275, 37.865],
   W: [-122.39, 37.73], C: [-122.34, 37.79], E: [-122.29, 37.77] };
 const EDGES = ['SF-MAR', 'SF-W', 'SF-C', 'C-BER', 'C-E', 'W-E', 'W-SFO', 'E-OAK', 'OAK-BER'];
@@ -682,6 +685,7 @@ for (const b of bg.slice(0, 40)) {
   });
 }
 
+if (!MOCK) { for (const e of viewer.entities.values.slice(mockFrom)) e.show = false; for (const a of airliners) a.entity.show = false; }
 // ---------- script: radio + agents ----------
 const RADIO = [
   { t: 1.0, who: 'TWR', f: '120.500', txt: 'United eight five two heavy, wind zero three zero at six, runway two eight right, cleared to land.' },
@@ -735,10 +739,12 @@ function agentItem(a) {
   return `<div class="it ag ${a.cls}"><div class="who">${a.who}<span class="tag">${a.tag}</span></div>${a.txt}${a.why ? `<div class="why">${a.why}</div>` : ''}</div>`;
 }
 function renderFeed(nR, nA) {
+  if (!MOCK) { nR = 0; nA = 0; }
   const items = [...RADIO.slice(0, nR).map(r => [r.t, radioItem(r)]), ...AGENTS.slice(0, nA).map(a => [a.t, agentItem(a)])].sort((x, y) => x[0] - y[0]);
   const lv = liveOn ? liveItems.slice(-2) : [];
-  feedEl.innerHTML = items.slice(-(4 - lv.length)).map(i => i[1]).join('') + (lv.length ? '<div class="live-sep">LIVE · UITA</div>' + lv.join('') : '');
-  $('feedcount').textContent = `${nR} tx · ${nA} decisions`;
+  feedEl.innerHTML = items.slice(-(4 - lv.length)).map(i => i[1]).join('') + (lv.length ? '<div class="live-sep">LIVE · UITA</div>' + lv.join('') : '')
+    || (MOCK ? '' : '<div class="it ag">Click any aircraft for its flight card. Live UITA kernel events appear here.</div>');
+  $('feedcount').textContent = MOCK ? `${nR} tx · ${nA} decisions` : '';
 }
 
 // ---------- radar inset ----------
@@ -810,6 +816,7 @@ function renderStrips(t) {
 // ---------- scoreboard + banner ----------
 const $ = id => document.getElementById(id);
 function renderScore(t, nTx) {
+  if (!MOCK) { $('score').style.display = live ? '' : 'none'; return; }
   const m = simMin();
   const done = flights.filter(f => m >= f.dep + f.dur);
   const final = t >= 84; // last trips land just past the loop; show the settled tally
@@ -820,6 +827,12 @@ function renderScore(t, nTx) {
   $('clk').textContent = `T+${String(Math.floor(m)).padStart(2, '0')}:${String(Math.floor((m % 1) * 60)).padStart(2, '0')}`;
 }
 function renderBanner(n) {
+  if (!MOCK) {
+    $('bfreq').textContent = 'SFO'; $('clk').textContent = ''; $('banner').classList.remove('alert');
+    const d = typeof picked !== 'undefined' && picked && picked.kind === 'rec' ? describe(picked) : null;
+    $('bmsg').textContent = d ? `${d.cs} · ${d.type} · ${Math.round(d.alt || 0).toLocaleString('en-US')} ft · ${Math.round(d.spd || 0)} kt · ${d.status}` : 'SFO · Recorded ADS-B · Aug 24';
+    return;
+  }
   const ctl = RADIO.slice(0, n).filter(r => !r.plt);
   const r = ctl[ctl.length - 1];
   if (!r) { $('bmsg').textContent = 'Standing by. Traffic calm, all corridors open.'; $('banner').classList.remove('alert'); return; }
@@ -874,7 +887,11 @@ function followPose(posProp, t, range, pitch, side, dt) {
 const evtPos = f => new C.CallbackProperty(time => { const m = C.JulianDate.secondsDifference(time, T0) * SIMRATE; const p = routePoint(f, m); return C.Cartesian3.fromDegrees(p[0], p[1], cAlt + 25); }, false);
 const UTA108 = flightBy('UTA108'), skf108Pos = evtPos(UTA108);
 // Cinematic shot list, synced to the scenario beats (wall seconds within the 90 s loop)
-const SHOTS = [
+const SHOTS = !MOCK ? [
+  { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 1.2, -30, 4200 + t * 60) },
+  { t0: 30, name: 'TOWER CAB · SFO', fov: 55, pose: () => ({ eye: towerEye(), hdg: 94, pitch: -4.5 }) },
+  { t0: 55, name: 'BAY · RECORDED TRAFFIC', fov: 60, pose: (t) => orbitPose(at3([-122.2, 37.62], 0), 330 + (t - 55) * 1.5, -50, 60000) },
+] : [
   { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 2.4, -30 + t * 0.3, 4200 + t * 250) },
   { t0: 9.4, name: 'C–E CLOSES · STORM', fov: 50, pose: (t) => { const k = ease(Math.min(1, (t - 9.4) / 5)); return orbitPose(STORM_C, 10 + (t - 9.4) * 3, -30 + 8 * k, 15000 - 8500 * k); } },
   { t0: 14.5, cut: true, name: 'READBACK · UTA108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
@@ -991,10 +1008,11 @@ function setCam(t, dt) { if (camMode === 'cine') cine(t, dt); }
 // ---------- radio voice (shared SkyRadio module) ----------
 // Each transcript line is spoken when it appears; the scripted clock holds while the frequency is busy.
 let revealed = 0, onAir = false, holding = false, userPaused = false, radioGen = 0;
-SkyRadio.prefetch(RADIO.map(r => ({ text: r.txt, speaker: r.plt ? 'pilot' : 'atc', key: r.plt ? r.who : undefined })));
+if (MOCK) SkyRadio.prefetch(RADIO.map(r => ({ text: r.txt, speaker: r.plt ? 'pilot' : 'atc', key: r.plt ? r.who : undefined })));
 function holdClock() { if (!holding && clock.shouldAnimate) { holding = true; clock.shouldAnimate = false; } }
 function releaseClock() { if (holding) { holding = false; if (!userPaused) clock.shouldAnimate = true; } }
 function radioStep(t) {
+  if (!MOCK) return;
   const due = RADIO.filter(r => r.t <= t).length;
   if (due < revealed) { revealed = due; SkyRadio.flush(); onAir = false; radioGen++; releaseClock(); return; } // loop, restart or seek back
   if (due - revealed > 1) revealed = due - 1; // seek forward: skip the missed lines silently
