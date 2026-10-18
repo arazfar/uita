@@ -182,6 +182,8 @@ const early = {
   glb: Object.fromEntries(Object.entries(GLB).map(([k, u]) => [k, getBuf(u)])),
   mapsKey: fetch('/api/maps-key').then((r) => r.json()).then((j) => j.key || null).catch(() => null),
 };
+const { createFlight, runwayFrame, weatherForRunway, AIRFRAMES } = await import('./tower-flight-dynamics.js');
+const { makeAirliner } = await import('./tower-airliner.js');
 const THREE = await import(/* @vite-ignore */ VENDOR + 'build/three.module.js');
 const jsm = (path) => import(/* @vite-ignore */ VENDOR + 'examples/jsm/' + path);
 const [{ GLTFLoader }, { DRACOLoader }, { RoundedBoxGeometry }, { mergeGeometries }] = await Promise.all(
@@ -625,7 +627,7 @@ let M747 = null, MAIR = null, MEV = null; // procedural stand-ins until the GLBs
 const parseGLB = async (k) => { const b = await early.glb[k]; if (!b) return null; try { return (await loader.parseAsync(b, GLB[k].replace(/[^/]+$/, ''))).scene; } catch (e) { return null; } };
 Promise.all([parseGLB('b747'), parseGLB('air'), parseGLB('evtol')]).then(([a, b, c]) => {
   M747 = a; MAIR = b; MEV = c;
-  for (const ac of actors) { ac.g.remove(ac.model); ac.model = modelFor(ac.kind); ac.g.add(ac.model); }
+  for (const ac of actors) { if (ac.flight) continue; ac.g.remove(ac.model); ac.model = modelFor(ac.kind); ac.g.add(ac.model); }
 });
 const modelFor = (kind) => (kind === '747' ? normModel(M747, 70, Math.PI) : kind === 'air' ? normModel(MAIR, 40, 0) : normModel(MEV, 16, 0));
 function mkActor(cs, kind, fn, tag, connected = false) {
@@ -635,20 +637,18 @@ function mkActor(cs, kind, fn, tag, connected = false) {
   const a = { cs, kind, fn, tag: tag || cs, g, model, pos: new THREE.Vector3(), dir: new THREE.Vector3(1, 0, 0), vis: false, onGround: true, phase: Math.random() * 6 };
   actors.push(a); return a;
 }
-// runway kinematics
-const rw = (r) => { const dx = r.W[0] - r.E[0], dz = r.W[1] - r.E[1], L = Math.hypot(dx, dz); return { E: r.E, L, ux: dx / L, uz: dz / L }; };
-const R28R = rw(RWY['28R']), R28L = rw(RWY['28L']);
-mkActor('UAL900', '747', (t) => { // takeoff 28R, period 64 s
-  const T = (t + 4) % 64; let s, y = 0;
-  if (T < 6) s = 90; else { const tt = T - 6, a = 2.1, tr = 34; s = tt < tr ? 90 + 0.5 * a * tt * tt : 90 + 0.5 * a * tr * tr + 72 * (tt - tr); if (tt > tr) y = (tt - tr) * 7.5; }
-  return { x: R28R.E[0] + R28R.ux * s, y, z: R28R.E[1] + R28R.uz * s, dx: R28R.ux, dy: y > 0 ? 0.1 : 0, dz: R28R.uz, vis: T < 62 };
-}, 'UAL900/H');
-mkActor('AAL173', 'air', (t) => { // landing 28L, period 80 s
-  const T = (t + 30) % 80, D0 = 3600, v0 = 70, td = (D0 + 300) / v0; let s, y;
-  if (T < td) { s = -D0 + v0 * T; y = Math.max(0, -(s - 300) * Math.tan(3 * D2R)); }
-  else { const tt = T - td, a = 2.4, tv = (v0 - 14) / a; s = 300 + (tt < tv ? v0 * tt - 0.5 * a * tt * tt : v0 * tv - 0.5 * a * tv * tv + 14 * (tt - tv)); y = 0; }
-  return { x: R28L.E[0] + R28L.ux * s, y, z: R28L.E[1] + R28L.uz * s, dx: R28L.ux, dy: y > 0 ? -0.05 : 0, dz: R28L.uz, vis: T < 78 };
-}, 'AAL173/M');
+// Aircraft dynamics run at real-time seconds, independently of the compressed ATC narrative.
+const R28R = runwayFrame(RWY['28R']), R28L = runwayFrame(RWY['28L']);
+const flights = CONNECTED ? {} : {
+  UAL900: createFlight({ operation: 'departure', runway: R28R, profile: AIRFRAMES.heavy, weather: weatherForRunway(R28R, metarK) }),
+  AAL173: createFlight({ operation: 'arrival', runway: R28L, profile: AIRFRAMES.medium, weather: weatherForRunway(R28L, metarK) }),
+};
+let flightEpoch = 0;
+const flightStart = 38; // Open during rotation/climb, with the arrival still on final.
+for (const [cs, flight] of Object.entries(flights)) {
+  const a = mkActor(cs, cs === 'UAL900' ? '747' : 'air', t => flight.sample(t + flightStart - flightEpoch), cs + (cs === 'UAL900' ? '/H' : '/M'));
+  a.g.remove(a.model); a.model = makeAirliner(THREE, flight.profile); a.g.add(a.model); a.flight = flight;
+}
 const twC = pickTaxi('C'), twA = pickTaxi('A');
 const pingPong = (tw, v, off) => (t) => {
   if (!tw) return { vis: false };
@@ -687,9 +687,11 @@ function updateActors(visT) {
   for (const a of actors) {
     const s = a.fn(visT, a); a.vis = !!s.vis; a.g.visible = a.vis; if (!a.vis) continue;
     const px = a.pos.x, py = a.pos.y, pz = a.pos.z, dtv = visT - (a.lastT ?? visT); a.lastT = visT;
-    a.pos.set(s.x, s.y + groundY, s.z); a.dir.set(s.dx, s.dy, s.dz).normalize(); a.onGround = s.y < 2;
-    if (dtv > 0) a.spd = lerp(a.spd || 0, Math.min(150, Math.hypot(a.pos.x - px, a.pos.y - py, a.pos.z - pz) / dtv), 0.15);
+    a.pos.set(s.x, s.y + groundY, s.z); a.dir.set(s.dx, s.dy, s.dz).normalize(); a.onGround = s.onGround ?? s.y < 2; a.flightState = s;
+    if (a.flight) a.spd = s.speed;
+    else if (dtv > 0) a.spd = lerp(a.spd || 0, Math.min(150, Math.hypot(a.pos.x - px, a.pos.y - py, a.pos.z - pz) / dtv), 0.15);
     a.g.position.copy(a.pos); tmp.copy(a.pos).add(a.dir); a.g.lookAt(tmp);
+    a.model.userData.updateFlight?.(s);
     const L = a.g.userData.lights; const ph = visT + a.phase;
     L.red.visible = ph % 1.2 < 0.12; L.wht.visible = (ph * 1.7) % 1.5 < 0.06; L.land.visible = !a.onGround || a.kind !== 'evtol';
   }
@@ -1168,7 +1170,7 @@ const worldToCab = (v) => cab.worldToLocal(v.clone());
 function aimFrom(eye, targetLocal, fov) { const d = targetLocal.clone().sub(eye); return { eye: eye.clone(), yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)), fov }; }
 const screenTarget = (n) => { const s = screens[n].g; return s.position.clone(); };
 function presets() {
-  const rwMid = new THREE.Vector3((R28R.E[0] + R28L.E[0]) / 2 + (R28R.ux) * 1500, groundY, (R28R.E[1] + R28L.E[1]) / 2 + R28R.uz * 1500);
+  const rwMid = new THREE.Vector3((R28R.x + R28L.x) / 2 + (R28R.ux) * 1500, groundY, (R28R.z + R28L.z) / 2 + R28R.uz * 1500);
   const pad = new THREE.Vector3(PAD[1][0], groundY + 20, PAD[1][1]);
   return {
     desk: { eye: EYE.clone(), yaw: -0.08, pitch: -0.33, fov: 58 },
@@ -1254,7 +1256,7 @@ $('bCine').onclick = () => setCine(!cine); $('bPhoto').onclick = () => setPhotor
 const toggleHelp = () => $('help').classList.toggle('on'); $('bHelp').onclick = toggleHelp;
 function togglePause() { S.paused = !S.paused; $('bPlay').textContent = S.paused ? '▶' : '❚❚'; }
 $('bPlay').onclick = togglePause;
-function restart() { SkyRadio.flush(); S.gen++; }
+function restart() { SkyRadio.flush(); S.gen++; flightEpoch = visT + flightStart; }
 $('bRestart').onclick = restart;
 const syncSound = () => { $('bSound').textContent = SkyRadio.enabled ? '🔊' : '🔈'; $('bSound').classList.toggle('on', SkyRadio.enabled); };
 const toggleSound = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSound(); };
@@ -1399,7 +1401,7 @@ addEventListener('message', (e) => {
   else if (e.data?.uita === 'resume') { extPause = false; setHalted(); }
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
-window.__sky = { S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors };
+window.__sky = { S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 if (CONNECTED) {
   const connectedStyle=document.createElement('style');connectedStyle.textContent='#score,#banner,#card,#bPlay,#bRestart,#bSound,#help{display:none!important}';document.head.append(connectedStyle);
