@@ -47,6 +47,15 @@ def main():
                     if digest(a["payload"]) != a["checksum"]:
                         raise ValueError("Demo artifact checksum mismatch")
                     save_artifact(db, a["id"], a["kind"], a["payload"])
+            from .sandbox import scenario_from
+
+            dense_pack = json.loads(
+                gzip.decompress(
+                    (Path(__file__).parent / "assets/dense_demo.json.gz").read_bytes()
+                )
+            )
+            sandbox_scenario = scenario_from(dense_pack["artifacts"][0]["payload"])
+            save_artifact(db, sandbox_scenario["id"], "scenario", sandbox_scenario)
             for recording_path in sorted(
                 (Path(__file__).parent / "assets/recordings").glob("*.json.gz")
             ):

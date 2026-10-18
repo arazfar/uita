@@ -45,6 +45,10 @@ def frame(state, source_id, revision, cursor=0, mode="simulation"):
             )
         )
     return PresentationFrame(
+        interventions=state.get("interventions", []),
+        admission_requests=state.get("admission_requests", []),
+        initialization_until=state.get("initialization_until"),
+        last_decision=state.get("last_decision"),
         source_id=source_id,
         mode=mode,
         clock=state["clock"],
@@ -306,15 +310,20 @@ def routes(app, database):
                 future = [
                     f for f in payload[key] if clock < f["clock"] <= clock + seconds
                 ]
-                return [recording_frame(f, payload["events"] if key == "frames" else []) for f in prior[-1:] + future]
+                return [
+                    recording_frame(f, payload["events"] if key == "frames" else [])
+                    for f in prior[-1:] + future
+                ]
 
             # Seeks retain bounded prior decision/clearance evidence for the
             # displayed aircraft, without exposing events after the playhead.
             context_sequences = {
-                e["sequence"] for e in [
-                    e for e in payload["events"]
-                    if e["clock"] <= clock and e["kind"] in
-                    ("proposal_verified", "clearance_issued")
+                e["sequence"]
+                for e in [
+                    e
+                    for e in payload["events"]
+                    if e["clock"] <= clock
+                    and e["kind"] in ("proposal_verified", "clearance_issued")
                 ][-128:]
             }
             return {

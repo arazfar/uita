@@ -9,6 +9,28 @@ from .verification import verify_clearance
 
 
 def propose(state, sequence=None):
+    if (
+        state.get("sandbox")
+        and state.get("speed_restore")
+        and not any(
+            i["kind"] == "weather_restriction" and i["status"] == "active"
+            for i in state["interventions"]
+        )
+    ):
+        for a in state["aircraft"]:
+            target = state["speed_restore"].get(a["id"])
+            pending = any(
+                c["aircraft_id"] == a["id"] and c["status"] in ("issued", "corrected")
+                for c in state["clearances"]
+            )
+            if target and not pending and a["status"] == "approach":
+                command = Clearance(aircraft_id=a["id"], kind="speed", value=target)
+                if verify_clearance(state, command)["status"] == "pass":
+                    return ControllerProposal(
+                        clearances=[command],
+                        sequence=[a["id"]],
+                        explanation=f"Restriction recovered: restore {a['callsign']} to its previous {target} knots IAS; independent speed and motion checks still apply.",
+                    )
     aircraft = [
         a
         for a in state["aircraft"]
@@ -56,6 +78,15 @@ def propose(state, sequence=None):
         return ControllerProposal(explanation="No bounded scheduler incumbent")
     clearances = []
     for a, slot in zip(aircraft, slots):
+        # Synthetic single-corridor traffic cannot safely overtake an earlier approach.
+        if state.get("sandbox") and any(
+            b["id"] != a["id"]
+            and b["status"] == "approach"
+            and math.hypot(b["x_nm"], b["y_nm"]) + 8 < math.hypot(a["x_nm"], a["y_nm"])
+            for b in state["aircraft"]
+            if b["status"] not in ("complete", "diverted")
+        ):
+            continue
         if solver.value(slot) > 900:
             continue
         for runway in ("28L", "28R"):
@@ -69,6 +100,25 @@ def propose(state, sequence=None):
                 break
         if clearances:
             break  # one shared runway clearance at a time
+    if (
+        not clearances
+        and state.get("sandbox")
+        and any(
+            i["kind"] == "weather_restriction" and i["status"] == "active"
+            for i in state["interventions"]
+        )
+    ):
+        for a in aircraft:
+            if (
+                a["status"] == "approach"
+                and not a.get("assigned_speed")
+                and a["ias_kt"] > 135
+                and math.hypot(a["x_nm"], a["y_nm"]) >= 15
+            ):
+                command = Clearance(aircraft_id=a["id"], kind="speed", value=130)
+                if verify_clearance(state, command)["status"] == "pass":
+                    clearances.append(command)
+                    break
     chosen = next(
         (a for a in aircraft if clearances and a["id"] == clearances[0].aircraft_id),
         None,
@@ -90,6 +140,13 @@ def propose(state, sequence=None):
         )
     else:
         explanation += " No supported runway clearance passes current timing and authorization checks."
+        if state.get("sandbox"):
+            explanation += " Wait for existing landing commitments and pending pilot acknowledgments; priority cannot bypass the single-corridor order."
+    if chosen and clearances[0].kind == "speed":
+        explanation = (
+            f"Temporary runway restriction: reduce {chosen['callsign']} to 130 knots IAS outside the restricted final segment. "
+            "This is a bounded research speed adjustment; no landing authorization is granted."
+        )
     return ControllerProposal(
         clearances=clearances,
         sequence=[a["id"] for a in aircraft],

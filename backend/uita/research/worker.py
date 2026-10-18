@@ -23,6 +23,7 @@ from .service import (
     scenario_for,
 )
 from .standards import VERSION
+from . import sandbox
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class Worker:
             state = copy.deepcopy(run.state)
             scenario = scenario_for(db, state["scenario_id"])
             compatible = (
-                state["simulator_version"] == SIMULATOR_VERSION
+                state["simulator_version"] in (SIMULATOR_VERSION, sandbox.VERSION)
                 and state["rule_version"] == VERSION
             )
             if not compatible:
@@ -77,10 +78,22 @@ class Worker:
                     simulator_version=state["simulator_version"],
                     rule_version=state["rule_version"],
                 )
-            for _ in range(state["speed"] if compatible else 0):
+            initializing = state.get("initialization_until")
+            steps = (
+                min(30, int(initializing - state["clock"]))
+                if initializing
+                else state["speed"]
+            )
+            for _ in range(steps if compatible else 0):
                 advance_one(state, scenario)
                 if state["status"] != "running":
                     break
+            if initializing and state["clock"] >= initializing:
+                state["initialization_until"] = None
+                state["status"] = (
+                    "paused" if state["status"] == "running" else state["status"]
+                )
+                event(state, "sandbox_ready", opening_clock=state["clock"])
             request_model = (
                 state["controller"] == "crusoe"
                 and state["status"] == "running"
@@ -224,7 +237,15 @@ class Worker:
     def execute_job(self, job_id, fence, payload, scenario):
         results = []
         for controller in payload["controllers"]:
-            state = initial_state(scenario, payload["seed"], controller)
+            state = (
+                copy.deepcopy(payload["initial_state"])
+                if payload.get("initial_state")
+                else initial_state(scenario, payload["seed"], controller)
+            )
+            if sandbox.active(state) and not state.get("sandbox"):
+                sandbox.initialize(state)
+            if sandbox.active(state):
+                state["initialization_until"] = None
             state["status"] = "running"
             evidence = []
             tape = copy.deepcopy(payload.get("event_tape", []))
@@ -233,7 +254,18 @@ class Worker:
                 if self.stopped:
                     return  # Lease expires; another worker recomputes the same job.
                 while cursor < len(tape) and tape[cursor]["clock"] <= state["clock"]:
-                    apply_disruption(state, Disruption(**tape[cursor]["payload"]))
+                    raw = dict(tape[cursor]["payload"])
+                    omitted = payload.get("omitted_intervention")
+                    skip = controller == "without_intervention" and (
+                        raw.get("disruption_id") == omitted
+                        or (
+                            raw.get("kind") == "recover"
+                            and raw.get("intervention_id") == omitted
+                        )
+                    )
+                    raw.pop("disruption_id", None)
+                    if not skip:
+                        apply_disruption(state, Disruption(**raw), scenario)
                     cursor += 1
                 advance_one(state, scenario)
                 evidence.extend(state.pop("_events", []))
@@ -260,6 +292,7 @@ class Worker:
                     "metrics": public_state(state)["metrics"],
                     "state_hash": digest(state),
                     "events": evidence,
+                    "admission_requests": state.get("admission_requests", []),
                 }
             )
         candidate = payload.get("candidate")
@@ -277,16 +310,24 @@ class Worker:
                     "scenario_id": scenario["id"],
                     "scenario_hash": digest(scenario),
                     "seed": payload["seed"],
-                    "simulator_version": SIMULATOR_VERSION,
+                    "simulator_version": scenario.get(
+                        "simulator_version", SIMULATOR_VERSION
+                    ),
                     "rule_version": VERSION,
                     "source_run_id": payload.get("source_run_id"),
                     "source_revision": payload.get("source_revision"),
                     "event_tape": payload.get("event_tape", []),
+                    "omitted_intervention": payload.get("omitted_intervention"),
+                    "comparison_kind": "checkpoint counterfactual; both branches simulated"
+                    if payload.get("initial_state")
+                    else "controller comparison",
                     "results": results,
                     "limitations": [
                         "Fixed simulation horizon; unfinished traffic counts as backlog",
                         "Research checks and synthetic aircraft performance",
-                        "Candidate is a frozen executed run; baseline replays the same timed disruptions without inference",
+                        "Both branches continue from a frozen checkpoint; future outcomes are simulated"
+                        if payload.get("initial_state")
+                        else "Candidate is a frozen executed run; baseline replays the same timed disruptions without inference",
                     ],
                 }
 

@@ -88,3 +88,42 @@ PACK = AirportRulePack(
 
 def rule(identifier):
     return next(r for r in RULES if r["id"] == identifier)
+
+
+# A separate register prevents changing the rule pack bound to existing recordings.
+SANDBOX_REFERENCES = {
+    "id": "sandbox-context-1",
+    "simulator": "kinematic-sandbox-3",
+    "reviewed_at": "2026-10-17",
+    "effective_dates": "Not established for scenario date; contextual references only",
+    "classification": "synthetic_research_assumptions",
+    "references": [
+        {
+            "paragraph": "2-1-2; 2-1-4",
+            "source": ATC + "chap2_section_1.html",
+            "implementation": "controller.propose",
+            "test": "test_sandbox.py",
+            "applicability": "Priority handling remains subject to separation and protected commitments",
+        },
+        {
+            "paragraph": "2-6",
+            "source": ATC + "chap2_section_6.html",
+            "implementation": "sandbox.intervene",
+            "test": "test_sandbox.py",
+            "applicability": "Weather-inspired availability intervention; no meteorological minima implemented",
+        },
+        {
+            "paragraph": "3-3",
+            "source": ATC + "chap3_section_3.html",
+            "implementation": "sandbox.before_step",
+            "test": "test_sandbox.py",
+            "applicability": "Independent runway restriction reasons; no braking or surface-condition model",
+        },
+    ],
+    "assumptions": [
+        "120-second temporary effects and 15-second pilot response delay are synthetic",
+        "104-NM entry corridor and 240-second demand spacing are synthetic",
+        "130-knot slowdown outside 15 NM is a demo policy, not an FAA weather requirement",
+        "Published missed approaches and emergency procedures remain unsupported",
+    ],
+}

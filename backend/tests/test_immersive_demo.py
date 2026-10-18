@@ -29,6 +29,10 @@ def test_fresh_demo_pack_without_source_or_provider(tmp_path, monkeypatch):
                 assert digest(a["payload"]) == a["checksum"]
                 save_artifact(db, a["id"], a["kind"], a["payload"])
                 save_artifact(db, a["id"], a["kind"], a["payload"])
+        from uita.research.sandbox import scenario_from
+
+        sandbox_scenario = scenario_from(pack["artifacts"][0]["payload"])
+        save_artifact(db, sandbox_scenario["id"], "scenario", sandbox_scenario)
         for p in (assets / "recordings").glob("*.json.gz"):
             install_recording(db, json.loads(gzip.decompress(p.read_bytes())))
     app = create_app(database, False)

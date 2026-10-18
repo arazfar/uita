@@ -430,6 +430,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/runs/{run_id}/compare-intervention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compare Intervention */
+        post: operations["compare_intervention_api_v2_runs__run_id__compare_intervention_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -782,6 +799,20 @@ export interface components {
             /** Idempotency Key */
             idempotency_key: string;
         };
+        /** CompareIntervention */
+        CompareIntervention: {
+            /** Expected Revision */
+            expected_revision: number;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Intervention Id */
+            intervention_id: string;
+            /**
+             * Seconds
+             * @default 300
+             */
+            seconds: number;
+        };
         /** CompareRun */
         CompareRun: {
             /** Expected Revision */
@@ -830,10 +861,18 @@ export interface components {
             /** Idempotency Key */
             idempotency_key: string;
             /**
+             * Duration Seconds
+             * @default 120
+             * @constant
+             */
+            duration_seconds: 120;
+            /** Intervention Id */
+            intervention_id?: string | null;
+            /**
              * Kind
              * @enum {string}
              */
-            kind: "runway_closure" | "weather" | "readback_error" | "communications" | "emergency";
+            kind: "runway_closure" | "weather" | "readback_error" | "communications" | "emergency" | "weather_restriction" | "pilot_delay" | "extra_arrival" | "recover";
             /**
              * Runway
              * @default 28R
@@ -914,6 +953,20 @@ export interface components {
         };
         /** PresentationFrame */
         PresentationFrame: {
+            /** Interventions */
+            interventions?: {
+                [key: string]: unknown;
+            }[];
+            /** Admission Requests */
+            admission_requests?: {
+                [key: string]: unknown;
+            }[];
+            /** Initialization Until */
+            initialization_until?: number | null;
+            /** Last Decision */
+            last_decision?: {
+                [key: string]: unknown;
+            } | null;
             /** Source Id */
             source_id: string;
             /**
@@ -1032,6 +1085,11 @@ export interface components {
         };
         /** RunCreate */
         RunCreate: {
+            /**
+             * Sandbox
+             * @default false
+             */
+            sandbox: boolean;
             /** Scenario Id */
             scenario_id: string;
             /**
@@ -1813,6 +1871,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CompareRun"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_intervention_api_v2_runs__run_id__compare_intervention_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompareIntervention"];
             };
         };
         responses: {

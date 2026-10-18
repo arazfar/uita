@@ -240,3 +240,8 @@ The connected showcase defaults to login-free public demo access. Visitors share
 the research workspace, including explicit budgeted live runs. Set
 `UITA_ACCESS_MODE=private` to require accounts. See
 [access and startup instructions](docs/research/v2/SHOWCASE.md).
+
+The showcase now includes a free **Try a disruption** sandbox: temporary runway
+restrictions, priority arrivals, delayed pilot responses and bounded extra demand,
+with causal decision cards and checkpoint comparisons. See the
+[interactive sandbox scripts and validation](docs/research/v2/SHOWCASE.md#interactive-disruption-sandbox-sandbox-3).

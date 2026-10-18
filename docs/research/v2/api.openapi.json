@@ -884,6 +884,53 @@
         }
       }
     },
+    "/api/v2/runs/{run_id}/compare-intervention": {
+      "post": {
+        "summary": "Compare Intervention",
+        "operationId": "compare_intervention_api_v2_runs__run_id__compare_intervention_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareIntervention"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/jobs/{job_id}": {
       "get": {
         "summary": "Job",
@@ -1610,6 +1657,41 @@
         ],
         "title": "Compare"
       },
+      "CompareIntervention": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Idempotency Key"
+          },
+          "intervention_id": {
+            "type": "string",
+            "maxLength": 150,
+            "title": "Intervention Id"
+          },
+          "seconds": {
+            "type": "integer",
+            "maximum": 1200.0,
+            "minimum": 1.0,
+            "title": "Seconds",
+            "default": 300
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "idempotency_key",
+          "intervention_id"
+        ],
+        "title": "CompareIntervention"
+      },
       "CompareRun": {
         "properties": {
           "expected_revision": {
@@ -1721,6 +1803,24 @@
             "minLength": 8,
             "title": "Idempotency Key"
           },
+          "duration_seconds": {
+            "type": "integer",
+            "const": 120,
+            "title": "Duration Seconds",
+            "default": 120
+          },
+          "intervention_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 150
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intervention Id"
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -1728,7 +1828,11 @@
               "weather",
               "readback_error",
               "communications",
-              "emergency"
+              "emergency",
+              "weather_restriction",
+              "pilot_delay",
+              "extra_arrival",
+              "recover"
             ],
             "title": "Kind"
           },
@@ -1950,6 +2054,45 @@
       },
       "PresentationFrame": {
         "properties": {
+          "interventions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Interventions"
+          },
+          "admission_requests": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Admission Requests"
+          },
+          "initialization_until": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initialization Until"
+          },
+          "last_decision": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Decision"
+          },
           "source_id": {
             "type": "string",
             "title": "Source Id"
@@ -2236,6 +2379,11 @@
       },
       "RunCreate": {
         "properties": {
+          "sandbox": {
+            "type": "boolean",
+            "title": "Sandbox",
+            "default": false
+          },
           "scenario_id": {
             "type": "string",
             "maxLength": 200,

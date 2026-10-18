@@ -10,6 +10,11 @@ const kinds = new Set([
   "arrival_completed",
   "synthetic_go_around",
   "disruption",
+  "controller_response",
+  "intervention_changed",
+  "intervention_recovered",
+  "arrival_admitted",
+  "arrival_deferred",
 ]);
 const commandEqual = (a, b) =>
   ["aircraft_id", "kind", "target", "value"].every(
@@ -51,7 +56,10 @@ export function decisionAt(events, frame, clock, baseline = false) {
             e.kind === "clearance_issued" &&
             e.payload.clearance?.id === p.clearance_id,
         );
-  const clearance = p.clearance || issue?.payload.clearance;
+  const clearance =
+    p.clearance ||
+    issue?.payload.clearance ||
+    (event.kind === "controller_response" ? p.proposal?.clearances?.[0] : null);
   const proposal = p.proposal;
   const id =
     clearance?.aircraft_id ||
@@ -61,7 +69,7 @@ export function decisionAt(events, frame, clock, baseline = false) {
   const aircraft = frame.aircraft.find((a) => a.id === id);
   // Legacy correlation is restricted to the exact issued command in the same tick.
   const verified = proposal
-    ? event.kind === "proposal_verified"
+    ? ["proposal_verified", "controller_response"].includes(event.kind)
       ? event
       : null
     : visible.findLast(
@@ -94,6 +102,11 @@ export function decisionAt(events, frame, clock, baseline = false) {
       arrival_completed: "Completed",
       synthetic_go_around: "Go-around",
       disruption: "Disruption",
+      controller_response: p.outcome === "issued" ? "Issued" : "Waiting",
+      intervention_changed: "Condition changed",
+      intervention_recovered: "Recovered",
+      arrival_admitted: "Arrival admitted",
+      arrival_deferred: "Admission deferred",
     }[event.kind] ||
     (verdict === "fail"
       ? "Rejected"
@@ -105,7 +118,37 @@ export function decisionAt(events, frame, clock, baseline = false) {
     : event.kind === "disruption"
       ? `${p.kind || "Runway change"} · ${p.runway || ""}`
       : phase;
+  const causeIds = p.cause_ids || p.clearance?.cause_ids || [];
+  const causeEvents = causeIds
+    .map((id) =>
+      visible.find(
+        (e) => e.kind === "disruption" && e.payload.disruption_id === id,
+      ),
+    )
+    .filter(Boolean);
+  const changes = causeEvents
+    .map((e) => e.payload.kind.replaceAll("_", " "))
+    .join(", ");
+  const queueChange =
+    event.kind === "controller_response" && id
+      ? `Queue ${(p.previous_sequence || []).includes(id) ? p.previous_sequence.indexOf(id) + 1 : "not queued"} → ${(proposal?.sequence || []).includes(id) ? proposal.sequence.indexOf(id) + 1 : "not queued"}`
+      : "";
+  const category =
+    event.kind === "pilot_acknowledged"
+      ? "Pilot response"
+      : [
+            "synthetic_go_around",
+            "touchdown_simulated",
+            "arrival_completed",
+          ].includes(event.kind)
+        ? "Simulator outcome"
+        : event.kind === "controller_response"
+          ? "Controller decision"
+          : null;
   return {
+    cause: changes
+      ? `Condition: ${changes} → ${category || phase}${queueChange ? " · " + queueChange : ""}`
+      : "",
     key: `${event.sequence}:${event.kind}`,
     clock: event.clock,
     phase,
@@ -117,11 +160,13 @@ export function decisionAt(events, frame, clock, baseline = false) {
       explanation ||
       p.reason ||
       "Committed simulation event; no separate controller explanation supplied.",
-    origin: model
-      ? frame.controller?.includes("fixture")
-        ? "Fixture explanation"
-        : "Model explanation"
-      : "Deterministic demo controller",
+    origin:
+      category ||
+      (model
+        ? frame.controller?.includes("fixture")
+          ? "Fixture explanation"
+          : "Model explanation"
+        : "Deterministic demo controller"),
     verdict,
     has_verification: !!(verified || proposal || clearance),
     clearance: p.text || null,

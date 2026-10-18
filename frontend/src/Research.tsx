@@ -395,6 +395,7 @@ export default function Research() {
             idempotency_key: key(),
             aircraft_id: selected,
             value: kind === "communications" ? 30 : 1,
+            duration_seconds: 120,
           } satisfies Wire["Disruption"]),
         );
     });

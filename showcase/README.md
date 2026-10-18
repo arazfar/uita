@@ -151,3 +151,10 @@ Rebuild with `PYTHONPATH=backend python scripts/build_dense_demo.py`, then run t
 existing research pre-deploy/bootstrap command to install the bundled data.
 See [measured coverage and limitations](../docs/research/v2/SHOWCASE.md#busy-arrivals-demonstration-dense-demo-v1).
 Browser acceptance: `playwright-cli run-code --filename showcase/scripts/dense-acceptance.js`.
+
+### Interactive sandbox
+
+**Try a disruption** starts a new deterministic run after worker-owned pre-roll.
+Recorded playback stays immutable. Controls, recovery, causal decision cards and
+“Compare without this disruption” use the research API; no paid model calls occur.
+See [startup, preset scripts and measured limitations](../docs/research/v2/SHOWCASE.md#interactive-disruption-sandbox-sandbox-3).

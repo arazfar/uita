@@ -32,17 +32,75 @@
       <div class="arrival-controls">
         <span id="arrival-status">Loading traffic…</span
         ><button id="follow-landing" disabled>Follow landing</button
-        ><button id="traffic-overview">Overview</button><button id="airport-view">Airport</button>
+        ><button id="traffic-overview">Overview</button
+        ><button id="airport-view">Airport</button
+        ><button id="sandbox-toggle">Try a disruption</button>
       </div>
     </section>
     <div id="arrivals-queue" aria-label="Next arrivals"></div>
+    <section id="sandbox-panel" aria-label="Interactive disruptions" hidden>
+      <div class="sandbox-heading">
+        <strong>Live disruption sandbox</strong
+        ><button id="sandbox-dismiss" aria-label="Close disruption controls">
+          ×
+        </button>
+      </div>
+      <p>Free deterministic controller · synthetic conditions</p>
+      <button id="sandbox-start">Start sandbox</button
+      ><button id="sandbox-reset" hidden>Reset demo</button>
+      <p id="sandbox-status" role="status">
+        Keeps the recording intact; prepares a separate busy-arrivals run.
+      </p>
+      <fieldset id="sandbox-actions" disabled>
+        <label
+          >Runway
+          <select id="sandbox-runway">
+            <option>28L</option>
+            <option>28R</option>
+          </select></label
+        >
+        <button id="sandbox-weather">Weather restriction · 120s</button>
+        <label
+          >Priority aircraft
+          <select id="sandbox-aircraft"></select
+        ></label>
+        <button id="sandbox-priority">Request priority</button>
+        <button id="sandbox-delay">Pilot delay · 15s for 120s</button>
+        <button id="sandbox-extra">Request extra arrival</button>
+        <label
+          >Guided preset
+          <select id="sandbox-preset">
+            <option value="weather">Runway restriction & recovery</option>
+            <option value="priority">Priority under traffic</option>
+            <option value="delay">Pilot delay + extra arrival</option>
+          </select></label
+        >
+        <button id="sandbox-guided">Apply preset</button>
+      </fieldset>
+      <div id="sandbox-effects"></div>
+      <label
+        >Compare intervention
+        <select id="sandbox-comparison"></select
+      ></label>
+      <button id="sandbox-compare" disabled>
+        Compare without this disruption
+      </button>
+      <p>
+        Availability restrictions are research assumptions, not published
+        weather minima. Extra demand may wait for safe admission.
+      </p>
+    </section>
     <section id="decision-overlay" aria-label="Controller decision" hidden>
       <div id="decision-origin"></div>
       <button id="decision-aircraft"></button>
+      <p id="decision-cause"></p>
       <p id="decision-explanation"></p>
       <p id="decision-verdict"></p>
       <p id="decision-clearance"></p>
-      <details id="decision-batch" hidden><summary>Actions in this decision</summary><ul></ul></details>
+      <details id="decision-batch" hidden>
+        <summary>Actions in this decision</summary>
+        <ul></ul>
+      </details>
       <button id="decision-follow">Follow aircraft</button>
       <button id="decision-evidence">Inspect evidence</button>
     </section>

@@ -93,9 +93,19 @@ def create_run(db, team, command):
         return prior
     scenario = scenario_for(db, command.scenario_id)
     state = initial_state(scenario, command.seed, command.controller)
+    from . import sandbox
+
+    if command.sandbox:
+        if command.scenario_id != sandbox.SCENARIO or command.controller != "static":
+            raise ValueError(
+                "Sandbox requires the versioned scenario and free static controller"
+            )
+        sandbox.initialize(state)
+    elif sandbox.active(state):
+        raise ValueError("Sandbox scenario requires sandbox initialization")
     state["spend_cap_usd"] = command.spend_cap_usd
     state["fixture_fault"] = command.fixture_fault
-    run = Run(id=identifier(), team=team, revision=0, state={}, status="paused")
+    run = Run(id=identifier(), team=team, revision=0, state={}, status=state["status"])
     db.add(run)
     event(
         state,
@@ -166,6 +176,11 @@ def apply_proposal(state, proposal, execute=True):
 
 
 def advance_one(state, scenario):
+    from . import sandbox
+
+    if sandbox.active(state):
+        scenario = sandbox.before_step(state, scenario)
+    event_offset = len(state["_events"])
     before = copy.deepcopy(state)
     step(state, scenario)
     verdict = verify_motion(before, state)
@@ -176,13 +191,45 @@ def advance_one(state, scenario):
         state["status"] = "failed"
         event(state, "motion_failed", verdict=verdict)
         return
-    if (
-        state["controller"] not in ("crusoe", "fixture")
-        and int(state["clock"] - state["start"]) % 5 == 0
+    if state["controller"] not in ("crusoe", "fixture") and (
+        int(state["clock"] - state["start"]) % 5 == 0
+        or state.get("replan_causes")
+        or (
+            sandbox.active(state)
+            and any(
+                e["kind"] in ("aircraft_entered", "pilot_acknowledged")
+                for e in state["_events"][event_offset:]
+            )
+        )
     ):
         proposal = propose(state)
-        if proposal.clearances:
+        before_order = state.get("planned_sequence", [])
+        material_causes = bool(state.get("replan_causes"))
+        if sandbox.active(state):
+            state["replan_causes"] = list(
+                dict.fromkeys(
+                    state["replan_causes"]
+                    + [
+                        i["id"]
+                        for i in state["interventions"]
+                        if i["status"] in ("active", "admitted")
+                    ]
+                )
+            )
+        verdict = (
             apply_proposal(state, proposal)
+            if proposal.clearances
+            else {"status": "unresolved", "checks": []}
+        )
+        if sandbox.active(state):
+            if (
+                material_causes
+                or proposal.clearances
+                or proposal.sequence != before_order
+            ):
+                sandbox.response(state, proposal, verdict, before_order)
+            state["replan_causes"] = []
+            state["planned_sequence"] = proposal.sequence
     if (
         state["controller"] == "fixture"
         and state["clock"] - state["last_model_clock"] >= 30
@@ -252,7 +299,8 @@ def mutate(db, team, run_id, operation, command):
                     break
         event(state, "control", action=command.action)
     elif operation == "disruption":
-        apply_disruption(state, command)
+        state["command_before_revision"] = run.revision
+        apply_disruption(state, command, scenario_for(db, state["scenario_id"]))
     elif operation == "propose":
         proposal = command.proposal
         verdict = apply_proposal(state, proposal, execute=False)
@@ -317,9 +365,20 @@ def fork(db, team, run_id, command):
     return response
 
 
-def apply_disruption(state, command):
+def apply_disruption(state, command, scenario=None):
     if state["status"] in ("failed", "complete"):
         raise ValueError("Finished run cannot be changed")
+    from . import sandbox
+
+    if sandbox.active(state) and sandbox.intervene(state, command, scenario):
+        return
+    if command.kind in (
+        "weather_restriction",
+        "pilot_delay",
+        "extra_arrival",
+        "recover",
+    ):
+        raise ValueError("Interactive intervention requires a sandbox run")
     if command.kind == "runway_closure":
         affected = []
         if command.runway not in state["closed_runways"]:

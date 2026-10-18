@@ -25,6 +25,7 @@ from .contracts import (
     Commit,
     Compare,
     CompareRun,
+    CompareIntervention,
     Control,
     Disruption,
     Fork,
@@ -179,6 +180,18 @@ def create_app(database=None, secure_cookies=True):
                             or installed.checksum != expected["checksum"]
                         ):
                             raise ValueError("Current demo pack missing or mismatched")
+                from .sandbox import SCENARIO, scenario_from
+                from .data import digest
+
+                source = db.get(Artifact, "early-august-dense-demo-v1")
+                sandbox_artifact = db.get(Artifact, SCENARIO)
+                if (
+                    source is None
+                    or sandbox_artifact is None
+                    or sandbox_artifact.checksum
+                    != digest(scenario_from(source.payload))
+                ):
+                    raise ValueError("Sandbox scenario missing or mismatched")
                 dense = db.get(Artifact, "dense-demo-v1")
                 if dense is None or dense.kind != "demo_recording":
                     raise ValueError("Default dense recording missing")
@@ -627,6 +640,75 @@ def create_app(database=None, secure_cookies=True):
                     "source_revision": run.revision,
                     "candidate": candidate,
                     "event_tape": [e for e in journal if e["kind"] == "disruption"],
+                },
+            )
+            db.add(job)
+            response = {"id": job.id, "status": "queued"}
+            service.record(db, key, command.model_dump(), response)
+            return response
+
+    @app.post("/api/v2/runs/{run_id}/compare-intervention")
+    def compare_intervention(
+        run_id: str, command: CompareIntervention, request: Request
+    ):
+        with database.transaction() as db:
+            run = service.get_run(db, run_id, request.state.user["team"], lock=True)
+            key = run.team + ":counterfactual:" + run.id + ":" + command.idempotency_key
+            prior = service.previous(db, key, command.model_dump())
+            if prior:
+                return prior
+            if run.revision != command.expected_revision:
+                raise ValueError("Stale revision; refresh the run")
+            intervention = next(
+                (
+                    i
+                    for i in run.state.get("interventions", [])
+                    if i["id"] == command.intervention_id
+                ),
+                None,
+            )
+            if not intervention:
+                raise ValueError("Intervention not found")
+            checkpoint = db.scalar(
+                select(Checkpoint).where(
+                    Checkpoint.run_id == run.id,
+                    Checkpoint.revision == intervention["before_revision"],
+                )
+            )
+            if checkpoint is None:
+                raise ValueError("Pre-intervention checkpoint unavailable")
+            horizon = max(
+                command.seconds, int(run.state["clock"] - checkpoint.state["clock"])
+            )
+            if horizon > 1200:
+                raise ValueError(
+                    "Comparison checkpoint is outside the 1200-second comparison limit"
+                )
+            journal = [
+                {"kind": e.kind, "clock": e.clock, "payload": e.payload}
+                for e in db.scalars(
+                    select(Event)
+                    .where(
+                        Event.run_id == run.id,
+                        Event.sequence > checkpoint.state["event_sequence"],
+                        Event.kind == "disruption",
+                    )
+                    .order_by(Event.sequence)
+                )
+            ]
+            job = Job(
+                id=service.identifier(),
+                team=run.team,
+                payload={
+                    "scenario_id": run.state["scenario_id"],
+                    "seed": run.state["seed"],
+                    "seconds": horizon,
+                    "controllers": ["with_intervention", "without_intervention"],
+                    "initial_state": checkpoint.state,
+                    "omitted_intervention": command.intervention_id,
+                    "event_tape": journal,
+                    "source_run_id": run.id,
+                    "source_revision": run.revision,
                 },
             )
             db.add(job)

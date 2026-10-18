@@ -33,9 +33,10 @@ def initial_state(scenario, seed, controller):
         "scenario_id": scenario["id"],
         "dataset_id": scenario["dataset_id"],
         "scenario_hash": digest(scenario),
-        "simulator_version": SIMULATOR_VERSION,
+        "simulator_version": scenario.get("simulator_version", SIMULATOR_VERSION),
         "rule_version": VERSION,
-        "policy_version": controller + "-2",
+        "policy_version": controller
+        + ("-sandbox-1" if scenario.get("simulator_version") else "-2"),
         "clock": scenario["start"],
         "start": scenario["start"],
         "end": scenario["end"],
@@ -125,6 +126,7 @@ def public_state(state):
     out = copy.deepcopy(state)
     out.pop("_events", None)
     out.pop("spawn_cursor", None)
+    out.pop("_admission_schedule", None)
     out["metrics"]["backlog"] = out["total_demand"] - out["metrics"]["completed"]
     out["metrics"]["admitted"] = len(out["aircraft"])
     delays = sorted(
@@ -139,6 +141,17 @@ def public_state(state):
 
 def issue(state, clearance):
     a = next(a for a in state["aircraft"] if a["id"] == clearance["aircraft_id"])
+    if state.get("sandbox") and clearance["kind"] == "speed":
+        restrictions = any(
+            i["kind"] == "weather_restriction" and i["status"] == "active"
+            for i in state["interventions"]
+        )
+        if restrictions and clearance.get("value") == 130:
+            state.setdefault("speed_restore", {}).setdefault(
+                a["id"], round(a["target_ias_kt"] / 5) * 5
+            )
+        elif not restrictions:
+            state.get("speed_restore", {}).pop(a["id"], None)
     state["next_clearance"] += 1
     c = {
         **clearance,
@@ -147,6 +160,14 @@ def issue(state, clearance):
         "respond_at": state["clock"] + state["communications_delay"],
         "status": "issued",
         "expires_at": state["clock"] + 120,
+        **(
+            {
+                "cause_ids": list(dict.fromkeys(state.get("replan_causes", []))),
+                "decision_id": f"d{state.get('decision_counter', 0) + 1}",
+            }
+            if state.get("sandbox")
+            else {}
+        ),
     }
     state["clearances"].append(c)
     event(state, "clearance_issued", clearance=c, text=phrase(a, c))
@@ -201,6 +222,14 @@ def pilot_responses(state):
             "pilot_acknowledged",
             clearance_id=c["id"],
             aircraft_id=a["id"],
+            **(
+                {
+                    "cause_ids": c.get("cause_ids", []),
+                    "decision_id": c.get("decision_id"),
+                }
+                if state.get("sandbox")
+                else {}
+            ),
             fields={k: c.get(k) for k in ("kind", "value", "target")},
             text=phrase(a, c),
         )
@@ -214,6 +243,9 @@ def pilot_responses(state):
             a["target_heading_deg"] = c["value"]
         elif kind == "landing":
             a["landing_authorized"] = True
+            if state.get("sandbox"):
+                a["landing_cause_ids"] = c.get("cause_ids", [])
+                a["landing_decision_id"] = c.get("decision_id")
             a["runway"] = c["target"]
         elif kind == "takeoff":
             a["status"] = "departure"
@@ -246,7 +278,19 @@ def move(a, state):
             state["runway_occupant"] = None
             a["delay_seconds"] = max(0, state["clock"] - a["nominal_finish_clock"])
             state["metrics"]["delay_seconds_sum"] += a["delay_seconds"]
-            event(state, "arrival_completed", aircraft_id=a["id"])
+            event(
+                state,
+                "arrival_completed",
+                aircraft_id=a["id"],
+                **(
+                    {
+                        "cause_ids": a.get("landing_cause_ids", []),
+                        "decision_id": a.get("landing_decision_id"),
+                    }
+                    if state.get("sandbox")
+                    else {}
+                ),
+            )
         return
     target = THRESHOLDS[a["runway"]]
     distance = math.hypot(target[0] - a["x_nm"], target[1] - a["y_nm"])
@@ -296,7 +340,19 @@ def move(a, state):
             a["surface_seconds"] = 0
             state["runway_occupant"] = a["id"]
             state["last_runway_use"] = state["clock"]
-            event(state, "touchdown_simulated", aircraft_id=a["id"])
+            event(
+                state,
+                "touchdown_simulated",
+                aircraft_id=a["id"],
+                **(
+                    {
+                        "cause_ids": a.get("landing_cause_ids", []),
+                        "decision_id": a.get("landing_decision_id"),
+                    }
+                    if state.get("sandbox")
+                    else {}
+                ),
+            )
         else:
             a["status"] = "go_around"
             a["target_altitude_ft"] = 4000.0

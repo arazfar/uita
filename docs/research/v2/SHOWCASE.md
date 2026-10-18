@@ -304,3 +304,67 @@ setup, consistent with its unchanged 30 FPS cap. Physical-mobile and hosted
 performance were not measured. Offline regional imagery is low resolution;
 airport imagery and configured photoreal rendering remain available. No paid
 inference or production rollout was performed.
+
+## Interactive disruption sandbox (sandbox-3)
+
+Choose **Try a disruption → Start sandbox**. The worker prepares the new
+`early-august-sandbox-v1` scenario through 300 simulated seconds of pre-roll.
+The recording stays visible until preparation succeeds. This opens seven airborne
+synthetic aircraft; it does not resume the recording's arbitrary playback position.
+Start/reset creates a separate run; old evidence remains available. No model or
+provider key is used. Bootstrap installs this derived scenario idempotently from
+the packaged dense scenario; `/health/demo` checks its checksum. Use the startup
+commands above, including migrations, bootstrap, API and worker. Existing recordings
+and their simulator versions are unchanged. Deploy API and worker together;
+production rollout has not been performed for this change.
+
+Preset scripts:
+
+1. **Runway restriction and recovery:** restrict 28L, observe causal controller cards
+   and pending clearances; watch automatic recovery after 120 simulated seconds.
+   Any temporary speed reduction is restored through a separately verified command.
+   “Recover now” requests early recovery; a separate permanent closure stays closed.
+2. **Priority under traffic:** choose an approaching aircraft, request priority.
+   The queue considers emergency status but existing commitments and the single
+   corridor may require waiting. This is not a model of professional emergency handling.
+3. **Delayed acknowledgment + extra demand:** pilot responses take 15 seconds for
+   120 seconds. The extra aircraft waits privately for a safe admission slot;
+   subsequent unobserved demand shifts by 240 seconds. Admission is not immediate.
+   At most three extra requests are allowed. Unadmitted traffic remains backlog at
+   the run horizon. No decorative aircraft are inserted.
+
+The map card links explicit disruption identifiers to controller decisions,
+acknowledgments and executed outcomes. The drawer retains complete evidence.
+**Compare without this disruption** simulates both branches from the persisted
+checkpoint immediately before that intervention, preserving other recorded
+interventions and seed. The comparison has a bounded horizon (UI: 300 seconds,
+expanded to cover already elapsed time, API maximum: 1,200). Both branches are
+simulated; they are not measured real-world counterfactuals. Export includes the
+selected comparison and its admission differences. Late comparisons beyond the
+bound are rejected explicitly.
+
+Validation on local macOS, Python 3.11, SQLite, headless Chromium:
+
+- 294 backend tests and 32 showcase tests passed; both frontend builds and packaging
+  checks passed. Fresh database migration/bootstrap succeeds without source DB or
+  provider credentials. Existing large-bundle build warnings remain.
+- Each of the four interventions was replayed twice through 1,200 simulated seconds
+  with equal state hashes and no motion failure. Delay plus extra demand also passed;
+  unsafe admission remains deferred. Weather recovery regression covers the formerly
+  persistent speed reduction that caused a later conflict.
+- Worker recreation during pre-roll, checkpoint comparison, idempotency, overlapping
+  permanent/temporary closures, limits and recovery are covered by backend tests.
+- Browser: recording → sandbox → restriction → recovery → combined preset → priority
+  → comparison → export; dashboard/tower, historical return, reload and 390px layout.
+  Final click-to-confirmation measurement: **100 ms locally** (one sample, not p95).
+  Controller reconsideration occurs on the next simulation tick; aircraft response
+  takes simulated time. This is not a hosted-latency or FPS measurement.
+
+Remaining release checks: deployed PostgreSQL/container smoke and worker restart,
+failed-scenario injection in the new browser flow, and hosted performance.
+A short blocked-network test retained the scene and reconnected to the same run;
+a prolonged network partition has not been tested.
+No production acceptance or operational FAA compliance is claimed. The versioned
+`SANDBOX_REFERENCES` register in `standards.py` links FAA priority/weather/runway
+context; current pages are not asserted to be archived August authority. Separation,
+verification and inference budgets remain unchanged.

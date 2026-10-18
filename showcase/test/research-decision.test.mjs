@@ -166,3 +166,41 @@ test("same-tick cancellation or rejection supersedes issuance", () => {
     "Rejected",
   );
 });
+
+test("sandbox responses link only explicit intervention identifiers", () => {
+  const changed = {
+    sequence: 1,
+    clock: 10,
+    kind: "disruption",
+    payload: { disruption_id: "i-weather", kind: "weather_restriction" },
+  };
+  const response = {
+    sequence: 2,
+    clock: 11,
+    kind: "controller_response",
+    payload: {
+      decision_id: "d1",
+      cause_ids: ["i-weather"],
+      proposal,
+      verdict: { status: "unresolved" },
+      outcome: "deferred",
+      previous_sequence: ["a"],
+    },
+  };
+  const d = decisionAt([changed, response], frame, 11);
+  assert.equal(d.origin, "Controller decision");
+  assert.equal(d.phase, "Waiting");
+  assert.match(d.cause, /weather restriction/);
+  assert.equal(
+    decisionAt(
+      [
+        changed,
+        { ...response, payload: { ...response.payload, cause_ids: [] } },
+      ],
+      frame,
+      11,
+    ).cause,
+    "",
+  );
+  assert.equal(decisionAt([changed, response], frame, 10).phase, "Disruption");
+});

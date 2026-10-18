@@ -15,6 +15,7 @@ class Mutation(Contract):
 
 
 class RunCreate(Contract):
+    sandbox: bool = False
     scenario_id: str = Field(max_length=200)
     seed: int = Field(default=42, ge=0, le=100000)
     controller: Literal["fcfs", "static", "fixture", "crusoe"] = "fixture"
@@ -30,8 +31,18 @@ class Control(Mutation):
 
 
 class Disruption(Mutation):
+    duration_seconds: Literal[120] = 120
+    intervention_id: str | None = Field(default=None, max_length=150)
     kind: Literal[
-        "runway_closure", "weather", "readback_error", "communications", "emergency"
+        "runway_closure",
+        "weather",
+        "readback_error",
+        "communications",
+        "emergency",
+        "weather_restriction",
+        "pilot_delay",
+        "extra_arrival",
+        "recover",
     ]
     runway: Literal["28L", "28R"] = "28R"
     aircraft_id: str | None = None
@@ -72,6 +83,11 @@ class Commit(Mutation):
 
 class Fork(Mutation):
     checkpoint_revision: int = Field(ge=1)
+
+
+class CompareIntervention(Mutation):
+    intervention_id: str = Field(max_length=150)
+    seconds: int = Field(default=300, ge=1, le=1200)
 
 
 class CompareRun(Mutation):
@@ -174,7 +190,13 @@ class EvaluationReport(Contract):
 
 
 class ArrivalCue(Contract):
-    phase: Literal["approaching", "clearance_issued", "landing_authorized", "on_ground", "arrival_completed"]
+    phase: Literal[
+        "approaching",
+        "clearance_issued",
+        "landing_authorized",
+        "on_ground",
+        "arrival_completed",
+    ]
     basis: Literal["observed", "simulated", "inferred"]
     evidence_time: float
     runway: str | None = None
@@ -200,6 +222,10 @@ class PresentationAircraft(Contract):
 
 
 class PresentationFrame(Contract):
+    interventions: list[dict] = Field(default_factory=list)
+    admission_requests: list[dict] = Field(default_factory=list)
+    initialization_until: float | None = None
+    last_decision: dict | None = None
     source_id: str
     mode: Literal["simulation", "recording", "historical"]
     clock: float
