@@ -311,7 +311,7 @@ async function setPhotoreal(on) {
 }
 // default: try photoreal; fall back to the pack if nothing has rendered within 6 s
 setPhotoreal(true);
-setTimeout(() => { if (photoreal && !tilesSeen) { console.warn('photoreal: no tiles in 6 s, offline SFO pack'); setPhotoreal(false); } }, 6000);
+setTimeout(() => { if (photoreal && !tilesSeen) { console.warn('photoreal: no tiles in 25 s, offline SFO pack'); setPhotoreal(false); } }, 25000);
 
 // ---------- clock ----------
 const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');
