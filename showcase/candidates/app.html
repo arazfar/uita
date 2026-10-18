@@ -65,50 +65,67 @@
       <aside id="evidence-drawer" inert>
         <button id="drawer-close" aria-label="Close evidence">Close</button>
         <h1>Traffic & decisions</h1>
-        <nav aria-label="Mode">
-          <button data-mode="compare">Compare</button>
-        </nav>
-        <p>
-          <a href="/workbench">Workbench</a> · <span id="access-mode"></span>
-          <button id="logout">Sign out</button>
-        </p>
-        <div class="row">
-          <button id="step">+10 seconds</button
-          ><button id="close">Close 28R</button>
+        <!-- 1 · status strip: #connection keeps its id and live text; revision lives in its tooltip -->
+        <div class="ds-status">
+          <span id="ds-dot" class="ds-dot" aria-hidden="true"></span>
+          <div id="connection" role="status">Connecting</div>
+          <button id="ds-play" class="ds-icon" aria-label="Play or pause playback" title="Play / pause">▶</button
+          ><button id="step" class="ds-icon" aria-label="+10 seconds" title="+10 seconds">+10 s</button>
         </div>
-        <p id="source">Loading saved Nemotron recordings…</p>
         <label id="history-picker"
           >Historical hour<select id="history-datasets"></select
         ></label>
-        <label>Recording<select id="recordings"></select></label>
-        <div class="row">
-          <button id="recorded">Load recording</button
-          ><button id="export">Export evidence</button>
-        </div>
-        <details id="live-options">
-          <summary>Run a new simulation</summary>
-          <label>Validated scenario<select id="scenarios"></select></label
-          ><label
-            >Controller<select id="controller">
-              <option value="fixture">Authored fixture · free</option>
-              <option value="crusoe">Live Nemotron · up to $0.50</option>
-              <option value="static">Deterministic baseline · free</option>
-            </select></label
-          ><label
-            >Fixture fault<select id="fault">
-              <option value="none">None</option>
-              <option value="provider_timeout">Model failure</option>
-              <option value="budget_exhausted">Budget exhaustion</option>
-            </select></label
-          ><button id="create">Create isolated run</button>
-          <p>
-            Live calls use the shared budget. Fixture output is not Nemotron.
-          </p>
-        </details>
-        <div id="connection" role="status">Connecting</div>
         <div id="error" role="alert" hidden></div>
         <button id="retry" hidden>Reconnect</button>
-        <dl id="metrics"></dl>
+        <!-- 2 · controller badge + landing queue -->
+        <div id="ds-controller" class="ds-controller">Controller: —</div>
+        <ol id="ds-queue" class="ds-queue" aria-label="Landing queue"></ol>
+        <!-- 3 · KPI tiles (rendered into #metrics; More stats inside keeps controller text in #metrics) -->
+        <div id="metrics"></div>
+        <!-- 4 · runway availability + scenario action -->
+        <div id="ds-runways" class="ds-runways" aria-label="Runways"></div>
+        <button id="close" class="ds-scenario" aria-label="Close 28R" title="Scenario: close runway 28R">⚠ Close runway 28R</button>
+        <!-- 5 · disclaimer, collapsed -->
+        <details id="ds-about" class="ds-fold">
+          <summary>ⓘ About this run</summary>
+          <p id="source">Loading saved Nemotron recordings…</p>
+        </details>
+        <!-- 6 · advanced research controls, collapsed -->
+        <details id="advanced" class="ds-fold">
+          <summary>⋯ Advanced</summary>
+          <label>Recording<select id="recordings"></select></label>
+          <div class="row">
+            <button id="recorded">Load recording</button
+            ><button id="export">Export evidence</button>
+          </div>
+          <details id="live-options">
+            <summary>Run a new simulation</summary>
+            <label>Validated scenario<select id="scenarios"></select></label
+            ><label
+              >Controller<select id="controller">
+                <option value="fixture">Authored fixture · free</option>
+                <option value="crusoe">Live Nemotron · up to $0.50</option>
+                <option value="static">Deterministic baseline · free</option>
+              </select></label
+            ><label
+              >Fixture fault<select id="fault">
+                <option value="none">None</option>
+                <option value="provider_timeout">Model failure</option>
+                <option value="budget_exhausted">Budget exhaustion</option>
+              </select></label
+            ><button id="create">Create isolated run</button>
+            <p>
+              Live calls use the shared budget. Fixture output is not Nemotron.
+            </p>
+          </details>
+          <nav aria-label="Mode">
+            <button data-mode="compare">Compare</button>
+          </nav>
+          <p>
+            <a href="/workbench">Workbench</a> · <span id="access-mode"></span>
+            <button id="logout">Sign out</button>
+          </p>
+        </details>
         <section id="comparison" hidden>
           <h2>Matched comparison</h2>
           <p>

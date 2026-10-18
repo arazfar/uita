@@ -11,6 +11,8 @@ async (page) => {
     .first()
     .waitFor({ state: "attached" });
   await page.locator("#drawer-toggle").click();
+  // Recording, export, compare and run controls live in the collapsed "Advanced" fold.
+  await page.locator("#advanced").evaluate((d) => (d.open = true));
   await page.locator("#recordings").selectOption("nemotron-aug06-closure-v1");
   await page.locator("#recorded").click();
   // A rejected source change must retain the current recording and export.
@@ -167,6 +169,8 @@ async (page) => {
   );
   await page.reload();
   await page.locator("#drawer-toggle").click();
+  // Recording, export, compare and run controls live in the collapsed "Advanced" fold.
+  await page.locator("#advanced").evaluate((d) => (d.open = true));
   await page.waitForFunction(() =>
     document.querySelector("#connection").textContent.includes("Live backend"),
   );
@@ -226,6 +230,8 @@ async (page) => {
   await page.route("**/vendor/cesium/Cesium.js", (r) => r.abort());
   await page.reload();
   await page.locator("#drawer-toggle").click();
+  // Recording, export, compare and run controls live in the collapsed "Advanced" fold.
+  await page.locator("#advanced").evaluate((d) => (d.open = true));
   await page.waitForFunction(() =>
     document
       .querySelector("#render-status")

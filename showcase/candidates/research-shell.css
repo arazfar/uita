@@ -835,3 +835,46 @@ body.drawer-open #arrivals-queue {
     box-sizing: border-box;
   }
 }
+
+/* ---------- Traffic & decisions: status, controller, queue, KPIs, runways ---------- */
+#evidence-drawer h1 { margin-bottom: 12px; }
+.ds-status { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.04); }
+.ds-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #7b8a92; }
+.ds-dot.on { background: #4ade80; box-shadow: 0 0 0 4px rgba(74,222,128,.15); }
+#evidence-drawer #connection { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-icon { flex: none; min-width: 34px; height: 30px; padding: 0 9px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.07); border-color: transparent; }
+.ds-icon:hover:not(:disabled) { background: rgba(255,255,255,.14); }
+.ds-controller { margin: 14px 2px 6px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--signal); }
+.ds-queue { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 4px; }
+.ds-queue button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; border-color: transparent; background: rgba(255,255,255,.04); text-align: left; }
+.ds-queue button:hover, .ds-queue button[aria-pressed="true"] { background: rgba(255,255,255,.1); }
+.ds-queue strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-pill { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; color: var(--tone); background: color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+.ds-q-meta { font-size: 11px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ds-empty { font-size: 12px; color: var(--muted); padding: 6px 2px; }
+#metrics { margin: 0 0 12px; }
+#metrics .ds-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0; }
+#metrics .kpi { padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.05); }
+#metrics .kpi dt { font-size: 11px; color: var(--muted); letter-spacing: .03em; }
+#metrics .kpi dd { margin: 2px 0 0; font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+#metrics .kpi.safety.ok dd { color: #4ade80; }
+#metrics .kpi.safety.bad dd { color: #ff6b6b; }
+.ds-more { margin-top: 6px; font-size: 12px; }
+.ds-more summary, .ds-fold > summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 4px 0; }
+.ds-more-dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 6px 0 0; }
+.ds-more-dl dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ds-runways { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 8px; }
+.ds-rwy { font: 600 11.5px/1 ui-monospace, Menlo, monospace; padding: 6px 8px; border-radius: 6px; background: rgba(255,255,255,.07); }
+.ds-rwy.off { color: #6b7a82; background: rgba(255,255,255,.03); text-decoration: line-through; }
+.ds-scenario { width: 100%; margin: 0 0 12px; padding: 8px 10px; border-radius: 8px; color: #fbbf24; border-color: rgba(251,191,36,.35); background: rgba(251,191,36,.08); text-align: left; }
+.ds-scenario:hover:not(:disabled) { background: rgba(251,191,36,.16); }
+.ds-scenario:disabled { color: var(--muted); border-color: var(--line); background: transparent; }
+.ds-fold { border-top: 1px solid rgba(255,255,255,.07); padding: 6px 0; }
+.ds-fold[open] { padding-bottom: 10px; }
+#advanced label { display: block; margin: 6px 0; }
+@media (max-width: 700px) {
+  /* the drawer carries its own play / +10 s controls, so the footer does not cover it on phones */
+  body.drawer-open footer { display: none; }
+  .ds-queue button { grid-template-columns: minmax(0, 1fr) auto; }
+  .ds-q-meta { grid-column: 1 / -1; }
+}

@@ -328,6 +328,7 @@ function controls() {
     : playing
       ? "Pause recording"
       : "Play recording";
+  $("ds-play").disabled = $("play").disabled;
   $("step").disabled =
     locked || !frame || (live && (terminal || frame.status === "running"));
   $("export").disabled = locked || (!recording && !run);
@@ -496,8 +497,15 @@ function render() {
       `${recording.title} · ${recording.model} · ${recording.model_responses} model responses · ${recording.fallback_count} fallbacks. ${recording.limitations.join(". ")}`;
   $("clock").textContent = timeLabel(clock || frame.clock);
   $("seek").value = String(clock);
+  // Status strip: readable summary; the raw status and revision stay in the tooltip for researchers.
+  const what = mode === "historical" ? "observed traffic" : String(recording?.title || run?.state?.scenario || "simulation").replace(/^San Francisco · /, "").replace(/ · synthetic$/, "");
+  const hhmm = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date((clock || frame.clock) * 1000));
   $("connection").textContent =
-    `${run ? "Live backend" : "Recorded playback"} · ${frame.status} · revision ${frame.revision}`;
+    `${run && mode !== "historical" ? "Live backend" : "Recorded playback"} · SFO · ${what} · ${hhmm} PDT`;
+  $("connection").title = `${recording?.title || run?.state?.scenario || ""} · ${timeLabel(clock || frame.clock)} · ${frame.status} · revision ${frame.revision}`;
+  const moving = run && mode !== "historical" ? frame.status === "running" : playing;
+  $("ds-dot").classList.toggle("on", !!moving);
+  $("ds-play").textContent = moving ? "⏸" : "▶";
   if (
     run &&
     frame.status === "running" &&
@@ -544,9 +552,7 @@ function render() {
               : "Recorded; see export",
           ],
         ];
-  $("metrics").innerHTML = metricRows
-    .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
-    .join("");
+  renderPanel(shown, metricRows, m, arrivals);
   $("traffic-count").textContent = `(${shown.aircraft.length})`;
   const table = $("traffic");
   const rows = new Map(
@@ -1180,6 +1186,80 @@ action(async () => {
     );
 });
 
+// "Traffic & decisions" panel: KPI tiles, More stats, runway chips, controller badge, landing queue.
+// #metrics keeps every metric's text (acceptance reads the controller name from it).
+const RUNWAYS = ["28L", "28R", "01L", "01R", "19L", "19R"];
+const KPI = {
+  "Executed completions": ["Landed", "kpi"],
+  "Unfinished backlog": ["Waiting", "kpi"],
+  "Completed-only mean delay · s": ["Avg delay · s", "kpi"],
+  "Executed violations": ["Safety violations", "kpi safety"],
+};
+function renderPanel(shown, metricRows, m, arrivals) {
+  const box = $("metrics");
+  if (!box.querySelector(".ds-kpis")) {
+    box.innerHTML =
+      '<dl class="ds-kpis"></dl><details class="ds-more"><summary>More stats</summary><dl class="ds-more-dl"></dl></details>';
+  }
+  const tiles = metricRows.filter(([k]) => KPI[k] || mode === "historical");
+  const rest = metricRows.filter(([k]) => !KPI[k] && mode !== "historical");
+  box.querySelector(".ds-kpis").innerHTML = tiles
+    .map(([k, v]) => {
+      const [label, cls] = KPI[k] || [k, "kpi"];
+      const bad = cls.includes("safety") && Number(v) > 0;
+      const shownV = cls.includes("safety") && v !== "—" ? (bad ? v : `${v} ✓`) : v;
+      return `<div class="${cls}${cls.includes("safety") ? (bad ? " bad" : " ok") : ""}" title="${esc(k)}"><dt>${esc(label)}</dt><dd>${esc(shownV)}</dd></div>`;
+    })
+    .join("");
+  box.querySelector(".ds-more-dl").innerHTML = rest
+    .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
+    .join("");
+  box.querySelector(".ds-more").hidden = !rest.length;
+  // runway chips
+  const closed = new Set(shown.closed_runways || []);
+  const chips = RUNWAYS.map(
+    (r) => `<span class="ds-rwy${closed.has(r) ? " off" : ""}" title="${closed.has(r) ? "Unavailable" : "Available"}">${r}</span>`,
+  ).join("");
+  if ($("ds-runways").innerHTML !== chips) $("ds-runways").innerHTML = chips;
+  // controller badge
+  const fixture = recording?.provenance === "fixture";
+  const ctrl = String(shown.controller || "—");
+  const model = !fixture && /nemotron|crusoe|model|llm/i.test(ctrl + " " + (recording?.model || ""));
+  const lat = events
+    .filter((e) => e.clock <= clock)
+    .map((e) => e.payload?.latency_ms ?? e.payload?.elapsed_ms ?? e.payload?.model_latency_ms)
+    .filter((x) => Number.isFinite(x))
+    .pop();
+  $("ds-controller").textContent =
+    mode === "historical"
+      ? "Observed traffic · no controller"
+      : model
+        ? `Nemotron${lat != null ? ` · decided in ${(lat / 1000).toFixed(1)} s` : ` · ${recording?.model || ctrl}`}`
+        : `Controller: ${ctrl}${fixture ? " · scripted" : ""}`;
+  // landing queue (same data-aircraft selection as the floating queue)
+  const qKey = JSON.stringify(arrivals.slice(0, 6).map((a) => [a.id, arrivalLabel(a), a.arrival_cue.runway, a.arrival_cue.distance_nm, selected === a.id]));
+  const q = $("ds-queue");
+  if (q.dataset.key !== qKey) {
+    q.dataset.key = qKey;
+    q.innerHTML = arrivals.length
+      ? arrivals
+          .slice(0, 6)
+          .map(
+            (a) =>
+              `<li><button data-aircraft="${esc(a.id)}" aria-pressed="${selected === a.id}"><strong>${esc(a.callsign)}</strong><span class="ds-pill" style="--tone:${TONE_CSS[arrivalTone(a)]}">${esc(arrivalLabel(a).split(" · ")[0])}</span><span class="ds-q-meta">${esc(a.arrival_cue.runway || "—")}${a.arrival_cue.distance_nm != null ? ` · ${Number(a.arrival_cue.distance_nm).toFixed(0)} NM` : ""}</span></button></li>`,
+          )
+          .join("")
+      : '<li class="ds-empty">No arrivals in the landing queue</li>';
+    q.querySelectorAll("[data-aircraft]").forEach(
+      (b) =>
+        (b.onclick = () => {
+          selected = b.dataset.aircraft;
+          render();
+        }),
+    );
+  }
+}
+$("ds-play").onclick = () => $("play").click();
 function drawer(open) {
   document.body.classList.toggle("drawer-open", open);
   $("evidence-drawer").inert = !open;
