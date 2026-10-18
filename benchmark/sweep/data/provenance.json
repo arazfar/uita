@@ -1,0 +1,164 @@
+{
+  "sources": {
+    "roster": {
+      "file": "pipeline/.cache/sweep-2026-08-24_30/datasf-arrivals.json",
+      "sha256": "8191f4796799132ad0e2343ba602092fc46ef53d7743e8ba8065290f51c73596",
+      "bytes": 888998,
+      "url": "https://data.sf.gov/resource/43zc-xw3x.json",
+      "query": {
+        "$select": "operation_no,flight_date_time,runway_name,aircraft_type,airline,other_port,flight_no,tail_number,airport_code",
+        "$group": "operation_no,flight_date_time,runway_name,aircraft_type,airline,other_port,flight_no,tail_number,airport_code",
+        "$where": "operation_type='A' AND airport_code='SFO' AND flight_date_time >= '2026-08-24T00:00:00' AND flight_date_time < '2026-08-31T00:00:00'",
+        "$order": "flight_date_time,operation_no",
+        "$limit": 50000
+      },
+      "rows": 4126,
+      "eligible_arrivals": 4076,
+      "dropped": {
+        "non_named_runway": 50
+      }
+    },
+    "observed_paths": {
+      "file": "pipeline/.cache/sfomuseum-data-flights-2026-08.parquet",
+      "sha256": "c3bfa8320110aba8d3c9f5a0ab30dd2a7ddf53ac7f4dc9debd596a20a9f27c43",
+      "bytes": 66135198,
+      "url": "https://static.sfomuseum.org/parquet/sfomuseum-data-flights-2026-08.parquet",
+      "metadata_predicates": [
+        [
+          "flysfo:date",
+          ">=",
+          "2026-08-24"
+        ],
+        [
+          "flysfo:date",
+          "<=",
+          "2026-08-30"
+        ],
+        [
+          "flysfo:event",
+          "=",
+          "A"
+        ]
+      ],
+      "selected_metadata_records": 13633,
+      "selected_path_variants": 0,
+      "usable_paths": 0,
+      "observed_initial_states": 0,
+      "match_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "quality_counts": {}
+    },
+    "weather": {
+      "file": "pipeline/.cache/sweep-2026-08-24_30/ksfo-metar-through-2026-08-31.csv",
+      "sha256": "e4f825c99b6264390d3149ef79405f5e18974c56926d34ebce5eeb3a5a145b5f",
+      "bytes": 59163,
+      "url": "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py",
+      "query": [
+        [
+          "station",
+          "SFO"
+        ],
+        [
+          "data",
+          "all"
+        ],
+        [
+          "year1",
+          2026
+        ],
+        [
+          "month1",
+          8
+        ],
+        [
+          "day1",
+          23
+        ],
+        [
+          "year2",
+          2026
+        ],
+        [
+          "month2",
+          9
+        ],
+        [
+          "day2",
+          1
+        ],
+        [
+          "tz",
+          "Etc/UTC"
+        ],
+        [
+          "format",
+          "onlycomma"
+        ],
+        [
+          "latlon",
+          "yes"
+        ],
+        [
+          "elev",
+          "yes"
+        ],
+        [
+          "missing",
+          "M"
+        ],
+        [
+          "trace",
+          "T"
+        ],
+        [
+          "direct",
+          "no"
+        ],
+        [
+          "report_type",
+          "3"
+        ],
+        [
+          "report_type",
+          "4"
+        ]
+      ],
+      "reports": 243
+    },
+    "frozen_development_templates": {
+      "file": "pipeline/build/templates.json",
+      "sha256": "405a10f11b001a37a0ff032b8e352af3db4e4bf7ba071204e8353c07b25bd413",
+      "bytes": 553247,
+      "count": 1152,
+      "fit_dates": [
+        "2026-08-03",
+        "2026-08-06"
+      ]
+    }
+  },
+  "selected_roster_sha256": "b1dd91ec8c1e3ee6152fa55dcfeb49028cbb082019ea717b8d309f171314de17",
+  "source_arrival_operations_all_day": 4076,
+  "all_day_roster_counts": {
+    "2026-08-24": 621,
+    "2026-08-25": 542,
+    "2026-08-26": 552,
+    "2026-08-27": 608,
+    "2026-08-28": 614,
+    "2026-08-29": 514,
+    "2026-08-30": 625
+  },
+  "all_day_initial_state_strata": {
+    "observed": 0,
+    "synthetic_training_template": 4076
+  },
+  "timezone_interpretation": "DataSF naive operation times interpreted as America/Los_Angeles, matching the existing benchmark extraction assumption.",
+  "missing_paths": "No late-week swim-path variants exist for selected arrival metadata in the cached monthly GeoParquet. Therefore all initial states are explicitly synthetic August 3\u20136 templates, shifted by actual late-week recorded operation times.",
+  "synthetic_timing": "Missing-path entry time = actual recorded arrival-operation time minus unchanged development-template lead time. This is historical-demand reconstruction, not a measured historical entry time.",
+  "limits": [
+    "Recorded operation times are not verified touchdown times or human clearances.",
+    "No actual airline delay, human action labels or counterfactual outcomes.",
+    "Observed path matching is one-to-one, callsign/registration plus arrival endpoint within 1200 seconds.",
+    "No recorded assigned runway, target-day future paths or actual operation time is exported into an episode.",
+    "All future episode queues and reports are runner-private; expose only causal releases.",
+    "August 8\u20139 scenario, operation and path rows are not selected by this builder."
+  ]
+}

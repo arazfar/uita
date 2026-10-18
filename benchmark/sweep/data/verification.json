@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "manifest_sha256": "899a3a5d89c292c8dabbc983d06dd09e5a91d723bc8ac04719a2000d9a378057",
+  "episodes": 42,
+  "source_arrival_operations": 1029,
+  "position_strata": {
+    "synthetic_training_template": 1029
+  },
+  "no_repeated_source_operations": true,
+  "all_windows_nonempty": true,
+  "causal_weather_available_every_start": true,
+  "all_templates_fit_only_august_3_to_6": true,
+  "august_8_9_not_selected": true
+}

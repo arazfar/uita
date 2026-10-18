@@ -4,6 +4,8 @@ This benchmark measures whether a model predicts the recorded order of two SFO a
 
 For controller safety and added-delay evaluation, use the separate [historical-demand closed-loop benchmark](closed_loop/README.md). It executes checked plans and replans after traffic arrives. Its objective differs from this pair-prediction task.
 
+The [late-August model sweep](sweep/README.md) compares five base models with reasoning ON and OFF. It uses 42 matched windows from August 24–30, with scripted and deterministic baselines rerun on the same traffic. Its [leaderboard](sweep/reports/2026-08-24_30/index.html) reports completion, delay, safety checks, fallback use and cost. All 1,029 initial states use explicitly synthetic development templates; arrival demand comes from the target dates.
+
 The five-model comparison is complete. Read [results](reports/2026-10-17/comparison.md), [how to test and the exact objective function](TESTING.md), and [Railway verification](reports/2026-10-17/railway-verification.json). The database upload contains only the 141 validation cases, predictions/results, and verification metadata. Fine-tuning is deferred.
 
 Two designs were considered. Reusing the backend planner would preserve its richer scheduling constraints, but its current cases are synthetic mixed arrivals/departures and its model revises observation programs rather than directly ordering real arrivals. A dedicated arrival-pair task supports the same compact input/action contract across different untuned models. We chose the dedicated task for this experiment and report its narrow scope.

@@ -1,0 +1,68 @@
+{
+  "traffic_version": "historical-closed-loop-sweep-traffic-v1",
+  "source_dataset_id": "sfo-historical-demand-2026-08-24_30-v1",
+  "split_dates": {
+    "evaluation": [
+      "2026-08-24",
+      "2026-08-25",
+      "2026-08-26",
+      "2026-08-27",
+      "2026-08-28",
+      "2026-08-29",
+      "2026-08-30"
+    ]
+  },
+  "loader_sha256": "ed54b28a2cda97d4d1426e0a3b7479384086a0edd417464d664de3236eef7148",
+  "seed": 17,
+  "scenario_variants": [
+    "nominal"
+  ],
+  "artifacts": {
+    "evaluation.json": {
+      "sha256": "61f52bfd4de711048bf8a11ae383c1a2da63b2a3dc6ccabfaa1915ed6b24f8b3",
+      "bytes": 448467,
+      "episodes": 42,
+      "source_arrival_operations": 1029,
+      "position_strata": {
+        "synthetic_training_template": 1029
+      },
+      "per_day": {
+        "2026-08-24": {
+          "episodes": 6,
+          "source_arrival_operations": 143
+        },
+        "2026-08-25": {
+          "episodes": 6,
+          "source_arrival_operations": 146
+        },
+        "2026-08-26": {
+          "episodes": 6,
+          "source_arrival_operations": 145
+        },
+        "2026-08-27": {
+          "episodes": 6,
+          "source_arrival_operations": 156
+        },
+        "2026-08-28": {
+          "episodes": 6,
+          "source_arrival_operations": 149
+        },
+        "2026-08-29": {
+          "episodes": 6,
+          "source_arrival_operations": 133
+        },
+        "2026-08-30": {
+          "episodes": 6,
+          "source_arrival_operations": 157
+        }
+      }
+    },
+    "provenance.json": {
+      "sha256": "dd2bfec4d31538fa330bd0cc92e6c1ed9d4b99645af5baca1f57376e5727b4f0",
+      "bytes": 4995
+    }
+  },
+  "privacy": "Trusted runner only; complete future queues never enter model prompts.",
+  "held_out": "August 8\u20139 stay sealed. New evaluation dates are August 24\u201330.",
+  "comparison": "Rerun scripted and deterministic baselines on these same 42 windows. Earlier August 7 scores are historical references, not matched comparators."
+}
