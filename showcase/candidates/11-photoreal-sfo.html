@@ -421,9 +421,9 @@ if (RECORDED) {
 // /uita/api/history (ADSB.lol, ODbL). Replaces the scripted airliners; falls back to them if the API fails.
 const REC = { ok: false, hour: 0, acc: 0, data: new Map(), ents: new Map(), lastWall: 0, pick: null };
 const REC_RATE = 20, REC_KM = 150; // whole Bay: SFO, OAK, SJC and far-out arrivals/departures
-// Show a stable ~10% sample of recorded flights (by ICAO id hash), so the scene
+// Show a stable ~30% sample of recorded flights (by ICAO id hash), so the scene
 // stays readable; ?rec=1 shows all.
-const REC_SHARE = Number(new URLSearchParams(location.search).get('rec')) || 0.1;
+const REC_SHARE = Number(new URLSearchParams(location.search).get('rec')) || 0.3;
 const recKeep = id => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return ((h >>> 0) % 1000) < REC_SHARE * 1000; };
 const HEAVY_RE = /^(B77|B74|A35|B78|A38|A34|B76|MD11)/;
 const recFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
