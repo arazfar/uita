@@ -1,0 +1,193 @@
+@font-face {
+  font-family: "IBM Plex Sans Condensed";
+  src: url("/candidates/assets/fonts/ibm-plex-sans-condensed-latin-400-normal.woff2")
+    format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans Condensed";
+  src: url("/candidates/assets/fonts/ibm-plex-sans-condensed-latin-500-normal.woff2")
+    format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+.sfo-overview-shell {
+  --atc-room: #100e0c;
+  --atc-cabinet: #221b17;
+  --atc-panel: #b8b0a0;
+  --atc-panel-raised: #ccc3b3;
+  --atc-paper: #e6dfce;
+  --atc-ink: #25231e;
+  --atc-ink-muted: #48443b;
+  --atc-rule-panel: #5c564a;
+  --atc-screen: #060c0b;
+  --atc-screen-raised: #101a17;
+  --atc-text: #e8e3d5;
+  --atc-text-secondary: #a9b6a3;
+  --atc-focus-panel: #1b4f54;
+  --atc-font-ui: "IBM Plex Sans Condensed", "Helvetica Neue", sans-serif;
+  --sfo-shell-footer-height: 56px;
+  margin: 0;
+  width: 100%;
+  min-width: 320px;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  color: var(--atc-text);
+  background: var(--atc-room);
+  font: 400 14px/1.4 var(--atc-font-ui);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sfo-overview-shell *,
+.sfo-overview-shell *::before,
+.sfo-overview-shell *::after {
+  box-sizing: border-box;
+}
+
+.sfo-overview-shell .sfo-shell-views {
+  position: fixed;
+  inset: 0 0 var(--sfo-shell-footer-height);
+  background: var(--atc-room);
+}
+
+.sfo-overview-shell iframe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--atc-room);
+}
+
+.sfo-overview-shell [hidden] {
+  display: none !important;
+}
+
+.sfo-overview-shell .sfo-shell-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+  color: var(--atc-text-secondary);
+  background: var(--atc-screen);
+  text-align: center;
+}
+
+.sfo-overview-shell .sfo-shell-footer {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: var(--sfo-shell-footer-height);
+  padding: 4px 12px;
+  border-top: 4px solid var(--atc-cabinet);
+  color: var(--atc-ink);
+  background: var(--atc-panel);
+}
+
+.sfo-overview-shell .sfo-shell-identity {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.sfo-overview-shell .sfo-shell-current {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: auto;
+  padding: 0 8px;
+  color: var(--atc-ink-muted);
+  font-size: 13px;
+  text-underline-offset: 3px;
+}
+
+.sfo-overview-shell .sfo-shell-current:hover {
+  color: var(--atc-ink);
+}
+
+.sfo-overview-shell .sfo-shell-switch {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  height: 44px;
+}
+
+.sfo-overview-shell .sfo-shell-switch button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--atc-rule-panel);
+  border-radius: 2px;
+  color: var(--atc-ink);
+  background: var(--atc-panel-raised);
+  font: 500 14px/1.2 var(--atc-font-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sfo-overview-shell .sfo-shell-switch button:hover {
+  background: var(--atc-paper);
+}
+
+.sfo-overview-shell .sfo-shell-switch button[aria-pressed="true"] {
+  color: var(--atc-text);
+  background: var(--atc-screen-raised);
+  border-color: var(--atc-screen);
+  box-shadow: inset 0 -2px var(--atc-text-secondary);
+}
+
+.sfo-overview-shell :is(button, a):focus-visible {
+  outline: 2px solid var(--atc-focus-panel);
+  outline-offset: 2px;
+}
+
+.sfo-overview-shell .sfo-shell-switch kbd {
+  font: 400 12px/1.2 var(--atc-font-ui);
+  color: inherit;
+}
+
+@media (max-width: 639px) {
+  .sfo-overview-shell .sfo-shell-footer {
+    gap: 0;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .sfo-overview-shell :is(.sfo-shell-identity, .sfo-shell-current),
+  .sfo-overview-shell .sfo-shell-switch kbd {
+    display: none;
+  }
+
+  .sfo-overview-shell .sfo-shell-switch {
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .sfo-overview-shell .sfo-shell-switch button {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px;
+  }
+}

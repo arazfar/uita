@@ -18,6 +18,7 @@ output/
 .env*
 !.env.example
 dist/
+showcase/dist-overview/
 pipeline/.cache/
 pipeline/.venv/
 .DS_Store

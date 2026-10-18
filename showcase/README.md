@@ -8,6 +8,20 @@
 > they do not control connected research runs. Production uses `showcase/server.mjs`,
 > not the Vite development server. Public demo access needs no login.
 
+## Separate SFO overview
+
+Open `/sfo-overview/` for the Three.js landscape, recorded August 24–30 replay,
+source observations, and optional tower simulation. The existing `/` page and
+its research workflow remain unchanged. This route uses local scenery assets
+and the existing `/uita/api/history/` API; it needs no browser Maps key.
+
+`npm run build:overview` compiles the two new pages and their assets into
+`dist-overview/candidates/`. `Dockerfile.showcase-frontend` includes that build
+without rebuilding or replacing the existing app pages. For local development,
+set `UITA_SERVER_URL` to the research API server and run `npm run dev`.
+
+See [SFO_OVERVIEW.md](SFO_OVERVIEW.md) for data limits and verification.
+
 
 **Connected research demo:** the existing dashboard and tower cab now support
 shared historical/recorded/live research state, evidence inspection, matched

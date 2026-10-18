@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#100e0c" />
+    <title>UITA · SFO overview and tower</title>
+    <link rel="stylesheet" href="/src/overview/shell.css" />
+  </head>
+  <body class="sfo-overview-shell" data-view="dash">
+    <main class="sfo-shell-views" aria-label="SFO workspace">
+      <div class="sfo-shell-loading" id="shell-loading" role="status">
+        Loading recorded overview…
+      </div>
+      <iframe
+        id="dash"
+        title="UITA recorded SFO overview"
+        allow="autoplay"
+      ></iframe>
+      <iframe
+        id="cab"
+        title="UITA tower simulation"
+        allow="autoplay"
+        hidden
+      ></iframe>
+    </main>
+    <footer class="sfo-shell-footer">
+      <span class="sfo-shell-identity">UITA / SFO</span>
+      <a class="sfo-shell-current" href="/">Current UI</a>
+      <div class="sfo-shell-switch" role="group" aria-label="View">
+        <button type="button" data-view="dash" aria-pressed="true">
+          Recorded overview<kbd aria-hidden="true">T</kbd>
+        </button>
+        <button type="button" data-view="cab" aria-pressed="false">
+          Tower simulation
+        </button>
+      </div>
+    </footer>
+    <script type="module">
+      const frames = {
+        dash: document.getElementById("dash"),
+        cab: document.getElementById("cab"),
+      };
+      const sources = {
+        dash: "/candidates/overview.html",
+        cab: "/candidates/19-tower-cab-interior.html",
+      };
+      const labels = {
+        dash: "recorded overview",
+        cab: "tower simulation",
+      };
+      const protocols = { dash: "skyflow", cab: "uita" };
+      const loaded = new Set();
+      const loading = document.getElementById("shell-loading");
+      const buttons = document.querySelectorAll(
+        ".sfo-shell-switch button[data-view]",
+      );
+      let view = location.hash === "#cab" ? "cab" : "dash";
+
+      function signal(id, action) {
+        if (!loaded.has(id)) return;
+        frames[id].contentWindow?.postMessage(
+          { [protocols[id]]: action },
+          location.origin,
+        );
+      }
+
+      function syncVisibility() {
+        for (const id of Object.keys(frames)) {
+          signal(id, id === view && !document.hidden ? "resume" : "pause");
+        }
+      }
+
+      function updateControls() {
+        document.body.dataset.view = view;
+        for (const button of buttons) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.dataset.view === view),
+          );
+        }
+        loading.hidden = loaded.has(view);
+        loading.textContent = `Loading ${labels[view]}…`;
+      }
+
+      function show(next, { focus = true, updateHash = true } = {}) {
+        if (!Object.hasOwn(frames, next)) return;
+        if (next !== view) signal(view, "pause");
+        view = next;
+        for (const id of Object.keys(frames)) frames[id].hidden = id !== view;
+
+        // A view loads only when requested. Its load handler also handles a
+        // switch away while that document is still starting.
+        const frame = frames[view];
+        if (!frame.hasAttribute("src")) frame.src = sources[view];
+        updateControls();
+        syncVisibility();
+        if (focus) frame.focus();
+        if (updateHash) {
+          const url = new URL(location.href);
+          url.hash = view === "cab" ? "cab" : "";
+          history.replaceState(null, "", url);
+        }
+      }
+
+      for (const [id, frame] of Object.entries(frames)) {
+        frame.addEventListener("load", () => {
+          if (!frame.hasAttribute("src")) return;
+          loaded.add(id);
+          syncVisibility();
+          updateControls();
+        });
+      }
+      for (const button of buttons) {
+        button.addEventListener("click", () => show(button.dataset.view));
+      }
+
+      const toggle = () => show(view === "dash" ? "cab" : "dash");
+      window.addEventListener("keydown", (event) => {
+        if (
+          event.repeat ||
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          (event.target instanceof HTMLElement &&
+            event.target.closest(
+              "input, textarea, select, button, [contenteditable]",
+            ))
+        )
+          return;
+        if (event.key.toLowerCase() === "t") {
+          event.preventDefault();
+          toggle();
+        }
+      });
+      window.addEventListener("message", (event) => {
+        if (
+          event.origin !== location.origin ||
+          event.source !== frames[view].contentWindow
+        )
+          return;
+        if (event.data?.[protocols[view]] === "toggle") toggle();
+      });
+      window.addEventListener("hashchange", () => {
+        show(location.hash === "#cab" ? "cab" : "dash", { updateHash: false });
+      });
+      document.addEventListener("visibilitychange", syncVisibility);
+      window.addEventListener("pagehide", () => {
+        for (const id of Object.keys(frames)) signal(id, "pause");
+      });
+      window.addEventListener("pageshow", syncVisibility);
+      show(view, { focus: false, updateHash: false });
+    </script>
+  </body>
+</html>

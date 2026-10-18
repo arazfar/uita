@@ -118,6 +118,8 @@ function voiceApi(env) {
       // The integrated research shell is served by FastAPI in isolated staging.
       // Preserve the existing production Vite entry point until explicit cutover.
       server.middlewares.use((req, _res, next) => {
+        if (["/sfo-overview", "/sfo-overview/"].includes(req.url?.split('?')[0]))
+          req.url = req.url.replace(/^\/sfo-overview\/?/, '/candidates/sfo-overview.html');
         if (req.url?.split('?')[0] === '/candidates/app.html')
           req.url = req.url.replace('/candidates/app.html', '/candidates/app-legacy.html');
         next();
@@ -175,6 +177,7 @@ function voiceApi(env) {
         ".png": "image/png",
         ".jpg": "image/jpeg",
         ".glb": "model/gltf-binary",
+        ".woff2": "font/woff2",
         ".ktx2": "image/ktx2",
         ".xml": "application/xml",
         ".geojson": "application/geo+json",
