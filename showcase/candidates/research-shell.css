@@ -514,3 +514,205 @@ header .view-controls {
   display: flex;
   gap: 4px;
 }
+
+/* Showcase visual authority: backup/71b23cc-sparse (2f2eb4b). */
+body {
+  font:
+    13px/1.4 Inter,
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  overflow: hidden;
+}
+#drawer-toggle {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 13;
+  border-radius: 999px;
+  background: #142027cc;
+  backdrop-filter: blur(8px);
+}
+.view-controls {
+  position: fixed;
+  right: 16px;
+  bottom: 34px;
+  z-index: 10;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #142027cc;
+  border: 1px solid #2a3b44;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 28px #0007;
+}
+.view-controls button {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font:
+    600 12px/1 Inter,
+    system-ui,
+    sans-serif;
+  background: transparent;
+  color: #bacbd2;
+}
+.view-controls button[aria-pressed="true"] {
+  background: #2fa3c9;
+  color: #07191f;
+}
+.view-controls kbd {
+  margin-left: 6px;
+  font: 10px monospace;
+  opacity: 0.7;
+}
+#scene-caption {
+  top: 18px;
+  left: 18px;
+  max-width: calc(100% - 150px);
+  gap: 3px;
+}
+#scene-source {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+#scene-state {
+  font-size: 10px;
+  color: #d2e1e6;
+}
+#render-status {
+  top: 72px;
+  font-size: 12px;
+}
+footer {
+  min-height: 0;
+  left: 16px;
+  right: auto;
+  bottom: 86px;
+  width: min(390px, calc(100vw - 32px));
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: #142027cc;
+  backdrop-filter: blur(8px);
+}
+footer .row {
+  gap: 8px;
+}
+footer button,
+footer select {
+  min-height: 28px;
+  padding: 3px 7px;
+  font-size: 11px;
+}
+footer label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+}
+footer #timeline-label {
+  display: none;
+}
+footer #seek {
+  margin: 3px 0 0;
+  width: 100%;
+}
+#evidence-drawer nav {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0;
+}
+aside#evidence-drawer {
+  top: 60px;
+  bottom: 86px;
+}
+@media (max-width: 700px) {
+  .view-controls {
+    bottom: 20px;
+    right: 12px;
+  }
+  footer {
+    bottom: 124px;
+    left: 12px;
+    max-width: calc(100vw - 24px);
+  }
+  #scene-caption {
+    top: 16px;
+    left: 12px;
+  }
+  aside#evidence-drawer {
+    top: auto;
+    bottom: 78px;
+    height: 65dvh;
+  }
+}
+
+footer output {
+  font-size: 10px;
+  white-space: nowrap;
+}
+footer .row {
+  justify-content: space-between;
+}
+
+#decision-overlay {
+  position: fixed;
+  z-index: 6;
+  right: 16px;
+  top: 68px;
+  width: 300px;
+  padding: 12px;
+  background: rgba(10, 13, 16, 0.8);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  color: #eef1f3;
+  font:
+    12px/1.4 Inter,
+    system-ui,
+    sans-serif;
+}
+#decision-origin {
+  font-size: 10px;
+  color: #bdcbd0;
+  margin-bottom: 8px;
+}
+#decision-aircraft {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  min-height: 28px;
+  color: #f6c45a;
+  text-align: left;
+  font-weight: 600;
+}
+#decision-explanation {
+  max-height: 100px;
+  overflow: auto;
+}
+#decision-verdict {
+  color: #bdcbd0;
+}
+#decision-evidence {
+  font-size: 11px;
+  min-height: 28px;
+}
+body.drawer-open #decision-overlay {
+  display: none;
+}
+@media (max-width: 700px) {
+  #decision-overlay {
+    top: 88px;
+    right: 12px;
+    width: 245px;
+    padding: 9px;
+    font-size: 11px;
+  }
+  #decision-explanation {
+    max-height: 46px;
+  }
+  #decision-clearance {
+    max-height: 44px;
+    overflow: auto;
+  }
+}

@@ -1,3 +1,4 @@
+import { decisionAt } from "./research-decision.js";
 import {
   api,
   mutation,
@@ -81,6 +82,9 @@ function action(fn) {
 
 function controls() {
   const live = !!run && mode !== "historical";
+  $("speed").querySelector('[value="60"]').disabled = live;
+  if (live && Number($("speed").value) > 30)
+    $("speed").value = String(run.state.speed || 1);
   const terminal = frame && ["failed", "complete"].includes(frame.status);
   $("close").disabled = !live || terminal || mode === "historical" || busy;
   $("compare").disabled = !live || busy;
@@ -131,6 +135,12 @@ function sendFrame() {
   }
   const running =
     mode === "historical" || !run ? playing : frame.status === "running";
+  message("uita:ui", {
+    speed: Number($("speed").value),
+    maxSpeed: run && mode !== "historical" ? 30 : 60,
+    playing: running,
+    speech: $("speech").checked,
+  });
   message("uita:playhead", {
     clock,
     rate: running
@@ -145,6 +155,31 @@ function sendFrame() {
 function render() {
   if (!frame) return;
   const shown = shownFrame();
+  const decision = decisionAt(
+    events,
+    shown,
+    clock,
+    mode === "compare" && $("render-controller").value === "baseline",
+  );
+  $("decision-overlay").hidden = !decision;
+  if (decision) {
+    $("decision-origin").textContent =
+      `${decision.origin} · ${timeLabel(decision.clock)}`;
+    $("decision-aircraft").textContent = decision.callsign
+      ? `Next proposed · ${decision.callsign}${decision.runway ? " · assigned RWY " + decision.runway : ""}`
+      : "No active aircraft in latest proposal";
+    $("decision-aircraft").disabled = !decision.aircraft_id;
+    $("decision-aircraft").onclick = () => {
+      selected = decision.aircraft_id;
+      render();
+    };
+    $("decision-explanation").textContent = decision.explanation;
+    $("decision-verdict").textContent =
+      `Proposal verification · ${decision.verdict}`;
+    $("decision-clearance").textContent = decision.clearance
+      ? `Issued ${timeLabel(decision.clearance_clock)} · ${decision.clearance}`
+      : "No issued clearance in the loaded evidence for this aircraft";
+  }
   if (!shown.aircraft.some((a) => a.id === selected)) selected = null;
   if (recording && mode !== "historical")
     $("source").textContent =
@@ -204,8 +239,10 @@ function render() {
     .join("");
   $("traffic-count").textContent = `(${shown.aircraft.length})`;
   const table = $("traffic");
-  const rows = new Map([...table.rows].map(row => [row.querySelector("button").dataset.id, row]));
-  const keep = new Set(shown.aircraft.map(a => a.id));
+  const rows = new Map(
+    [...table.rows].map((row) => [row.querySelector("button").dataset.id, row]),
+  );
+  const keep = new Set(shown.aircraft.map((a) => a.id));
   for (const [id, row] of rows) if (!keep.has(id)) row.remove();
   shown.aircraft.forEach((a, index) => {
     let row = rows.get(a.id);
@@ -217,9 +254,11 @@ function render() {
     const button = row.querySelector("button");
     if (button.textContent !== a.callsign) button.textContent = a.callsign;
     button.setAttribute("aria-pressed", String(selected === a.id));
-    row.cells[1].textContent = a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft);
+    row.cells[1].textContent =
+      a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft);
     row.cells[2].textContent = a.status;
-    if (table.children[index] !== row) table.insertBefore(row, table.children[index] || null);
+    if (table.children[index] !== row)
+      table.insertBefore(row, table.children[index] || null);
   });
   $("scene-source").textContent =
     mode === "historical"
@@ -256,10 +295,20 @@ function render() {
         )
         .join("") || "<p>No events at this playback time.</p>";
   }
-  if (run && $("speech").checked) {
-    for (const e of visible.filter(
-      (e) => e.sequence > lastSpoken && e.kind === "clearance_issued",
-    )) {
+  if (
+    mode !== "historical" &&
+    (run || playing) &&
+    $("speech").checked &&
+    globalThis.speechSynthesis
+  ) {
+    for (const e of visible
+      .filter(
+        (e) =>
+          e.sequence > lastSpoken &&
+          e.kind === "clearance_issued" &&
+          e.clock >= clock - 2,
+      )
+      .sort((a, b) => a.sequence - b.sequence)) {
       const text = e.payload.text;
       if (typeof text === "string")
         speechSynthesis.speak(new SpeechSynthesisUtterance(text));
@@ -633,7 +682,10 @@ document.querySelectorAll("[data-camera]").forEach(
       }
       scene = cameras.get(camera);
       scene.hidden = false;
-      scene.contentWindow?.postMessage({type:"uita:visibility",active:true},location.origin);
+      scene.contentWindow?.postMessage(
+        { type: "uita:visibility", active: true },
+        location.origin,
+      );
       scene.contentWindow?.postMessage({ uita: "resume" }, location.origin);
       if (sentBuffers.has(scene)) {
         $("render-status").hidden = true;
@@ -642,7 +694,65 @@ document.querySelectorAll("[data-camera]").forEach(
     }),
 );
 $("render-controller").onchange = render;
+function presentationAction(name, value) {
+  if (name === "speed-step" && [-1, 1].includes(value)) {
+    const rates = [1, 5, 10, 20, 30, 60];
+    presentationAction(
+      "speed",
+      rates[
+        Math.max(
+          0,
+          Math.min(
+            rates.length - 1,
+            rates.indexOf(Number($("speed").value)) + value,
+          ),
+        )
+      ],
+    );
+  }
+  if (name === "view")
+    document
+      .querySelector(
+        `[data-camera="${camera === "dashboard" ? "tower" : "dashboard"}"]`,
+      )
+      .click();
+  if (name === "play") $("play").click();
+  if (
+    name === "speed" &&
+    [1, 5, 10, 20, 30, 60].includes(value) &&
+    !(run && mode !== "historical" && value > 30) &&
+    !$("speed").disabled
+  ) {
+    $("speed").value = String(value);
+    $("speed").dispatchEvent(new Event("change"));
+  }
+  if (name === "speech" && typeof value === "boolean")
+    $("speech").checked = value;
+  if (name === "restart" && !run && !$("seek").disabled) {
+    $("seek").value = $("seek").min;
+    $("seek").dispatchEvent(new Event("input"));
+  }
+}
+addEventListener("keydown", (e) => {
+  if (e.repeat || e.target.closest?.("input,select,textarea")) return;
+  if (e.key.toLowerCase() === "t") {
+    e.preventDefault();
+    presentationAction("view");
+  }
+  if (e.key === " " && !e.target.closest?.("button")) {
+    e.preventDefault();
+    presentationAction("play");
+  }
+});
 addEventListener("message", (e) => {
+  if (validMessage(e, scene.contentWindow, "uita:action"))
+    presentationAction(e.data.action, e.data.value);
+  if (
+    e.origin === location.origin &&
+    e.source === scene.contentWindow &&
+    e.data?.uita === "toggle"
+  )
+    presentationAction("view");
   if (validMessage(e, scene.contentWindow, "uita:ready")) {
     $("render-status").hidden = true;
     sentBuffers.delete(scene);
@@ -706,7 +816,10 @@ action(async () => {
   $("logout").hidden = identity.access_mode === "public_demo";
   $("access-mode").textContent =
     identity.access_mode === "public_demo" ? "Public demo" : identity.username;
-  histories.sort((a,b) => b.coverage.measured_altitude_points - a.coverage.measured_altitude_points);
+  histories.sort(
+    (a, b) =>
+      b.coverage.measured_altitude_points - a.coverage.measured_altitude_points,
+  );
   historyCatalog = histories;
   historyDataset = histories[0];
   $("history-datasets").innerHTML = histories
@@ -769,3 +882,8 @@ $("history-datasets").onchange = () =>
 addEventListener("offline", () =>
   fail(new Error("Offline · last committed state retained")),
 );
+
+$("decision-evidence").onclick = () => {
+  drawer(true);
+  $("events").scrollIntoView({ block: "nearest" });
+};

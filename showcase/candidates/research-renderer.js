@@ -1,3 +1,4 @@
+import { mountSceneControls } from "./research-scene-controls.js";
 import { plottable, validMessage, displayFrame } from "./research-client.js";
 export function connectRenderer(render, visibility = () => {}) {
   let frames = [],
@@ -49,58 +50,14 @@ export function selectAircraft(id) {
 export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
   document.body.classList.add("connected");
   viewer.clock.shouldAnimate = false;
-  const style = document.createElement("style");
-  style.textContent =
-    ".connected #topbar,.connected #score,.connected #feed,.connected .details,.connected #cambar,.connected #card{display:none!important}";
-  document.head.append(style);
   const entities = new Map();
   const unknownPositions = new Map();
   let sourceId = null;
-  const toolbar = document.createElement("div");
-  toolbar.style.cssText =
-    "position:fixed;left:14px;bottom:156px;display:flex;gap:6px;z-index:3";
-  const button = (text, fn) => {
-    const b = document.createElement("button");
-    b.textContent = text;
-    b.style.cssText =
-      "background:#142027;color:#e6edf0;border:1px solid #526975;padding:9px;border-radius:4px;cursor:pointer";
-    b.onclick = fn;
-    toolbar.append(b);
-  };
-  const overview = () => {
-    viewer.trackedEntity = undefined;
-    viewer.camera.flyTo({
-      destination: C.Cartesian3.fromDegrees(-122.2, 37.53, 38000),
-      orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 },
-      duration: 0.7,
-    });
-  };
-  let selectedId = null;
-  button("Overview", overview);
-  button("Airport", () => {
-    viewer.trackedEntity = undefined;
-    viewer.camera.flyToBoundingSphere(
-      new C.BoundingSphere(C.Cartesian3.fromDegrees(-122.375, 37.62, 0), 2000),
-      {
-        duration: 1,
-        offset: new C.HeadingPitchRange(
-          (300 * Math.PI) / 180,
-          (-30 * Math.PI) / 180,
-          6000,
-        ),
-      },
-    );
-  });
-  button("Follow selected", () => {
-    const e = entities.get(selectedId);
-    if (e && e.show) viewer.trackedEntity = e;
-  });
-  button("Photoreal", () => setPhotoreal(true));
-  document.body.append(toolbar);
+  const updateControls = mountSceneControls({C, viewer, entities, setPhotoreal});
   let trailClock = -Infinity,
     trailSource = null;
   connectRenderer((frame, selected, frames, clock) => {
-    selectedId = selected;
+    updateControls(frame, selected);
     if (sourceId !== frame.source_id) {
       for (const entity of [...entities.values(), ...unknownPositions.values()])
         viewer.entities.remove(entity);
@@ -237,7 +194,6 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
         id.startsWith("research-position-") ? id.slice(18) : id.slice(9),
       );
   }, C.ScreenSpaceEventType.LEFT_CLICK);
-  overview();
   addEventListener("keydown", (e) => {
     if (e.key === "g") setPhotoreal(true);
   });
