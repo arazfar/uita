@@ -725,6 +725,41 @@ body.drawer-open #decision-overlay {
   max-width: min(500px, calc(100vw - 32px));
   font-size: 11px;
 }
+
+/* Runway demonstration has its own labeled clock and aircraft; research data
+   stays available when returning to either connected view. */
+body.runway-demo
+  :is(
+    #source-controls,
+    #sandbox-panel,
+    #arrivals-queue,
+    #decision-overlay,
+    #scene-caption,
+    #drawer-toggle,
+    #evidence-drawer,
+    footer
+  ) {
+  display: none !important;
+}
+body.runway-demo .view-controls {
+  z-index: 20;
+}
+/* The tower window is the inspection surface; aircraft remain in the
+   evidence drawer, reached through its retained final button. */
+body.tower-view #arrivals-queue button:not(:last-child) {
+  display: none;
+}
+body.tower-view #arrivals-queue {
+  top: 179px;
+}
+@media (max-width: 700px) {
+  .view-controls {
+    max-width: calc(100vw - 24px);
+  }
+  .view-controls button {
+    padding-inline: 9px;
+  }
+}
 #source-controls nav {
   display: inline-flex;
   gap: 2px;

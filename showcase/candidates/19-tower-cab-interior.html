@@ -155,7 +155,7 @@
   "three/addons/": "/vendor/three/examples/jsm/"
 } }
 </script>
-<script>if(new URLSearchParams(location.search).get("mode")==="connected"){addEventListener("error",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));addEventListener("unhandledrejection",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));}</script>
+<script>if(["connected","runway-demo"].includes(new URLSearchParams(location.search).get("mode"))){addEventListener("error",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));addEventListener("unhandledrejection",()=>parent.postMessage({type:"uita:renderer-error"},location.origin));}</script>
 <link rel="modulepreload" href="/vendor/three/build/three.module.js">
 <link rel="modulepreload" href="/vendor/three/build/three.core.js">
 <link rel="modulepreload" href="/vendor/three/examples/jsm/loaders/GLTFLoader.js">
@@ -165,6 +165,8 @@
 <link rel="modulepreload" href="/vendor/three/examples/jsm/geometries/RoundedBoxGeometry.js">
 <script type="module">
 const CONNECTED = new URLSearchParams(location.search).get('mode') === 'connected';
+const RUNWAY_DEMO = new URLSearchParams(location.search).get('mode') === 'runway-demo';
+let demoRate = 1;
 let connectedFrame = null;
 const {connectRenderer,selectAircraft} = await import('./research-renderer.js');
 const {arrivalLabel}=await import('./research-arrivals.js');
@@ -177,7 +179,7 @@ const VENDOR = location.origin + '/vendor/three/';
 // Fire every independent load now, in parallel; consumers await these promises when they need them.
 const getJSON = (u) => fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const getBuf = (u) => fetch(u).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
-const GLB = { pack: 'sfo-pack/sfo-buildings.glb', b747: 'assets/boeing747-mihalunar/model.glb', air: 'assets/airplane-google/model.glb', evtol: 'assets/evtol.glb' };
+const GLB = { cab: 'assets/tower-realism/cab-equipment.glb', pack: 'sfo-pack/sfo-buildings.glb', b747: 'assets/boeing747-mihalunar/model.glb', air: 'assets/airplane-google/model.glb', evtol: 'assets/evtol.glb' };
 const early = {
   airports: getJSON('data/airports.geojson'), metar: getJSON('data/metar.json'), coast: getJSON('data/bay-coastline.geojson'),
   bounds: getJSON('sfo-pack/bounds.json'),
@@ -186,11 +188,14 @@ const early = {
 };
 const { createFlight, runwayFrame, weatherForRunway, AIRFRAMES } = await import('./tower-flight-dynamics.js');
 const { TOWER_DESK_POSE, createTowerCameraControls, isTowerShortcutTarget } = await import('./tower-camera.js');
+const DESK_PITCH = -0.22; // Include console equipment while keeping the runway horizon above the monitors.
 const { createTowerAtmosphere } = await import('./tower-atmosphere.js');
+const { createTowerAirfield } = await import('./tower-airfield.js');
 const { createTowerSpatialAudio } = await import('./tower-spatial-audio.js');
 const { buildArrivalTaxiRoute } = await import('./tower-taxi-route.js');
 const spatialAudio = createTowerSpatialAudio();
 const { makeAirliner } = await import('./tower-airliner.js');
+const { connectedAircraftState, airframeForAircraft } = await import('./tower-connected-aircraft.js');
 const THREE = await import(/* @vite-ignore */ VENDOR + 'build/three.module.js');
 const jsm = (path) => import(/* @vite-ignore */ VENDOR + 'examples/jsm/' + path);
 const [{ GLTFLoader }, { DRACOLoader }, { RoundedBoxGeometry }, { mergeGeometries }] = await Promise.all(
@@ -224,7 +229,7 @@ const distKm = (a, b) => { const p = nodeKm(a), q = nodeKm(b); return Math.hypot
 // ================= renderer / scene =================
 const canvas = $('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -242,8 +247,8 @@ const HEADING = 18 * D2R;            // desk faces NNE: runways 28L/R, SF skylin
 // ================= cab interior =================
 const cab = new THREE.Group(); scene.add(cab);
 cab.rotation.y = -HEADING;
-const greyMat = new THREE.MeshStandardMaterial({ color: 0x7d8186, roughness: .72, metalness: .15 });
-const greyDk = new THREE.MeshStandardMaterial({ color: 0x4a4e53, roughness: .7, metalness: .2 });
+const greyMat = new THREE.MeshStandardMaterial({ color: 0xb8b0a0, roughness: .58, metalness: .12 });
+const greyDk = new THREE.MeshStandardMaterial({ color: 0x69665f, roughness: .65, metalness: .15 });
 const blackMat = new THREE.MeshStandardMaterial({ color: 0x111316, roughness: .5, metalness: .3 });
 const frameMat = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: .8, metalness: .2 });
 const whiteKey = new THREE.MeshStandardMaterial({ color: 0xe6e8ea, roughness: .5 });
@@ -337,9 +342,10 @@ for (const k in screens) {
 let booting = true;
 (function boot() {
   if (!booting) return;
+  if (document.hidden || window.frameElement?.hidden) { requestAnimationFrame(boot); return; }
   cab.position.set(0, CAB_EYE_H - 1.45, 0); cab.updateMatrixWorld();
   camera.position.copy(cab.localToWorld(new THREE.Vector3(TOWER_DESK_POSE.eye.x, TOWER_DESK_POSE.eye.y, TOWER_DESK_POSE.eye.z)));
-  camera.quaternion.copy(cab.quaternion).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(TOWER_DESK_POSE.pitch, TOWER_DESK_POSE.yaw, 0, 'YXZ')));
+  camera.quaternion.copy(cab.quaternion).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(DESK_PITCH, TOWER_DESK_POSE.yaw, 0, 'YXZ')));
   camera.fov = 58; camera.updateProjectionMatrix();
   camera.updateMatrixWorld(); atmosphere.update();
   renderer.render(scene, camera); requestAnimationFrame(boot);
@@ -380,7 +386,8 @@ function polyAt(pts, s) {
 
 // ================= outside view: offline SFO pack (default) · Google photoreal (opt-in, G) =================
 const attrib = $('attrib');
-const credits = 'Simulation · © OpenStreetMap · models CC BY 3.0 (?)';
+const credits = '© OpenStreetMap · representative aircraft' + (CONNECTED ? ' · Aircraft attitude and configuration estimated; source positions preserved' : ' · simulated flight dynamics');
+const airfield = createTowerAirfield(THREE, { runways: RWY, parent: world });
 let tiles = null, tilesHolder = null, tilesOK = false, tilesStarting = false, photoreal = false, packOK = false, fallbackOn = false;
 const fallback = new THREE.Group(); fallback.visible = false; world.add(fallback);
 const pack = new THREE.Group(); pack.visible = false; scene.add(pack);
@@ -407,13 +414,27 @@ async function loadPack() {
       const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex, color: tint })); m.renderOrder = order; pack.add(m); res(m);
     }, undefined, rej);
   });
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(160000, 160000), new THREE.MeshBasicMaterial({ color: 0x385b69 }));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(160000, 160000), new THREE.MeshStandardMaterial({ color: 0x42646b, roughness: .32, metalness: .28 }));
   water.rotation.x = -Math.PI / 2; water.position.y = -4; pack.add(water);
   // Daylight grade preserves the bundled aerial imagery and its geographic alignment.
-  await Promise.all([drape(b.images.bay, -2, 0, new THREE.Color(0.72, 0.77, 0.81)), drape(b.images.sfo, 0, 1, new THREE.Color(0.86, 0.87, 0.85))]);
+  await Promise.all([drape(b.images.bay, -2, 0, new THREE.Color(0.9, 0.94, 0.96)), drape(b.images.sfo, 0, 1, new THREE.Color(1, 1, 1))]);
   const buf = await early.glb.pack; if (!buf) throw new Error('sfo-buildings.glb missing');
   const gltf = await new GLTFLoader().setDRACOLoader(draco).parseAsync(buf, 'sfo-pack/');
-  const bmat = new THREE.MeshStandardMaterial({ color: 0x6f7884, roughness: 0.9, metalness: 0.05, emissive: 0x0b0f15, side: THREE.DoubleSide });
+  const bmat = new THREE.MeshStandardMaterial({ color: 0xb7b4a8, roughness: 0.85, metalness: 0.08, side: THREE.DoubleSide });
+  // OSM footprints supply massing only. Neutral façade bands add scale without
+  // claiming these are photographed or surveyed terminal elevations.
+  bmat.onBeforeCompile = shader => {
+    shader.vertexShader = 'varying vec3 facadePosition; varying vec3 facadeNormal;\n' + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nfacadePosition = (modelMatrix * vec4(position, 1.0)).xyz; facadeNormal = normalize(mat3(modelMatrix) * normal);');
+    shader.fragmentShader = 'varying vec3 facadePosition; varying vec3 facadeNormal;\n' + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      float floorBand = fract(max(facadePosition.y, 0.0) / 4.5);
+      float wall = 1.0 - smoothstep(0.3, 0.7, abs(facadeNormal.y));
+      float alongWall = abs(facadeNormal.x) > 0.5 ? facadePosition.z : facadePosition.x;
+      float mullion = smoothstep(0.06, 0.11, fract(alongWall / 2.8));
+      float glass = smoothstep(0.25, 0.3, floorBand) * (1.0 - smoothstep(0.65, 0.7, floorBand));
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.18, 0.27, 0.29), wall * glass * mullion * 0.72);`);
+  };
   gltf.scene.traverse((o) => { if (o.isMesh) o.material = bmat; });
   pack.add(gltf.scene);
   packOK = true; applyOutside();
@@ -444,7 +465,7 @@ async function startTiles() {
     let loaded = 0, errors = 0;
     tiles.addEventListener('load-model', ({ scene: s }) => {
       loaded++;
-      s.traverse((o) => { if (o.material) { o.material.color?.setRGB(0.21, 0.24, 0.34); o.material.fog = true; } });
+      s.traverse((o) => { if (o.material) { for (const material of [o.material].flat()) { material.color?.setRGB(1, 1, 1); material.fog = true; } } });
       if (loaded > 60 && !tilesOK) { tilesOK = true; applyOutside(); }
     });
     tiles.addEventListener('load-error', () => { errors++; });
@@ -460,6 +481,7 @@ function setPhotoreal(on) {
 }
 function applyOutside() {
   const useTiles = photoreal && tilesOK;
+  airfield.group.visible = !useTiles;
   if (tilesHolder) tilesHolder.visible = useTiles;
   pack.visible = !useTiles && packOK;
   fallback.visible = !useTiles && fallbackOn;
@@ -557,7 +579,7 @@ function lightPoints(list, color, size) {
 }
 // eVTOL pads near the tower
 const PAD = { 1: [154, -143], 2: [224, -83] };
-for (const [, p] of Object.entries(PAD)) {
+for (const [, p] of Object.entries(CONNECTED || RUNWAY_DEMO ? {} : PAD)) {
   const ring = []; for (let a = 0; a < 24; a++) ring.push(p[0] + Math.cos(a / 24 * Math.PI * 2) * 14, 1.0, p[1] + Math.sin(a / 24 * Math.PI * 2) * 14);
   lightPoints(ring, 0x5fd4ff, 3);
 }
@@ -587,6 +609,13 @@ const stormGroup = new THREE.Group(); world.add(stormGroup);
 // ================= aircraft =================
 const loader = new GLTFLoader().setDRACOLoader(draco);
 const loadGLB = (u) => new Promise((res) => loader.load(u, (g) => res(g.scene), undefined, () => res(null)));
+const cabDetails = new THREE.Group(); cabDetails.name = 'blender-cab-equipment'; cabDetails.userData.source = GLB.cab; cabDetails.userData.ready = false; cab.add(cabDetails);
+early.glb.cab.then(async buffer => {
+  if (!buffer) throw new Error('Cab equipment asset unavailable');
+  const gltf = await loader.parseAsync(buffer, 'assets/tower-realism/');
+  gltf.scene.traverse(mesh => { if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; } });
+  cabDetails.add(gltf.scene); cabDetails.userData.ready = true;
+}).catch(error => { cabDetails.userData.error = error.message; console.warn('Cab detail unavailable; existing console retained.', error.message); });
 function normModel(src, len, yawFix) {
   const holder = new THREE.Group();
   if (!src) { // procedural stand-in
@@ -602,11 +631,11 @@ function normModel(src, len, yawFix) {
   o.traverse((m) => { if (m.isMesh) { m.material = m.material.clone(); m.material.color?.multiplyScalar(0.8); } });
   holder.add(inner); return holder;
 }
-const beaconMat = (c) => new THREE.SpriteMaterial({ map: dotTex, color: c, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false, fog: false });
+const beaconMat = (c) => new THREE.SpriteMaterial({ map: dotTex, color: c, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: true, toneMapped: false });
 function addLights(g, h) {
-  const red = new THREE.Sprite(beaconMat(0xff3322)); red.scale.setScalar(0.014); red.position.y = h; g.add(red);
-  const wht = new THREE.Sprite(beaconMat(0xffffff)); wht.scale.setScalar(0.018); wht.position.y = h * 0.5; g.add(wht);
-  const land = new THREE.Sprite(beaconMat(0xfff4dd)); land.scale.setScalar(0.009); land.position.set(0, h * 0.3, h * 1.2); g.add(land);
+  const red = new THREE.Sprite(beaconMat(0xff3322)); red.scale.setScalar(1.3); red.position.y = h; g.add(red);
+  const wht = new THREE.Sprite(beaconMat(0xffffff)); wht.scale.setScalar(1.5); wht.position.y = h * 0.5; g.add(wht);
+  const land = new THREE.Sprite(beaconMat(0xfff4dd)); land.scale.setScalar(1.8); land.position.set(0, h * 0.3, h * 1.2); g.add(land);
   g.userData.lights = { red, wht, land };
 }
 const actors = [];
@@ -619,6 +648,7 @@ Promise.all([parseGLB('b747'), parseGLB('air'), parseGLB('evtol')]).then(([a, b,
 const modelFor = (kind) => (kind === '747' ? normModel(M747, 70, Math.PI) : kind === 'air' ? normModel(MAIR, 40, 0) : normModel(MEV, 16, 0));
 function mkActor(cs, kind, fn, tag, connected = false) {
   if (CONNECTED && !connected) return null;
+  if (RUNWAY_DEMO && !['UAL900', 'AAL173'].includes(cs)) return null;
   const model = modelFor(kind);
   const g = new THREE.Group(); g.add(model); addLights(g, kind === 'evtol' ? 3 : kind === '747' ? 19 : 12); world.add(g);
   const a = { cs, kind, fn, tag: tag || cs, g, model, pos: new THREE.Vector3(), dir: new THREE.Vector3(1, 0, 0), vis: false, onGround: true, phase: Math.random() * 6 };
@@ -678,7 +708,7 @@ function updateActors(visT) {
     a.pos.set(s.x, s.y + groundY, s.z); a.dir.set(s.dx, s.dy, s.dz).normalize(); a.onGround = s.onGround ?? s.y < 2; a.flightState = s;
     if (a.flight) a.spd = s.speed;
     else if (dtv > 0) a.spd = lerp(a.spd || 0, Math.min(150, Math.hypot(a.pos.x - px, a.pos.y - py, a.pos.z - pz) / dtv), 0.15);
-    a.g.position.copy(a.pos); tmp.copy(a.pos).add(a.dir); a.g.lookAt(tmp);
+    a.g.position.copy(a.pos); tmp.copy(a.pos).add(a.dir); a.g.lookAt(tmp); a.g.rotateZ(s.bank || 0);
     a.model.userData.updateFlight?.(s);
     const L = a.g.userData.lights; const ph = visT + a.phase;
     L.red.visible = ph % 1.2 < 0.12; L.wht.visible = (ph * 1.7) % 1.5 < 0.06; L.land.visible = !a.onGround || a.kind !== 'evtol';
@@ -740,7 +770,7 @@ const L = {
   l122: ['atc', null, 'UITA one two two, wind zero three zero at six, pad one, cleared to land.', 'UTA122 PAD 1 CLEARED TO LAND, WIND 030/06'],
   l122r: ['pilot', 'UTA122', 'Cleared to land pad one, UITA one two two.'],
 };
-if (!CONNECTED) setTimeout(() => SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined }))), 2500);
+if (!CONNECTED && !RUNWAY_DEMO) setTimeout(() => SkyRadio.prefetch(Object.values(L).map(([sp, k, text]) => ({ text, speaker: sp, key: k || undefined }))), 2500);
 const txEl = $('tx');
 SkyRadio.onTransmit(({ speaker, live }) => { txEl.classList.toggle('on', live); txEl.classList.toggle('pilot', live && speaker === 'pilot'); txEl.textContent = live ? (speaker === 'atc' ? 'TWR' : 'ACFT') : 'TX'; });
 
@@ -986,7 +1016,7 @@ function drawAir(now) {
   // coastline hint
   if (coast) { g.strokeStyle = 'rgba(120,140,150,.35)'; g.lineWidth = 1.2; for (const ring of coast) { g.beginPath(); ring.forEach((p, i) => { const [x, y] = arXY(p[0], p[1], W, H); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); } }
   // storm cell
-  const sl = CONNECTED ? 0 : stormLevel();
+  const sl = CONNECTED || RUNWAY_DEMO ? 0 : stormLevel();
   if (sl > 0.01) {
     const mid = [(nodeKm('C')[0] + nodeKm('E')[0]) / 2, (nodeKm('C')[1] + nodeKm('E')[1]) / 2 + 0.3];
     const [sx, sy] = arXY(mid[0] + Math.sin(now * 0.05) * 0.3, mid[1], W, H);
@@ -1161,7 +1191,7 @@ function presets() {
   const rwMid = new THREE.Vector3((R28R.x + R28L.x) / 2 + (R28R.ux) * 1500, groundY, (R28R.z + R28L.z) / 2 + R28R.uz * 1500);
   const pad = new THREE.Vector3(PAD[1][0], groundY + 20, PAD[1][1]);
   return {
-    desk: { eye: EYE.clone(), yaw: -0.08, pitch: TOWER_DESK_POSE.pitch, fov: 58 },
+    desk: { eye: EYE.clone(), yaw: -0.08, pitch: DESK_PITCH, fov: 58 },
     runway: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(rwMid), 34),
     binoc: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(pad.clone().lerp(rwMid, 0.25)), 9),
     ground: aimFrom(new THREE.Vector3(-0.3, 1.14, -0.2), screenTarget('ground'), 36),
@@ -1170,7 +1200,7 @@ function presets() {
     side: aimFrom(new THREE.Vector3(0.45, 1.12, -0.25), screenTarget('side'), 46),
   };
 }
-const cur = { eye: EYE.clone(), yaw: -0.08, pitch: TOWER_DESK_POSE.pitch, fov: 58 };
+const cur = { eye: EYE.clone(), yaw: -0.08, pitch: DESK_PITCH, fov: 58 };
 let tween = null, cine = false, curShot = 'desk', binoOn = false;
 const camState = { yawOffset: () => cur.yaw };
 const cameraControls = createTowerCameraControls({ canvas, pose: cur, onTakeControl: userTook, onPick: (x,y) => pick(pickAt(x,y)) });
@@ -1195,6 +1225,7 @@ function applyCamera(now, dt) {
   cab.position.set(0, groundY + CAB_EYE_H - 1.45, 0);
   cab.updateMatrixWorld();
   if (binoOn && binoTrack && binoTrack.vis) {
+    if (RUNWAY_DEMO) cur.eye.lerp(windowEye(worldToCab(binoTrack.pos)), Math.min(1, dt * 4));
     const t = aimFrom(cur.eye, worldToCab(binoTrack.pos), cur.fov);
     if (tween) { tween.to.yaw = t.yaw; tween.to.pitch = t.pitch; }
     else { let dy = t.yaw - cur.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cur.yaw += dy * 0.2; cur.pitch = lerp(cur.pitch, t.pitch, 0.2); }
@@ -1243,9 +1274,9 @@ document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click',
 $('bBino').onclick = toggleBino; $('bZin').onclick = () => zoom(0.85); $('bZout').onclick = () => zoom(1.18);
 $('bCine').onclick = () => setCine(!cine); $('bPhoto').onclick = () => setPhotoreal(!photoreal);
 const toggleHelp = () => $('help').classList.toggle('on'); $('bHelp').onclick = toggleHelp;
-function togglePause() { S.paused = !S.paused; syncAudioPause(); $('bPlay').textContent = S.paused ? '▶' : '❚❚'; }
+function togglePause() { if (RUNWAY_DEMO && S.paused && visT + flightStart - flightEpoch >= demoEnd) return seekDemo(0, 'UAL900'); S.paused = !S.paused; syncAudioPause(); $('bPlay').textContent = S.paused ? '▶' : '❚❚'; }
 $('bPlay').onclick = togglePause;
-function restart() { SkyRadio.flush(); S.gen++; flightEpoch = visT + flightStart; }
+function restart() { if (RUNWAY_DEMO) return seekDemo(0, 'UAL900'); SkyRadio.flush(); S.gen++; flightEpoch = visT + flightStart; }
 $('bRestart').onclick = restart;
 const syncSound = () => { spatialAudio.setEnabled(SkyRadio.enabled); $('bSound').textContent = SkyRadio.enabled ? '🔊' : '🔈'; $('bSound').classList.toggle('on', SkyRadio.enabled); };
 const toggleSound = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSound(); };
@@ -1314,11 +1345,11 @@ const hl = (() => {
   g.strokeStyle = '#5fd4ff'; g.lineWidth = 5;
   for (const [x, y, sx, sy] of [[3, 3, 1, 1], [61, 3, -1, 1], [3, 61, 1, -1], [61, 61, -1, -1]]) { g.beginPath(); g.moveTo(x, y + 16 * sy); g.lineTo(x, y); g.lineTo(x + 16 * sx, y); g.stroke(); }
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false, depthTest: false, transparent: true, fog: false }));
-  s.scale.setScalar(0.05); s.renderOrder = 10; s.visible = false; scene.add(s); return s;
+  s.scale.setScalar(0.025); s.renderOrder = 10; s.visible = false; scene.add(s); return s;
 })();
 function updatePick() {
   const a = picked && actors.find((x) => x.cs === picked && x.vis);
-  hl.visible = !!a; if (a) hl.position.copy(a.pos).add(new THREE.Vector3(0, a.kind === 'evtol' ? 3 : 8, 0));
+  hl.visible = !!a && !RUNWAY_DEMO; if (a) hl.position.copy(a.pos).add(new THREE.Vector3(0, a.kind === 'evtol' ? 3 : 8, 0));
 }
 const ndc = new THREE.Vector2(), rc = new THREE.Raycaster();
 function pickAt(cx, cy) {
@@ -1342,7 +1373,7 @@ function pickAt(cx, cy) {
 }
 $('cX').onclick = () => pick(null);
 
-let last = performance.now(), visT = 0, frame = 0, rayT = 0, lastDraw = -1, halted = false, extPause = false, backendAudioPaused = CONNECTED;
+let last = performance.now(), visT = 0, frame = 0, rayT = 0, lastDraw = -1, renderRequest = 0, halted = false, extPause = window.frameElement?.hidden === true, backendAudioPaused = CONNECTED;
 const ray = new THREE.Raycaster();
 function refineGround(now) {
   if (now - rayT < 2 || frame > 4000) return; rayT = now;
@@ -1352,20 +1383,24 @@ function refineGround(now) {
 }
 function worldOffset() { for (const c of world.children) if (c !== fallback && !actors.some((a) => a.g === c)) c.position.y = groundY; }
 function loop() {
+  if (halted) return;
   booting = false;
   const now = performance.now(), elapsed = Math.max(0, (now - last) / 1000), dt = Math.min(0.1, elapsed); last = now; frame++;
   const ns = now / 1000;
   // The flight trajectory is precomputed at 60 Hz. Slow rendering must not slow its clock.
-  if (!CONNECTED && !S.paused) { visT += elapsed; S.t += dt * (S.busy ? 0.6 : 1); }
+  if (!CONNECTED && !S.paused) { visT += elapsed * demoRate; S.t += dt * (S.busy ? 0.6 : 1); }
   updateActors(visT);
+  airfield.update(actors, groundY);
+  if (RUNWAY_DEMO) updateRunwayDemo();
   // storm visuals
-  const sl = CONNECTED ? 0 : stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
+  const sl = CONNECTED || RUNWAY_DEMO ? 0 : stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
   corrLines['C-E'].material.color.setHex(ceClosed() ? 0xff4a3d : 0x5fd4ff); corrLines['C-E'].material.opacity = ceClosed() ? 0.5 + 0.4 * Math.abs(Math.sin(ns * 3)) : 0.35;
   applyCamera(ns, dt); atmosphere.update(); spatialAudio.update({ camera, actors }); updatePick();
   // screens: redraw at ~10 fps
   if (ns - lastDraw >= 0.1) {
     const sdt = Math.min(0.5, ns - lastDraw); lastDraw = ns;
     if (CONNECTED) drawConnected();
+    else if (RUNWAY_DEMO) drawRunwayDemo();
     else { drawGround(); drawAir(ns); drawTablet(ns, sdt); drawSide(ns); drawLog(ns); renderCard(); }
     for (const k in screens) screens[k].tex.needsUpdate = true;
   }
@@ -1375,7 +1410,7 @@ function loop() {
   $('scStatic').textContent = 'vs ' + (S.scoreReveal ? 10 : Math.round(prog * 10));
   if (tiles && photoreal) { tiles.setResolutionFromRenderer(camera, renderer); tiles.update(); if (tilesOK) refineGround(ns); if (frame % 120 === 0) updateAttrib(); }
   renderer.render(scene, camera);
-  if (!halted) requestAnimationFrame(loop);
+  if (!halted) renderRequest = requestAnimationFrame(loop);
 }
 // pause rendering when hidden or when the iframe host asks (postMessage {uita:'pause'|'resume'})
 function syncAudioPause() { spatialAudio.setPaused(document.hidden || extPause || (CONNECTED ? backendAudioPaused : S.paused)); }
@@ -1384,8 +1419,8 @@ function setHalted() {
   const h = document.hidden || extPause;
   if (h === halted) return;
   halted = h;
-  if (halted) cameraControls.resetLook(cur.yaw);
-  if (!halted) { last = performance.now(); requestAnimationFrame(loop); }
+  if (halted) { cancelAnimationFrame(renderRequest); cameraControls.resetLook(cur.yaw); }
+  if (!halted) { last = performance.now(); renderRequest = requestAnimationFrame(loop); }
 }
 document.addEventListener('visibilitychange', setHalted);
 addEventListener('message', (e) => {
@@ -1395,7 +1430,7 @@ addEventListener('message', (e) => {
   else if (e.data?.uita === 'resume') { extPause = false; setHalted(); }
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
-window.__sky = { arrivalTaxiRoute, atmosphere, spatialAudio, cameraControls, S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
+window.__sky = { renderer, scene, cab, cabDetails, airfield, arrivalTaxiRoute, atmosphere, spatialAudio, cameraControls, S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 if (CONNECTED) {
   addEventListener('message',e=>{
@@ -1408,14 +1443,18 @@ if (CONNECTED) {
   Object.values(corrLines).forEach(x=>x.visible=false);
   stormGroup.visible=false;
   const connectedActors = new Map();
-  connectRenderer((frame, selected) => {
-    connectedFrame=frame; picked=selected; visT=frame.clock;
+  connectRenderer((frame, selected, frames, clock) => {
+    connectedFrame=frame; picked=selected; visT=clock;
     const current=new Set();
     for (const a of frame.aircraft.filter(plottable)) {
       current.add(a.id);let actor=connectedActors.get(a.id);
-      if(!actor){actor=mkActor(a.id,'air',()=>({vis:false}),a.callsign,true);connectedActors.set(a.id,actor);}
-      const [x,z]=P(a.longitude,a.latitude), h=(a.track_deg_true??0)*D2R;
-      actor.fn=()=>({x,y:a.altitude_ft*.3048-groundY,z,dx:Math.sin(h),dy:0,dz:-Math.cos(h),vis:true});
+      if(!actor){
+        const profile=airframeForAircraft(a);
+        actor=mkActor(a.id,profile.span>50?'747':'air',()=>({vis:false}),a.callsign,true);
+        actor.g.remove(actor.model); actor.model=makeAirliner(THREE,profile); actor.g.add(actor.model);
+        actor.flight='presentation'; connectedActors.set(a.id,actor);
+      }
+      actor.fn=()=>connectedAircraftState({aircraft:a,frame,frames,clock,project:P,groundY});
       actor.tag=a.arrival_cue ? `${a.callsign} · ${arrivalLabel(a)}` : a.callsign;
     }
     for(const [id,actor] of connectedActors)if(!current.has(id))actor.fn=()=>({vis:false});
@@ -1450,10 +1489,85 @@ function drawConnected(){
     });
   }
 }
+// A separate finite demonstration owns these controls; recorded traffic never uses this clock.
+let demoControls = null;
+const demoEnd = 220;
+function windowEye(target) {
+  const yaw = Math.atan2(-target.x, -target.z);
+  // View through the nearest pane centre, staying inside the cab glazing.
+  const pane = Math.round((yaw - 36.5 * D2R) / (45 * D2R)) * 45 * D2R + 36.5 * D2R;
+  return new THREE.Vector3(-Math.sin(pane) * 2.35, 1.96, -Math.cos(pane) * 2.35);
+}
+function seekDemo(time, focus, resume = true) {
+  visT = Math.max(0, Math.min(demoEnd, time)) - flightStart + flightEpoch;
+  updateActors(visT); if (resume) S.paused = false; syncAudioPause();
+  if (focus) {
+    picked = focus; binoOn = true; binoTrack = actors.find(actor => actor.cs === focus);
+    const target = worldToCab(binoTrack.pos);
+    const pose = aimFrom(windowEye(target), target, focus === 'AAL173' ? 3.4 : 6.5);
+    Object.assign(cur, pose); tween = null; cameraControls.resetLook(cur.yaw);
+    $('binoc').classList.remove('on');
+  }
+}
+function updateRunwayDemo() {
+  if (!demoControls) return;
+  const time = Math.max(0, visT + flightStart - flightEpoch);
+  if (time >= demoEnd) { S.paused = true; syncAudioPause(); }
+  demoControls.querySelector('[data-demo-play]').textContent = S.paused ? 'Play' : 'Pause';
+  demoControls.querySelector('[data-demo-time]').textContent = time >= demoEnd ? 'Sequence complete · restart to replay' : `${Math.floor(time / 60)}:${String(Math.floor(time % 60)).padStart(2, '0')} / 3:40`;
+  demoControls.querySelector('input').value = Math.min(time, demoEnd);
+  demoControls.querySelector('[data-demo-status]').textContent = actors.map(actor => `${actor.cs} · ${actor.flightState?.phase?.replaceAll('-', ' ') || 'ready'} · ${Math.round((actor.spd || 0) * 1.944)} kt`).join('  /  ');
+}
+function drawRunwayDemo() {
+  for (const [name, screen] of Object.entries(screens)) {
+    const g = screen.ctx; g.fillStyle = '#060c0b'; g.fillRect(0, 0, screen.w, screen.h);
+    screen.hits = [];
+    if (name === 'ground') g.drawImage(grStatic, 0, 0);
+    g.fillStyle = '#a8d5a3'; g.font = '24px monospace'; g.fillText(name === 'ground' ? 'KSFO · SURFACE' : 'RUNWAY DEMONSTRATION', 16, 35);
+    if (name === 'ground' || name === 'air') {
+      if (name === 'air') { g.strokeStyle = '#35433b'; for (let r = 90; r < screen.h / 2; r += 90) { g.beginPath(); g.arc(screen.w / 2, screen.h / 2, r, 0, Math.PI * 2); g.stroke(); } }
+      for (const actor of actors.filter(actor => actor.vis)) {
+        let x, y; if (name === 'ground') [x, y] = grXY(actor.pos.x, actor.pos.z, screen.w, screen.h);
+        else { x = screen.w / 2 + actor.pos.x / 12000 * screen.h; y = screen.h / 2 + actor.pos.z / 12000 * screen.h; }
+        if (x < 0 || x > screen.w || y < 55 || y > screen.h) continue;
+        g.fillStyle = '#e8e3d5'; g.fillRect(x - 3, y - 3, 6, 6); g.fillText(actor.cs, x + 10, y - 8);
+        screen.hits.push({ cs: actor.cs, x: x - 10, y: y - 30, w: 160, h: 44 });
+      }
+    } else {
+      actors.forEach((actor, i) => { const y = 105 + i * 130; g.fillStyle = '#e8e3d5'; g.fillText(actor.cs, 16, y); g.fillStyle = '#a8d5a3'; g.fillText(actor.flightState?.phase || 'ready', 16, y + 38); g.fillText(`${Math.round((actor.spd || 0) * 1.944)} KT`, 16, y + 76); });
+      g.fillStyle = '#a9b6a3'; g.font = '18px monospace'; g.fillText('SIMULATED · NOT LIVE', 16, screen.h - 25);
+    }
+  }
+}
+if (RUNWAY_DEMO) {
+  document.documentElement.dataset.runwayDemo = 'true';
+  const style = document.createElement('style');
+  style.textContent = `html[data-runway-demo] #score,html[data-runway-demo] #banner,html[data-runway-demo] #bCine,html[data-runway-demo] #card{display:none!important}
+    #runway-demo{position:fixed;top:18px;left:18px;max-width:620px;width:calc(100vw - 36px);padding:12px 14px;background:rgba(13,20,21,.9);border:1px solid #67726b;border-radius:3px;color:#e8e3d5;font:12px system-ui,sans-serif;backdrop-filter:blur(12px)}
+    #runway-demo h1{font-size:16px;margin:0 0 6px} #runway-demo p{font-size:12px;color:#bac5b9;margin:4px 0 10px} #runway-demo nav{display:flex;gap:6px;flex-wrap:wrap} #runway-demo button,#runway-demo select{min-height:44px;background:#27342f;border:1px solid #66776b;border-radius:3px;color:#e8e3d5;padding:0 9px;font:inherit;cursor:pointer} #runway-demo button:first-child{background:#f6c45a;color:#25231e} #runway-demo input{width:100%;accent-color:#f6c45a;min-height:24px} #runway-demo output{font:12px monospace} #runway-demo [data-demo-status]{margin-top:8px;line-height:1.6} html[data-runway-demo] #controls button{min-width:36px;min-height:36px} html[data-runway-demo] #controls{max-width:calc(100vw - 32px);overflow:auto} @media(max-width:600px){#runway-demo{top:8px;left:8px;width:calc(100vw - 16px);padding:10px} #runway-demo p{max-width:80%} #runway-demo button,#runway-demo select{padding:0 8px;font-size:12px} #attrib{bottom:58px;max-width:80vw}}`;
+  style.textContent += `@media(max-width:1024px){html[data-runway-demo] #controls{bottom:80px} html[data-runway-demo] #attrib{bottom:132px;max-width:calc(100vw - 24px)}}`;
+  document.head.append(style);
+  demoControls = document.createElement('section'); demoControls.id = 'runway-demo'; demoControls.setAttribute('aria-label', 'Runway demonstration controls');
+  demoControls.innerHTML = `<h1>SFO · Runway demonstration</h1><p>Simulated aircraft · snapshot weather · 28L arrival / 28R departure</p><nav><button data-demo-play>Pause</button><button data-demo-restart>Restart</button><button data-demo-takeoff>Watch takeoff</button><button data-demo-land>Watch landing</button><button data-demo-tower>Tower desk</button><label><span class="sr-only">Speed </span><select aria-label="Demonstration speed"><option value="1">1×</option><option value="2">2×</option><option value="5">5×</option><option value="10">10×</option></select></label></nav><input type="range" min="0" max="220" step="0.1" aria-label="Demonstration time"><output data-demo-time></output><p data-demo-status></p>`;
+  document.body.append(demoControls);
+  demoControls.querySelector('[data-demo-play]').onclick = togglePause;
+  demoControls.querySelector('[data-demo-restart]').onclick = () => seekDemo(0, 'UAL900');
+  demoControls.querySelector('[data-demo-takeoff]').onclick = () => seekDemo(Math.max(0, flights.UAL900.liftTime - 12), 'UAL900');
+  demoControls.querySelector('[data-demo-land]').onclick = () => seekDemo(Math.max(0, (flights.AAL173.events.find(event => event.phase === 'touchdown')?.time || 55) - 14), 'AAL173');
+  demoControls.querySelector('[data-demo-tower]').onclick = () => goTo('desk');
+  demoControls.querySelector('select').onchange = event => { demoRate = Number(event.target.value); };
+  demoControls.querySelector('input').oninput = event => seekDemo(Number(event.target.value), null, false);
+  Object.values(corrLines).forEach(line => line.visible = false); stormGroup.visible = false;
+  seekDemo(Math.max(0, flights.UAL900.liftTime - 12), 'UAL900');
+}
+
 syncAudioPause();
-addEventListener('pagehide', (event) => { if (!event.persisted) { cameraControls.dispose(); atmosphere.dispose(); spatialAudio.dispose(); } });
-loop();
-if (!CONNECTED) runLoop();
+addEventListener('pagehide', (event) => { if (!event.persisted) { cameraControls.dispose(); atmosphere.dispose(); spatialAudio.dispose(); airfield.dispose(); } });
+booting = false;
+setHalted();
+if (!halted) loop();
+if (RUNWAY_DEMO) parent.postMessage({ type: 'uita:ready' }, location.origin);
+if (!CONNECTED && !RUNWAY_DEMO) runLoop();
 </script>
 </body>
 </html>

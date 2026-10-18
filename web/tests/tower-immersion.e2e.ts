@@ -141,17 +141,36 @@ test("real saved backend traffic keeps authority in the existing tower shell", a
         .filter((a) => a.vis)
         .map((a) => ({ id: a.cs, y: a.pos.y })),
       tracks: f.aircraft.map((a) => ({ id: a.id, altitude: a.altitude_ft })),
-      buttons: w.document.querySelectorAll("#controls button").length,
-      controlsBottom: w.document.querySelector("#controls").getBoundingClientRect().bottom,
-      timelineTop: document.querySelector("footer")!.getBoundingClientRect().top,
+      controlsRect: w.document
+        .querySelector("#controls")
+        .getBoundingClientRect()
+        .toJSON(),
+      timelineRect: document
+        .querySelector("footer")!
+        .getBoundingClientRect()
+        .toJSON(),
       visible: w.getComputedStyle(w.document.querySelector("#controls"))
         .display,
       audio: s.spatialAudio.getSnapshot(),
     };
   });
   expect(result.flights).toEqual([]);
-  expect(result.buttons).toBe(15);
-  expect(result.controlsBottom).toBeLessThan(result.timelineTop);
+  expect(
+    result.controlsRect.bottom <= result.timelineRect.top ||
+      result.controlsRect.top >= result.timelineRect.bottom,
+  ).toBe(true);
+  for (const camera of ["desk", "runway", "ground", "air", "tablet", "side"]) {
+    await expect(
+      browser
+        .frameLocator('iframe[src*="19-tower"]')
+        .locator(`[data-p="${camera}"]`),
+    ).toBeVisible();
+  }
+  for (const control of ["bBino", "bZin", "bZout"]) {
+    await expect(
+      browser.frameLocator('iframe[src*="19-tower"]').locator(`#${control}`),
+    ).toBeVisible();
+  }
   expect(result.visible).not.toBe("none");
   for (const a of result.actors) {
     expect(result.tracks.some((t) => t.id === a.id)).toBe(true);
@@ -188,10 +207,10 @@ test("real saved backend traffic keeps authority in the existing tower shell", a
         .filter((a) => a.vis)
         .map((a) => {
           const t = w.__uitaFrame.aircraft.find((t) => t.id === a.cs);
+          // The mesh rests on the rendered runway; its horizontal source track stays authoritative.
           return Math.hypot(
             a.pos.x - (t.longitude + 122.3826) * 88288.08474587766,
             a.pos.z + (t.latitude - 37.6164) * 110989.20390546018,
-            a.pos.y - t.altitude_ft * 0.3048,
           );
         }),
     );

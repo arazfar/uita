@@ -1,5 +1,10 @@
 # UITA showcase
 
+**Tower realism:** choose **Runway demo** in the main interface for a complete,
+explicitly simulated landing and takeoff. It includes independent playback,
+speed, timeline, and follow controls. **Tower cab** retains the selected research
+source. See [behavior, assets, and limits](../docs/TOWER_REALISM.md).
+
 > **Current connected demo:** the production entry is the immersive research shell,
 > with an explicitly scripted guided episode, authentic saved Nemotron attempts,
 > historical context, synchronized comparison and export. Use the

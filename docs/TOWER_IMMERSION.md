@@ -12,7 +12,7 @@ A bounded controller extends the existing camera rather than replacing it with p
 
 A clear-afternoon preset uses a directional sun, sky fill, matching distance haze, and cab shadows. It is not a measured solar position or live weather condition. Ground imagery uses a daylight tint. Window reflection strength increases toward grazing angles and reflects the actual monitor textures. The windows retain transparency so aircraft remain visible.
 
-The glass shader intersects reflected rays with monitor planes. It avoids an additional scene render needed by full screen-space or transmission effects. This keeps cost predictable, but only the monitors contribute detailed reflections. The shadow map covers the cab, not the airport. No new remote imagery or 3D assets are required.
+The glass shader intersects reflected rays with monitor planes. It avoids an additional scene render needed by full screen-space or transmission effects. This keeps cost predictable, but only the monitors contribute detailed reflections. The shadow map covers the cab, not the airport. The [realism update](TOWER_REALISM.md) adds local Blender equipment, runway detail, and aircraft contact cues.
 
 ## Sound
 

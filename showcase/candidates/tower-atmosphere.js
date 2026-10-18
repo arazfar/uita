@@ -17,12 +17,15 @@ export function createTowerAtmosphere(
     sunElevation = 28,
     sunAzimuth = 245,
     hazeDensity = 0.000024,
-    exposure = 0.95,
+    exposure = 0.85,
     shadows = true,
   },
 ) {
   const clamp = THREE.MathUtils.clamp;
   const oldFog = scene.fog;
+  const oldEnvironment = scene.environment;
+  const oldEnvironmentIntensity = scene.environmentIntensity;
+  let environmentTarget = null;
   const oldExposure = renderer.toneMappingExposure;
   const oldShadowEnabled = renderer.shadowMap.enabled;
   const oldShadowType = renderer.shadowMap.type;
@@ -69,16 +72,16 @@ export function createTowerAtmosphere(
   sky.renderOrder = -100;
   sky.frustumCulled = false;
   group.add(sky);
-  const fill = new THREE.HemisphereLight(0xc5dcec, 0x655e50, 1.35);
+  const fill = new THREE.HemisphereLight(0xc5dcec, 0x655e50, 0.65);
   const sun = new THREE.DirectionalLight(0xffefd4, 2.1);
   const bounce = new THREE.AmbientLight(0x798995, 0.13);
   group.add(fill, sun, sun.target, bounce);
   const shadowObjects = [];
   if (shadows) {
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, {
       left: -5,
       right: 5,
@@ -216,7 +219,7 @@ export function createTowerAtmosphere(
     const warmth = 1 - clamp((settings.sunElevation - 5) / 25, 0, 1);
     skyMaterial.uniforms.warmth.value = warmth;
     sun.color.setHex(0xffefd4).lerp(new THREE.Color(0xffc88e), warmth * 0.65);
-    sun.intensity = 2.1 - warmth * 0.55;
+    sun.intensity = 1.6 - warmth * 0.45;
     fog.density = clamp(settings.hazeDensity, 0, 0.00015);
     renderer.toneMappingExposure = clamp(settings.exposure, 0.5, 1.5);
   }
@@ -253,6 +256,8 @@ export function createTowerAtmosphere(
     group.removeFromParent();
     sky.geometry.dispose();
     skyMaterial.dispose();
+    if (scene.environment === environmentTarget?.texture) { scene.environment = oldEnvironment; scene.environmentIntensity = oldEnvironmentIntensity; }
+    environmentTarget?.dispose();
     glassMaterial.dispose();
     sun.dispose();
     if (scene.fog === fog) scene.fog = oldFog;
@@ -261,6 +266,19 @@ export function createTowerAtmosphere(
     renderer.shadowMap.type = oldShadowType;
   }
   configure({ sunElevation, sunAzimuth, hazeDensity, exposure });
+  // The same directional sky lights polished paint and metal. Generate once, not per frame.
+  const environmentScene = new THREE.Scene();
+  const environmentSky = sky.clone();
+  environmentSky.position.set(0, 0, 0);
+  environmentSky.material = skyMaterial.clone();
+  environmentSky.material.toneMapped = false;
+  environmentScene.add(environmentSky);
+  const generator = new THREE.PMREMGenerator(renderer);
+  environmentTarget = generator.fromScene(environmentScene, .035, 1, 100000);
+  scene.environment = environmentTarget.texture;
+  scene.environmentIntensity = .48;
+  environmentSky.material.dispose();
+  generator.dispose();
   update();
   return {
     update,

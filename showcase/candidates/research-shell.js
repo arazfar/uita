@@ -349,6 +349,8 @@ function shownFrame() {
     : frame;
 }
 function sendFrame() {
+  // The runway demonstration owns its clock and never consumes research frames.
+  if (camera === "runway") return;
   const shown = shownFrame();
   if (!shown) return;
   renderAgentTrace?.({
@@ -992,6 +994,16 @@ document.querySelectorAll("[data-camera]").forEach(
   (b) =>
     (b.onclick = () => {
       camera = b.dataset.camera;
+      const runwayDemo = camera === "runway";
+      document.body.classList.toggle("runway-demo", runwayDemo);
+      document.body.classList.toggle("tower-view", camera === "tower");
+      if (runwayDemo) {
+        playing = false;
+        document.body.classList.remove("drawer-open");
+        $("evidence-drawer").inert = true;
+        $("drawer-toggle").setAttribute("aria-expanded", "false");
+        controls();
+      }
       document.body.classList.toggle(
         "aircraft-inspected",
         !!selected && camera === "dashboard",
@@ -1010,9 +1022,14 @@ document.querySelectorAll("[data-camera]").forEach(
       scene.hidden = true;
       if (!cameras.has(camera)) {
         const next = document.createElement("iframe");
-        next.title = camera === "tower" ? "SFO tower cab" : "SFO dashboard";
-        next.src =
-          camera === "tower"
+        next.title = runwayDemo
+          ? "SFO runway demonstration"
+          : camera === "tower"
+            ? "SFO tower cab"
+            : "SFO dashboard";
+        next.src = runwayDemo
+          ? "19-tower-cab-interior.html?mode=runway-demo"
+          : camera === "tower"
             ? "19-tower-cab-interior.html?mode=connected"
             : "11-photoreal-sfo.html?mode=connected";
         scene.parentElement.prepend(next);
@@ -1025,6 +1042,7 @@ document.querySelectorAll("[data-camera]").forEach(
         location.origin,
       );
       scene.contentWindow?.postMessage({ uita: "resume" }, location.origin);
+      if (runwayDemo) $("render-status").hidden = true;
       if (sentBuffers.has(scene)) {
         $("render-status").hidden = true;
         sendFrame();
@@ -1083,6 +1101,24 @@ addEventListener("keydown", (e) => {
   }
 });
 addEventListener("message", (e) => {
+  if (e.origin === location.origin && e.data?.type === "uita:ready") {
+    // A view can finish loading after it has been hidden. Its first pause may
+    // have arrived before the listener existed, so acknowledge readiness again.
+    const readyView = [...cameras.values()].find(
+      (view) => view.contentWindow === e.source,
+    );
+    if (readyView) {
+      const active = readyView === scene && !readyView.hidden;
+      readyView.contentWindow.postMessage(
+        { type: "uita:visibility", active },
+        location.origin,
+      );
+      readyView.contentWindow.postMessage(
+        { uita: active ? "resume" : "pause" },
+        location.origin,
+      );
+    }
+  }
   if (validMessage(e, scene.contentWindow, "uita:action"))
     presentationAction(e.data.action, e.data.value);
   if (
@@ -1107,7 +1143,9 @@ addEventListener("message", (e) => {
   if (validMessage(e, scene.contentWindow, "uita:renderer-error")) {
     $("render-status").hidden = false;
     $("render-status").textContent =
-      "Renderer unavailable · use the aircraft table and evidence";
+      camera === "runway"
+        ? "Runway view unavailable · choose Tower cab or 3D simulation"
+        : "Renderer unavailable · use the aircraft table and evidence";
   }
 });
 setInterval(() => {
@@ -1118,7 +1156,12 @@ setInterval(() => {
   const now = performance.now(),
     dt = Math.min(1, (now - previous) / 1000);
   previous = now;
-  if (playing && (recording || mode === "historical") && !transition) {
+  if (
+    camera !== "runway" &&
+    playing &&
+    (recording || mode === "historical") &&
+    !transition
+  ) {
     const end = mode === "historical" ? historyDataset.end : recording.end;
     const bufferedEnd = windowData?.frames.at(-1)?.clock || clock;
     clock = Math.min(end, bufferedEnd, clock + dt * Number($("speed").value));
