@@ -12,7 +12,7 @@ test("tower integrates runway flight phases and renders articulated aircraft", a
   const results = await browser.evaluate(() => {
     const sky = (window as any).__sky;
     return Object.entries(sky.flights).map(([cs, f]: any) => {
-      const samples = Array.from({ length: 2401 }, (_, i) => f.sample(i / 10));
+      const samples = Array.from({ length: 3601 }, (_, i) => f.sample(i / 10));
       return {
         cs,
         events: f.events,
@@ -32,7 +32,7 @@ test("tower integrates runway flight phases and renders articulated aircraft", a
             ),
         ),
         maxPitch: Math.max(...samples.map((s) => Math.abs(s.pitch))),
-        end: f.sample(240),
+        end: f.sample(f.duration),
         start: f.sample(0),
         rig: Boolean(
           sky.actors.find((a) => a.cs === cs).model.userData.updateFlight,
@@ -61,7 +61,9 @@ test("tower integrates runway flight phases and renders articulated aircraft", a
     "flare",
     "touchdown",
     "landing-roll",
-    "stopped",
+    "runway-exit",
+    "taxi",
+    "holding",
   ]);
   expect(touch.distance).toBeGreaterThan(150);
   expect(touch.distance).toBeLessThan(900);
@@ -69,7 +71,8 @@ test("tower integrates runway flight phases and renders articulated aircraft", a
   expect(touch.verticalSpeed).toBeLessThan(0);
   expect(arr.end.distance).toBeLessThan(arr.runway);
   expect(arr.end.speed).toBe(0);
-  expect(arr.end.spoilers).toBe(1);
+  expect(arr.end.spoilers).toBe(0);
+  expect(arr.end.runwayClear).toBe(true);
   await expect(browser.locator("#controls")).toBeVisible();
   const time = await browser.evaluate(() => (window as any).__sky.flightTime);
   await expect
@@ -108,16 +111,6 @@ test("tower integrates runway flight phases and renders articulated aircraft", a
   expect(landed.onGround).toBe(true);
   expect(landed.gear).toBe(1);
   await app.screenshot("tower-physics-touchdown");
-  await expect
-    .poll(() =>
-      browser.evaluate(
-        () =>
-          (window as any).__sky.actors.find((a) => a.cs === "AAL173")
-            .flightState.phase,
-      ),
-    )
-    .toBe("stopped");
-  await app.screenshot("tower-physics-stopped");
   // R starts the actual simulation from lineup; no fixture aircraft or mocked dynamics.
   await browser.locator("#bRestart").tap();
   await expect
@@ -182,12 +175,21 @@ test("wind changes the force model without moving the runway or fabricating trac
   await app.screenshot("tower-physics-lightbox");
 });
 
-test("connected tower preserves backend authority and camera buttons", async ({app,browser}) => {
-  await app.open('/candidates/19-tower-cab-interior.html?mode=connected');
-  await expect.poll(()=>browser.evaluate(()=>Boolean((window as any).__sky))).toBe(true);
-  expect(await browser.evaluate(()=>Object.keys((window as any).__sky.flights))).toEqual([]);
-  expect(await browser.evaluate(()=>(window as any).__sky.actors.length)).toBe(0);
-  await expect(browser.locator('#controls')).toBeVisible();
+test("connected tower preserves backend authority and camera buttons", async ({
+  app,
+  browser,
+}) => {
+  await app.open("/candidates/19-tower-cab-interior.html?mode=connected");
+  await expect
+    .poll(() => browser.evaluate(() => Boolean((window as any).__sky)))
+    .toBe(true);
+  expect(
+    await browser.evaluate(() => Object.keys((window as any).__sky.flights)),
+  ).toEqual([]);
+  expect(
+    await browser.evaluate(() => (window as any).__sky.actors.length),
+  ).toBe(0);
+  await expect(browser.locator("#controls")).toBeVisible();
   await expect(browser.locator('[data-p="desk"]')).toBeVisible();
-  await expect(browser.locator('#bPlay')).toBeHidden();
+  await expect(browser.locator("#bPlay")).toBeHidden();
 });

@@ -1,6 +1,6 @@
 # SFO tower aircraft dynamics
 
-The standalone tower's two civil airborne aircraft use a force-based, reduced-order simulation. Their callsigns are scenario labels. They are **not recorded flight tracks or live aircraft**. Connected mode (`?mode=connected`) continues to display only backend-provided aircraft. No synthetic physics actors are created there. The remote shell, buttons, camera defaults, historical replay, recorded observations, research backend, and UITA/eVTOL scenario are unchanged.
+The standalone tower's two civil airborne aircraft use a force-based, reduced-order simulation. Their callsigns are scenario labels. They are **not recorded flight tracks or live aircraft**. Connected mode (`?mode=connected`) continues to display only backend-provided aircraft. No synthetic physics actors are created there. The remote shell, buttons, historical replay, recorded observations, research backend, and UITA/eVTOL scenario are unchanged.
 
 ## Runtime contract
 
@@ -23,7 +23,7 @@ The bundled KSFO METAR provides surface wind, temperature, and pressure. This is
 - Touchdown triggers spoiler deployment, delayed wheel braking, and reverse thrust. Reverse ends below 30 m/s.
 - Crosswind compensation crabs the aircraft into the wind and removes the crab near touchdown. Lateral motion is constrained to the runway centerline; this is not a lateral dynamics solver.
 
-There are no periodic runway teleports. The departure leaves the scene after 14 km. The arrival stops on the runway and awaits further routing; taxi exit, runway clearance, and continuous traffic scheduling are **not implemented** in this model.
+There are no periodic runway teleports. The departure leaves the scene after 14 km. The arrival slows before exit E, follows the connected bundled taxiway B centerline, then holds clear of the runway. Circular corner fillets and a braking envelope limit turns. The route avoids other runway protected areas; no route means the existing runway stop remains. This route is a scenario assumption, not an actual clearance. Gate assignment, surface conflict avoidance, and continuous traffic scheduling remain unimplemented.
 
 ## Aircraft and rendering
 
@@ -46,7 +46,7 @@ cd web
 npx e2e run tests/tower-physics.e2e.ts --config e2e.tower.config.ts --headed
 ```
 
-The browser checks the actual loaded aircraft model, progression through flare and landing roll, wheel contact, stopping within the runway, gear/spoiler state, continuous trajectories, plausible pitch and speed bounds, wind sensitivity, pause/restart, and preservation of connected-mode camera controls and backend authority. These are plausibility and integration checks, not validation against real aircraft telemetry.
+The browser checks the actual loaded aircraft model, progression through flare and landing roll, wheel contact, arrival-to-hold trajectory, gear/spoiler state, continuous trajectories, plausible pitch and speed bounds, wind sensitivity, pause/restart, and preservation of connected-mode camera controls and backend authority. These are plausibility and integration checks, not validation against real aircraft telemetry.
 
 ## References
 

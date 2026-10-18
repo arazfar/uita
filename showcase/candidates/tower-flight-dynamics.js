@@ -97,7 +97,8 @@ export function createFlight({
   runway,
   profile = AIRFRAMES.medium,
   weather = weatherForRunway(runway),
-  duration = 240,
+  taxiRoute = null,
+  duration = taxiRoute && operation === "arrival" ? 360 : 240,
 }) {
   if (!["arrival", "departure"].includes(operation))
     throw new Error("Unknown tower flight operation");
@@ -127,6 +128,9 @@ export function createFlight({
     touchTime: null,
     wheelAngle: 0,
     wheelOmega: 0,
+    taxiDistance: null,
+    runwayClear: false,
+    lateralAcceleration: 0,
   };
   const frames = [],
     events = [];
@@ -139,18 +143,20 @@ export function createFlight({
       ? 0
       : Math.asin(clamp(-weather.cross / Math.max(va, 1), -0.3, 0.3)) *
         clamp(state.h / 8, 0, 1);
+    const taxi =
+      state.taxiDistance == null ? null : taxiRoute.sample(state.taxiDistance);
     return {
       ...state,
       airspeed: va,
       gamma,
       crab,
       distance: state.s,
-      x: runway.x + runway.ux * state.s,
+      x: taxi?.x ?? runway.x + runway.ux * state.s,
       y: state.h,
-      z: runway.z + runway.uz * state.s,
-      dx: runway.ux * Math.cos(crab) - runway.uz * Math.sin(crab),
+      z: taxi?.z ?? runway.z + runway.uz * state.s,
+      dx: taxi?.dx ?? runway.ux * Math.cos(crab) - runway.uz * Math.sin(crab),
       dy: Math.tan(state.pitch),
-      dz: runway.uz * Math.cos(crab) + runway.ux * Math.sin(crab),
+      dz: taxi?.dz ?? runway.uz * Math.cos(crab) + runway.ux * Math.sin(crab),
       speed: state.u,
       onGround: state.ground,
       vis: state.s < 14000,
@@ -229,12 +235,64 @@ export function createFlight({
       throttle = clamp(demandedThrust / p.thrust, 0.035, 1);
       if (state.phase === "flare") throttle = 0.025;
     } else {
-      state.phase = state.u > 0.2 ? "landing-roll" : "stopped";
-      state.spoilers = approach(state.spoilers, 1, 2, STEP);
+      state.phase = state.u > 0.2 || taxiRoute ? "landing-roll" : "stopped";
+      state.spoilers = approach(
+        state.spoilers,
+        state.taxiDistance == null ? 1 : 0,
+        2,
+        STEP,
+      );
       brake = state.time - state.touchTime > 1.2 ? 0.22 : 0.018;
       reverse =
         state.u > 30 && state.time - state.touchTime > 1 ? 0.22 * p.thrust : 0;
       targetPitch = 0;
+      if (taxiRoute) {
+        const remaining =
+          state.taxiDistance == null
+            ? taxiRoute.startDistance - state.s + taxiRoute.length
+            : taxiRoute.length - state.taxiDistance;
+        const routePosition =
+          state.taxiDistance ?? state.s - taxiRoute.startDistance;
+        // Bound lateral acceleration to 0.65 m/s² and yaw rate to 6°/s.
+        // Look ahead with braking distance so speed drops before the turn.
+        // A five-metre stop margin absorbs residual idle thrust during spool-down.
+        const stoppingRoom = Math.max(0, remaining - 5);
+        let targetSpeed = Math.min(
+          7,
+          stoppingRoom * 0.35,
+          Math.sqrt(2 * 0.65 * stoppingRoom),
+        );
+        const ahead = taxiRoute.sample(Math.max(0, routePosition + 14));
+        if (routePosition >= 0)
+          targetSpeed = Math.min(
+            targetSpeed,
+            taxiRoute.sample(routePosition).speedLimit,
+          );
+        targetSpeed = Math.min(
+          targetSpeed,
+          Math.sqrt(
+            ahead.speedLimit ** 2 + 2 * 0.35 * Math.max(0, -routePosition - 14),
+          ),
+        );
+        const demand = clamp((targetSpeed - state.u) * 0.8, -1.8, 0.6);
+        // Use the same rolling resistance, thrust spool and brake forces as rollout.
+        const rolling = 0.018 * p.mass * G;
+        throttle = clamp(
+          (state.drag + rolling + p.mass * demand) / p.thrust,
+          0,
+          0.16,
+        );
+        brake = Math.max(0.018, -demand / G);
+        if (state.taxiDistance != null) {
+          state.flap = approach(state.flap, 0, 0.12, STEP);
+          state.phase = state.runwayClear ? "taxi" : "runway-exit";
+        }
+        if (remaining < 5 && state.u < 0.1) {
+          state.phase = "holding";
+          throttle = 0;
+          brake = 0.5;
+        }
+      }
     }
     state.pitch = approach(
       state.pitch,
@@ -275,12 +333,35 @@ export function createFlight({
       state.ground = false;
       liftTime = state.time;
     }
-    if (state.phase === "stopped") {
+    if (state.phase === "stopped" || state.phase === "holding") {
       state.u = 0;
       state.ax = 0;
     } else state.u = Math.max(0, state.u + state.ax * STEP);
     state.w += state.az * STEP;
-    state.s += state.u * STEP;
+    if (
+      arrival &&
+      state.ground &&
+      taxiRoute &&
+      state.taxiDistance == null &&
+      state.s + state.u * STEP >= taxiRoute.startDistance
+    ) {
+      // A fast/late landing must stop on the runway, never snap into a missed exit.
+      if (state.u <= 8) state.taxiDistance = state.s - taxiRoute.startDistance;
+      else taxiRoute = null;
+    }
+    if (state.taxiDistance != null) {
+      state.taxiDistance = Math.min(
+        taxiRoute.length,
+        state.taxiDistance + state.u * STEP,
+      );
+      const at = taxiRoute.sample(state.taxiDistance);
+      state.s = (at.x - runway.x) * runway.ux + (at.z - runway.z) * runway.uz;
+      const crossTrack = Math.abs(
+        (at.x - runway.x) * -runway.uz + (at.z - runway.z) * runway.ux,
+      );
+      state.runwayClear = crossTrack >= taxiRoute.clearance;
+      state.lateralAcceleration = state.u * state.u * at.curvature;
+    } else state.s += state.u * STEP;
     state.h += state.w * STEP;
     state.wheelOmega = state.ground
       ? state.u / 0.45
@@ -308,6 +389,7 @@ export function createFlight({
     profile: p,
     weather,
     runway,
+    taxiRoute,
     events,
     liftTime,
     duration,

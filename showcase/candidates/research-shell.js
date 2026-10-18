@@ -487,7 +487,11 @@ $("play").onclick = () =>
       await command("control", {
         action: frame.status === "running" ? "pause" : "play",
       });
-    else playing = !playing;
+    else {
+      playing = !playing;
+      // Pausing stops the render timer, so send the final zero-rate playhead now.
+      sendFrame();
+    }
   });
 $("step").onclick = () =>
   action(async () => {

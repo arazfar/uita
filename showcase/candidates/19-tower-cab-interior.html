@@ -117,7 +117,8 @@
   <div><b id="scHuman">0</b><span>humans</span></div>
 </div>
 <div id="help">
-  <div><kbd>drag</kbd>look around the cab</div>
+  <div><kbd>drag / ↑↓←→</kbd>look around the cab</div>
+  <div><kbd>Q / E</kbd>lean left / right</div>
   <div><kbd>wheel</kbd>zoom · <kbd style="min-width:0">B</kbd> binoculars</div>
   <div><kbd>1–6</kbd>desk · runway · ground · air · strips · agents</div>
   <div><kbd>C</kbd>cinematic on/off</div>
@@ -183,6 +184,11 @@ const early = {
   mapsKey: fetch('/api/maps-key').then((r) => r.json()).then((j) => j.key || null).catch(() => null),
 };
 const { createFlight, runwayFrame, weatherForRunway, AIRFRAMES } = await import('./tower-flight-dynamics.js');
+const { TOWER_DESK_POSE, createTowerCameraControls, isTowerShortcutTarget } = await import('./tower-camera.js');
+const { createTowerAtmosphere } = await import('./tower-atmosphere.js');
+const { createTowerSpatialAudio } = await import('./tower-spatial-audio.js');
+const { buildArrivalTaxiRoute } = await import('./tower-taxi-route.js');
+const spatialAudio = createTowerSpatialAudio();
 const { makeAirliner } = await import('./tower-airliner.js');
 const THREE = await import(/* @vite-ignore */ VENDOR + 'build/three.module.js');
 const jsm = (path) => import(/* @vite-ignore */ VENDOR + 'examples/jsm/' + path);
@@ -225,31 +231,6 @@ renderer.toneMappingExposure = 1.0;
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x3c4a60, 0.000036);
 const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.05, 90000);
-
-// dusk sky dome
-{
-  const g = new THREE.SphereGeometry(80000, 48, 24);
-  const m = new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { sun: { value: new THREE.Vector3(Math.sin(-100 * D2R), 0.02, -Math.cos(-100 * D2R)).normalize() } },
-    vertexShader: `varying vec3 vd; void main(){ vd = normalize(position); vec4 p = projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position = p; gl_Position.z = gl_Position.w*0.99999; }`,
-    fragmentShader: `varying vec3 vd; uniform vec3 sun;
-      void main(){ float h = clamp(vd.y, -0.2, 1.0);
-        vec3 top = vec3(0.035,0.055,0.12), mid = vec3(0.12,0.18,0.31), hor = vec3(0.36,0.42,0.53);
-        vec3 c = mix(hor, mid, smoothstep(0.0, 0.12, h)); c = mix(c, top, smoothstep(0.12, 0.6, h));
-        float s = max(dot(normalize(vec3(vd.x,0.0,vd.z)), normalize(vec3(sun.x,0.0,sun.z))), 0.0);
-        c += vec3(0.45,0.22,0.08) * pow(s, 6.0) * (1.0 - smoothstep(0.0, 0.22, h)) * 0.8;
-        c = mix(c, vec3(0.14,0.16,0.19), smoothstep(0.0,-0.08,h));
-        gl_FragColor = vec4(c, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-  });
-  scene.add(new THREE.Mesh(g, m));
-}
-scene.add(new THREE.HemisphereLight(0x9fb2d0, 0x2a2e34, 1.5));
-const key = new THREE.DirectionalLight(0xb8c6dc, 0.9); key.position.set(-30, 60, -40); scene.add(key);
-scene.add(new THREE.AmbientLight(0x3a4250, 0.6));
 
 // world group: everything outside (overlay drawn on the real ground)
 const world = new THREE.Group(); scene.add(world);
@@ -319,6 +300,7 @@ box(0.05, 0.2, 0.04, greyDk, 1.0, 0.82, -0.84, 0, -0.7);
 const glow = new THREE.PointLight(0x6fb8d6, 0.6, 2.2, 1.6); glow.position.set(0, 1.25, -0.8); cab.add(glow);
 const warm = new THREE.PointLight(0xffd7a8, 0.35, 4, 1.5); warm.position.set(-0.6, 2.6, 0.2); cab.add(warm);
 
+const glassPanes = [];
 // ---------- window frames: outward-tilted octagon ----------
 {
   const R = 2.9, N = 8, off = 14 * D2R;
@@ -335,13 +317,15 @@ const warm = new THREE.PointLight(0xffd7a8, 0.35, 4, 1.5); warm.position.set(-0.
     box(span, 0.9, 0.06, greyDk, 0, 0.4, -ap + 0.1, 0, 0, 0, s);
     // faint glass reflection
     const glass = new THREE.Mesh(new THREE.PlaneGeometry(span, 2.9), new THREE.MeshBasicMaterial({ color: 0x9fb8d0, transparent: true, opacity: 0.035, depthWrite: false }));
-    glass.position.set(0, 2.25, -ap - 0.3); glass.rotation.x = -0.2; s.add(glass);
+    glass.position.set(0, 2.25, -ap - 0.3); glass.rotation.x = -0.2; s.add(glass); glassPanes.push(glass);
   }
   const ceil = new THREE.Mesh(new THREE.CircleGeometry(4.2, 8), new THREE.MeshStandardMaterial({ color: 0x0d0f12, roughness: 1 }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 3.75; cab.add(ceil);
   const floor = new THREE.Mesh(new THREE.CircleGeometry(3.2, 8), new THREE.MeshStandardMaterial({ color: 0x1a1d21, roughness: 1 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = 0; cab.add(floor);
 }
+
+const atmosphere = createTowerAtmosphere(THREE, { scene, cab, camera, renderer, glassPanes, screens });
 
 // ---- boot: render the cab right away; monitors show a placeholder until the sim starts ----
 for (const k in screens) {
@@ -353,9 +337,10 @@ let booting = true;
 (function boot() {
   if (!booting) return;
   cab.position.set(0, CAB_EYE_H - 1.45, 0); cab.updateMatrixWorld();
-  camera.position.copy(cab.localToWorld(new THREE.Vector3(0.02, 1.45, 0.32)));
-  camera.quaternion.copy(cab.quaternion).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.33, -0.08, 0, 'YXZ')));
+  camera.position.copy(cab.localToWorld(new THREE.Vector3(TOWER_DESK_POSE.eye.x, TOWER_DESK_POSE.eye.y, TOWER_DESK_POSE.eye.z)));
+  camera.quaternion.copy(cab.quaternion).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(TOWER_DESK_POSE.pitch, TOWER_DESK_POSE.yaw, 0, 'YXZ')));
   camera.fov = 58; camera.updateProjectionMatrix();
+  camera.updateMatrixWorld(); atmosphere.update();
   renderer.render(scene, camera); requestAnimationFrame(boot);
 })();
 
@@ -421,10 +406,10 @@ async function loadPack() {
       const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex, color: tint })); m.renderOrder = order; pack.add(m); res(m);
     }, undefined, rej);
   });
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(160000, 160000), new THREE.MeshBasicMaterial({ color: 0x141d27 }));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(160000, 160000), new THREE.MeshBasicMaterial({ color: 0x385b69 }));
   water.rotation.x = -Math.PI / 2; water.position.y = -4; pack.add(water);
-  // dusk grade: daytime NAIP multiplied down toward blue
-  await Promise.all([drape(b.images.bay, -2, 0, new THREE.Color(0.24, 0.27, 0.36)), drape(b.images.sfo, 0, 1, new THREE.Color(0.26, 0.29, 0.39))]);
+  // Daylight grade preserves the bundled aerial imagery and its geographic alignment.
+  await Promise.all([drape(b.images.bay, -2, 0, new THREE.Color(0.72, 0.77, 0.81)), drape(b.images.sfo, 0, 1, new THREE.Color(0.86, 0.87, 0.85))]);
   const buf = await early.glb.pack; if (!buf) throw new Error('sfo-buildings.glb missing');
   const gltf = await new GLTFLoader().setDRACOLoader(draco).parseAsync(buf, 'sfo-pack/');
   const bmat = new THREE.MeshStandardMaterial({ color: 0x6f7884, roughness: 0.9, metalness: 0.05, emissive: 0x0b0f15, side: THREE.DoubleSide });
@@ -554,7 +539,8 @@ const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.
   g.fillStyle = r; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); return t; })();
 function lightPoints(list, color, size) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(list, 3));
-  const m = new THREE.PointsMaterial({ color, size, sizeAttenuation: false, map: dotTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  // Daylight reduces bloom contrast; runway geometry and light positions stay fixed.
+  const m = new THREE.PointsMaterial({ color, size: size * .7, opacity: .3, sizeAttenuation: false, map: dotTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: true });
   const p = new THREE.Points(g, m); world.add(p); return p;
 }
 {
@@ -639,9 +625,10 @@ function mkActor(cs, kind, fn, tag, connected = false) {
 }
 // Aircraft dynamics run at real-time seconds, independently of the compressed ATC narrative.
 const R28R = runwayFrame(RWY['28R']), R28L = runwayFrame(RWY['28L']);
+const arrivalTaxiRoute = CONNECTED ? null : buildArrivalTaxiRoute({ runway: R28L, taxiways: twPts, runways: [R28L, R28R, ...['01L/19R', '01R/19L'].map(runwayLine).filter(Boolean).map(runwayFrame)], profile: AIRFRAMES.medium });
 const flights = CONNECTED ? {} : {
   UAL900: createFlight({ operation: 'departure', runway: R28R, profile: AIRFRAMES.heavy, weather: weatherForRunway(R28R, metarK) }),
-  AAL173: createFlight({ operation: 'arrival', runway: R28L, profile: AIRFRAMES.medium, weather: weatherForRunway(R28L, metarK) }),
+  AAL173: createFlight({ operation: 'arrival', runway: R28L, profile: AIRFRAMES.medium, weather: weatherForRunway(R28L, metarK), taxiRoute: arrivalTaxiRoute }),
 };
 let flightEpoch = 0;
 const flightStart = 38; // Open during rotation/climb, with the arrival still on final.
@@ -1165,7 +1152,7 @@ function drawLog(now) {
 }
 
 // ================= camera =================
-const EYE = new THREE.Vector3(0.02, 1.45, 0.32);
+const EYE = new THREE.Vector3(TOWER_DESK_POSE.eye.x, TOWER_DESK_POSE.eye.y, TOWER_DESK_POSE.eye.z);
 const worldToCab = (v) => cab.worldToLocal(v.clone());
 function aimFrom(eye, targetLocal, fov) { const d = targetLocal.clone().sub(eye); return { eye: eye.clone(), yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)), fov }; }
 const screenTarget = (n) => { const s = screens[n].g; return s.position.clone(); };
@@ -1173,7 +1160,7 @@ function presets() {
   const rwMid = new THREE.Vector3((R28R.x + R28L.x) / 2 + (R28R.ux) * 1500, groundY, (R28R.z + R28L.z) / 2 + R28R.uz * 1500);
   const pad = new THREE.Vector3(PAD[1][0], groundY + 20, PAD[1][1]);
   return {
-    desk: { eye: EYE.clone(), yaw: -0.08, pitch: -0.33, fov: 58 },
+    desk: { eye: EYE.clone(), yaw: -0.08, pitch: TOWER_DESK_POSE.pitch, fov: 58 },
     runway: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(rwMid), 34),
     binoc: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(pad.clone().lerp(rwMid, 0.25)), 9),
     ground: aimFrom(new THREE.Vector3(-0.3, 1.14, -0.2), screenTarget('ground'), 36),
@@ -1182,21 +1169,23 @@ function presets() {
     side: aimFrom(new THREE.Vector3(0.45, 1.12, -0.25), screenTarget('side'), 46),
   };
 }
-const cur = { eye: EYE.clone(), yaw: -0.08, pitch: -0.33, fov: 58 };
-let tween = null, cine = true, curShot = 'desk', binoOn = false;
+const cur = { eye: EYE.clone(), yaw: -0.08, pitch: TOWER_DESK_POSE.pitch, fov: 58 };
+let tween = null, cine = false, curShot = 'desk', binoOn = false;
 const camState = { yawOffset: () => cur.yaw };
+const cameraControls = createTowerCameraControls({ canvas, pose: cur, onTakeControl: userTook, onPick: (x,y) => pick(pickAt(x,y)) });
+$('bCine').classList.remove('on');
 function goTo(name, dur = 1.5) {
-  const p = presets()[name]; if (!p) return; curShot = name;
-  tween = { from: { eye: cur.eye.clone(), yaw: cur.yaw, pitch: cur.pitch, fov: cur.fov }, to: p, t0: performance.now(), dur: dur * 1000 };
+  const p = presets()[name]; if (!p) return; curShot = name; cameraControls.resetLook(p.yaw);
+  tween = { from: { eye: cur.eye.clone(), yaw: cur.yaw, pitch: cur.pitch, fov: cur.fov }, to: p, t0: performance.now(), dur: cameraControls.transitionDuration(dur) * 1000 };
   binoOn = name === 'binoc'; binoTrack = null; $('binoc').classList.toggle('on', binoOn);
 }
 function shot(name) { if (cine) goTo(name); }
-function userTook() { if (cine) { cine = false; $('bCine').classList.remove('on'); } tween = null; }
+function userTook() { binoTrack = null; if (cine) { cine = false; $('bCine').classList.remove('on'); } tween = null; }
 function setCine(on) { cine = on; $('bCine').classList.toggle('on', on); if (on) goTo(shotFor()); }
 function shotFor() { const t = S.t; const tl = [[0.0, 'desk'], [5.6, 'runway'], [10.4, 'tablet'], [13.6, 'air'], [17.2, 'side'], [24.0, 'air'], [32.8, 'ground'], [38.4, 'air'], [44.8, 'side'], [48.4, 'air'], [51.2, 'binoc'], [59.2, 'desk']]; let s = 'desk'; for (const [a, n] of tl) if (t >= a) s = n; return s; }
-function applyCamera(now) {
+function applyCamera(now, dt) {
   if (tween) {
-    const k = ease(clamp((performance.now() - tween.t0) / tween.dur, 0, 1)), f = tween.from, t = tween.to;
+    const k = ease(clamp(tween.dur ? (performance.now() - tween.t0) / tween.dur : 1, 0, 1)), f = tween.from, t = tween.to;
     cur.eye.lerpVectors(f.eye, t.eye, k);
     let dy = t.yaw - f.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cur.yaw = f.yaw + dy * k;
     cur.pitch = lerp(f.pitch, t.pitch, k); cur.fov = lerp(f.fov, t.fov, k);
@@ -1209,18 +1198,14 @@ function applyCamera(now) {
     if (tween) { tween.to.yaw = t.yaw; tween.to.pitch = t.pitch; }
     else { let dy = t.yaw - cur.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cur.yaw += dy * 0.2; cur.pitch = lerp(cur.pitch, t.pitch, 0.2); }
   }
-  camera.position.copy(cab.localToWorld(cur.eye.clone()));
+  const lean = cameraControls.update(dt);
+  camera.position.copy(cab.localToWorld(cur.eye.clone().add(new THREE.Vector3(lean.x, lean.y, lean.z))));
   const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(cur.pitch, cur.yaw, 0, 'YXZ'));
   camera.quaternion.copy(cab.quaternion).multiply(q);
-  camera.fov = cur.fov * (cine ? 1 + Math.sin(now * 0.45) * 0.012 : 1);
+  camera.fov = cur.fov * cameraControls.cinematicFovMultiplier(now, cine);
   camera.updateProjectionMatrix(); camera.updateMatrixWorld();
 }
 // input
-let drag = null;
-let down = null;
-canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; down = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); userTook(); });
-canvas.addEventListener('pointermove', (e) => { if (!drag) return; const k = (cur.fov / 60) * 0.0042; cur.yaw += (e.clientX - drag.x) * k; cur.pitch = clamp(cur.pitch + (e.clientY - drag.y) * k, -1.2, 0.6); drag = { x: e.clientX, y: e.clientY }; });
-canvas.addEventListener('pointerup', (e) => { drag = null; if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) pick(pickAt(e.clientX, e.clientY)); down = null; });
 const zoom = (f) => { userTook(); cur.fov = clamp(cur.fov * f, 5, 75); };
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); zoom(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
 const keyMap = { 1: 'desk', 2: 'runway', 3: 'ground', 4: 'air', 5: 'tablet', 6: 'side' };
@@ -1233,11 +1218,14 @@ function toggleBino() {
   // zoom toward the picked aircraft and keep it centred
   binoTrack = a; curShot = 'binoc';
   const eye = new THREE.Vector3(0, 1.78, -0.72);
-  tween = { from: { eye: cur.eye.clone(), yaw: cur.yaw, pitch: cur.pitch, fov: cur.fov }, to: aimFrom(eye, worldToCab(a.pos), a.kind === 'evtol' ? 5 : 8), t0: performance.now(), dur: 800 };
+  const target = aimFrom(eye, worldToCab(a.pos), a.kind === 'evtol' ? 5 : 8);
+  cameraControls.resetLook(target.yaw);
+  tween = { from: { eye: cur.eye.clone(), yaw: cur.yaw, pitch: cur.pitch, fov: cur.fov }, to: target, t0: performance.now(), dur: cameraControls.transitionDuration(.8) * 1000 };
   binoOn = true; $('binoc').classList.add('on');
 }
 let prevShot = 'desk';
 addEventListener('keydown', (e) => {
+  if (e.altKey || e.ctrlKey || e.metaKey || !isTowerShortcutTarget(e.target)) return;
   if ((e.key === 't' || e.key === 'T') && !e.repeat) { if (window.parent !== window) parent.postMessage({ uita: 'toggle' }, '*'); return; }
   if (keyMap[e.key]) { userTook(); goTo(keyMap[e.key]); }
   else if (e.key === 'b' || e.key === 'B') toggleBino();
@@ -1254,11 +1242,11 @@ document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click',
 $('bBino').onclick = toggleBino; $('bZin').onclick = () => zoom(0.85); $('bZout').onclick = () => zoom(1.18);
 $('bCine').onclick = () => setCine(!cine); $('bPhoto').onclick = () => setPhotoreal(!photoreal);
 const toggleHelp = () => $('help').classList.toggle('on'); $('bHelp').onclick = toggleHelp;
-function togglePause() { S.paused = !S.paused; $('bPlay').textContent = S.paused ? '▶' : '❚❚'; }
+function togglePause() { S.paused = !S.paused; syncAudioPause(); $('bPlay').textContent = S.paused ? '▶' : '❚❚'; }
 $('bPlay').onclick = togglePause;
 function restart() { SkyRadio.flush(); S.gen++; flightEpoch = visT + flightStart; }
 $('bRestart').onclick = restart;
-const syncSound = () => { $('bSound').textContent = SkyRadio.enabled ? '🔊' : '🔈'; $('bSound').classList.toggle('on', SkyRadio.enabled); };
+const syncSound = () => { spatialAudio.setEnabled(SkyRadio.enabled); $('bSound').textContent = SkyRadio.enabled ? '🔊' : '🔈'; $('bSound').classList.toggle('on', SkyRadio.enabled); };
 const toggleSound = () => { SkyRadio.enabled ? SkyRadio.disable() : SkyRadio.enable(); syncSound(); };
 $('bSound').onclick = toggleSound;
 document.addEventListener('skyradio:enabled', syncSound); syncSound();
@@ -1353,7 +1341,7 @@ function pickAt(cx, cy) {
 }
 $('cX').onclick = () => pick(null);
 
-let last = performance.now(), visT = 0, frame = 0, rayT = 0, lastDraw = -1, halted = false, extPause = false;
+let last = performance.now(), visT = 0, frame = 0, rayT = 0, lastDraw = -1, halted = false, extPause = false, backendAudioPaused = CONNECTED;
 const ray = new THREE.Raycaster();
 function refineGround(now) {
   if (now - rayT < 2 || frame > 4000) return; rayT = now;
@@ -1364,14 +1352,15 @@ function refineGround(now) {
 function worldOffset() { for (const c of world.children) if (c !== fallback && !actors.some((a) => a.g === c)) c.position.y = groundY; }
 function loop() {
   booting = false;
-  const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000); last = now; frame++;
+  const now = performance.now(), elapsed = Math.max(0, (now - last) / 1000), dt = Math.min(0.1, elapsed); last = now; frame++;
   const ns = now / 1000;
-  if (!CONNECTED && !S.paused) { visT += dt; S.t += dt * (S.busy ? 0.6 : 1); }
+  // The flight trajectory is precomputed at 60 Hz. Slow rendering must not slow its clock.
+  if (!CONNECTED && !S.paused) { visT += elapsed; S.t += dt * (S.busy ? 0.6 : 1); }
   updateActors(visT);
   // storm visuals
   const sl = CONNECTED ? 0 : stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
   corrLines['C-E'].material.color.setHex(ceClosed() ? 0xff4a3d : 0x5fd4ff); corrLines['C-E'].material.opacity = ceClosed() ? 0.5 + 0.4 * Math.abs(Math.sin(ns * 3)) : 0.35;
-  applyCamera(ns); updatePick();
+  applyCamera(ns, dt); atmosphere.update(); spatialAudio.update({ camera, actors }); updatePick();
   // screens: redraw at ~10 fps
   if (ns - lastDraw >= 0.1) {
     const sdt = Math.min(0.5, ns - lastDraw); lastDraw = ns;
@@ -1388,20 +1377,24 @@ function loop() {
   if (!halted) requestAnimationFrame(loop);
 }
 // pause rendering when hidden or when the iframe host asks (postMessage {uita:'pause'|'resume'})
+function syncAudioPause() { spatialAudio.setPaused(document.hidden || extPause || (CONNECTED ? backendAudioPaused : S.paused)); }
 function setHalted() {
+  syncAudioPause();
   const h = document.hidden || extPause;
   if (h === halted) return;
   halted = h;
+  if (halted) cameraControls.resetLook(cur.yaw);
   if (!halted) { last = performance.now(); requestAnimationFrame(loop); }
 }
 document.addEventListener('visibilitychange', setHalted);
 addEventListener('message', (e) => {
   if (e.origin !== location.origin || e.source !== parent) return;
+  if (e.data?.type === 'uita:playhead' && Number.isFinite(e.data.clock)) { backendAudioPaused = !(Number(e.data.rate) > 0); syncAudioPause(); }
   if (e.data?.uita === 'pause') { extPause = true; setHalted(); }
   else if (e.data?.uita === 'resume') { extPause = false; setHalted(); }
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
-window.__sky = { S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
+window.__sky = { arrivalTaxiRoute, atmosphere, spatialAudio, cameraControls, S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 if (CONNECTED) {
   const connectedStyle=document.createElement('style');connectedStyle.textContent='#score,#banner,#card,#bPlay,#bRestart,#bSound,#help{display:none!important} #controls{bottom:156px;max-width:calc(100vw - 28px);overflow-x:auto} #controls button{flex-shrink:0}';document.head.append(connectedStyle);
@@ -1420,7 +1413,7 @@ if (CONNECTED) {
       actor.tag=a.callsign;
     }
     for(const [id,actor] of connectedActors)if(!current.has(id))actor.fn=()=>({vis:false});
-  });
+  }, (active) => { extPause = !active; setHalted(); });
 }
 function drawConnected(){
   for(const [name,screen] of Object.entries(screens)){
@@ -1451,6 +1444,8 @@ function drawConnected(){
     });
   }
 }
+syncAudioPause();
+addEventListener('pagehide', (event) => { if (!event.persisted) { cameraControls.dispose(); atmosphere.dispose(); spatialAudio.dispose(); } });
 loop();
 if (!CONNECTED) runLoop();
 </script>
