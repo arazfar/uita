@@ -124,7 +124,7 @@ Rules (a deterministic kernel will VETO violations): same-runway spacing at leas
 never use a closed runway; slot_time >= min_slot_s; one aircraft per slot. Frozen aircraft keep their slot.
 Priorities: MEDICAL first, then LOW_FUEL, then minimise total delay. Use both runways when open.
 Call clear_to_land for every aircraft you can slot within about 10 minutes and hold (at its suggested fix) for the rest.
-Call one tool per aircraft, in landing order, with increasing slot_time per runway.\nWrite each reason as plain English for the public, e.g. "Medical on board, goes first", "Heavy ahead, 120 s wake spacing", "Runway 28L closed, holds for a later slot". Under 12 words.`;
+Call one tool per aircraft, in landing order, with increasing slot_time per runway.\nWrite each reason as one short plain-English sentence for the public that states the actual reason for that aircraft (no field names, under 12 words).`;
 
 // One tool-calling chat. Some models (Nemotron with thinking off) return one call per turn, so keep
 // the conversation going with tool results until every queued id is decided, the model stops, or time runs out.

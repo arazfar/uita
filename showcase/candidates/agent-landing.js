@@ -88,7 +88,7 @@ export function mountLanding(ctx) {
       if (o === a || !o.slot || o.slot.rwy !== rwy || o.done) continue;
       if (Math.abs(o.slot.t - t) < 1) return `double booking with ${o.cs}`;
       const need = o.slot.t <= t ? gapAfter(o) : gapAfter(a);
-      if (Math.abs(o.slot.t - t) < need) return `${Math.round(Math.abs(o.slot.t - t))} s from ${o.cs} (needs ${need} s${need === 120 ? ', wake' : ''})`;
+      if (Math.abs(o.slot.t - t) < need - 2) return `${Math.round(Math.abs(o.slot.t - t))} s from ${o.cs} (needs ${need} s${need === 120 ? ', wake' : ''})`;
     }
     return null;
   }
@@ -210,8 +210,8 @@ export function mountLanding(ctx) {
   function disrupt(T = ctx.now()) {
     S.closure = { rwy: '28L', t0: T, t1: T + 600 };
     logLine(`28L closed for 10 min · single runway`, 'rej');
-    for (const a of S.arr.values()) if (a.slot && a.slot.rwy === '28L' && !frozen(a) && a.slot.t <= S.closure.t1) {
-      a.slot = null; a.verdict = 'kernel: 28L closed, slot revoked'; sendToHold(a, T, a.holdFix);
+    for (const a of S.arr.values()) if (a.slot && a.slot.rwy === '28L' && a.leg.type !== 'roll' && a.slot.t <= S.closure.t1) { // incl. aircraft on final: go around
+      a.slot = null; a.verdict = 'kernel VETO · 28L closed, slot revoked'; a.holdFix = null; sendToHold(a, T, nearestFix(posOf(a, T).ll));
     }
     if (S.mode === 'fcfs') fcfs(T); else requestCycle(T, true);
   }
@@ -286,19 +286,29 @@ export function mountLanding(ctx) {
     const mins = until ? Math.max(1, Math.ceil((until - T) / 60)) : null;
     return { kind: 'wait', pill: `WAIT · HOLD ${a.holdFix}${mins ? ` · +${mins} min` : ''}`, chip: `HOLD ${a.holdFix}` };
   }
+  function llmWhy(a) {
+    const w = (a.why || '').trim(); if (!w) return null;
+    if (/heavy/i.test(w) && !leadOf(a)?.wake?.startsWith('heavy') && a.wake !== 'heavy') return null;
+    if (/medical/i.test(w) && a.flag !== 'MEDICAL') return null;
+    if (/fuel/i.test(w) && a.flag !== 'LOW_FUEL') return null;
+    if (/closed/i.test(w) && !S.closure) return null;
+    if (/[A-Z_]{5,}/.test(w)) return null; // echoes of field names
+    return w.replace(/\.$/, '') + '.';
+  }
+  const leadOf = a => a.slot ? [...S.arr.values()].filter(o => o !== a && o.slot && o.slot.rwy === a.slot.rwy && o.slot.t < a.slot.t).sort((x, y) => y.slot.t - x.slot.t)[0] : null;
   function reason(a, T) {
     if (/VETO/.test(a.verdict || '')) return `Kernel veto: ${a.verdict.replace(/^kernel VETO · /, '')}. Holding ${a.holdFix}.`;
     if (a.leg.type === 'roll') return `Landed ${a.slot.rwy}, delay ${fmtD(a.landedAt - a.eta)}.`;
     if (a.slot) {
       if (a.flag === 'MEDICAL') return 'Medical on board, goes first.';
       if (a.flag === 'LOW_FUEL') return 'Low fuel, sequenced ahead of the queue.';
-      const lead = [...S.arr.values()].filter(o => o !== a && o.slot && o.slot.rwy === a.slot.rwy && o.slot.t < a.slot.t).sort((x, y) => y.slot.t - x.slot.t)[0];
+      const lead = leadOf(a);
       if (lead && lead.wake === 'heavy' && a.slot.t - lead.slot.t < 135) return `Heavy ahead (${lead.cs}), 120 s wake spacing.`;
       if (leaveAt(a, T) - T >= 60) return `${S.closure ? `Runway ${S.closure.rwy} closed; h` : 'H'}olding ${a.holdFix} until slot ${fmtT(a.slot.t).slice(0, 5)}.`;
-      return a.why ? `${a.why.replace(/\.$/, '')}.` : `Slot ${fmtT(a.slot.t)} on ${a.slot.rwy}.`;
+      return llmWhy(a) || (lead ? `Next after ${lead.cs} on ${a.slot.rwy}, 90 s spacing.` : `First in sequence on ${a.slot.rwy}.`);
     }
     if (S.closure) return `Runway ${S.closure.rwy} closed; holding${a.efc ? ` until ${fmtT(a.efc).slice(0, 5)}` : ''}.`;
-    return a.why ? `${a.why.replace(/\.$/, '')}.` : 'Waiting for the next sequence.';
+    return llmWhy(a) || 'Waiting for a slot in the next sequence.';
   }
 
   // ---------- NEMOTRON DECISIONS panel (right side) ----------
