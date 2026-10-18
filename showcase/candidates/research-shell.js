@@ -679,7 +679,7 @@ setInterval(() => {
       if (job) await loadComparison();
     });
 }, 2000);
-await action(async () => {
+action(async () => {
   const [catalog, scenarios, benchmark, identity, histories] =
     await Promise.all([
       api("/recordings"),
