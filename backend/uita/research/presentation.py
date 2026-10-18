@@ -9,6 +9,7 @@ from fastapi import HTTPException, Query, Request
 from sqlalchemy import select
 
 from . import service
+from .arrival_cues import historical_cue, simulation_cue, recording_frame
 from .contracts import (
     ControllerProposal,
     PresentationAircraft,
@@ -28,6 +29,7 @@ def frame(state, source_id, revision, cursor=0, mode="simulation"):
         lon, lat = geographic(a["x_nm"], a["y_nm"])
         aircraft.append(
             PresentationAircraft(
+                arrival_cue=simulation_cue(a, state),
                 id=a["id"],
                 callsign=a["callsign"],
                 longitude=lon,
@@ -173,6 +175,7 @@ def routes(app, database):
                         interpolated = fraction > 0
                 aircraft.append(
                     PresentationAircraft(
+                        arrival_cue=historical_cue(t["points"], i, tick),
                         id=t["id"],
                         callsign=t.get("callsign") or t["id"],
                         longitude=position["lon"],
@@ -186,6 +189,7 @@ def routes(app, database):
                         provenance={
                             "kind": "observed",
                             "segment_id": p.get("segment_id"),
+                            "quality_flags": p.get("quality_flags", []),
                             "presentation_interpolation": interpolated,
                         },
                     )
@@ -302,7 +306,7 @@ def routes(app, database):
                 future = [
                     f for f in payload[key] if clock < f["clock"] <= clock + seconds
                 ]
-                return prior[-1:] + future
+                return [recording_frame(f, payload["events"] if key == "frames" else []) for f in prior[-1:] + future]
 
             # Seeks retain bounded prior decision/clearance evidence for the
             # displayed aircraft, without exposing events after the playhead.

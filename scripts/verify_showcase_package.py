@@ -11,6 +11,8 @@ required = [
     "candidates/research-renderer.js",
     "candidates/research-scene-controls.js",
     "candidates/research-decision.js",
+    "candidates/research-arrivals.js",
+    "candidates/research-windows.js",
     "candidates/research-login.html",
     "node_modules/three186/build/three.module.js",
     "node_modules/cesium/Build/Cesium/Cesium.js",

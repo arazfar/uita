@@ -1,3 +1,4 @@
+import { arrivalLabel } from "./research-arrivals.js";
 // The sparse showcase's original controls, driven only by committed presentation frames.
 export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
   const $ = (id) => document.getElementById(id);
@@ -108,7 +109,12 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
     $("bMore").setAttribute("aria-expanded", String(open));
     $("more").classList.toggle("open", open);
   };
-  $('more').addEventListener('click',e=>{if(e.target.closest('button')){$('more').classList.remove('open');$('bMore').setAttribute('aria-expanded','false');}});
+  $("more").addEventListener("click", (e) => {
+    if (e.target.closest("button")) {
+      $("more").classList.remove("open");
+      $("bMore").setAttribute("aria-expanded", "false");
+    }
+  });
   $("bZin").onclick = () =>
     viewer.camera.zoomIn(viewer.camera.positionCartographic.height * 0.25);
   $("bZout").onclick = () =>
@@ -137,7 +143,7 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
   });
   addEventListener("keydown", (e) => {
     if (e.target.closest?.("input,select,textarea") || e.repeat) return;
-    if(e.key === " " && e.target.closest?.("button")) return;
+    if (e.key === " " && e.target.closest?.("button")) return;
     const key = e.key.toLowerCase();
     const actions = {
       1: overview,
@@ -177,6 +183,22 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
       b.setAttribute("aria-checked", String(on));
     });
   });
+  addEventListener("message", (e) => {
+    if (
+      e.origin !== location.origin ||
+      e.source !== parent ||
+      e.data?.type !== "uita:camera"
+    )
+      return;
+    if (e.data.action === "overview") overview();
+    if (
+      e.data.action === "follow" &&
+      frame?.aircraft.some((a) => a.id === e.data.id)
+    ) {
+      selected = e.data.id;
+      follow();
+    }
+  });
   airport();
   return (next, id) => {
     frame = next;
@@ -199,7 +221,18 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
     lastPaint = performance.now();
     const a = frame.aircraft.find((a) => a.id === selected);
     for (const [name, marker] of runwayMarkers)
-      marker.show = !!a && a.runway === name && frame.mode !== "historical";
+      marker.show =
+        frame.mode !== "historical" &&
+        ((!!a && a.runway === name) ||
+          frame.aircraft.some(
+            (x) =>
+              x.arrival_cue?.runway === name &&
+              [
+                "approaching",
+                "clearance_issued",
+                "landing_authorized",
+              ].includes(x.arrival_cue.phase),
+          ));
     $("fcard").style.display = a ? "block" : "none";
     if (a) {
       $("fcCs").textContent = a.callsign;
@@ -208,7 +241,7 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
         frame.mode === "historical"
           ? "Historical observation"
           : "Research simulation";
-      $("fcStatus").textContent = a.status;
+      $("fcStatus").textContent = arrivalLabel(a);
       $("fcGrid").replaceChildren();
       for (const [label, value] of [
         ["Assigned runway", a.runway || "Unavailable"],
@@ -254,7 +287,7 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
         strips.set(a.id, b);
         $("striplist").append(b);
       }
-      b.textContent = `${a.callsign} · ${a.status}`;
+      b.textContent = `${a.callsign} · ${arrivalLabel(a)}`;
     }
     for (const [id, b] of strips)
       if (!visibleIds.has(id)) {

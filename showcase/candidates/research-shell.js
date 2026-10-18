@@ -1,3 +1,5 @@
+import { PlaybackWindows } from "./research-windows.js";
+import { arrivalLabel, landingCandidates } from "./research-arrivals.js";
 import { decisionAt } from "./research-decision.js";
 import {
   api,
@@ -44,6 +46,213 @@ let recordings = [],
   windowData = null,
   lastWindow = -Infinity,
   lastSpoken = 0;
+const windows = new PlaybackWindows((kind, id, clock, signal) =>
+  api(
+    `/${kind}/${encodeURIComponent(id)}/window?clock=${clock}&seconds=120`,
+    undefined,
+    AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+  ),
+);
+const sessions = new Map();
+let transition = null,
+  transitionId = 0,
+  retryTransition = null;
+const sessionKey = (value) =>
+  value === "historical" ? "historical" : "simulation";
+function captureSession() {
+  return {
+    speed: $("speed").value,
+    frame,
+    baseline,
+    selected,
+    recording,
+    run,
+    events,
+    playing,
+    clock,
+    job,
+    windowData,
+    lastWindow,
+    liveFrames,
+    historyDataset,
+    comparison: $("comparison-results").innerHTML,
+    controller: $("render-controller").value,
+    source: $("source").textContent,
+    timeline: $("timeline-label").textContent,
+  };
+}
+function restoreSession(s) {
+  ({
+    frame,
+    baseline,
+    selected,
+    recording,
+    run,
+    events,
+    playing,
+    clock,
+    job,
+    windowData,
+    lastWindow,
+    liveFrames,
+  } = s);
+  if (mode === "historical") historyDataset = s.historyDataset;
+  if (recording) $("recordings").value = recording.id;
+  if (historyDataset) $("history-datasets").value = historyDataset.id;
+  if (s.speed) $("speed").value = s.speed;
+  $("comparison-results").innerHTML = s.comparison;
+  $("render-controller").value = s.controller;
+  $("source").textContent = s.source;
+  $("timeline-label").textContent = s.timeline;
+  const source = mode === "historical" ? historyDataset : recording;
+  if (source) {
+    $("seek").min = source.start;
+    $("seek").max = source.end;
+  }
+}
+async function switchMode(nextMode, source = null) {
+  const id = ++transitionId;
+  transition?.abort();
+  transition = new AbortController();
+  const signal = transition.signal;
+  seekAbort?.abort();
+  clearTimeout(seekTimer);
+  sourceGeneration++;
+  $("switch-status").textContent =
+    `Loading ${nextMode === "historical" ? "historical traffic" : "simulation"}…`;
+  retryTransition = () => switchMode(nextMode, source);
+  sendFrame();
+  controls();
+  try {
+    let target =
+      sessionKey(nextMode) === sessionKey(mode)
+        ? captureSession()
+        : sessions.get(sessionKey(nextMode));
+    if (nextMode === "historical") {
+      const dataset = source || target?.historyDataset || historyDataset;
+      if (!dataset) throw Error("Historical demo data is not installed");
+      if (!target || target.historyDataset.id !== dataset.id)
+        target = {
+          ...captureSession(),
+          historyDataset: dataset,
+          clock: dataset.recommended_start || dataset.start,
+          selected: null,
+          playing: false,
+          events: [],
+          recording: null,
+          run: null,
+          job: null,
+          baseline: null,
+          comparison: "",
+          controller: "candidate",
+        };
+      const data = await windows.load("history", dataset, target.clock, signal);
+      target = {
+        ...target,
+        windowData: data,
+        frame: displayFrame(data.frames, target.clock),
+        baseline: null,
+        events: [],
+        lastWindow: target.clock,
+      };
+      target.source = `Historical observations · ${dataset.coverage.tracks} tracks · inferred approaches are presentation heuristics`;
+      target.timeline = "Historical observations · read-only";
+    } else if (source || !target) {
+      const nextRecording = source || recording || recordings[0];
+      if (!nextRecording) throw Error("No simulation recording installed");
+      const at = nextRecording.recommended_start || nextRecording.start;
+      const data = await windows.load("recordings", nextRecording, at, signal);
+      target = {
+        ...captureSession(),
+        recording: nextRecording,
+        run: null,
+        job: null,
+        selected: null,
+        playing: false,
+        clock: at,
+        frame: displayFrame(data.frames, at),
+        baseline: displayFrame(data.baseline_frames, at),
+        events: uniqueEvents(data.events),
+        windowData: data,
+        lastWindow: at,
+        comparison: "",
+        controller: "candidate",
+        timeline: "Recorded simulation · read-only",
+      };
+    } else if (target.run) {
+      const runId = target.run.id;
+      const [latest, next, journal, motion] = await Promise.all([
+        api(`/runs/${runId}`, undefined, signal),
+        api(`/runs/${runId}/presentation`, undefined, signal),
+        api(`/runs/${runId}/events?after=0`, undefined, signal),
+        api(`/runs/${runId}/motion`, undefined, signal),
+      ]);
+      target = {
+        ...target,
+        run: latest,
+        frame: next,
+        clock: next.clock,
+        events: uniqueEvents(journal),
+        liveFrames: motion.frames,
+      };
+    } else {
+      const data = await windows.load(
+        "recordings",
+        target.recording,
+        target.clock,
+        signal,
+      );
+      target = {
+        ...target,
+        frame: displayFrame(data.frames, target.clock),
+        baseline: displayFrame(data.baseline_frames, target.clock),
+        events: uniqueEvents([...target.events, ...data.events]),
+        windowData: data,
+        lastWindow: target.clock,
+      };
+    }
+    if (id !== transitionId) return;
+    if (!target.frame) throw Error("No usable traffic frame at this time");
+    sessions.set(sessionKey(mode), captureSession());
+    stream?.close();
+    stream = null;
+    mode = nextMode;
+    restoreSession(target);
+    sourceGeneration++;
+    transition = null;
+    retryTransition = null;
+    $("switch-status").textContent = "";
+    $("switch-retry").hidden = true;
+    $("error").hidden = true;
+    $("events").replaceChildren();
+    delete $("events").dataset.signature;
+    globalThis.speechSynthesis?.cancel();
+    lastSpoken = 0;
+    setModeButtons();
+    render();
+    if (run) {
+      history.replaceState(null, "", `/?run=${encodeURIComponent(run.id)}`);
+      connect();
+    } else history.replaceState(null, "", location.pathname);
+    if (mode === "compare" || (source && mode !== "historical")) {
+      const generation = sourceGeneration;
+      loadComparison().catch((e) => {
+        if (generation === sourceGeneration) fail(e);
+      });
+    }
+  } catch (e) {
+    if (id !== transitionId) return;
+    transition = null;
+    sendFrame();
+    $("switch-status").textContent =
+      `Unable to load ${nextMode} · current view retained${e.status === 401 ? " · session expired" : ""}`;
+    if (e.status === 401) fail(e);
+    $("switch-retry").hidden = false;
+    if (recording) $("recordings").value = recording.id;
+    if (historyDataset) $("history-datasets").value = historyDataset.id;
+    controls();
+  }
+}
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -72,6 +281,7 @@ function fail(error) {
 let actionQueue = Promise.resolve();
 function action(fn) {
   const execute = async () => {
+    const generation = sourceGeneration;
     busy = true;
     controls();
     try {
@@ -79,7 +289,7 @@ function action(fn) {
       $("error").hidden = true;
       $("retry").hidden = true;
     } catch (e) {
-      fail(e);
+      if (generation === sourceGeneration && e.name !== "AbortError") fail(e);
     } finally {
       busy = false;
       controls();
@@ -90,18 +300,19 @@ function action(fn) {
 }
 
 function controls() {
+  const locked = busy || !!transition;
   const live = !!run && mode !== "historical";
   $("speed").querySelector('[value="60"]').disabled = live;
   if (live && Number($("speed").value) > 30)
     $("speed").value = String(run.state.speed || 1);
   const terminal = frame && ["failed", "complete"].includes(frame.status);
-  $("close").disabled = !live || terminal || mode === "historical" || busy;
-  $("compare").disabled = !live || busy;
-  $("seek").disabled = busy || live || (!recording && !historyDataset);
-  $("create").disabled = busy;
-  $("recorded").disabled = busy || !recordings.length;
+  $("close").disabled = !live || terminal || mode === "historical" || locked;
+  $("compare").disabled = !live || locked;
+  $("seek").disabled = locked || live || (!recording && !historyDataset);
+  $("create").disabled = locked;
+  $("recorded").disabled = locked || !recordings.length;
   $("play").disabled =
-    busy || (!live && !recording && !historyDataset) || (terminal && live);
+    locked || (!live && !recording && !historyDataset) || (terminal && live);
   $("play").textContent = live
     ? frame?.status === "running"
       ? "Pause run"
@@ -110,10 +321,12 @@ function controls() {
       ? "Pause recording"
       : "Play recording";
   $("step").disabled =
-    busy || !frame || (live && (terminal || frame.status === "running"));
-  $("export").disabled = busy || (!recording && !run);
-  document.querySelectorAll("[data-mode]").forEach((b) => (b.disabled = busy));
-  $("speed").disabled = busy;
+    locked || !frame || (live && (terminal || frame.status === "running"));
+  $("export").disabled = locked || (!recording && !run);
+  document
+    .querySelectorAll("[data-mode]")
+    .forEach((b) => (b.disabled = !frame));
+  $("speed").disabled = locked;
   if (mode === "historical") {
     for (const id of ["close", "compare"]) $(id).disabled = true;
   }
@@ -146,7 +359,8 @@ function sendFrame() {
     sentBuffers.set(scene, buffer);
   }
   const running =
-    mode === "historical" || !run ? playing : frame.status === "running";
+    (mode === "historical" || !run ? playing : frame.status === "running") &&
+    !transition;
   message("uita:ui", {
     speed: Number($("speed").value),
     maxSpeed: run && mode !== "historical" ? 30 : 60,
@@ -167,6 +381,11 @@ function sendFrame() {
 function render() {
   if (!frame) return;
   const shown = shownFrame();
+  const arrivals = landingCandidates(shown);
+  $("arrival-status").textContent = arrivals.length
+    ? `${arrivals.length} approaching · ${arrivalLabel(arrivals[0])}`
+    : "No landing activity identified at this time";
+  $("follow-landing").disabled = !arrivals.length;
   const decision = decisionAt(
     events,
     shown,
@@ -193,6 +412,10 @@ function render() {
       : "No issued clearance in the loaded evidence for this aircraft";
   }
   if (!shown.aircraft.some((a) => a.id === selected)) selected = null;
+  document.body.classList.toggle(
+    "aircraft-inspected",
+    !!selected && camera === "dashboard",
+  );
   if (recording && mode !== "historical")
     $("source").textContent =
       `${recording.title} · ${recording.model} · ${recording.model_responses} model responses · ${recording.fallback_count} fallbacks. ${recording.limitations.join(". ")}`;
@@ -268,7 +491,7 @@ function render() {
     button.setAttribute("aria-pressed", String(selected === a.id));
     row.cells[1].textContent =
       a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft);
-    row.cells[2].textContent = a.status;
+    row.cells[2].textContent = arrivalLabel(a);
     if (table.children[index] !== row)
       table.insertBefore(row, table.children[index] || null);
   });
@@ -352,44 +575,10 @@ function resetSource() {
   globalThis.speechSynthesis?.cancel();
 }
 async function loadRecording() {
-  const nextRecording = recordings.find((r) => r.id === $("recordings").value);
-  if (!nextRecording)
-    throw Error("No authentic Nemotron recording is installed.");
-  const [data, comparison, historyData] = await Promise.all([
-    api(
-      `/recordings/${nextRecording.id}/window?clock=${nextRecording.recommended_start || nextRecording.start}&seconds=120`,
-    ),
-    api(`/recordings/${nextRecording.id}/comparison`),
-    null,
-  ]);
-  const nextFrame = displayFrame(
-    data.frames,
-    nextRecording.recommended_start || nextRecording.start,
+  return switchMode(
+    "simulation",
+    recordings.find((r) => r.id === $("recordings").value),
   );
-  if (!nextFrame) throw Error("Recording has no initial frame.");
-  resetSource();
-  history.replaceState(null, "", location.pathname);
-  run = null;
-  job = null;
-  recording = nextRecording;
-  clock = recording.recommended_start || recording.start;
-  $("seek").min = recording.start;
-  $("seek").max = recording.end;
-  $("source").textContent =
-    `${recording.title} · ${recording.model} · ${recording.model_responses} model responses · ${recording.fallback_count} fallbacks. Synthetic metered demand; inspect comparison before drawing conclusions.`;
-  $("timeline-label").textContent =
-    "Recorded simulation · read-only · closure at +90 seconds from demo opening · inspect source label";
-  windowData = data;
-  lastWindow = clock;
-  frame = nextFrame;
-  baseline = displayFrame(data.baseline_frames, clock);
-  events = uniqueEvents(data.events);
-  if (mode === "historical") {
-    mode = "simulation";
-    setModeButtons();
-  }
-  renderComparison(comparison);
-  render();
 }
 async function replay() {
   if (mode === "historical") {
@@ -398,9 +587,10 @@ async function replay() {
     return;
   }
   const gen = sourceGeneration;
-  const data = await api(
-    `/recordings/${recording.id}/window?clock=${clock}&seconds=120`,
-    undefined,
+  const data = await windows.load(
+    "recordings",
+    recording,
+    clock,
     seekAbort?.signal,
   );
   if (gen !== sourceGeneration) return;
@@ -417,9 +607,10 @@ async function historical() {
   if (!historyDataset) throw Error("Historical demo data is not installed");
   const gen = sourceGeneration;
   const target = clock;
-  const data = await api(
-    `/history/${historyDataset.id}/window?clock=${clock}&seconds=120`,
-    undefined,
+  const data = await windows.load(
+    "history",
+    historyDataset,
+    target,
     seekAbort?.signal,
   );
   if (gen !== sourceGeneration) return;
@@ -431,7 +622,7 @@ async function historical() {
     `Historical observations · ${historyDataset.coverage.tracks} tracks, ${historyDataset.coverage.measured_altitude_points} measured altitude samples. Unknown heights are not drawn in 3D.`;
 }
 async function refreshLive() {
-  if (!run || mode === "historical") return;
+  if (!run || mode === "historical" || transition) return;
   const gen = sourceGeneration;
   const [next, journal, motion] = await Promise.all([
     api(`/runs/${run.id}/presentation`),
@@ -470,15 +661,22 @@ function connect() {
   stream.onopen = () => action(refreshLive);
 }
 async function command(path, body) {
-  const latest = await api(`/runs/${run.id}`);
-  run = await api(`/runs/${run.id}/${path}`, mutation(latest, body));
+  const runId = run.id,
+    gen = sourceGeneration;
+  const latest = await api(`/runs/${runId}`);
+  const updated = await api(`/runs/${runId}/${path}`, mutation(latest, body));
+  if (gen !== sourceGeneration || run?.id !== runId) return updated;
+  run = updated;
   await refreshLive();
+  return updated;
 }
 async function loadComparison() {
+  const gen = sourceGeneration;
   let data;
   if (recording) data = await api(`/recordings/${recording.id}/comparison`);
   else if (job) {
     const j = await api(`/jobs/${job}`);
+    if (gen !== sourceGeneration) return;
     if (j.status === "failed")
       throw Error("Comparison failed. Evidence is retained.");
     if (j.status !== "complete") {
@@ -488,7 +686,7 @@ async function loadComparison() {
     }
     data = j.result;
   } else return;
-  renderComparison(data);
+  if (gen === sourceGeneration) renderComparison(data);
 }
 function renderComparison(data) {
   const rows = data.results || [];
@@ -514,6 +712,7 @@ $("traffic").onclick = (e) => {
 $("recorded").onclick = () => action(loadRecording);
 $("create").onclick = () =>
   action(async () => {
+    const creationGeneration = sourceGeneration;
     const nextRun = await api("/runs", {
       scenario_id: $("scenarios").value,
       controller: $("controller").value,
@@ -526,6 +725,29 @@ $("create").onclick = () =>
       api(`/runs/${nextRun.id}/presentation`),
       api(`/runs/${nextRun.id}/events?after=0`),
     ]);
+    if (creationGeneration !== sourceGeneration) {
+      sessions.set("simulation", {
+        ...captureSession(),
+        run: nextRun,
+        recording: null,
+        job: null,
+        selected: null,
+        playing: false,
+        clock: nextFrame.clock,
+        frame: nextFrame,
+        baseline: null,
+        events: uniqueEvents(journal),
+        windowData: null,
+        liveFrames: [nextFrame],
+        lastWindow: -Infinity,
+        comparison: "No comparison for this run yet.",
+        controller: "candidate",
+        source: `${nextRun.state.controller} · isolated research run`,
+        timeline: "Live research run · worker-owned clock",
+      });
+      return;
+    }
+    sessions.set(sessionKey(mode), captureSession());
     resetSource();
     run = nextRun;
     recording = null;
@@ -584,9 +806,11 @@ $("seek").oninput = () => {
   sourceGeneration++;
   clock = Number($("seek").value);
   sendFrame();
+  const seekGeneration = sourceGeneration;
   seekTimer = setTimeout(() => {
     seekAbort = new AbortController();
     action(async () => {
+      if (seekGeneration !== sourceGeneration) return;
       events = [];
       await replay();
     });
@@ -594,10 +818,17 @@ $("seek").oninput = () => {
 };
 $("compare").onclick = () =>
   action(async () => {
+    const runId = run.id,
+      gen = sourceGeneration;
     if (frame.status === "running")
       await command("control", { action: "pause" });
-    const latest = await api(`/runs/${run.id}`);
-    const j = await api(`/runs/${run.id}/compare`, mutation(latest, {}));
+    const latest = await api(`/runs/${runId}`);
+    const j = await api(`/runs/${runId}/compare`, mutation(latest, {}));
+    if (gen !== sourceGeneration || run?.id !== runId) {
+      const saved = sessions.get("simulation");
+      if (saved?.run?.id === runId) saved.job = j.id;
+      return;
+    }
     job = j.id;
     await loadComparison();
   });
@@ -633,43 +864,33 @@ $("logout").onclick = () =>
 function setModeButtons() {
   document
     .querySelectorAll("[data-mode]")
-    .forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === mode));
+    .forEach((b) =>
+      b.setAttribute(
+        "aria-pressed",
+        b.dataset.mode === mode ||
+          (b.dataset.mode === "simulation" && mode === "compare"),
+      ),
+    );
   $("comparison").hidden = mode !== "compare";
   document.body.classList.toggle("historical", mode === "historical");
 }
-document.querySelectorAll("[data-mode]").forEach(
-  (b) =>
-    (b.onclick = () =>
-      action(async () => {
-        if (mode !== "historical") simulationClock = clock;
-        const previousMode = mode;
-        mode = b.dataset.mode;
-        sourceGeneration++;
-        windowData = null;
-        lastWindow = -Infinity;
-        if (mode === "historical") {
-          clock = historyDataset.recommended_start || historyDataset.start;
-          $("seek").min = historyDataset.start;
-          $("seek").max = historyDataset.end;
-          await historical();
-          render();
-        } else {
-          if (previousMode === "historical") clock = simulationClock;
-          if (recording) {
-            $("seek").min = recording.start;
-            $("seek").max = recording.end;
-          }
-          if (run) await refreshLive();
-          else if (recording) await replay();
-        }
-        setModeButtons();
-        if (mode === "compare") await loadComparison();
-      })),
-);
+document
+  .querySelectorAll("[data-mode]")
+  .forEach((b) => (b.onclick = () => switchMode(b.dataset.mode)));
+$("switch-retry").onclick = () => retryTransition?.();
+$("recordings").onchange = () =>
+  switchMode(
+    "simulation",
+    recordings.find((r) => r.id === $("recordings").value),
+  );
 document.querySelectorAll("[data-camera]").forEach(
   (b) =>
     (b.onclick = () => {
       camera = b.dataset.camera;
+      document.body.classList.toggle(
+        "aircraft-inspected",
+        !!selected && camera === "dashboard",
+      );
       document
         .querySelectorAll("[data-camera]")
         .forEach((x) => x.setAttribute("aria-pressed", x === b));
@@ -789,28 +1010,32 @@ setInterval(() => {
   const now = performance.now(),
     dt = Math.min(1, (now - previous) / 1000);
   previous = now;
-  if (playing && (recording || mode === "historical") && !busy) {
+  if (playing && (recording || mode === "historical") && !transition) {
     const end = mode === "historical" ? historyDataset.end : recording.end;
     const bufferedEnd = windowData?.frames.at(-1)?.clock || clock;
     clock = Math.min(end, bufferedEnd, clock + dt * Number($("speed").value));
     if (clock === end) playing = false;
-    if (clock - lastWindow > 30 && !loadingWindow) {
+    frame = displayFrame(windowData?.frames || [], clock) || frame;
+    baseline =
+      displayFrame(windowData?.baseline_frames || [], clock) || baseline;
+    render();
+    if (
+      bufferedEnd - clock <=
+        Math.min(120, Math.max(1, Number($("speed").value)) * 10) &&
+      !loadingWindow &&
+      bufferedEnd < end
+    ) {
       loadingWindow = true;
-      replay()
+      prefetchPlayback()
         .catch((e) => {
           if (e.name !== "AbortError") fail(e);
         })
         .finally(() => (loadingWindow = false));
-    } else {
-      frame = displayFrame(windowData?.frames || [], clock) || frame;
-      baseline =
-        displayFrame(windowData?.baseline_frames || [], clock) || baseline;
-      render();
     }
   }
 }, 250);
 setInterval(() => {
-  if (run && !busy)
+  if (run && mode !== "historical" && !busy && !transition)
     action(async () => {
       await refreshLive();
       if (job) await loadComparison();
@@ -867,6 +1092,12 @@ action(async () => {
     throw Error(
       "No verified Nemotron recording installed. Free fixtures remain available under Run a new simulation.",
     );
+  if (historyDataset)
+    windows.prefetch(
+      "history",
+      historyDataset,
+      historyDataset.recommended_start || historyDataset.start,
+    );
 });
 
 function drawer(open) {
@@ -882,14 +1113,10 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape") drawer(false);
 });
 $("history-datasets").onchange = () =>
-  action(async () => {
-    historyDataset = historyCatalog.find(
-      (h) => h.id === $("history-datasets").value,
-    );
-    clock = historyDataset.recommended_start;
-    await historical();
-    render();
-  });
+  switchMode(
+    "historical",
+    historyCatalog.find((h) => h.id === $("history-datasets").value),
+  );
 
 addEventListener("offline", () =>
   fail(new Error("Offline · last committed state retained")),
@@ -899,3 +1126,44 @@ $("decision-evidence").onclick = () => {
   drawer(true);
   $("events").scrollIntoView({ block: "nearest" });
 };
+
+async function prefetchPlayback() {
+  const gen = sourceGeneration,
+    source = mode === "historical" ? historyDataset : recording,
+    kind = mode === "historical" ? "history" : "recordings";
+  if (!source || !windowData) return;
+  const end = windowData.frames.at(-1)?.clock;
+  if (end >= source.end) return;
+  let data;
+  try {
+    data = await windows.load(kind, source, Math.min(source.end, windowData.window_start + 120));
+  } catch (e) {
+    if (gen !== sourceGeneration) return;
+    throw e;
+  }
+  if (gen !== sourceGeneration) return;
+  const merge = (a, b) =>
+    [...new Map([...a, ...b].map((f) => [f.clock, f])).values()]
+      .sort((a, b) => a.clock - b.clock)
+      .filter((f) => f.clock >= clock - 120);
+  windowData = {
+    window_start: data.window_start,
+    frames: merge(windowData.frames, data.frames),
+    baseline_frames: merge(
+      windowData.baseline_frames || [],
+      data.baseline_frames || [],
+    ),
+    events: [],
+  };
+  events = uniqueEvents([...events, ...data.events]);
+  render();
+}
+$("follow-landing").onclick = () => {
+  const a = landingCandidates(shownFrame())[0];
+  if (!a) return;
+  selected = a.id;
+  render();
+  message("uita:camera", { action: "follow", id: a.id });
+};
+$("traffic-overview").onclick = () =>
+  message("uita:camera", { action: "overview" });

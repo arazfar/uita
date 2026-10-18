@@ -167,6 +167,7 @@
 const CONNECTED = new URLSearchParams(location.search).get('mode') === 'connected';
 let connectedFrame = null;
 const {connectRenderer,selectAircraft} = await import('./research-renderer.js');
+const {arrivalLabel}=await import('./research-arrivals.js');
 const {plottable} = await import('./research-client.js');
 
 // three 0.186.1 from the /vendor route (raw, compressed, cacheable; no Vite transform). Addons import the
@@ -1397,6 +1398,11 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, fal
 window.__sky = { arrivalTaxiRoute, atmosphere, spatialAudio, cameraControls, S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 if (CONNECTED) {
+  addEventListener('message',e=>{
+    if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='uita:camera')return;
+    if(e.data.action==='overview'){userTook();goTo('runway');}
+    if(e.data.action==='follow' && connectedFrame?.aircraft.some(a=>a.id===e.data.id)) {picked=e.data.id;binoOn=false;toggleBino();}
+  });
   const connectedStyle=document.createElement('style');connectedStyle.textContent='#score,#banner,#card,#bPlay,#bRestart,#bSound,#help{display:none!important} #controls{bottom:34px;max-width:calc(100vw - 28px);overflow-x:auto} #controls button{flex-shrink:0} @media(max-width:700px){#controls{bottom:72px}}';document.head.append(connectedStyle);
   for (const id of ['score','banner','card','bPlay','bRestart','bSound','help']) { const el=$(id); if(el)el.hidden=true; }
   Object.values(corrLines).forEach(x=>x.visible=false);
@@ -1410,7 +1416,7 @@ if (CONNECTED) {
       if(!actor){actor=mkActor(a.id,'air',()=>({vis:false}),a.callsign,true);connectedActors.set(a.id,actor);}
       const [x,z]=P(a.longitude,a.latitude), h=(a.track_deg_true??0)*D2R;
       actor.fn=()=>({x,y:a.altitude_ft*.3048-groundY,z,dx:Math.sin(h),dy:0,dz:-Math.cos(h),vis:true});
-      actor.tag=a.callsign;
+      actor.tag=a.arrival_cue ? `${a.callsign} · ${arrivalLabel(a)}` : a.callsign;
     }
     for(const [id,actor] of connectedActors)if(!current.has(id))actor.fn=()=>({vis:false});
   }, (active) => { extPause = !active; setHalted(); });

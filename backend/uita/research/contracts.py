@@ -173,7 +173,16 @@ class EvaluationReport(Contract):
     limitations: list[str]
 
 
+class ArrivalCue(Contract):
+    phase: Literal["approaching", "clearance_issued", "landing_authorized", "on_ground", "arrival_completed"]
+    basis: Literal["observed", "simulated", "inferred"]
+    evidence_time: float
+    runway: str | None = None
+    distance_nm: float | None = None
+
+
 class PresentationAircraft(Contract):
+    arrival_cue: ArrivalCue | None = None
     id: str
     callsign: str
     longitude: float

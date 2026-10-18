@@ -1,0 +1,64 @@
+// playwright-cli run-code --filename showcase/scripts/switch-acceptance.js
+async page => {
+  await page.unrouteAll();
+  page.setDefaultTimeout(10000);
+  const origin=new URL(page.url()).origin;
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto(origin);
+  const waitMode=mode=>page.waitForFunction(mode=>document.querySelector('iframe:not([hidden])')?.contentWindow.__uitaFrame?.mode===mode,mode,{timeout:10000});
+  await waitMode('recording');
+  const initialClock=await page.locator('#seek').inputValue();
+  await page.locator('#follow-landing').click();
+  await page.frameLocator('#scene').locator('#fcard').waitFor({state:'visible'});
+  const selected=await page.frameLocator('#scene').locator('#fcCs').innerText();
+  await page.getByRole('button',{name:'Historical',exact:true}).click();await waitMode('historical');
+  const firstHistory=Number(await page.locator('#seek').inputValue());
+  await page.locator('#seek').fill(String(firstHistory+40));await page.locator('#seek').dispatchEvent('input');
+  await page.waitForFunction(c=>document.querySelector('#scene').contentWindow.__uitaFrame.clock===c,firstHistory+40,{timeout:10000});
+  const warmSwitchMs=await page.evaluate(async()=>{
+    const start=performance.now();document.querySelector('[data-mode="simulation"]').click();
+    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Switch timed out')),10000);function tick(){if(document.querySelector('#scene').contentWindow.__uitaFrame?.mode==='recording' && document.querySelector('#scene').contentWindow.__uitaPaintedFrame?.at >= performance.timeOrigin + start){clearTimeout(timer);resolve();}else requestAnimationFrame(tick);}requestAnimationFrame(tick);});
+    return performance.now()-start;
+  });
+  if(await page.locator('#seek').inputValue()!==initialClock)throw Error('Simulation position lost');
+  await page.frameLocator('#scene').locator('#fcard').waitFor({state:'visible'});
+  if(await page.frameLocator('#scene').locator('#fcCs').innerText()!==selected)throw Error('Simulation selection lost');
+  await page.getByRole('button',{name:'Historical',exact:true}).click();await waitMode('historical');
+  if(Number(await page.locator('#seek').inputValue())!==firstHistory+40)throw Error('Historical position reset');
+  await page.evaluate(()=>{document.querySelector('[data-mode=simulation]').click();document.querySelector('[data-mode=historical]').click();document.querySelector('[data-mode=simulation]').click();});
+  await waitMode('recording');
+  await page.locator('#drawer-toggle').click();
+  await page.getByRole('button',{name:'Historical',exact:true}).click();await waitMode('historical');
+  const retained=await page.locator('#source').textContent();
+  await page.route('**/api/v2/history/early-august-history-v1/window?*',r=>r.fulfill({status:503,contentType:'application/json',body:'{"detail":"test unavailable"}'}));
+  await page.locator('#history-datasets').selectOption('early-august-history-v1');
+  await page.locator('#switch-retry').waitFor({state:'visible'});
+  if(await page.locator('#source').textContent()!==retained)throw Error('Failed load replaced source');
+  await page.unroute('**/api/v2/history/early-august-history-v1/window?*');
+  await page.locator('#switch-retry').click();
+  await page.waitForFunction(()=>document.querySelector('#scene').contentWindow.__uitaFrame?.source_id==='early-august-history-v1',null,{timeout:10000});
+  await page.getByRole('button',{name:'Simulation',exact:true}).click();await waitMode('recording');
+  await page.getByRole('button',{name:'Compare',exact:true}).click();
+  await page.locator('#render-controller').selectOption('baseline');
+  await page.waitForFunction(()=>document.querySelector('#scene').contentWindow.__uitaFrame?.source_id==='baseline',null,{timeout:10000});
+  if(await page.locator('#decision-overlay').isVisible())throw Error('Candidate evidence leaked into baseline');
+  await page.locator('#drawer-close').click();
+  await page.getByRole('button',{name:'Tower cab',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('iframe:not([hidden])').contentWindow.__uitaFrame?.source_id==='baseline',null,{timeout:10000});
+  await page.getByRole('button',{name:'Historical',exact:true}).click();await waitMode('historical');
+  await page.getByRole('button',{name:'Simulation',exact:true}).click();await waitMode('recording');
+  await page.getByRole('button',{name:'3D simulation T',exact:true}).click();
+  const visibleAt=Date.now();
+  await page.waitForFunction(t=>document.querySelector('#scene').contentWindow.__uitaPaintedFrame?.at>=t,visibleAt,{timeout:10000});
+  await page.screenshot({path:'output/playwright/switch-desktop.png'});
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await page.screenshot({path:'output/playwright/switch-mobile.png'});
+  // Cross more than one cache bucket to catch sparse-checkpoint prefetch stalls.
+  const playbackStart=Number(await page.locator('#seek').inputValue());
+  await page.locator('#speed').selectOption('60');
+  await page.locator('#play').click();
+  await page.waitForFunction(start=>Number(document.querySelector('#seek').value)>start+180,playbackStart,{timeout:10000});
+  await page.locator('#play').click();
+  return {passed:true,warmSwitchMs,selected,historicalPosition:firstHistory+40,bufferedPlaybackAdvanced:Number(await page.locator('#seek').inputValue())-playbackStart};
+}

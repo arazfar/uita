@@ -119,3 +119,11 @@ Browser regression: `playwright-cli run-code --filename showcase/scripts/sparse-
 ### Simulation reasoning panel
 
 Before serving the showcase locally, run `npm ci --prefix frontend` and `npm run build:trace --prefix frontend` from the repository root. The production Docker build includes this panel. See [Simulation trace](../docs/SIMULATION_TRACE.md) for its provider, replay, and spending boundaries.
+
+Historical / Simulation now switch directly from the scene and remember separate
+playback positions and selections. Sources preload automatically. **Follow landing**
+focuses an arrival without automatic camera changes during mode switching.
+Historical approach cues are explicitly inferred; the current packaged windows
+have insufficient evidence to qualify under the conservative heuristic.
+Run `showcase/scripts/switch-acceptance.js` and `live-switch-acceptance.js` through
+`playwright-cli run-code --filename` against a local API and fixture worker.

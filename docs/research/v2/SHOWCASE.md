@@ -201,3 +201,47 @@ These changes are local; production rollout has not been performed in this task.
 Final confirmation: both browser flows passed; the repeated cached camera
 round-trip measured 60 ms and the 3-second animation-frame sample was 60.11/sec.
 All 282 backend and 21 showcase tests passed after the replay-context change.
+
+### Historical / simulation switching and arrivals
+
+The always-visible source switch remembers each mode's clock, playback speed,
+selection and data. Changing a recording or historical source loads it directly;
+no second Load action is needed. The previous scene remains usable until a new
+frame is ready, with a separate Retry switch action on failure. Camera views
+remain cached. Live workers continue while historical browsing is visible.
+Immutable playback windows use a four-source LRU with three 120-second windows
+per source; overlapping requests share transport and superseded consumers cancel.
+Next windows are prefetched as playback approaches the buffered edge.
+
+`PresentationAircraft.arrival_cue` is optional and additive. It identifies phase,
+evidence basis/time, supported runway and distance for focus ordering. Simulated
+landing authority comes from committed state or causal issued/acknowledged
+clearance events, never a proposal or its verifier verdict. Old recording
+artifacts and their checksums remain unchanged; read-only windows are enriched.
+Compare's baseline receives its own cues without candidate authorization events.
+
+Historical “Approaching SFO · inferred” requires two same-segment measured-altitude
+observations 10–60 seconds apart, latest freshness ≤15 seconds, ≥100 feet descent,
+latest height 200–5,000 feet, decreasing range within 8 NM, and a track within
+30 degrees of the bearing toward SFO. These are presentation heuristics, not FAA
+rules. Inference grants neither runway assignment nor landing confirmation.
+An audit of both packaged historical windows found **zero qualifying observations**
+under these criteria. Their limited altitude/track coverage remains visible;
+absence of a highlight does not mean absence of historical arrivals.
+
+**Follow landing** selects authorized approaches before other approaches, then
+orders by destination distance and identity. It is an explicit camera action;
+switching source never automatically moves the camera. Runway highlights remain
+assigned destinations, not predicted trajectories.
+
+Validation: 285 backend tests and 25 showcase tests passed; both frontend builds
+and packaging checks passed. Browser
+checks for clocks/selection, rapid toggles, failed loading/retry, compare isolation,
+both cameras, fixture live-worker continuation, and desktop/390px layouts passed.
+Playback crossed multiple cached windows at 60× without stalling (195 simulated
+seconds advanced). The full backend suite requires `PYTHONPATH="$PWD/backend"`
+for its subprocess recovery test, as in the startup instructions above.
+The final local warm mode switch measured 33.2 ms (click to painted frame) on the
+existing M1 Pro/Chromium test machine. This is a local measurement; hosted network
+latency and physical-mobile performance were not measured for this change.
+No paid inference, new datasets, migrations or production rollout were performed.

@@ -1,6 +1,7 @@
 // Run with playwright-cli run-code --filename showcase/scripts/browser-acceptance.js
 // against a public-demo or signed-in local/staging page with its worker running. No paid calls.
 async (page) => {
+  await page.unrouteAll();
   const origin = new URL(page.url()).origin;
   await page.setViewportSize({width:1440,height:900});
   const identity = await (await page.request.get(origin + "/api/v2/me")).json();
@@ -25,11 +26,12 @@ async (page) => {
   );
   await page.locator("#create").click();
   await page.locator("#error").waitFor({ state: "visible" });
+  await page.waitForFunction(()=>!document.querySelector('#create').disabled);
   if (
     (await page.locator("#source").innerText()) !== oldSource ||
     (await page.locator("#export").isDisabled())
   )
-    throw Error("Failed create discarded recording");
+    throw Error(`Failed create discarded recording: ${JSON.stringify({oldSource,current:await page.locator("#source").innerText(),exportDisabled:await page.locator("#export").isDisabled()})}`);
   await page.unroute("**/api/v2/runs");
   await page.locator("#live-options summary").click();
   await page.locator("#seek").fill("1786052820");
@@ -118,8 +120,10 @@ async (page) => {
       body: JSON.stringify({ detail: "Injected recording failure" }),
     }),
   );
-  await page.locator("#recorded").click();
-  await page.locator("#error").waitFor({ state: "visible" });
+  // Select an uncached recording: a cache hit correctly needs no request.
+  const uncached=await page.locator('#recordings option').last().getAttribute('value');
+  await page.locator('#recordings').selectOption(uncached);
+  await page.locator("#switch-retry").waitFor({ state: "visible" });
   if (page.url() !== activeUrl || (await page.locator("#source").innerText()) !== activeSource)
     throw Error("Failed recording load discarded live run");
   await page.unroute("**/recordings/*/window?*");

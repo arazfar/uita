@@ -721,6 +721,25 @@ export interface components {
             /** Limitations */
             limitations: string[];
         };
+        /** ArrivalCue */
+        ArrivalCue: {
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "approaching" | "clearance_issued" | "landing_authorized" | "on_ground" | "arrival_completed";
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "observed" | "simulated" | "inferred";
+            /** Evidence Time */
+            evidence_time: number;
+            /** Runway */
+            runway?: string | null;
+            /** Distance Nm */
+            distance_nm?: number | null;
+        };
         /** Clearance */
         Clearance: {
             /** Aircraft Id */
@@ -852,6 +871,7 @@ export interface components {
         };
         /** PresentationAircraft */
         PresentationAircraft: {
+            arrival_cue?: components["schemas"]["ArrivalCue"] | null;
             /** Id */
             id: string;
             /** Callsign */

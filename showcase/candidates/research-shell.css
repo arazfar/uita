@@ -716,3 +716,71 @@ body.drawer-open #decision-overlay {
     overflow: auto;
   }
 }
+
+#source-controls {
+  position: fixed;
+  top: 70px;
+  left: 16px;
+  z-index: 7;
+  max-width: min(500px, calc(100vw - 32px));
+  font-size: 11px;
+}
+#source-controls nav {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #142027dd;
+  backdrop-filter: blur(8px);
+}
+#source-controls nav button {
+  border: 0;
+  border-radius: 999px;
+  min-height: 30px;
+  font-size: 12px;
+}
+#switch-status {
+  display: block;
+  color: #eef1f3;
+  background: #142027dd;
+  border-radius: 6px;
+}
+#switch-status:not(:empty) {
+  padding: 6px 9px;
+  margin-top: 5px;
+}
+.arrival-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  background: #142027dd;
+  padding: 6px 9px;
+  border-radius: 8px;
+}
+.arrival-controls button {
+  font-size: 11px;
+  min-height: 28px;
+  padding: 4px 7px;
+}
+#arrival-status {
+  flex-basis: 100%;
+}
+@media (max-width: 700px) {
+  #source-controls {
+    top: 78px;
+    left: 12px;
+  }
+  #decision-overlay {
+    top: 220px;
+    max-height: 200px;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  body.aircraft-inspected #decision-overlay {
+    display: none;
+  }
+}

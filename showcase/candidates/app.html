@@ -22,6 +22,19 @@
       </button>
       <button data-camera="tower">Tower cab</button>
     </div>
+    <section id="source-controls" aria-label="Traffic source">
+      <nav aria-label="Playback mode">
+        <button data-mode="historical">Historical</button
+        ><button data-mode="simulation" aria-pressed="true">Simulation</button>
+      </nav>
+      <span id="switch-status" role="status"></span
+      ><button id="switch-retry" hidden>Retry switch</button>
+      <div class="arrival-controls">
+        <span id="arrival-status">Loading traffic…</span
+        ><button id="follow-landing" disabled>Follow landing</button
+        ><button id="traffic-overview">Overview</button>
+      </div>
+    </section>
     <section id="decision-overlay" aria-label="Controller decision" hidden>
       <div id="decision-origin"></div>
       <button id="decision-aircraft"></button>
@@ -50,9 +63,7 @@
         <button id="drawer-close" aria-label="Close evidence">Close</button>
         <h1>Traffic & decisions</h1>
         <nav aria-label="Mode">
-          <button data-mode="historical">Historical</button
-          ><button data-mode="simulation" aria-pressed="true">Simulation</button
-          ><button data-mode="compare">Compare</button>
+          <button data-mode="compare">Compare</button>
         </nav>
         <p>
           <a href="/workbench">Workbench</a> · <span id="access-mode"></span>
