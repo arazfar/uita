@@ -244,7 +244,7 @@ if (!RECORDED) viewer.creditDisplay.addStaticCredit(new C.Credit('Aircraft model
 // ---------- base map: Google photoreal when online, offline SFO pack as fallback ----------
 const PACK = 'sfo-pack/';
 const hideLoading = () => { document.getElementById('loading').style.display = 'none'; };
-let buildings = null, tileset = null, photoreal = false, tilesSeen = false;
+let buildings = null, tileset = null, photoreal = false, tilesSeen = false, tilesSeenAt = 0;
 scene.globe.baseColor = C.Color.fromCssColorString('#16303f'); // plain water beyond the SFO imagery
 try {
   // Cesium stretches the first imagery layer to the globe. Keep the small SFO
@@ -292,7 +292,7 @@ async function setPhotoreal(on) {
       scene.primitives.add(tileset);
       tileset.tileVisible.addEventListener(() => {
         if (tilesSeen) return;
-        tilesSeen = true; applyBase();
+        tilesSeen = true; tilesSeenAt = performance.now(); applyBase();
         if (!RECORDED) setTimeout(async () => { // refine ground from the photoreal mesh at the 28R touchdown zone
           try {
             const g = rwyGeo('28R'); const c = C.Cartographic.fromDegrees(g.a[0] + g.ux * 500 / mPerLon, g.a[1] + g.uy * 500 / mPerLat);
@@ -310,7 +310,12 @@ async function setPhotoreal(on) {
 }
 // default: try photoreal; fall back to the pack if nothing has rendered within 6 s
 setPhotoreal(true);
-setTimeout(() => { if (photoreal && !tilesSeen) { console.warn('photoreal: no tiles in 6 s, offline SFO pack'); setPhotoreal(false); } }, 6000);
+// Slow links can take well over 6 s for the first Google tile. The offline pack shows meanwhile, the
+// tileset keeps loading under the globe, and applyBase() switches the moment its first tile renders.
+// Only a missing key or no network (setPhotoreal's catch) keeps the pack for good.
+setTimeout(() => { if (photoreal && !tilesSeen) console.warn('photoreal: no tile after 15 s; offline SFO pack shown until tiles arrive'); }, 15000);
+// 1 while the offline pack is showing, easing to 0 over 2.5 s once photoreal tiles render: frame SFO tightly on the pack
+function packMix() { return photoreal && tilesSeen ? Math.max(0, 1 - (performance.now() - tilesSeenAt) / 2500) : 1; }
 
 // ---------- clock ----------
 const T0 = C.JulianDate.fromIso8601('2026-10-17T20:30:00Z');
@@ -859,7 +864,7 @@ const flightBy = cs => flights.find(f => f.callsign === cs);
 const at3 = (lonlat, h) => C.Cartesian3.fromDegrees(lonlat[0], lonlat[1], h);
 const STORM_C = at3(mid, cAlt), OAK_PAD = at3(NODES.OAK, GROUND + 10), BAY_C = at3([-122.34, 37.735], 0);
 const PRESETS = {
-  1: { name: 'OVERVIEW · BAY', pose: () => orbitPose(at3([-122.16, 37.60], 0), 345, -55, 76000) }, // SFO, OAK, SJC and all recorded routes
+  1: { name: 'OVERVIEW · BAY', pose: () => packMix() > 0.5 ? orbitPose(SFO_C, 330, -42, 3200) : orbitPose(at3([-122.16, 37.60], 0), 345, -55, 76000) }, // SFO, OAK, SJC and all recorded routes
   2: { name: 'TOWER CAB · SFO', pose: () => ({ eye: towerEye(), hdg: 94, pitch: -4.5 }) }, // down 28L/R toward the thresholds
   3: { name: 'CHASE', chase: true },
   4: { name: 'STORM · C–E', pose: () => orbitPose(STORM_C, 25, -24, 9000) },
@@ -876,7 +881,7 @@ const evtPos = f => new C.CallbackProperty(time => { const m = C.JulianDate.seco
 const UTA108 = flightBy('UTA108'), skf108Pos = evtPos(UTA108);
 // Cinematic shot list, synced to the scenario beats (wall seconds within the 90 s loop)
 const SHOTS = [
-  { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => orbitPose(SFO_C, 300 + t * 2.4, -30 + t * 0.3, 4200 + t * 250) },
+  { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => { const k = packMix(); return orbitPose(SFO_C, 300 + t * 2.4, (-30 + t * 0.3) * (1 - k) - 40 * k, (4200 + t * 250) * (1 - k) + 2600 * k); } },
   { t0: 9.4, name: 'C–E CLOSES · STORM', fov: 50, pose: (t) => { const k = ease(Math.min(1, (t - 9.4) / 5)); return orbitPose(STORM_C, 10 + (t - 9.4) * 3, -30 + 8 * k, 15000 - 8500 * k); } },
   { t0: 14.5, cut: true, name: 'READBACK · UTA108', fov: 42, pose: (t, dt) => orbitPose(skf108Pos.getValue(clock.currentTime), 150 + (t - 14.5) * 1.5, -20, 800) },
   { t0: 24.5, name: 'REROUTE · UTA108 VIA W–E', fov: 55, pose: (t, dt) => followPose(skf108Pos, t, 900, -18, 25, dt) },
