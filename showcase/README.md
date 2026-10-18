@@ -115,3 +115,7 @@ the compact controller panel shows actual proposal explanations, verification,
 and issued clearances. Click its aircraft to inspect the assigned runway.
 See `docs/research/v2/SHOWCASE.md` for controls and validation limitations.
 Browser regression: `playwright-cli run-code --filename showcase/scripts/sparse-acceptance.js`.
+
+### Simulation reasoning panel
+
+Before serving the showcase locally, run `npm ci --prefix frontend` and `npm run build:trace --prefix frontend` from the repository root. The production Docker build includes this panel. See [Simulation trace](../docs/SIMULATION_TRACE.md) for its provider, replay, and spending boundaries.
