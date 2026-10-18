@@ -1,5 +1,5 @@
 import { PlaybackWindows } from "./research-windows.js";
-import { arrivalLabel, landingCandidates } from "./research-arrivals.js";
+import { arrivalLabel, arrivalTone, TONE_CSS, landingCandidates } from "./research-arrivals.js";
 import { decisionAt, DecisionVisibility } from "./research-decision.js";
 import {
   api,
@@ -466,7 +466,7 @@ function render() {
         .slice(0, 3)
         .map(
           (a) =>
-            `<button data-aircraft="${esc(a.id)}"><strong>${esc(a.callsign)}</strong> <span>${esc(arrivalLabel(a))}${a.arrival_cue.runway ? " · assigned " + esc(a.arrival_cue.runway) : ""}</span></button>`,
+            `<button data-aircraft="${esc(a.id)}"><strong>${esc(a.callsign)}</strong> <span style="color:${TONE_CSS[arrivalTone(a)]}">${esc(arrivalLabel(a))}${a.arrival_cue.runway ? " · assigned " + esc(a.arrival_cue.runway) : ""}</span></button>`,
         )
         .join("") +
       (arrivals.length
@@ -567,6 +567,7 @@ function render() {
     row.cells[1].textContent =
       a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft);
     row.cells[2].textContent = arrivalLabel(a);
+    row.cells[2].style.color = TONE_CSS[arrivalTone(a)];
     if (table.children[index] !== row)
       table.insertBefore(row, table.children[index] || null);
   });

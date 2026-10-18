@@ -21,6 +21,16 @@ export function arrivalLabel(a) {
     }[cue.phase] || "Unknown"
   );
 }
+// Authorization state for colouring: green = may land, amber = clearance pending
+// acknowledgment, red = not authorized (approaching, holding, go-around).
+export function arrivalTone(a) {
+  const phase = a?.arrival_cue?.phase;
+  if (["landing_authorized", "on_ground", "arrival_completed"].includes(phase)) return "authorized";
+  if (phase === "clearance_issued") return "pending";
+  if (phase === "approaching" || ["holding", "go_around"].includes(a?.status)) return "denied";
+  return "neutral";
+}
+export const TONE_CSS = { authorized: "#4ade80", pending: "#fbbf24", denied: "#ff6b6b", neutral: "#ffffff" };
 export function landingCandidates(frame) {
   return (frame?.aircraft || [])
     .filter(

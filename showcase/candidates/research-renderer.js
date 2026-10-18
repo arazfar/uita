@@ -1,4 +1,4 @@
-import { arrivalLabel } from "./research-arrivals.js";
+import { arrivalLabel, arrivalTone, TONE_CSS } from "./research-arrivals.js";
 import { mountSceneControls } from "./research-scene-controls.js";
 import { plottable, validMessage, displayFrame } from "./research-client.js";
 export function connectRenderer(render, visibility = () => {}) {
@@ -190,9 +190,7 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
         entity.label.fillColor =
           selected === a.id || frame.highlighted_aircraft_id === a.id
             ? C.Color.YELLOW
-            : a.arrival_cue
-              ? C.Color.fromCssColorString("#8fe3c0")
-              : C.Color.WHITE;
+            : C.Color.fromCssColorString(TONE_CSS[arrivalTone(a)]);
         entity.show = true;
         if (
           clock - trailClock >= 2 ||
