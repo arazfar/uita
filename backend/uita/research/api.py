@@ -163,8 +163,20 @@ def create_app(database=None, secure_cookies=True):
     def demo_ready():
         try:
             with database.sessions() as db:
-                if db.get(Artifact, "early-august-history-v1") is None:
-                    raise ValueError("Historical pack missing")
+                import gzip
+                import json
+
+                pack = json.loads(
+                    gzip.decompress(
+                        (
+                            Path(__file__).parent / "assets/showcase_data.json.gz"
+                        ).read_bytes()
+                    )
+                )
+                for expected in pack["artifacts"]:
+                    installed = db.get(Artifact, expected["id"])
+                    if installed is None or installed.checksum != expected["checksum"]:
+                        raise ValueError("Current demo pack missing or mismatched")
                 recordings = list(
                     db.scalars(
                         select(Artifact).where(Artifact.kind == "demo_recording")

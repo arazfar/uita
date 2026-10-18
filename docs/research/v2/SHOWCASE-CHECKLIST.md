@@ -13,9 +13,10 @@ Verified locally:
 - Prior worker SIGKILL/lease takeover check passed; hosted takeover remains separate.
 
 Current gates:
-- Local final browser rerun passed; hosted final rerun is in progress.
+- Local and hosted final browser suites passed, including fixture failures and exports.
 - Matched Railway images built; public health, catalog, recordings and data return 200.
-- Hosted SSE, worker recovery and production demo smoke acceptance.
+- Hosted SSE and worker replacement recovery passed (same run, revision 2 → 94).
+- Next blocker: verify the dedicated pre-deploy job installs the newest historical artifact.
 
 Performance sample: Apple M1 Pro/macOS, headless Chromium 155, 10 reported hardware threads,
 1280×720, five-second animation-frame samples: 60.2 FPS normal, 55.3 FPS with an

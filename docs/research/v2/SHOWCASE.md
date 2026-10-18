@@ -124,7 +124,8 @@ Railway's service API/dashboard: builder `RAILPACK`, explicit Dockerfile path,
 repository root `/`, server health `/health/demo`, and the commands above. Railway
 detects and builds the configured Dockerfile. The legacy TOML templates remain for
 existing Config-as-Code deployments. See [Railway configuration reference](https://docs.railway.com/config-as-code/reference).
-Server pre-deploy runs `alembic upgrade head` and `bootstrap`. `/health/demo` fails
+Server pre-deploy runs `python -m uita.research.predeploy`, which executes Alembic
+and checksummed bootstrap with checked exit codes. `/health/demo` fails
 if required data, recordings or scenario checksums are absent. Deploy API and worker
 before frontend. The gateway proxies API/SSE/config/history to the API on the same
 public origin; mutable API responses are uncached. Assets use ETags and compression.

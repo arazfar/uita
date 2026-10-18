@@ -2,7 +2,7 @@
 builder = "RAILPACK"
 dockerfilePath = "Dockerfile.showcase"
 [deploy]
-preDeployCommand = "sh -c 'alembic upgrade head && python -m uita.research.cli bootstrap'"
+preDeployCommand = "python -m uita.research.predeploy"
 healthcheckPath = "/health/demo"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
