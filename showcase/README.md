@@ -107,3 +107,11 @@ The connected showcase defaults to login-free public demo access. Visitors share
 the research workspace, including explicit budgeted live runs. Set
 `UITA_ACCESS_MODE=private` to require accounts. See
 [access and startup instructions](../docs/research/v2/SHOWCASE.md).
+
+The connected showcase now uses the sparse `backup/71b23cc-sparse` presentation.
+Open **UITA · Menu** for data sources, live runs, comparison and evidence.
+The original camera toolbar and aircraft cards operate on shared backend frames;
+the compact controller panel shows actual proposal explanations, verification,
+and issued clearances. Click its aircraft to inspect the assigned runway.
+See `docs/research/v2/SHOWCASE.md` for controls and validation limitations.
+Browser regression: `playwright-cli run-code --filename showcase/scripts/sparse-acceptance.js`.

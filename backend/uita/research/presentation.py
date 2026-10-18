@@ -304,6 +304,15 @@ def routes(app, database):
                 ]
                 return prior[-1:] + future
 
+            # Seeks retain bounded prior decision/clearance evidence for the
+            # displayed aircraft, without exposing events after the playhead.
+            context_sequences = {
+                e["sequence"] for e in [
+                    e for e in payload["events"]
+                    if e["clock"] <= clock and e["kind"] in
+                    ("proposal_verified", "clearance_issued")
+                ][-128:]
+            }
             return {
                 "frames": frames("frames"),
                 "baseline_frames": frames("baseline_frames"),
@@ -311,6 +320,7 @@ def routes(app, database):
                     e
                     for e in payload["events"]
                     if clock - seconds <= e["clock"] <= clock + seconds
+                    or e["sequence"] in context_sequences
                     or (
                         e["clock"] <= clock
                         and e["kind"]

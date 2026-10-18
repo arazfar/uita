@@ -135,6 +135,11 @@ def test_recording_window_is_bounded_and_keeps_fallback_context(tmp_path):
         assert response.status_code == 200
         window = response.json()
         assert len(window["frames"]) == 1
+        prior_decisions = [e for e in payload["events"] if e["clock"] <= manifest["end"] and e["kind"] in ("proposal_verified", "clearance_issued")][-128:]
+        assert prior_decisions
+        assert {e["sequence"] for e in prior_decisions} <= {e["sequence"] for e in window["events"]}
+        assert all(e["clock"] <= manifest["end"] for e in window["events"])
+        assert len({e["sequence"] for e in window["events"]}) == len(window["events"])
         assert any(e["kind"] == "controller_fallback" for e in window["events"])
         assert window["frames"][0]["clock"] == window["baseline_frames"][0]["clock"]
         exported = client.get(f"/api/v2/recordings/{manifest['id']}/export").json()

@@ -9,20 +9,27 @@
     <link rel="stylesheet" href="trace-assets/agent-trace.css" />
   </head>
   <body>
-    <header>
-      <a class="brand" href="/">UITA</a>
-      <nav aria-label="Mode">
-        <button data-mode="historical">Historical</button
-        ><button data-mode="simulation" aria-pressed="true">Simulation</button
-        ><button data-mode="compare">Compare</button>
-      </nav>
-        <div class="view-controls" role="group" aria-label="Camera">
-          <button data-camera="dashboard" aria-pressed="true">Dashboard</button
-          ><button data-camera="tower">Tower</button>
-        </div>
-      <span class="research">San Francisco · Research simulation</span
-      ><button id="drawer-toggle" aria-expanded="false" aria-controls="evidence-drawer">Traffic & evidence</button><a href="/workbench">Workbench</a><span id="access-mode"></span><button id="logout">Sign out</button>
-    </header>
+    <button
+      id="drawer-toggle"
+      aria-expanded="false"
+      aria-controls="evidence-drawer"
+    >
+      UITA · Menu
+    </button>
+    <div class="view-controls" role="group" aria-label="Camera">
+      <button data-camera="dashboard" aria-pressed="true">
+        3D simulation <kbd>T</kbd>
+      </button>
+      <button data-camera="tower">Tower cab</button>
+    </div>
+    <section id="decision-overlay" aria-label="Controller decision" hidden>
+      <div id="decision-origin"></div>
+      <button id="decision-aircraft"></button>
+      <p id="decision-explanation"></p>
+      <p id="decision-verdict"></p>
+      <p id="decision-clearance"></p>
+      <button id="decision-evidence">Inspect evidence</button>
+    </section>
     <main>
       <section class="view" aria-label="Traffic visualization">
         <iframe
@@ -31,7 +38,10 @@
           src="11-photoreal-sfo.html?mode=connected"
         ></iframe>
 
-        <div id="scene-caption"><span id="scene-source">SFO · loading recording</span><span id="scene-state"></span></div>
+        <div id="scene-caption">
+          <span id="scene-source">SFO · loading recording</span
+          ><span id="scene-state"></span>
+        </div>
         <div id="render-status" role="status">
           Loading renderer · traffic and evidence remain available below
         </div>
@@ -39,8 +49,23 @@
       <aside id="evidence-drawer" inert>
         <button id="drawer-close" aria-label="Close evidence">Close</button>
         <h1>Traffic & decisions</h1>
+        <nav aria-label="Mode">
+          <button data-mode="historical">Historical</button
+          ><button data-mode="simulation" aria-pressed="true">Simulation</button
+          ><button data-mode="compare">Compare</button>
+        </nav>
+        <p>
+          <a href="/workbench">Workbench</a> · <span id="access-mode"></span>
+          <button id="logout">Sign out</button>
+        </p>
+        <div class="row">
+          <button id="step">+10 seconds</button
+          ><button id="close">Close 28R</button>
+        </div>
         <p id="source">Loading saved Nemotron recordings…</p>
-        <label id="history-picker">Historical hour<select id="history-datasets"></select></label>
+        <label id="history-picker"
+          >Historical hour<select id="history-datasets"></select
+        ></label>
         <label>Recording<select id="recordings"></select></label>
         <div class="row">
           <button id="recorded">Load recording</button
@@ -125,13 +150,14 @@ Select an aircraft on the map or in this table.</pre
     <footer>
       <div class="row">
         <button id="play">Play recording</button
-        ><button id="step">+10 seconds</button
-        ><button id="close">Close 28R</button
         ><label
           >Playback<select id="speed">
             <option value="1">1×</option>
             <option value="5">5×</option>
-            <option value="30" selected>30×</option>
+            <option value="10" selected>10×</option>
+            <option value="20">20×</option>
+            <option value="30">30×</option>
+            <option value="60">60×</option>
           </select></label
         ><output id="clock">—</output>
       </div>

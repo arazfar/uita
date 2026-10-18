@@ -2,6 +2,7 @@
 // against a public-demo or signed-in local/staging page with its worker running. No paid calls.
 async (page) => {
   const origin = new URL(page.url()).origin;
+  await page.setViewportSize({width:1440,height:900});
   const identity = await (await page.request.get(origin + "/api/v2/me")).json();
   await page.goto(origin + "/");
   await page
@@ -35,7 +36,7 @@ async (page) => {
   await page.locator("#seek").dispatchEvent("input");
   await page.getByRole("button", { name: "Compare", exact: true }).click();
   await page.locator("#render-controller").selectOption("baseline");
-  await page.getByRole("button", { name: "Tower", exact: true }).click();
+  await page.getByRole("button", { name: "Tower cab", exact: true }).click();
   await page.waitForFunction(
     () =>
       document
@@ -171,7 +172,8 @@ async (page) => {
   } finally {
     await page.context().setOffline(false);
   }
-  await page.getByRole("button", { name: "Reconnect", exact: true }).click();
+  // Polling may already have recovered after the network returns.
+  await page.locator("#retry").evaluate(b => { if(!b.hidden) b.click(); });
   await page.locator("#error").waitFor({ state: "hidden" });
   await page.locator("#live-options summary").click();
   const previousSignature = await page
@@ -226,7 +228,7 @@ async (page) => {
       .textContent.includes("unavailable"),
   );
   const dashboard = page.frames().find((f) => f.url().includes("11-photoreal"));
-  for (const id of ["banner", "feedp", "score", "cambar", "card", "speedbar"]) {
+  for (const id of ["banner", "feedp", "score", "card"]) {
     if (await dashboard.locator(`#${id}`).isVisible())
       throw Error(`Legacy overlay ${id} visible with renderer failure`);
   }
@@ -249,7 +251,7 @@ async (page) => {
     if (await page.locator("#logout").isVisible())
       throw Error("Public demo shows sign out");
     if (
-      !(await page.locator("#access-mode").innerText()).includes("Public demo")
+      !(await page.locator("#access-mode").textContent()).includes("Public demo")
     )
       throw Error("Missing public identity");
   } else {

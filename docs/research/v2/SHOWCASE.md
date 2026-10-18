@@ -161,3 +161,43 @@ fine-tuning, microphone control, automatic promotion and operational ATC use.
 Live comparisons export metrics/evidence; synchronized baseline animation uses
 immutable recordings. No guaranteed model success or superiority over controllers
 is claimed. Unsupported capabilities remain unresolved.
+
+### Sparse showcase restoration
+
+The presentation follows `origin/backup/71b23cc-sparse` at `2f2eb4b`:
+full-screen airport, original camera icons and aircraft cards, bottom-right
+3D simulation / Tower cab switch. `T` switches views; `1`/`2`/`3` select overview,
+tower viewpoint, and aircraft follow; `C` toggles camera-only cinematic motion;
+`D` toggles radar/flight strips; Space controls playback. Research modes, live
+runs, closure injection, comparisons and exports are under **UITA · Menu**.
+
+The compact controller panel renders timestamped proposal explanations and
+verification outcomes from the event journal. Its aircraft button selects the
+proposed aircraft; the flight card and runway highlight show its assigned
+landing destination. Assignment is not a clearance. Issued clearances appear
+separately, including their timestamps. The runway outline is geographic map
+context (the existing OSM airport asset), not a predicted trajectory or a new
+simulator geometry. Historical and baseline displays never inherit candidate
+decisions. Recorded explanations are provider output, not hidden reasoning;
+the guided default remains labeled synthetic/scripted.
+
+Local checks: 282 backend tests and 21 showcase tests passed; both frontend
+builds and asset packaging passed. Targeted browser checks cover selection,
+speed, cached views, historical playback, baseline synchronization, and export.
+The first camera round-trip including lazy tower initialization took 701 ms
+on this local browser; this is not a steady-state switching benchmark.
+Local visual review used the bundled airport imagery fallback because no map
+key was configured. No paid model calls were made for this restoration.
+
+The extended browser suite also passed injected model failure, exhausted budget,
+rejected proposals, closure, reconnect, failed-scenario reporting, export
+isolation, and blocked renderer loading. A 3-second desktop animation-frame
+sample measured 60.15 callbacks/sec; two cached camera clicks took 461 ms
+including Playwright action overhead. This is not a GPU frame-time measurement
+or a physical mobile benchmark. The recording-window response now retains the
+last 128 prior verification/clearance events so seeking preserves decision
+context. New source selection and historical/baseline filtering remain isolated.
+These changes are local; production rollout has not been performed in this task.
+Final confirmation: both browser flows passed; the repeated cached camera
+round-trip measured 60 ms and the 3-second animation-frame sample was 60.11/sec.
+All 282 backend and 21 showcase tests passed after the replay-context change.

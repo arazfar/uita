@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <script>if(new URLSearchParams(location.search).get('mode')==='connected')document.documentElement.classList.add('research-connected');</script>
-<style>.research-connected #banner,.research-connected #feedp,.research-connected #score,.research-connected .details,.research-connected #cambar,.research-connected #card,.research-connected #speedbar{display:none!important}</style>
+<style>.research-connected #banner,.research-connected #feedp,.research-connected #score,.research-connected #card{display:none!important}</style>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preload" as="script" href="/vendor/cesium/Cesium.js" />
@@ -97,7 +97,7 @@ body.letterbox .lb{transform:scaleY(1)}
 /* keep the shared module's one-time sound gate clear of the camera bar */
 #skyradio-gate{display:none!important} /* the Sound button enables audio */
 /* details layer (key D): strips + radar */
-.details{display:none}
+div.details{display:none}
 body.details .details{display:block}
 #strips{left:14px;top:96px;width:300px;max-height:calc(100% - 470px)}
 #striplist{padding:4px 6px 6px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
@@ -141,7 +141,15 @@ body.details .details{display:block}
 #fcSteps li.cur span{background:#fff;box-shadow:0 0 0 3px #2b5cff}
 #fcTag{display:none;position:absolute;left:0;top:0;z-index:11;pointer-events:none;background:rgba(18,24,30,.86);color:#fff;font:600 11px/1.3 var(--mono);padding:4px 7px;border-radius:5px;white-space:nowrap}
 </style>
-</head>
+<style>
+.research-connected #cambar{bottom:34px}
+.research-connected #more{bottom:140px}
+.research-connected #speedbar{bottom:34px}
+.research-connected #fcard{top:76px;bottom:auto;max-width:calc(100vw - 28px)}
+.research-connected #strips{top:80px;max-height:45vh;overflow:auto}
+.research-connected #striplist button{display:block;width:100%;text-align:left;padding:8px;background:transparent;color:#eef1f3}
+@media(max-width:700px){.research-connected #cambar{bottom:72px;left:12px}.research-connected #speedbar{display:none}.research-connected #radar{display:none}.research-connected #fcard{left:12px;right:auto;width:310px}.research-connected #strips{left:12px;top:360px;width:260px;max-height:20vh}.research-connected #more{bottom:170px}.research-connected #fcard{top:350px;max-height:calc(100dvh - 550px);overflow:auto}}
+</style></head>
 <body>
 <div id="cesium"></div>
 <div id="loading">LOADING SFO…</div>
