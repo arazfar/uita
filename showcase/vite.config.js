@@ -122,7 +122,7 @@ const SEQ_TOOLS = [
 const SEQ_SYSTEM = `You are the SFO arrival sequencing agent. Decide which arrivals land now and which hold.
 Rules (a deterministic kernel will VETO violations): same-runway spacing at least 90 s, 120 s behind a heavy;
 never use a closed runway; slot_time >= min_slot_s; one aircraft per slot. Frozen aircraft keep their slot.
-Priorities: MEDICAL first, then LOW_FUEL, then minimise total delay. Use both runways when open.
+Priorities: flag MED first, then flag FUEL, then minimise total delay. Prefer the kernel's listed free slots. Use both runways when open.
 Call clear_to_land for every aircraft you can slot within about 10 minutes and hold (at its suggested fix) for the rest.
 Call one tool per aircraft, in landing order, with increasing slot_time per runway.\nWrite each reason as one short plain-English sentence for the public that states the actual reason for that aircraft (no field names, under 12 words).`;
 
@@ -131,7 +131,7 @@ Call one tool per aircraft, in landing order, with increasing slot_time per runw
 async function chatTools(cfg, messages, tools, ids, feedback = () => ({ ok: true, text: "Noted." })) {
   const deadline = Date.now() + cfg.timeoutMs, calls = [], seen = new Set(), msgs = [...messages];
   let note = "";
-  for (let round = 0; round < 12 && Date.now() < deadline - 300; round++) {
+  for (let round = 0; round < 8 && Date.now() < deadline - 300; round++) {
     const r = await fetch(cfg.url, {
       method: "POST",
       signal: AbortSignal.timeout(Math.max(500, deadline - Date.now())),
@@ -155,6 +155,44 @@ async function chatTools(cfg, messages, tools, ids, feedback = () => ({ ok: true
     if (ids.every((id) => seen.has(id))) break;
   }
   return { calls, note };
+}
+
+// /api/sequence input hygiene: bounded body, whitelisted fields, no free text reaches the prompt.
+const clean = (v) => String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 140);
+const num = (v) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v) : null);
+async function readCapped(req, max) {
+  const chunks = [];
+  let n = 0;
+  for await (const c of req) { n += c.length; if (n > max) return null; chunks.push(c); }
+  return Buffer.concat(chunks).toString("utf8");
+}
+function sanitizeSequence(body) {
+  const ID = /^[A-Z0-9-]{1,12}$/, FIXSET = ["MENLO", "DUMBA", "ARCHI", "BDEGA"], RWY = ["28L", "28R"];
+  if (!body || !Array.isArray(body.queue) || body.queue.length > 16 || !Array.isArray(body.runways) || num(body.now) == null) return null;
+  const queue = [];
+  for (const q of body.queue) {
+    if (!q || !ID.test(q.id) || !ID.test(q.callsign) || typeof q.type !== "string" || !/^[A-Z0-9]{1,6}$/.test(q.type)) return null;
+    for (const k of ["eta_s", "min_slot_s"]) if (num(q[k]) == null) return null;
+    if (q.slot_s != null && num(q.slot_s) == null) return null;
+    if (![null, undefined, "MED", "FUEL"].includes(q.flag)) return null;
+    queue.push({ id: q.id, callsign: q.callsign, type: q.type, wake: q.wake === "heavy" ? "heavy" : "medium", flag: q.flag || null,
+      frozen: q.frozen === true, state: ["inbound", "holding", "cleared", "final"].includes(q.state) ? q.state : "inbound",
+      eta_s: num(q.eta_s), min_slot_s: num(q.min_slot_s), suggested_fix: FIXSET.includes(q.suggested_fix) ? q.suggested_fix : "MENLO",
+      ...(q.slot_s != null && RWY.includes(q.runway) ? { runway: q.runway, slot_s: num(q.slot_s) } : {}) });
+  }
+  const runways = [];
+  for (const r of body.runways) {
+    if (!r || !RWY.includes(r.id) || typeof r.open !== "boolean" || (r.closed_for_s != null && num(r.closed_for_s) == null)) return null;
+    runways.push({ id: r.id, open: r.open, ...(r.closed_for_s != null ? { closed_for_s: num(r.closed_for_s) } : {}) });
+  }
+  const free = {};
+  for (const id of RWY) {
+    const arr = body.free_slots && body.free_slots[id];
+    if (arr == null) continue;
+    if (!Array.isArray(arr) || arr.length > 16 || arr.some((x) => num(x) == null)) return null;
+    free[id] = arr.map(num);
+  }
+  return { queue, runways, now: num(body.now), free };
 }
 
 async function readJson(req) {
@@ -477,11 +515,23 @@ function voiceApi(env) {
             return send(res, 200, { text: (await r.json()).text });
           }
           if (req.url === "/api/sequence" && req.method === "POST") {
+            // Same-origin JSON only, bounded body, whitelisted fields (public URL: this endpoint spends LLM credits).
+            const origin = req.headers.origin;
+            let sameOrigin = false;
+            try { sameOrigin = !!origin && new URL(origin).host === req.headers.host; } catch {}
+            if (!sameOrigin || !(req.headers["content-type"] || "").startsWith("application/json")) return send(res, 403, { error: "forbidden" });
+            const raw = await readCapped(req, 32 * 1024);
+            if (raw == null) return send(res, 413, { error: "body too large" });
+            let parsed;
+            try { parsed = JSON.parse(raw || "{}"); } catch { return send(res, 400, { error: "bad json" }); }
+            const input = sanitizeSequence(parsed);
+            if (!input) return send(res, 400, { error: "invalid sequence request" });
+            const { queue, runways, free } = input;
             // Crusoe (Nemotron) first; if it gives no usable tool calls within ~8 s, OpenAI gpt-4.1-mini.
-            const { queue, runways, now } = await readJson(req);
+            const freeTxt = Object.entries(free).map(([r, a]) => `${r}: ${a.join(", ")}`).join("; ");
             const messages = [
               { role: "system", content: SEQ_SYSTEM },
-              { role: "user", content: `Time now: ${now}.\nRunways: ${JSON.stringify(runways)}\nArrival queue: ${JSON.stringify(queue)}` },
+              { role: "user", content: `Runways: ${JSON.stringify(runways)}\nLegal free slots in seconds from now (computed by the kernel; pick from these, one aircraft per slot, add 30 s after a heavy): ${freeTxt || "none"}\nArrival queue: ${JSON.stringify(queue)}` },
             ];
             const tries = [];
             if (crusoeKey && env.CRUSOE_BASE_URL)
@@ -517,7 +567,7 @@ function voiceApi(env) {
               try {
                 const out = await chatTools(cfg, messages, SEQ_TOOLS, (queue || []).filter((q) => !q.frozen).map((q) => q.id), feedback);
                 if (out.calls.length)
-                  return send(res, 200, { decisions: out.calls, note: out.note, provider: cfg.provider, model: cfg.model, ms: Date.now() - started, fallbacks, partial: out.calls.length < (queue || []).filter((q) => !q.frozen).length });
+                  return send(res, 200, { decisions: out.calls.map((c) => ({ name: c.name, args: { ...c.args, reason: clean(c.args.reason) } })), note: clean(out.note), provider: cfg.provider, model: cfg.model, ms: Date.now() - started, fallbacks, partial: out.calls.length < (queue || []).filter((q) => !q.frozen).length });
                 fallbacks.push(`${cfg.provider}: no tool calls (${Date.now() - started} ms)`);
               } catch (e) {
                 fallbacks.push(`${cfg.provider}: ${String(e?.message || e).slice(0, 120)}`);

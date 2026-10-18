@@ -49,7 +49,7 @@ export function mountLanding(ctx) {
   }
 
   // ---------- state ----------
-  const S = { arr: new Map(), mode: 'agent', closure: null, startT: null, lastT: null, lastScan: null, lastCall: -1e9, lastCallWall: 0, inflight: false,
+  const S = { qn: 0, arr: new Map(), mode: 'agent', closure: null, startT: null, lastT: null, lastScan: null, lastCall: -1e9, lastCallWall: 0, inflight: false,
     landed: 0, delaySum: 0, log: [], agentInfo: 'agent idle', seq: 0, autoDisrupted: false, prevRows: new Map(), flagged: { MEDICAL: false, LOW_FUEL: false } };
 
   function posOf(a, T) {
@@ -99,6 +99,33 @@ export function mountLanding(ctx) {
     }
     return best;
   }
+  // free for a medium arrival on rwy at t, judged only against slots already held (closures included)
+  function freeAt(rwy, t) {
+    if (S.closure && S.closure.rwy === rwy && t >= S.closure.t0 && t <= S.closure.t1) return false;
+    for (const o of S.arr.values()) if (!o.done && o.slot && o.slot.rwy === rwy && frozen(o) && Math.abs(o.slot.t - t) < (o.slot.t <= t ? gapAfter(o) : 90) - 2) return false;
+    return true;
+  }
+  // MEDICAL then LOW FUEL must hold the earliest legal slots; if the agent's plan does not, the kernel re-orders.
+  function enforcePriority(T) {
+    let note = '';
+    const pri = [...S.arr.values()].filter(a => !a.done && !frozen(a) && a.flag).sort((x, y) => (x.flag === 'MEDICAL' ? 0 : 1) - (y.flag === 'MEDICAL' ? 0 : 1));
+    for (const p of pri) {
+      const parked = [];
+      for (const o of S.arr.values()) if (o !== p && !o.done && !frozen(o) && !o.flag && o.slot) { parked.push([o, o.slot]); o.slot = null; }
+      const best = earliestLegal(p, T);
+      for (const [o, sl] of parked) o.slot = sl;
+      if (best && (!p.slot || p.slot.t > best.t + 10)) {
+        p.slot = best; p.efc = null; p.verdict = 'kernel ACCEPT'; p.reorder = `kernel re-ordered: ${p.flag === 'MEDICAL' ? 'MEDICAL' : 'LOW FUEL'} first`;
+        note = note || p.reorder;
+        for (const o of [...S.arr.values()].filter(o => o !== p && !o.done && !frozen(o) && o.slot).sort((x, y) => x.slot.t - y.slot.t)) {
+          if (!slotProblem(o, o.slot.rwy, o.slot.t, T)) continue;
+          const e = earliestLegal(o, T, o.slot.t); o.slot = e; o.bumped = p.cs;
+          if (!e) sendToHold(o, T, o.holdFix);
+        }
+      }
+    }
+    return note;
+  }
   const frozen = a => a.leg.type === 'final' || a.leg.type === 'roll' || (a.slot && a.slot.t - (S.lastT || 0) < 240); // within 4 min of its slot: no churn
 
   // ---------- spawning from recorded arrivals ----------
@@ -122,7 +149,7 @@ export function mountLanding(ctx) {
       if (!hit) continue;
       const p = hit.p, ll = [p[2], p[1]];
       const type = p[10] || f.type || 'A320', cs = String(p[8] || f.callsign || f.id).trim();
-      const a = { id: f.id, cs, type, wake: HEAVY_RE.test(type) ? 'heavy' : 'medium', reg: p[9] || f.registration, tGate: T, eta: T + dist(ll, FAF('28R')) / 105 + 231,
+      const a = { id: f.id, qid: 'A' + (++S.qn), cs, type, wake: HEAVY_RE.test(type) ? 'heavy' : 'medium', reg: p[9] || f.registration, tGate: T, eta: T + dist(ll, FAF('28R')) / 105 + 231,
         flag: null, slot: null, efc: null, holdFix: null, leg: { type: 'direct', from: ll, to: ll, t0: T, v: 1, ft0: p[3], ft1: p[3] }, last: null, verdict: null };
       if (!S.flagged.MEDICAL && S.arr.size >= 1) { a.flag = 'MEDICAL'; S.flagged.MEDICAL = true; }
       else if (!S.flagged.LOW_FUEL && S.arr.size >= 3) { a.flag = 'LOW_FUEL'; S.flagged.LOW_FUEL = true; }
@@ -234,25 +261,35 @@ export function mountLanding(ctx) {
     if (!live.some(a => !frozen(a))) return;
     // min_slot_s carries a margin for the agent's own latency (sim time keeps running while it thinks)
     const margin = Math.round(Math.min(120, 8 * ctx.speed()));
-    const queue = live.map(a => ({ id: a.id, callsign: a.cs, type: a.type, wake: a.wake, flag: a.flag, frozen: frozen(a), ...(a.slot ? { runway: a.slot.rwy, slot_s: Math.round(a.slot.t - T) } : {}),
+    const up = (v, n) => String(v || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, n) || 'UNK';
+    const queue = live.map(a => ({ id: a.qid, callsign: up(a.cs, 12), type: up(a.type, 6).replace(/-/g, ''), wake: a.wake, flag: a.flag === 'MEDICAL' ? 'MED' : a.flag === 'LOW_FUEL' ? 'FUEL' : null,
+      frozen: !!frozen(a), ...(a.slot ? { runway: a.slot.rwy, slot_s: Math.round(a.slot.t - T) } : {}),
       eta_s: Math.round(a.eta - T), min_slot_s: Math.round(minSlot(a, T) - T) + margin, suggested_fix: a.holdFix || nearestFix(posOf(a, T).ll),
-      status: frozen(a) ? `on final ${a.slot.rwy} slot ${Math.round(a.slot.t - T)} s` : a.slot ? `cleared ${a.slot.rwy} slot ${Math.round(a.slot.t - T)} s` : a.leg.type === 'hold' ? `holding ${a.leg.fix}` : 'inbound' }));
+      state: frozen(a) ? 'final' : a.slot ? 'cleared' : a.leg.type === 'hold' ? 'holding' : 'inbound' }));
+    // the kernel's legal free slots, so the agent picks from times that will pass (no veto storms)
+    const free_slots = {};
+    for (const rwy of ['28L', '28R']) {
+      if (S.closure && S.closure.rwy === rwy) continue;
+      const out = []; let t = T + Math.min(...queue.map(q => q.min_slot_s), 600);
+      for (; out.length < 10 && t < T + 3600; t += 5) if (freeAt(rwy, t)) { out.push(Math.round(t - T)); t += 85; }
+      free_slots[rwy] = out;
+    }
     const runways = ['28L', '28R'].map(id => ({ id, open: !(S.closure && S.closure.rwy === id), ...(S.closure && S.closure.rwy === id ? { closed_for_s: Math.round(S.closure.t1 - T) } : {}) }));
     S.inflight = true; S.inflightN = queue.filter(q => !q.frozen).length; S.agentInfo = 'agent thinking…'; render(T);
     let res;
-    try { const r = await fetch('/api/sequence', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ queue, runways, now: fmtT(T) + ' PDT' }) }); res = await r.json(); if (!r.ok) throw new Error(res.error || r.status); }
+    try { const r = await fetch('/api/sequence', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ queue, runways, free_slots, now: Math.round(T) }) }); res = await r.json(); if (!r.ok) throw new Error(res.error || r.status); }
     catch (e) { S.inflight = false; S.agentInfo = `agent unavailable (${String(e.message || e).slice(0, 40)}) → kernel FCFS`; fcfs(ctx.now()); render(ctx.now()); return; }
     S.inflight = false;
     const Tn = ctx.now(), seq = ++S.seq;
     S.agentInfo = `${res.provider} · ${String(res.model).split('/').pop()} · ${(res.ms / 1000).toFixed(1)} s${res.fallbacks?.length ? ' (fallback)' : ''}`;
     let spokeHold = false, ok = 0, veto = 0, vetoWhy = '';
     for (const d of res.decisions || []) {
-      const a = S.arr.get(d.args.id); if (!a || a.done || frozen(a)) continue;
+      const a = [...S.arr.values()].find(x => x.qid === d.args.id); if (!a || a.done || frozen(a)) continue;
       const why = String(d.args.reason || '').slice(0, 80);
       if (d.name === 'clear_to_land') {
         const t = T + Number(d.args.slot_time), prob = Number.isFinite(t) ? slotProblem(a, d.args.runway, t, T) : 'no slot time'; // feasibility judged at request time
         a.why = why;
-        if (!prob) { ok++; a.slot = { rwy: d.args.runway, t }; a.efc = null; a.verdict = 'kernel ACCEPT'; a.last = `${d.args.runway} ${fmtT(t)} · ${why}`; logLine(`${a.cs} → ${d.args.runway} ${fmtT(t)} · ${why}`, 'acc', 'ACCEPT'); }
+        if (!prob) { ok++; a.slot = { rwy: d.args.runway, t }; a.efc = null; a.verdict = 'kernel ACCEPT'; a.last = `${d.args.runway} ${fmtT(t)} · ${why}`; logLine(`${a.cs} → ${d.args.runway} ${fmtT(t)}`, 'acc', 'ACCEPT'); }
         else {
           a.slot = null; sendToHold(a, Tn, a.holdFix); const e = earliestLegal(a, Tn); a.efc = e ? e.t : null;
           veto++; vetoWhy = vetoWhy || `${a.cs} ${prob}`;
@@ -262,11 +299,13 @@ export function mountLanding(ctx) {
       } else if (d.name === 'hold') {
         ok++; a.why = why; a.slot = null; sendToHold(a, Tn, d.args.fix); a.efc = Tn + 60 * Math.max(1, Math.min(20, Number(d.args.minutes) || 3));
         a.verdict = 'kernel ACCEPT (hold is always safe)'; a.last = `hold ${a.holdFix} ${d.args.minutes} min · ${why}`;
-        logLine(`${a.cs} holds ${a.holdFix} ${d.args.minutes} min · ${why}`, 'acc', 'ACCEPT');
+        logLine(`${a.cs} holds ${a.holdFix} ${d.args.minutes} min`, 'acc', 'ACCEPT');
         if (!spokeHold) { spokeHold = true; const efc = fmtT(a.efc).slice(0, 5).replace(':', ''); say(`${spoken(a.cs)}, hold at ${a.holdFix} as published, expect further clearance ${[...efc].map(x => DIG[x]).join(' ')}.`, a.cs); }
       }
     }
-    for (const a of S.arr.values()) if (!a.done && !a.slot && !frozen(a) && !(res.decisions || []).some(d => d.args.id === a.id)) a.verdict = 'no agent decision → kernel default hold';
+    for (const a of S.arr.values()) if (!a.done && !a.slot && !frozen(a) && !(res.decisions || []).some(d => d.args.id === a.qid)) a.verdict = 'no agent decision → kernel default hold';
+    const reord = enforcePriority(Tn);
+    logLine(`Nemotron: ${ok} accepted${veto ? `, ${veto} vetoed` : ''}${reord ? ` · ${reord}` : ''}`, veto ? 'rej' : 'acc');
     const nice = { crusoe: 'Crusoe', openai: 'OpenAI' }, mdl = /nemotron/i.test(res.model) ? 'Nemotron' : String(res.model).split('/').pop();
     S.cycle = { label: `${mdl} · ${nice[res.provider] || res.provider}${res.fallbacks?.length && res.provider !== 'crusoe' ? ' (fallback)' : ''}`, ms: res.ms, ok, veto, vetoWhy };
     render(Tn, seq);
@@ -289,26 +328,36 @@ export function mountLanding(ctx) {
   function llmWhy(a) {
     const w = (a.why || '').trim(); if (!w) return null;
     if (/heavy/i.test(w) && !leadOf(a)?.wake?.startsWith('heavy') && a.wake !== 'heavy') return null;
-    if (/medical/i.test(w) && a.flag !== 'MEDICAL') return null;
+    if (/\bmed(ical)?\b/i.test(w) && a.flag !== 'MEDICAL') return null;
+    if (/priority/i.test(w) && !a.flag) return null;
     if (/fuel/i.test(w) && a.flag !== 'LOW_FUEL') return null;
     if (/closed/i.test(w) && !S.closure) return null;
     if (/[A-Z_]{5,}/.test(w)) return null; // echoes of field names
     return w.replace(/\.$/, '') + '.';
   }
   const leadOf = a => a.slot ? [...S.arr.values()].filter(o => o !== a && o.slot && o.slot.rwy === a.slot.rwy && o.slot.t < a.slot.t).sort((x, y) => y.slot.t - x.slot.t)[0] : null;
+  const hm = t => fmtT(t).slice(0, 5), hms = t => fmtT(t);
   function reason(a, T) {
-    if (/VETO/.test(a.verdict || '')) return `Kernel veto: ${a.verdict.replace(/^kernel VETO · /, '')}. Holding ${a.holdFix}.`;
-    if (a.leg.type === 'roll') return `Landed ${a.slot.rwy}, delay ${fmtD(a.landedAt - a.eta)}.`;
-    if (a.slot) {
-      if (a.flag === 'MEDICAL') return 'Medical on board, goes first.';
-      if (a.flag === 'LOW_FUEL') return 'Low fuel, sequenced ahead of the queue.';
-      const lead = leadOf(a);
-      if (lead && lead.wake === 'heavy' && a.slot.t - lead.slot.t < 135) return `Heavy ahead (${lead.cs}), 120 s wake spacing.`;
-      if (leaveAt(a, T) - T >= 60) return `${S.closure ? `Runway ${S.closure.rwy} closed; h` : 'H'}olding ${a.holdFix} until slot ${fmtT(a.slot.t).slice(0, 5)}.`;
-      return llmWhy(a) || (lead ? `Next after ${lead.cs} on ${a.slot.rwy}, 90 s spacing.` : `First in sequence on ${a.slot.rwy}.`);
+    if (a.leg.type === 'roll') return `Landed ${a.slot.rwy} · delay ${fmtD(a.landedAt - a.eta)}`;
+    if (/VETO/.test(a.verdict || '') && !a.slot) {
+      const e = earliestLegal(a, T);
+      return `Kernel veto: ${a.verdict.replace(/^kernel VETO · /, '')}${e ? `; next legal ${e.rwy} ${hms(e.t)}` : ''} → hold ${a.holdFix}`;
     }
-    if (S.closure) return `Runway ${S.closure.rwy} closed; holding${a.efc ? ` until ${fmtT(a.efc).slice(0, 5)}` : ''}.`;
-    return llmWhy(a) || 'Waiting for a slot in the next sequence.';
+    if (a.slot) {
+      const r = a.slot.rwy, at = hms(a.slot.t), pre = a.reorder ? `${a.reorder} · ` : '';
+      if (a.flag) {
+        const first = !leadOf(a) || [...S.arr.values()].every(o => o === a || o.done || !o.slot || o.slot.t > a.slot.t || frozen(o));
+        return `${pre}${a.flag === 'MEDICAL' ? 'MED' : 'LOW FUEL'} priority: ${first ? 'first' : 'earliest legal'} slot ${r} ${at}`;
+      }
+      const lead = leadOf(a), gap = lead ? a.slot.t - lead.slot.t : 1e9;
+      if (leaveAt(a, T) - T >= 60) return `Slot ${r} ${at}; holds ${a.holdFix} until ${hm(leaveAt(a, T))}`;
+      if (lead && lead.wake === 'heavy' && gap < 140) return `120 s wake behind ${lead.cs} (heavy) on ${r} → ${at}`;
+      if (lead && gap < 100) return `90 s behind ${lead.cs} on ${r} → ${at}${a.bumped ? ` (moved for ${a.bumped})` : ''}`;
+      return lead ? `Next free ${r} slot ${at}, after ${lead.cs}` : `First slot ${r} ${at}`;
+    }
+    const e = earliestLegal(a, T);
+    if (S.closure) return `28L closed until ${hm(S.closure.t1)}; next 28R slot ${e ? hms(e.t) : '—'} → hold ${a.holdFix}`;
+    return `Next legal slot ${e ? `${e.rwy} ${hms(e.t)}` : '—'} → hold ${a.holdFix}`;
   }
 
   // ---------- NEMOTRON DECISIONS panel (right side) ----------
@@ -341,11 +390,17 @@ export function mountLanding(ctx) {
 #nemo .pill.flash{box-shadow:0 0 0 3px rgba(255,255,255,.85)}
 #nemo .why{margin-top:5px;color:#c9d0d5;font-size:12px}
 #nemo .why.v{color:#ffb3ad}
+#nemo .why.o{color:#9fc3ff}
+#nemo .q{margin-top:3px;font:italic 11px/1.3 Inter,sans-serif;color:#8e989f}
+#nemo .q:empty{display:none}
+#nemo .lg{margin-top:6px;font:500 10.5px/1.35 ui-monospace,Menlo,monospace;color:#8e989f}
+#nemo .lg .rej{color:#ff9a8f}
+#nemo .lg .acc{color:#9ff0bf}
 #nemo .empty{padding:14px;color:#8e989f}`;
   document.head.appendChild(css);
   const el = document.createElement('div'); el.id = 'nemo';
   el.innerHTML = `<div class="hd"><div class="t"><span>NEMOTRON DECISIONS</span><span class="sp"></span><button id="lpDis" title="Disruption: close 28L for 10 minutes">Close 28L</button><button id="lpMode" class="on" title="Agent ON / first-come-first-served">Agent ON</button></div>
-<div class="who busy" id="lpWho">Waiting for arrivals inside 25 NM…</div><div class="kv" id="lpKv"></div>
+<div class="who busy" id="lpWho">Waiting for arrivals inside 25 NM…</div><div class="kv" id="lpKv"></div><div class="lg" id="lpLg"></div>
 <div class="meta"><span>Landed <b id="lpL">0</b></span><span>Holding <b id="lpH">0</b></span><span>Avg delay <b id="lpD">0:00</b></span><span id="lpRw"></span></div></div><ol id="lpList"></ol>`;
   document.body.appendChild(el);
   el.querySelector('#lpDis').onclick = () => { if (ctx.ready()) disrupt(); };
@@ -362,6 +417,7 @@ export function mountLanding(ctx) {
     el.querySelector('#lpL').textContent = S.landed;
     el.querySelector('#lpH').textContent = live.filter(a => status(a, T).kind === 'wait').length;
     el.querySelector('#lpD').textContent = fmtD(S.landed ? S.delaySum / S.landed : 0);
+    el.querySelector('#lpLg').innerHTML = S.log.slice(-3).map(l => `<div class="${l.cls || ''}">${esc(l.txt)}</div>`).join('');
     el.querySelector('#lpRw').innerHTML = S.closure ? `<span class="cl">28L CLOSED → ${esc(fmtT(S.closure.t1).slice(0, 5))}</span>` : '28L · 28R open';
     const who = el.querySelector('#lpWho'), kv = el.querySelector('#lpKv');
     if (S.mode === 'fcfs') { who.className = 'who'; who.textContent = 'Agent OFF · kernel first-come-first-served'; kv.textContent = 'No priorities: ETA order only'; }
@@ -380,7 +436,7 @@ export function mountLanding(ctx) {
       let li = rowsEl.get(a.id);
       if (!li) {
         li = document.createElement('li'); rowsEl.set(a.id, li);
-        li.innerHTML = '<div class="r1"><span class="cs"></span><span class="ty"></span></div><div class="pill"></div><div class="why"></div>';
+        li.innerHTML = '<div class="r1"><span class="cs"></span><span class="ty"></span></div><div class="pill"></div><div class="why"></div><div class="q"></div>';
         li.onmouseenter = () => { a.hover = true; }; li.onmouseleave = () => { a.hover = false; };
         li.onclick = () => ctx.select(a.entity);
       }
@@ -394,7 +450,8 @@ export function mountLanding(ctx) {
         if (changedKind || pill.dataset.slot !== String(a.slot && a.slot.t)) { pill.classList.add('flash'); setTimeout(() => pill.classList.remove('flash'), 1200); }
         pill.dataset.slot = String(a.slot && a.slot.t);
       }
-      const w = li.querySelector('.why'); w.textContent = why; w.className = `why${/^Kernel veto/.test(why) ? ' v' : ''}`; w.title = a.why || '';
+      const w = li.querySelector('.why'); w.textContent = why; w.className = `why${/^Kernel veto/.test(why) ? ' v' : /re-ordered/.test(why) ? ' o' : ''}`;
+      const qt = llmWhy(a); li.querySelector('.q').textContent = qt ? `“${qt.replace(/\.$/, '')}” — Nemotron` : '';
       li.classList.toggle('sel', !!sel && sel === a.entity);
       list.appendChild(li); // appends in sorted order
     });
