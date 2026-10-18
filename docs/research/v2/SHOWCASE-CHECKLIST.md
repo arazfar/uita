@@ -24,7 +24,11 @@ Hosted release checks:
 Performance sample: Apple M1 Pro/macOS, headless Chromium 155, 10 reported hardware threads,
 1280×720, five-second animation-frame samples: 60.2 FPS normal, 55.3 FPS with an
 explicit synthetic 200-target rendering fixture; p95 frame interval 16.8 ms.
-390×844 viewport emulation measured 60.1 FPS. These are short browser scheduling
+390×844 viewport emulation measured 60.1 FPS. Cached camera switching measured
+21–29 ms with zero model/library reloads. Ten warm hosted replay-window requests
+from this workstation measured 930 ms median and 1,477 ms maximum; the 500 ms API
+target is not met. Frontend is US West; API/database/worker are Singapore.
+Playback prefetch hides most of this latency; uncached seeks still wait. These are short browser scheduling
 samples, not GPU benchmarks or physical-mobile results. Extended memory, mobile
 hardware and four concurrent 200-aircraft simulations are not certified here.
 
