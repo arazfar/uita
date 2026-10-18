@@ -226,7 +226,7 @@ async (page) => {
       .textContent.includes("unavailable"),
   );
   const dashboard = page.frames().find((f) => f.url().includes("11-photoreal"));
-  for (const id of ["banner", "feedp", "score", "cambar", "card"]) {
+  for (const id of ["banner", "feedp", "score", "cambar", "card", "speedbar"]) {
     if (await dashboard.locator(`#${id}`).isVisible())
       throw Error(`Legacy overlay ${id} visible with renderer failure`);
   }
