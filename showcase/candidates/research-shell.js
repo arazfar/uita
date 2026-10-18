@@ -319,7 +319,6 @@ function controls() {
   if (live && Number($("speed").value) > 30)
     $("speed").value = String(run.state.speed || 1);
   const terminal = frame && ["failed", "complete"].includes(frame.status);
-  $("close").disabled = !live || terminal || mode === "historical" || locked;
   $("compare").disabled = !live || locked;
   $("seek").disabled = locked || live || (!recording && !historyDataset);
   $("create").disabled = locked;
@@ -341,9 +340,7 @@ function controls() {
     .querySelectorAll("[data-mode]")
     .forEach((b) => (b.disabled = !frame));
   $("speed").disabled = locked;
-  if (mode === "historical") {
-    for (const id of ["close", "compare"]) $(id).disabled = true;
-  }
+  if (mode === "historical") $("compare").disabled = true;
   $("render-controller").disabled = !baseline;
 }
 function shownFrame() {
@@ -408,7 +405,6 @@ function sendFrame() {
 function render() {
   if (!frame) return;
   const shown = shownFrame();
-  renderSandbox();
   const arrivals = landingCandidates(shown);
   $("arrival-status").textContent = arrivals.length
     ? `${arrivals.length} approaching · ${arrivalLabel(arrivals[0])}`
@@ -921,10 +917,6 @@ $("speed").onchange = () => {
       command("control", { action: "speed", speed: Number($("speed").value) }),
     );
 };
-$("close").onclick = () =>
-  action(() =>
-    command("disruptions", { kind: "runway_closure", runway: "28R" }),
-  );
 let seekTimer;
 $("seek").oninput = () => {
   decisionSeeking = true;
@@ -1440,257 +1432,3 @@ $("traffic-overview").onclick = () =>
   message("uita:camera", { action: "overview" });
 
 $("airport-view").onclick = () => message("uita:camera", { action: "airport" });
-
-let sandboxPreparing = false,
-  sandboxPending = null;
-$("sandbox-toggle").onclick = () => {
-  $("sandbox-panel").hidden = !$("sandbox-panel").hidden;
-  document.body.classList.toggle("sandbox-open", !$("sandbox-panel").hidden);
-  renderSandbox();
-};
-$("sandbox-dismiss").onclick = () => {
-  $("sandbox-panel").hidden = true;
-  document.body.classList.remove("sandbox-open");
-};
-async function startSandbox(reset = false) {
-  if (sandboxPreparing) return;
-  sandboxPreparing = true;
-  renderSandbox();
-  const generation = sourceGeneration;
-  try {
-    if (reset) sandboxPending = null;
-    sandboxPending ||= await api("/runs", {
-      scenario_id: "early-august-arrival-flows-v1",
-      sandbox: true,
-      controller: "static",
-      seed: 42,
-      spend_cap_usd: 0,
-      idempotency_key: crypto.randomUUID(),
-    });
-    const until = performance.now() + 60000;
-    let next = sandboxPending;
-    while (next.state.initialization_until && next.status === "running") {
-      $("sandbox-status").textContent =
-        `Preparing traffic · ${Math.floor(next.state.clock - next.state.start)} / 300 simulated seconds`;
-      if (performance.now() > until)
-        throw Error(
-          "Worker preparation is taking longer than expected. Retry resumes the same sandbox.",
-        );
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      next = await api(`/runs/${next.id}`);
-    }
-    if (next.status === "failed")
-      throw Error(
-        "Sandbox preparation failed; evidence retained in run " + next.id,
-      );
-    const [nextFrame, journal] = await Promise.all([
-      api(`/runs/${next.id}/presentation`),
-      api(`/runs/${next.id}/events?after=0`),
-    ]);
-    const target = {
-      ...captureSession(),
-      run: next,
-      recording: null,
-      job: null,
-      selected: null,
-      playing: false,
-      clock: nextFrame.clock,
-      frame: nextFrame,
-      baseline: null,
-      events: uniqueEvents(journal),
-      windowData: null,
-      liveFrames: [nextFrame],
-      lastWindow: -Infinity,
-      comparison: "No comparison for this sandbox yet.",
-      controller: "candidate",
-      source: "Live deterministic sandbox · synthetic conditions",
-      timeline: "Live sandbox · worker-owned clock",
-    };
-    if (generation !== sourceGeneration) {
-      sessions.set("simulation", target);
-      $("sandbox-status").textContent = "Sandbox ready. Return to Simulation.";
-      return;
-    }
-    sessions.set(sessionKey(mode), captureSession());
-    stream?.close();
-    resetSource();
-    mode = "simulation";
-    restoreSession(target);
-    sourceGeneration++;
-    setModeButtons();
-    render();
-    connect();
-    history.replaceState(null, "", `/?run=${encodeURIComponent(run.id)}`);
-    await command("control", { action: "play" });
-    $("sandbox-status").textContent =
-      "Ready · interventions affect this live run only";
-    sandboxPending = null;
-  } catch (error) {
-    $("sandbox-status").textContent = error.message;
-  } finally {
-    sandboxPreparing = false;
-    renderSandbox();
-  }
-}
-function renderSandbox() {
-  const live =
-    !!run &&
-    mode !== "historical" &&
-    ["kinematic-sandbox-3", "kinematic-arrival-flows-4"].includes(
-      frame?.simulator_version,
-    );
-  const ready =
-    live &&
-    !frame.initialization_until &&
-    !["failed", "complete"].includes(frame.status);
-  $("sandbox-start").hidden = live;
-  $("sandbox-reset").hidden = !live;
-  $("sandbox-start").disabled = sandboxPreparing;
-  $("sandbox-reset").disabled = sandboxPreparing;
-  $("sandbox-actions").disabled = !ready || busy || sandboxPreparing;
-  const effects = live ? frame.interventions || [] : [];
-  $("sandbox-weather").disabled = effects.some(
-    (i) => i.kind === "weather_restriction" && i.status === "active",
-  );
-  $("sandbox-delay").disabled = effects.some(
-    (i) => i.kind === "pilot_delay" && i.status === "active",
-  );
-  $("sandbox-extra").disabled = (frame?.admission_requests || []).length >= 3;
-  const eligible = ready
-    ? frame.aircraft.filter(
-        (a) =>
-          a.status === "approach" &&
-          a.arrival_cue?.phase !== "landing_authorized",
-      )
-    : [];
-  const selection = $("sandbox-aircraft").value;
-  const signature = JSON.stringify(eligible.map((a) => [a.id, a.callsign]));
-  if ($("sandbox-aircraft").dataset.signature !== signature) {
-    $("sandbox-aircraft").dataset.signature = signature;
-    $("sandbox-aircraft").innerHTML = eligible
-      .map((a) => `<option value="${esc(a.id)}">${esc(a.callsign)}</option>`)
-      .join("");
-    if (eligible.some((a) => a.id === selection))
-      $("sandbox-aircraft").value = selection;
-  }
-  $("sandbox-priority").disabled = !eligible.length;
-  const previous = $("sandbox-comparison").value;
-  const effectKey = JSON.stringify([
-    effects.map((i) => [
-      i.id,
-      i.status,
-      Math.max(0, Math.ceil((i.expires_at || 0) - frame.clock)),
-    ]),
-    frame?.admission_requests,
-  ]);
-  if ($("sandbox-effects").dataset.key !== effectKey) {
-    $("sandbox-effects").dataset.key = effectKey;
-    $("sandbox-effects").innerHTML =
-      effects
-        .map(
-          (i) =>
-            `<p>${esc(i.kind)} · ${esc(i.status)}${i.status === "active" && i.expires_at ? " · " + Math.max(0, Math.ceil(i.expires_at - frame.clock)) + "s remaining" : ""}${i.status === "active" && i.expires_at ? ` <button data-recover="${esc(i.id)}">Recover now</button>` : ""}</p>`,
-        )
-        .join("") +
-      (live
-        ? (frame.admission_requests || [])
-            .map(
-              (r) =>
-                `<p>Extra arrival · ${esc(r.status)}${["queued", "deferred"].includes(r.status) ? " · earliest " + timeLabel(r.scheduled_at) : ""}</p>`,
-            )
-            .join("")
-        : "");
-    $("sandbox-effects")
-      .querySelectorAll("[data-recover]")
-      .forEach(
-        (b) =>
-          (b.onclick = () =>
-            action(() =>
-              command("disruptions", {
-                kind: "recover",
-                intervention_id: b.dataset.recover,
-              }),
-            )),
-      );
-    $("sandbox-comparison").innerHTML = effects
-      .filter((i) => i.kind !== "recover")
-      .map(
-        (i) =>
-          `<option value="${esc(i.id)}">${esc(i.kind)} · ${timeLabel(i.clock)}</option>`,
-      )
-      .join("");
-    if (effects.some((i) => i.id === previous))
-      $("sandbox-comparison").value = previous;
-  }
-  $("sandbox-compare").disabled =
-    !live || !$("sandbox-comparison").value || busy;
-  if (
-    ready &&
-    frame.last_decision?.clock >= Math.max(0, ...effects.map((i) => i.clock))
-  )
-    $("sandbox-status").textContent =
-      "Controller reassessed traffic · inspect the map card or full evidence";
-  if (live && ["failed", "complete"].includes(frame.status))
-    $("sandbox-status").textContent =
-      `Scenario ${frame.status} · evidence retained. Reset starts a separate run.`;
-}
-$("sandbox-start").onclick = () => startSandbox();
-$("sandbox-reset").onclick = () => startSandbox(true);
-const sandboxInject = (body) =>
-  action(async () => {
-    await command("disruptions", body);
-    $("sandbox-status").textContent =
-      "Condition changed · awaiting controller response";
-  });
-$("sandbox-weather").onclick = () =>
-  sandboxInject({
-    kind: "weather_restriction",
-    runway: $("sandbox-runway").value,
-  });
-$("sandbox-priority").onclick = () =>
-  sandboxInject({
-    kind: "emergency",
-    aircraft_id: $("sandbox-aircraft").value,
-  });
-$("sandbox-delay").onclick = () => sandboxInject({ kind: "pilot_delay" });
-$("sandbox-extra").onclick = () => sandboxInject({ kind: "extra_arrival" });
-$("sandbox-guided").onclick = () =>
-  action(async () => {
-    const preset = $("sandbox-preset").value;
-    if (preset === "weather")
-      await command("disruptions", {
-        kind: "weather_restriction",
-        runway: $("sandbox-runway").value,
-      });
-    else if (preset === "priority")
-      await command("disruptions", {
-        kind: "emergency",
-        aircraft_id: $("sandbox-aircraft").value,
-      });
-    else {
-      await command("disruptions", { kind: "pilot_delay" });
-      await command("disruptions", { kind: "extra_arrival" });
-    }
-  });
-$("sandbox-compare").onclick = () =>
-  action(async () => {
-    const runId = run.id,
-      generation = sourceGeneration;
-    const latest = await api(`/runs/${runId}`);
-    const result = await api(
-      `/runs/${runId}/compare-intervention`,
-      mutation(latest, {
-        intervention_id: $("sandbox-comparison").value,
-        seconds: 300,
-      }),
-    );
-    if (generation !== sourceGeneration || run?.id !== runId) return;
-    job = result.id;
-    drawer(true);
-    await loadComparison();
-  });
-
-addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !$("sandbox-panel").hidden)
-    $("sandbox-dismiss").click();
-});

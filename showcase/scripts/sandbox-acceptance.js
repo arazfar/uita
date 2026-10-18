@@ -1,40 +1,58 @@
-async page => {
- await page.unrouteAll();page.setDefaultTimeout(15000);
- const origin=new URL(page.url()).origin;
- await page.setViewportSize({width:1440,height:900});await page.goto(origin);
- await page.waitForFunction(()=>document.querySelector('#scene').contentWindow.__uitaFrame?.source_id==='arrival-flows-v1');
- await page.locator('#sandbox-toggle').click();await page.locator('#sandbox-start').click();
- await page.waitForFunction(()=>document.querySelector('#sandbox-reset').hidden===false && !document.querySelector('#sandbox-actions').disabled,null,{timeout:45000});
- const runId=new URL(page.url()).searchParams.get('run');
- if(!runId)throw Error('Sandbox did not create isolated run');
- const responseAt=Date.now();
- await page.locator('#sandbox-weather').click();
- await page.waitForFunction(()=>document.querySelector('#sandbox-effects').textContent.includes('weather_restriction'));
- const responseMs=Date.now()-responseAt;
- await page.waitForFunction(()=>document.querySelector('#decision-cause').textContent.includes('weather restriction'));
- await page.locator('#sandbox-effects [data-recover]').click();
- await page.waitForFunction(()=>document.querySelector('#sandbox-effects').textContent.includes('recovered'));
- await page.locator('#sandbox-preset').selectOption('delay');await page.locator('#sandbox-guided').click();
- await page.waitForFunction(()=>document.querySelector('#sandbox-effects').textContent.includes('extra_arrival'));
- await page.locator('#sandbox-priority').click();
- await page.waitForFunction(()=>document.querySelector('#sandbox-effects').textContent.includes('emergency'));
- await page.locator('#sandbox-compare').click();
- await page.waitForFunction(()=>document.querySelector('#comparison-results').textContent.includes('without_intervention'),null,{timeout:60000});
- await page.locator('#advanced').evaluate(el=>{el.open=true});
- const downloadPromise=page.waitForEvent('download');await page.locator('#export').click();await downloadPromise;
- await page.locator('#drawer-close').click();
- await page.screenshot({path:'output/playwright/sandbox-desktop.png'});
- await page.locator('#sandbox-dismiss').click();
- await page.getByRole('button',{name:'Tower cab',exact:true}).click();
- await page.waitForFunction(id=>document.querySelector('iframe:not([hidden])').contentWindow.__uitaFrame?.source_id===id,runId);
- await page.getByRole('button',{name:'Historical',exact:true}).click();
- await page.waitForFunction(()=>document.querySelector('iframe:not([hidden])').contentWindow.__uitaFrame?.mode==='historical');
- await page.getByRole('button',{name:'Simulation',exact:true}).click();
- await page.waitForFunction(id=>document.querySelector('iframe:not([hidden])').contentWindow.__uitaFrame?.source_id===id,runId);
- await page.reload();await page.waitForFunction(id=>document.querySelector('#scene').contentWindow.__uitaFrame?.source_id===id,runId);
- await page.setViewportSize({width:390,height:844});await page.locator('#sandbox-toggle').click();
- await page.screenshot({path:'output/playwright/sandbox-mobile.png'});
- const state=await (await page.request.get(origin+'/api/v2/runs/'+runId)).json();
- if(state.state.metrics.violations)throw Error('Guided sequence violated verification');
- return {passed:true,runId,responseMs,status:state.status,interventions:state.state.interventions.map(i=>({kind:i.kind,status:i.status})),admissions:state.state.admission_requests};
+// Run against the local public demo. No live runs or paid calls are created.
+async (page) => {
+  await page.unrouteAll();
+  page.setDefaultTimeout(20000);
+  const origin = new URL(page.url()).origin;
+  const errors = [], mutations = [];
+  const onError = error => errors.push(error.message);
+  const onRequest = request => {
+    if (/\/(disruptions|compare-intervention)(?:\?|$)/.test(request.url()))
+      mutations.push(request.url());
+  };
+  page.on('pageerror', onError);
+  page.on('request', onRequest);
+  try {
+    await page.setViewportSize({width:1440,height:900});
+    await page.goto(origin);
+    const ready = () => page.waitForFunction(() =>
+      document.querySelector('iframe:not([hidden])')?.contentWindow.__uitaFrame?.source_id === 'arrival-flows-v1');
+    await ready();
+    const absent = async () => {
+      if (await page.locator('[id^="sandbox-"], #close').count())
+        throw Error('Disruption controls remain in the document');
+    };
+    await absent();
+    await page.locator('#drawer-toggle').click();
+    await page.locator('#step').click();
+    await page.locator('#ds-play').click();
+    await page.locator('#ds-play').click();
+    await page.locator('#drawer-close').click();
+    await page.getByRole('button', {name:'Tower cab',exact:true}).click();
+    await ready();
+    await page.getByRole('button', {name:'Historical',exact:true}).click();
+    await page.waitForFunction(() => document.querySelector('iframe:not([hidden])')?.contentWindow.__uitaFrame?.mode === 'historical');
+    await page.getByRole('button', {name:'Simulation',exact:true}).click();
+    await ready();
+    await page.locator('#drawer-toggle').click();
+    await page.locator('#advanced').evaluate(el => {el.open = true});
+    await page.getByRole('button', {name:'Compare',exact:true}).click();
+    await page.waitForFunction(() => document.querySelector('#comparison-results').textContent.trim().length > 0);
+    const download = page.waitForEvent('download');
+    await page.locator('#export').click();
+    await download;
+    await page.locator('#drawer-close').click();
+    await page.screenshot({path:'output/playwright/disruption-removed-desktop.png', animations:'disabled'});
+    await page.setViewportSize({width:390,height:844});
+    await absent();
+    await page.screenshot({path:'output/playwright/disruption-removed-mobile.png', animations:'disabled'});
+    await page.reload();
+    await ready();
+    await absent();
+    if (errors.length) throw Error(errors.join('\n'));
+    if (mutations.length) throw Error('Unexpected disruption requests: ' + mutations.join(', '));
+    return {passed:true, errors, mutations};
+  } finally {
+    page.off('pageerror', onError);
+    page.off('request', onRequest);
+  }
 }
