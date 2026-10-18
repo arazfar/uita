@@ -169,7 +169,7 @@ const RUNWAY_DEMO = new URLSearchParams(location.search).get('mode') === 'runway
 let demoRate = 1;
 let connectedFrame = null;
 const {connectRenderer,selectAircraft} = await import('./research-renderer.js');
-const {arrivalLabel}=await import('./research-arrivals.js');
+const {arrivalLabel, arrivalTone, TONE_CSS}=await import('./research-arrivals.js');
 const {plottable} = await import('./research-client.js');
 
 // three 0.186.1 from the /vendor route (raw, compressed, cacheable; no Vite transform). Addons import the
@@ -1358,7 +1358,7 @@ function pickAt(cx, cy) {
   // monitors sit in front of the window: a click on a radar picks its data block (or nothing)
   const hit = rc.intersectObjects([screens.ground.mesh, screens.air.mesh, screens.tablet.mesh, screens.side.mesh, screens.log.mesh], false)[0];
   if (hit) {
-    const sc = hit.object === screens.ground.mesh ? screens.ground : hit.object === screens.air.mesh ? screens.air : null;
+    const sc = Object.values(screens).find((x) => x.mesh === hit.object && x.hits);
     if (!sc) return null;
     const px = hit.uv.x * sc.w, py = (1 - hit.uv.y) * sc.h;
     return (sc.hits || []).find((h) => px >= h.x && px <= h.x + h.w && py >= h.y && py <= h.y + h.h)?.cs || null;
@@ -1460,40 +1460,201 @@ if (CONNECTED) {
     for(const [id,actor] of connectedActors)if(!current.has(id))actor.fn=()=>({vis:false});
   }, (active) => { extPause = !active; setHalted(); });
 }
-function drawConnected(){
-  for(const [name,screen] of Object.entries(screens)){
-    const g=screen.ctx || screen.g;
-    if(!g)continue;
-    g.fillStyle='#101c20';g.fillRect(0,0,screen.w,screen.h);
-    g.fillStyle='#b8e6df';g.font='24px monospace';
-    if(name!=='ground' && name!=='air') g.fillText(connectedFrame ? `${connectedFrame.mode.toUpperCase()} · ${connectedFrame.status}` : 'WAITING FOR BACKEND',14,26);
-    const rows=connectedFrame?.aircraft||[];
-    screen.hits=[];
-    if(name==='ground'||name==='air'){
-      if(name==='ground')g.drawImage(grStatic,0,0);
-      else{g.strokeStyle='#29484a';g.lineWidth=2;for(let r=90;r<screen.h/2;r+=90){g.beginPath();g.arc(screen.w/2,screen.h/2,r,0,Math.PI*2);g.stroke();}}
-      g.fillStyle='#b8e6df';g.font='24px monospace';g.fillText(name==='ground'?'KSFO · RESEARCH SURFACE':'KSFO · RESEARCH TRAFFIC · 20 NM',16,35);
-      const intended=connectedFrame?.aircraft.find(a=>a.id===picked)?.route;
-      if(name==='air' && intended?.preview){
-        g.strokeStyle='#90b8d2';g.setLineDash([6,6]);g.beginPath();
-        intended.preview.forEach((p,i)=>{const [px,pz]=P(p[0],p[1]);const x=screen.w/2+px/37040*(screen.h*.44),y=screen.h/2+pz/37040*(screen.h*.44);if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.stroke();g.setLineDash([]);
-        g.font='16px monospace';g.fillText('Dashed: intended synthetic route',16,56);
-      }
-      for(const a of actors.filter(a=>a.vis)){
-        let x,y;if(name==='ground'){if(a.pos.y-groundY>600)continue;[x,y]=grXY(a.pos.x,a.pos.z,screen.w,screen.h);}
-        else{x=screen.w/2+a.pos.x/37040*(screen.h*.44);y=screen.h/2+a.pos.z/37040*(screen.h*.44);}
-        if(x<0||x>screen.w||y<60||y>screen.h)continue;
-        g.fillStyle=(a.cs===picked || a.cs===connectedFrame?.highlighted_aircraft_id)?'#ffe5a3':'#b8e6df';g.beginPath();g.arc(x,y,5,0,Math.PI*2);g.fill();g.fillText(a.tag,x+10,y-10);
-        screen.hits.push({cs:a.cs,x:x-10,y:y-30,w:180,h:44});
-      }
-      continue;
-    }
-    rows.slice(0,Math.floor((screen.h-85)/38)).forEach((a,i)=>{
-      const y=80+i*38;g.fillStyle=(a.id===picked || a.id===connectedFrame?.highlighted_aircraft_id)?'#ffe5a3':'#b8e6df';
-      g.fillText(`${a.callsign} ${a.altitude_ft==null?'UNKNOWN':Math.round(a.altitude_ft)+' FT'} ${a.status}${a.route ? ' · '+a.route.phase.replaceAll('_',' ') : ''}`,14,y);
-      screen.hits.push({cs:a.id,x:10,y:y-28,w:screen.w-20,h:38});
-    });
+// ---- connected mode: research frames rendered as real tower displays (redrawn at <=10 fps) ----
+const PLAIN = '#6fcf8a'; // ordinary traffic stays green on the air scope
+const toneOf = (a) => { const t = arrivalTone(a); return t === 'neutral' ? PLAIN : TONE_CSS[t]; };
+const csOf = (a) => String(a.callsign || a.id || '—').slice(0, 8).toUpperCase();
+const words = (v) => String(v ?? '').replace(/[_-]+/g, ' ').trim().toUpperCase();
+const onGroundOf = (a) => ['on_ground', 'arrival_completed'].includes(a.arrival_cue?.phase) || a.status === 'complete' || (Number.isFinite(a.altitude_ft) && a.altitude_ft < 60);
+const altOf = (a) => (onGroundOf(a) ? 'GND' : Number.isFinite(a.altitude_ft) ? String(Math.round(a.altitude_ft / 100)).padStart(3, '0') : '---');
+const altLong = (a) => (onGroundOf(a) ? 'GND' : Number.isFinite(a.altitude_ft) ? Math.round(a.altitude_ft / 100) * 100 + '' : '—').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const gsOf = (a) => (Number.isFinite(a.groundspeed_kt) ? String(Math.round(a.groundspeed_kt / 10)).padStart(2, '0') : '--');
+const CUE_SHORT = { approaching: 'APPROACH', clearance_issued: 'CLR PENDING', landing_authorized: 'CLRD TO LAND', on_ground: 'ON GROUND', arrival_completed: 'LANDED' };
+const statusOf = (a) => (a.arrival_cue?.basis === 'inferred' ? 'INFERRED' : CUE_SHORT[a.arrival_cue?.phase] || words(a.status) || '—');
+const runwayOf = (a) => a.runway || a.arrival_cue?.runway || '';
+const squawkOf = (a) => { let h = 0; for (const c of String(a.id)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return [0, 1, 2, 3].map((k) => (h >> (k * 3)) & 7).join(''); };
+const isSel = (a) => a.id === picked || a.id === connectedFrame?.highlighted_aircraft_id;
+const frameClock = () => {
+  const c = connectedFrame?.clock; if (!Number.isFinite(c)) return '--:--:--';
+  return new Date(c * 1000).toLocaleTimeString('en-GB', { timeZone: 'America/Los_Angeles', hour12: false });
+};
+const trails = new Map(); let trailAt = 0;
+function connectedRows() { return (connectedFrame?.aircraft || []).filter(plottable); }
+function bayOf(a) {
+  const ph = a.arrival_cue?.phase;
+  if (ph === 'arrival_completed' || a.status === 'complete') return 'landed';
+  if (ph === 'landing_authorized') return 'cleared';
+  if (ph === 'on_ground' || (!a.arrival_cue && onGroundOf(a))) return 'ground';
+  if (ph === 'approaching' || ph === 'clearance_issued' || ['holding', 'go_around'].includes(a.status)) return 'pending';
+  return 'departures';
+}
+
+function drawConnected() {
+  const rows = connectedRows(), all = connectedFrame?.aircraft || [], now = performance.now() / 1000;
+  if (now - trailAt > 1) { // one history dot per second per target
+    trailAt = now; const live = new Set();
+    for (const a of rows) { live.add(a.id); const t = trails.get(a.id) || []; t.push(P(a.longitude, a.latitude)); if (t.length > 6) t.shift(); trails.set(a.id, t); }
+    for (const id of trails.keys()) if (!live.has(id)) trails.delete(id);
   }
+  drawCGround(rows); drawCAir(rows); drawCTablet(all); drawCSide(all); drawCLog(all);
+}
+function drawCGround(rows) {
+  const sc = screens.ground, { ctx: g, w: W, h: H } = sc; sc.hits = [];
+  g.drawImage(grStatic, 0, 0);
+  toolbar(g, W, 'ASDE-X · KSFO', ['ORIENTATION', 'ICON SIZE', 'TAG SIZE', 'TAG DISTANCE', 'POV SIZE', 'LINE STRENGTH', 'RUNWAY TAG', 'TAXIWAY TAG'], frameClock().slice(0, 8), -1);
+  g.save(); g.beginPath(); g.rect(0, 88, W, H - 88); g.clip();
+  for (const a of rows) {
+    if (!onGroundOf(a) && a.altitude_ft > 2500) continue; // surface display: airport traffic only
+    const [px, pz] = P(a.longitude, a.latitude), [x, y] = grXY(px, pz, W, H);
+    if (x < 10 || x > W - 10 || y < 98 || y > H - 10) continue;
+    const sel = isSel(a);
+    planeGlyph(g, x, y, (a.track_deg_true || 0) * D2R, 13, sel ? '#ffe5a3' : '#55b0f0');
+    g.fillStyle = sel ? '#ffe5a3' : '#a99bff'; g.font = FONT(700, 22); g.fillText(csOf(a), x + 14, y - 10);
+    if (!onGroundOf(a)) { g.font = FONT(600, 17); g.fillText(altOf(a), x + 14, y + 9); }
+    if (sel) { g.strokeStyle = '#5fd4ff'; g.lineWidth = 3; g.strokeRect(x - 18, y - 18, 36, 36); }
+    sc.hits.push({ cs: a.id, x: x - 20, y: y - 34, w: 150, h: 54 });
+  }
+  g.restore();
+}
+function drawCAir(rows) {
+  const sc = screens.air, { ctx: g, w: W, h: H } = sc; sc.hits = [];
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  toolbar(g, W, 'STARS · NCT · SFO', ['RANGE\n15 NM', 'RR\n5 NM', 'MAP\nSFO', 'HISTORY\n5', 'LDR\n2', 'BRITE'], frameClock().slice(0, 8), 0);
+  const cx = W / 2, cy = 88 + (H - 88) / 2, R = (H - 88) / 2 - 12, s = R / (15 * 1852);
+  const XY = (px, pz) => [cx + px * s, cy + pz * s];
+  g.save(); g.beginPath(); g.rect(0, 88, W, H - 88); g.clip();
+  if (coast) { g.strokeStyle = 'rgba(110,128,140,.35)'; g.lineWidth = 1.2; for (const ring of coast) { g.beginPath(); ring.forEach(([e, n], i) => { const [x, y] = XY(e * 1000, -n * 1000); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); } }
+  // runway centrelines
+  g.strokeStyle = 'rgba(200,210,220,.55)'; g.lineWidth = 2;
+  for (const r of Object.values(RWY)) { const [x1, y1] = XY(...r.E), [x2, y2] = XY(...r.W); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+  // range rings + compass rose
+  g.strokeStyle = 'rgba(150,165,175,.38)'; g.lineWidth = 1.3; g.fillStyle = 'rgba(170,185,195,.7)'; g.font = FONT(600, 15, 'JetBrains Mono');
+  for (let nm = 5; nm <= 15; nm += 5) { g.beginPath(); g.arc(cx, cy, nm * 1852 * s, 0, 7); g.stroke(); g.fillText(String(nm), cx + 4, cy - nm * 1852 * s + 16); }
+  for (let d = 0; d < 360; d += 5) {
+    const a = d * D2R, r0 = R - (d % 30 === 0 ? 16 : d % 10 === 0 ? 9 : 5);
+    g.beginPath(); g.moveTo(cx + Math.sin(a) * r0, cy - Math.cos(a) * r0); g.lineTo(cx + Math.sin(a) * R, cy - Math.cos(a) * R); g.stroke();
+    if (d % 30 === 0) { g.textAlign = 'center'; g.fillText(String(d).padStart(3, '0'), cx + Math.sin(a) * (R - 30), cy - Math.cos(a) * (R - 30) + 5); g.textAlign = 'left'; }
+  }
+  // selected aircraft's intended route
+  const intended = rows.find((a) => a.id === picked)?.route;
+  if (intended?.preview) {
+    g.strokeStyle = '#90b8d2'; g.setLineDash([6, 6]); g.lineWidth = 1.5; g.beginPath();
+    intended.preview.forEach((p, i) => { const [x, y] = XY(...P(p[0], p[1])); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]);
+  }
+  for (const a of rows) {
+    if (onGroundOf(a)) continue; // surface traffic lives on the ASDE
+    const [x, y] = XY(...P(a.longitude, a.latitude)); if (x < -40 || x > W + 40 || y < 70 || y > H + 40) continue;
+    const col = toneOf(a), sel = isSel(a);
+    (trails.get(a.id) || []).slice(0, -1).forEach(([hx, hz], i, arr) => { const [px, py] = XY(hx, hz); g.globalAlpha = 0.25 + 0.5 * (i / arr.length); g.fillStyle = col; g.fillRect(px - 2, py - 2, 4, 4); });
+    g.globalAlpha = 1;
+    // target symbol: filled diamond, with a 1-minute velocity vector
+    g.fillStyle = col; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x + 6, y); g.lineTo(x, y + 6); g.lineTo(x - 6, y); g.closePath(); g.fill();
+    if (Number.isFinite(a.track_deg_true) && a.groundspeed_kt > 30) {
+      const v = a.groundspeed_kt * 1852 / 60 * s, t = a.track_deg_true * D2R;
+      g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.sin(t) * v, y - Math.cos(t) * v); g.stroke();
+    }
+    // leader line and three-line data block
+    const bx = x + 34, by = y - 56;
+    g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x + 5, y - 5); g.lineTo(bx - 4, by + 18); g.stroke();
+    g.fillStyle = col; g.font = FONT(700, 21, 'JetBrains Mono'); g.fillText(csOf(a), bx, by);
+    g.font = FONT(500, 19, 'JetBrains Mono'); g.fillText(`${altOf(a)} ${gsOf(a)}`, bx, by + 21);
+    g.fillText(runwayOf(a) && !['go_around', 'holding'].includes(a.status) ? `${runwayOf(a)} ${statusOf(a)}`.slice(0, 16) : statusOf(a).slice(0, 16), bx, by + 42);
+    if (sel) { g.strokeStyle = '#5fd4ff'; g.lineWidth = 2.5; g.strokeRect(bx - 6, by - 22, 190, 72); g.strokeRect(x - 10, y - 10, 20, 20); }
+    sc.hits.push({ cs: a.id, x: bx - 6, y: by - 22, w: 190, h: 72 }, { cs: a.id, x: x - 14, y: y - 14, w: 28, h: 28 });
+  }
+  // legend
+  g.font = FONT(600, 14, 'JetBrains Mono');
+  [['AUTH', TONE_CSS.authorized], ['PENDING', TONE_CSS.pending], ['NOT AUTH', TONE_CSS.denied]].forEach(([t, c], i) => { g.fillStyle = c; g.fillRect(16, H - 66 + i * 20, 10, 10); g.fillText(t, 32, H - 56 + i * 20); });
+  g.restore();
+}
+const C_BAYS = [['pending', 'ARRIVALS PENDING', '#e5534b'], ['cleared', 'CLEARED TO LAND', '#3fb950'], ['ground', 'ON GROUND / TAXI', '#58a6ff'], ['departures', 'DEPARTURES', '#a5b4c3']];
+function drawCTablet(all) {
+  const sc = screens.tablet, { ctx: g, w: W, h: H } = sc; sc.hits = [];
+  g.fillStyle = '#1b1d20'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#4b4f55'; g.font = FONT(600, 18); g.fillText('UITA  FT3200', W - 170, 30);
+  const L0 = 48, T0 = 84, iw = W - 96, colW = (iw - 3 * 10) / 4, stripH = 66;
+  g.fillStyle = '#e8e9ea'; g.fillRect(L0, 44, iw, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 17); g.fillText('STRIP BOARD · KSFO TWR', L0 + 10, 65);
+  g.font = FONT(700, 20, 'JetBrains Mono'); g.textAlign = 'right'; g.fillText(frameClock(), L0 + iw - 10, 66); g.textAlign = 'left';
+  const groups = { pending: [], cleared: [], ground: [], departures: [], landed: [] };
+  for (const a of all) groups[bayOf(a)].push(a);
+  groups.pending.sort((a, b) => (a.arrival_cue?.distance_nm ?? 99) - (b.arrival_cue?.distance_nm ?? 99));
+  groups.cleared.sort((a, b) => (a.arrival_cue?.distance_nm ?? 99) - (b.arrival_cue?.distance_nm ?? 99));
+  const bayH = H - 48 - T0 - 64;
+  C_BAYS.forEach(([key, title, edge], c) => {
+    const x = L0 + c * (colW + 10), y = T0;
+    g.fillStyle = '#c9cbce'; g.fillRect(x, y, colW, bayH); g.fillStyle = '#1d1f22'; g.fillRect(x, y, colW, 26);
+    g.fillStyle = '#e9eaeb'; g.font = FONT(700, 15); g.fillText(`${title} · ${groups[key].length}`, x + 10, y + 18);
+    const fit = Math.floor((bayH - 34) / (stripH + 6)), list = groups[key];
+    list.slice(0, list.length > fit ? fit - 1 : fit).forEach((a, i) => {
+      const sy = y + 32 + i * (stripH + 6), sel = isSel(a);
+      g.fillStyle = sel ? '#fff4cf' : '#f1efe6'; g.fillRect(x + 6, sy, colW - 12, stripH);
+      g.fillStyle = key === 'pending' && arrivalTone(a) === 'pending' ? TONE_CSS.pending : edge; g.fillRect(x + 6, sy, 8, stripH);
+      if (sel) { g.strokeStyle = '#1f8fff'; g.lineWidth = 3; g.strokeRect(x + 7.5, sy + 1.5, colW - 15, stripH - 3); }
+      g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x + 6 + (colW - 12) * 0.62, sy + 6, 1, stripH - 12);
+      g.fillStyle = '#16181b'; g.font = FONT(700, 25); g.fillText(csOf(a), x + 22, sy + 27);
+      g.font = FONT(600, 15); g.fillStyle = '#3d4248'; g.fillText(`${String(a.aircraft_type || '—').slice(0, 4)}  ${runwayOf(a) || '—'}`, x + 22, sy + 50);
+      const rx = x + 6 + (colW - 12) * 0.62 + 8;
+      g.font = FONT(700, 19, 'JetBrains Mono'); g.fillStyle = '#16181b'; g.fillText(altLong(a), rx, sy + 24);
+      g.font = FONT(600, 13); g.fillStyle = key === 'pending' ? '#b42318' : '#3d4248'; g.fillText(statusOf(a).slice(0, 13), rx, sy + 43);
+      g.font = FONT(500, 13, 'JetBrains Mono'); g.fillStyle = '#6b7178'; g.fillText(squawkOf(a), rx, sy + 59);
+      sc.hits.push({ cs: a.id, x: x + 6, y: sy, w: colW - 12, h: stripH });
+    });
+    if (list.length > fit) { g.fillStyle = '#3d4248'; g.font = FONT(700, 15); g.fillText(`+${list.length - fit + 1} more`, x + 12, y + 32 + (fit - 1) * (stripH + 6) + 26); }
+  });
+  // completed flights collapse into a count
+  const ly = T0 + bayH + 10;
+  g.fillStyle = '#9a9da1'; g.fillRect(L0, ly, iw, 44); g.fillStyle = '#2f3237'; g.font = FONT(700, 19);
+  g.fillText(`LANDED · ${groups.landed.length}`, L0 + 14, ly + 29);
+  g.font = FONT(600, 15); g.fillStyle = '#45494f';
+  g.fillText(groups.landed.slice(-6).map(csOf).join('   '), L0 + 150, ly + 28);
+}
+function drawCSide(all) {
+  const sc = screens.side, { ctx: g, w: W, h: H } = sc; sc.hits = [];
+  g.fillStyle = '#c3c6ca'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#e9eaec'; g.fillRect(0, 0, W, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 18); g.fillText('METAR · KSFO', 12, 22);
+  g.fillStyle = '#f2f3f4'; g.fillRect(12, 40, W - 24, 104); g.strokeStyle = '#8b8f94'; g.strokeRect(12.5, 40.5, W - 25, 103);
+  g.fillStyle = '#25282c'; g.textAlign = 'center'; g.font = FONT(700, 40, 'JetBrains Mono');
+  g.fillText(String(metarK.wdir).padStart(3, '0') + '°', W / 2, 84); g.font = FONT(700, 24); g.fillText(`${String(metarK.wspd).padStart(2, '0')} KT · VIS ${metarK.visib} SM`, W / 2, 124); g.textAlign = 'left';
+  g.font = FONT(500, 15, 'JetBrains Mono'); g.fillStyle = '#2b2e32';
+  const raw = (metarK.rawOb || '').replace(/^METAR /, '').split(' ').slice(0, 7).join(' ');
+  g.fillText(raw.slice(0, 30), 14, 166); g.fillText(raw.slice(30, 60), 14, 184);
+  g.fillText(`QNH ${Math.round(metarK.altim)}  T ${Math.round(metarK.temp)}/${Math.round(metarK.dewp)}`, 14, 204);
+  const closed = connectedFrame?.closed_runways || [];
+  g.font = FONT(600, 14); g.fillStyle = closed.length ? '#b42318' : '#2f7a46';
+  g.fillText(closed.length ? `CLOSED ${closed.join(' ')}`.slice(0, 40) : 'ALL RUNWAYS OPEN', 14, 226);
+  // landing sequence
+  const y0 = 240;
+  g.fillStyle = '#1d1f22'; g.fillRect(0, y0, W, 30); g.fillStyle = '#e9eaeb'; g.font = FONT(700, 17); g.fillText('LANDING SEQUENCE', 12, y0 + 21);
+  g.fillStyle = '#111316'; g.fillRect(0, y0 + 30, W, H - y0 - 30);
+  const seq = all.filter((a) => ['pending', 'cleared'].includes(bayOf(a)))
+    .sort((a, b) => (bayOf(a) === 'cleared' ? 0 : 1) - (bayOf(b) === 'cleared' ? 0 : 1) || (a.arrival_cue?.distance_nm ?? 99) - (b.arrival_cue?.distance_nm ?? 99));
+  if (!seq.length) { g.fillStyle = '#7d8790'; g.font = FONT(600, 16); g.fillText('No arrivals in sequence', 14, y0 + 64); }
+  seq.slice(0, 10).forEach((a, i) => {
+    const y = y0 + 40 + i * 56, sel = isSel(a), col = toneOf(a);
+    g.fillStyle = sel ? '#22303a' : '#1a1d21'; g.fillRect(8, y, W - 16, 50);
+    g.fillStyle = '#7d8790'; g.font = FONT(700, 15, 'JetBrains Mono'); g.fillText(String(i + 1), 16, y + 31);
+    g.fillStyle = '#e6eaee'; g.font = FONT(700, 20, 'JetBrains Mono'); g.fillText(csOf(a), 38, y + 24);
+    g.fillStyle = '#8fa0ad'; g.font = FONT(500, 13, 'JetBrains Mono');
+    g.fillText(`${runwayOf(a) || '—'} · ${Number.isFinite(a.arrival_cue?.distance_nm) ? a.arrival_cue.distance_nm.toFixed(1) + ' NM' : altLong(a)}`, 38, y + 43);
+    const label = statusOf(a); g.font = FONT(700, 13); const pw = g.measureText(label).width + 16;
+    g.fillStyle = col; g.globalAlpha = 0.18; g.fillRect(W - 16 - pw, y + 14, pw, 22); g.globalAlpha = 1;
+    g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(W - 16 - pw + .5, y + 14.5, pw - 1, 21); g.fillStyle = col; g.fillText(label, W - 8 - pw, y + 30);
+    if (sel) { g.strokeStyle = '#5fd4ff'; g.lineWidth = 2; g.strokeRect(9, y + 1, W - 18, 48); }
+    sc.hits.push({ cs: a.id, x: 8, y, w: W - 16, h: 50 });
+  });
+}
+function drawCLog(all) {
+  const sc = screens.log, { ctx: g, w: W, h: H } = sc; sc.hits = [];
+  g.fillStyle = '#0d0f12'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#e9eaec'; g.fillRect(0, 0, W, 30); g.fillStyle = '#25282c'; g.font = FONT(700, 17); g.fillText('SESSION', 12, 21);
+  const f = connectedFrame, m = f?.metrics || {};
+  const rows = [['MODE', words(f?.mode) || 'WAITING'], ['STATUS', words(f?.status) || 'NO DATA'], ['CLOCK', frameClock()], ['TRAFFIC', String(all.length)],
+    ['COMPLETED', String(m.completed ?? 0)], ['MEAN DELAY', Number.isFinite(m.mean_delay_seconds) ? (m.mean_delay_seconds / 60).toFixed(1) + ' MIN' : '—'],
+    ['VIOLATIONS', String(m.violations ?? 0)], ['READBACK ERR', String(m.readback_errors ?? 0)]];
+  rows.forEach(([k, v], i) => {
+    const y = 64 + i * 58; g.fillStyle = '#7d8790'; g.font = FONT(600, 15); g.fillText(k, 14, y);
+    g.fillStyle = k === 'VIOLATIONS' && v !== '0' ? '#ff6b6b' : '#e6eaee'; g.font = FONT(700, 24, 'JetBrains Mono'); g.fillText(v.slice(0, 14), 14, y + 28);
+  });
 }
 // A separate finite demonstration owns these controls; recorded traffic never uses this clock.
 let demoControls = null;
