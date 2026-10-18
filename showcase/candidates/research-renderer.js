@@ -85,6 +85,7 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
     entities,
     setPhotoreal,
   });
+  const projections = new Map();
   let trailClock = -Infinity,
     trailSource = null;
   connectRenderer(
@@ -235,29 +236,65 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
           clock < trailClock ||
           trailSource !== frame.source_id
         ) {
-          const positions = frames
-            .filter((f) => f.clock <= clock && f.clock >= clock - 90)
-            .map((f) => f.aircraft.find((x) => x.id === a.id))
-            .filter((x) => x && plottable(x))
-            .map((x) =>
-              C.Cartesian3.fromDegrees(
-                x.longitude,
-                x.latitude,
-                x.altitude_ft * 0.3048 + altitudeOffset(),
-              ),
-            );
+          // Route trail: the last 8 minutes, coloured by what the aircraft is doing
+          // (descending cyan, climbing amber, level grey, ground faint), plus a dashed
+          // 2-minute projection ahead for airborne traffic.
+          const pts = frames
+            .filter((f) => f.clock <= clock && f.clock >= clock - 480)
+            .map((f) => [f.clock, f.aircraft.find((x) => x.id === a.id)])
+            .filter(([, x]) => x && plottable(x));
+          const positions = pts.map(([, x]) =>
+            C.Cartesian3.fromDegrees(
+              x.longitude,
+              x.latitude,
+              x.altitude_ft * 0.3048 + altitudeOffset(),
+            ),
+          );
+          const recent = pts.filter(([t]) => t >= clock - 60);
+          const dAlt = recent.length > 1 ? recent.at(-1)[1].altitude_ft - recent[0][1].altitude_ft : 0;
+          const onGround = a.altitude_ft < 150;
+          const tone =
+            selected === a.id
+              ? "#ffdf8a"
+              : onGround
+                ? "rgba(255,255,255,0.35)"
+                : dAlt < -150
+                  ? "#5bc8ff"
+                  : dAlt > 150
+                    ? "#ffb547"
+                    : "#c9d3da";
           if (positions.length > 1)
             entity.polyline = {
               positions,
-              width: 1.5,
-              material: C.Color.fromCssColorString(
-                selected === a.id ? "#ffdf8a" : "#8fcce0",
-              ).withAlpha(0.6),
+              width: selected === a.id ? 3 : 2,
+              material: C.Color.fromCssColorString(tone).withAlpha(onGround ? 0.35 : 0.85),
             };
           else entity.polyline = undefined;
+          let proj = projections.get(a.id);
+          if (!proj) {
+            proj = viewer.entities.add({ polyline: { positions: [], width: 1.5,
+              material: new C.PolylineDashMaterialProperty({ color: C.Color.WHITE.withAlpha(0.6), dashLength: 12 }) } });
+            projections.set(a.id, proj);
+          }
+          const last = pts.at(-1), prev = recent.length > 1 ? recent[0] : null;
+          if (!onGround && last && prev && last[0] > prev[0]) {
+            const k = 120 / (last[0] - prev[0]);
+            const [, l] = last, [, q] = prev;
+            proj.polyline.positions = [
+              C.Cartesian3.fromDegrees(l.longitude, l.latitude, l.altitude_ft * 0.3048 + altitudeOffset()),
+              C.Cartesian3.fromDegrees(
+                l.longitude + (l.longitude - q.longitude) * k,
+                l.latitude + (l.latitude - q.latitude) * k,
+                Math.max(0, l.altitude_ft + (l.altitude_ft - q.altitude_ft) * k) * 0.3048 + altitudeOffset(),
+              ),
+            ];
+            proj.polyline.material = new C.PolylineDashMaterialProperty({ color: C.Color.fromCssColorString(tone).withAlpha(0.7), dashLength: 12 });
+            proj.show = true;
+          } else proj.show = false;
         }
       }
       for (const [id, e] of entities) if (!ids.has(id)) e.show = false;
+      for (const [id, e] of projections) if (!ids.has(id)) e.show = false;
       if (
         clock - trailClock >= 2 ||
         clock < trailClock ||
