@@ -124,11 +124,11 @@ Rules (a deterministic kernel will VETO violations): same-runway spacing at leas
 never use a closed runway; slot_time >= min_slot_s; one aircraft per slot. Frozen aircraft keep their slot.
 Priorities: MEDICAL first, then LOW_FUEL, then minimise total delay. Use both runways when open.
 Call clear_to_land for every aircraft you can slot within about 10 minutes and hold (at its suggested fix) for the rest.
-Call one tool per aircraft, in landing order, with increasing slot_time per runway. Keep each reason under 12 words.`;
+Call one tool per aircraft, in landing order, with increasing slot_time per runway.\nWrite each reason as plain English for the public, e.g. "Medical on board, goes first", "Heavy ahead, 120 s wake spacing", "Runway 28L closed, holds for a later slot". Under 12 words.`;
 
 // One tool-calling chat. Some models (Nemotron with thinking off) return one call per turn, so keep
 // the conversation going with tool results until every queued id is decided, the model stops, or time runs out.
-async function chatTools(cfg, messages, tools, ids, feedback = () => "Noted.") {
+async function chatTools(cfg, messages, tools, ids, feedback = () => ({ ok: true, text: "Noted." })) {
   const deadline = Date.now() + cfg.timeoutMs, calls = [], seen = new Set(), msgs = [...messages];
   let note = "";
   for (let round = 0; round < 12 && Date.now() < deadline - 300; round++) {
@@ -147,9 +147,10 @@ async function chatTools(cfg, messages, tools, ids, feedback = () => "Noted.") {
     for (const c of tc) {
       let args = null;
       try { args = JSON.parse(c.function.arguments || "{}"); } catch {}
-      if (args && (c.function.name === "clear_to_land" || c.function.name === "hold") && !seen.has(args.id)) { seen.add(args.id); calls.push({ name: c.function.name, args }); }
+      const fb = args ? feedback(c.function.name, args) : { ok: false, text: "Unreadable arguments." };
+      if (fb.ok && (c.function.name === "clear_to_land" || c.function.name === "hold") && !seen.has(args.id)) { seen.add(args.id); calls.push({ name: c.function.name, args }); }
       const left = ids.filter((id) => !seen.has(id));
-      msgs.push({ role: "tool", tool_call_id: c.id, content: `${args ? feedback(c.function.name, args) : "Unreadable arguments."} ${left.length ? `Still undecided: ${left.join(", ")}. Decide the next one.` : "All aircraft decided."}` });
+      msgs.push({ role: "tool", tool_call_id: c.id, content: `${fb.text} ${left.length ? `Still undecided: ${left.join(", ")}. Decide the next one.` : "All aircraft decided."}` });
     }
     if (ids.every((id) => seen.has(id))) break;
   }
@@ -494,11 +495,21 @@ function voiceApi(env) {
             for (const q of queue || []) if (q.frozen && occupied[q.runway]) occupied[q.runway].push({ t: q.slot_s, heavy: q.wake === "heavy" });
             const closed = Object.fromEntries((runways || []).map((r) => [r.id, !r.open]));
             const nextLegal = (rwy) => occupied[rwy].reduce((m, o) => Math.max(m, o.t + (o.heavy ? 120 : 90)), 0);
+            // Scheduling-tool feedback: obviously illegal slots are bounced back with the next legal time so the
+            // model can correct itself; the page's kernel still verifies everything independently.
             const feedback = (name, a) => {
-              if (name !== "clear_to_land") return `Noted: ${a.id} holds at ${a.fix} for ${a.minutes} min.`;
               const q = (queue || []).find((x) => x.id === a.id);
-              if (occupied[a.runway]) occupied[a.runway].push({ t: Number(a.slot_time), heavy: q?.wake === "heavy" });
-              return `Noted: ${a.id} ${a.runway} at ${a.slot_time} s. Next legal slot: 28R >= ${nextLegal("28R")} s${closed["28L"] ? ", 28L closed" : `, 28L >= ${nextLegal("28L")} s`}.`;
+              if (!q) return { ok: false, text: `Unknown id ${a.id}.` };
+              if (q.frozen) return { ok: false, text: `${a.id} is frozen on final; skip it.` };
+              if (name !== "clear_to_land") return { ok: true, text: `Noted: ${a.id} holds at ${a.fix} for ${a.minutes} min.` };
+              const t = Number(a.slot_time), occ = occupied[a.runway];
+              if (!occ || closed[a.runway]) return { ok: false, text: `Rejected: ${a.runway} is closed. Use 28R >= ${nextLegal("28R")} s or hold.` };
+              if (!(t >= q.min_slot_s)) return { ok: false, text: `Rejected: ${a.id} cannot land before ${q.min_slot_s} s.` };
+              const heavy = q.wake === "heavy";
+              const clash = occ.find((o) => Math.abs(o.t - t) < (o.t <= t ? (o.heavy ? 120 : 90) : heavy ? 120 : 90));
+              if (clash) return { ok: false, text: `Rejected: ${a.runway} at ${t} s is too close to another slot at ${clash.t} s. Next legal ${a.runway} >= ${Math.max(nextLegal(a.runway), q.min_slot_s)} s. Propose again for ${a.id}.` };
+              occ.push({ t, heavy });
+              return { ok: true, text: `Noted: ${a.id} ${a.runway} at ${t} s. Next legal slot: 28R >= ${nextLegal("28R")} s${closed["28L"] ? ", 28L closed" : `, 28L >= ${nextLegal("28L")} s`}.` };
             };
             const fallbacks = [];
             for (const cfg of tries) {

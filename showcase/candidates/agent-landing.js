@@ -140,9 +140,13 @@ export function mountLanding(ctx) {
     a.entity = viewer.entities.add({
       position: new C.CallbackProperty(cart, false),
       orientation: new C.CallbackProperty(() => { const p = cart(); return p && C.Transforms.headingPitchRollQuaternion(p, new C.HeadingPitchRoll(((a.hdg || 0) - 90 + (ctx.yawFix(uri))) * Math.PI / 180, 0, 0)); }, false),
-      model: { uri, scale: heavy ? 46 : 0.4, minimumPixelSize: 30, maximumScale: 4000, silhouetteColor: C.Color.fromCssColorString('#ffb547'), silhouetteSize: new C.CallbackProperty(() => (a.leg.type === 'hold' ? 1.5 : 0), false) },
-      label: ctx.label(new C.CallbackProperty(() => `${a.cs}${a.flag ? ' · ' + (a.flag === 'MEDICAL' ? 'MED' : 'FUEL') : ''}`, false), {
-        fillColor: new C.CallbackProperty(() => C.Color.fromCssColorString(a.slot ? '#9ff0bf' : '#ffd38a'), false), pixelOffset: new C.Cartesian2(0, -26) }),
+      model: { uri, scale: heavy ? 46 : 0.4, minimumPixelSize: 30, maximumScale: 4000, silhouetteColor: new C.CallbackProperty(() => C.Color.fromCssColorString(a.hover || (ctx.pickedEntity && ctx.pickedEntity() === a.entity) ? '#ffffff' : '#ffb547'), false),
+        silhouetteSize: new C.CallbackProperty(() => (a.hover || (ctx.pickedEntity && ctx.pickedEntity() === a.entity) ? 3 : a.leg.type === 'hold' ? 1.2 : 0), false) },
+      // status chip matching the panel pill: green LAND, amber HOLD
+      label: ctx.label(new C.CallbackProperty(() => `${a.cs}${a.flag ? (a.flag === 'MEDICAL' ? ' · MED' : ' · FUEL') : ''}  ${status(a, ctx.now()).chip}`, false), {
+        fillColor: new C.CallbackProperty(() => C.Color.fromCssColorString(status(a, ctx.now()).kind === 'land' ? '#ffffff' : '#1b1408'), false),
+        backgroundColor: new C.CallbackProperty(() => C.Color.fromCssColorString(status(a, ctx.now()).kind === 'land' ? 'rgba(31,157,85,0.92)' : 'rgba(255,181,71,0.92)'), false),
+        pixelOffset: new C.Cartesian2(0, -26) }),
     });
     ctx.pick(a.entity, () => describe(a));
   }
@@ -188,7 +192,7 @@ export function mountLanding(ctx) {
         }
       }
       if (L.type === 'final' && (T - L.t0) * L.v >= dist(L.pts[0], L.pts[1]) + dist(L.pts[1], L.pts[2])) {
-        a.leg = { type: 'roll', t0: T }; S.landed++; S.delaySum += Math.max(0, T - a.eta);
+        a.leg = { type: 'roll', t0: T }; a.landedAt = T; S.landed++; S.delaySum += Math.max(0, T - a.eta);
       }
       if (L.type === 'roll' && T - L.t0 > 40) { a.done = true; a.entity.show = false; ctx.suppress(a.id, false); }
     }
@@ -234,33 +238,37 @@ export function mountLanding(ctx) {
       eta_s: Math.round(a.eta - T), min_slot_s: Math.round(minSlot(a, T) - T) + margin, suggested_fix: a.holdFix || nearestFix(posOf(a, T).ll),
       status: frozen(a) ? `on final ${a.slot.rwy} slot ${Math.round(a.slot.t - T)} s` : a.slot ? `cleared ${a.slot.rwy} slot ${Math.round(a.slot.t - T)} s` : a.leg.type === 'hold' ? `holding ${a.leg.fix}` : 'inbound' }));
     const runways = ['28L', '28R'].map(id => ({ id, open: !(S.closure && S.closure.rwy === id), ...(S.closure && S.closure.rwy === id ? { closed_for_s: Math.round(S.closure.t1 - T) } : {}) }));
-    S.inflight = true; S.agentInfo = 'agent thinking…'; render(T);
+    S.inflight = true; S.inflightN = queue.filter(q => !q.frozen).length; S.agentInfo = 'agent thinking…'; render(T);
     let res;
     try { const r = await fetch('/api/sequence', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ queue, runways, now: fmtT(T) + ' PDT' }) }); res = await r.json(); if (!r.ok) throw new Error(res.error || r.status); }
     catch (e) { S.inflight = false; S.agentInfo = `agent unavailable (${String(e.message || e).slice(0, 40)}) → kernel FCFS`; fcfs(ctx.now()); render(ctx.now()); return; }
     S.inflight = false;
     const Tn = ctx.now(), seq = ++S.seq;
     S.agentInfo = `${res.provider} · ${String(res.model).split('/').pop()} · ${(res.ms / 1000).toFixed(1)} s${res.fallbacks?.length ? ' (fallback)' : ''}`;
-    let spokeHold = false;
+    let spokeHold = false, ok = 0, veto = 0, vetoWhy = '';
     for (const d of res.decisions || []) {
       const a = S.arr.get(d.args.id); if (!a || a.done || frozen(a)) continue;
       const why = String(d.args.reason || '').slice(0, 80);
       if (d.name === 'clear_to_land') {
         const t = T + Number(d.args.slot_time), prob = Number.isFinite(t) ? slotProblem(a, d.args.runway, t, T) : 'no slot time'; // feasibility judged at request time
-        if (!prob) { a.slot = { rwy: d.args.runway, t }; a.efc = null; a.verdict = 'kernel ACCEPT'; a.last = `${d.args.runway} ${fmtT(t)} · ${why}`; logLine(`${a.cs} → ${d.args.runway} ${fmtT(t)} · ${why}`, 'acc', 'ACCEPT'); }
+        a.why = why;
+        if (!prob) { ok++; a.slot = { rwy: d.args.runway, t }; a.efc = null; a.verdict = 'kernel ACCEPT'; a.last = `${d.args.runway} ${fmtT(t)} · ${why}`; logLine(`${a.cs} → ${d.args.runway} ${fmtT(t)} · ${why}`, 'acc', 'ACCEPT'); }
         else {
           a.slot = null; sendToHold(a, Tn, a.holdFix); const e = earliestLegal(a, Tn); a.efc = e ? e.t : null;
+          veto++; vetoWhy = vetoWhy || `${a.cs} ${prob}`;
           a.verdict = `kernel VETO · ${prob}`; a.last = `${d.args.runway} ${fmtT(t)} · ${why}`;
           logLine(`${a.cs} ${d.args.runway} ${fmtT(t)} vetoed: ${prob} → hold ${a.holdFix}`, 'rej', 'VETO');
         }
       } else if (d.name === 'hold') {
-        a.slot = null; sendToHold(a, Tn, d.args.fix); a.efc = Tn + 60 * Math.max(1, Math.min(20, Number(d.args.minutes) || 3));
+        ok++; a.why = why; a.slot = null; sendToHold(a, Tn, d.args.fix); a.efc = Tn + 60 * Math.max(1, Math.min(20, Number(d.args.minutes) || 3));
         a.verdict = 'kernel ACCEPT (hold is always safe)'; a.last = `hold ${a.holdFix} ${d.args.minutes} min · ${why}`;
         logLine(`${a.cs} holds ${a.holdFix} ${d.args.minutes} min · ${why}`, 'acc', 'ACCEPT');
         if (!spokeHold) { spokeHold = true; const efc = fmtT(a.efc).slice(0, 5).replace(':', ''); say(`${spoken(a.cs)}, hold at ${a.holdFix} as published, expect further clearance ${[...efc].map(x => DIG[x]).join(' ')}.`, a.cs); }
       }
     }
     for (const a of S.arr.values()) if (!a.done && !a.slot && !frozen(a) && !(res.decisions || []).some(d => d.args.id === a.id)) a.verdict = 'no agent decision → kernel default hold';
+    const nice = { crusoe: 'Crusoe', openai: 'OpenAI' }, mdl = /nemotron/i.test(res.model) ? 'Nemotron' : String(res.model).split('/').pop();
+    S.cycle = { label: `${mdl} · ${nice[res.provider] || res.provider}${res.fallbacks?.length && res.provider !== 'crusoe' ? ' (fallback)' : ''}`, ms: res.ms, ok, veto, vetoWhy };
     render(Tn, seq);
   }
 
@@ -268,68 +276,127 @@ export function mountLanding(ctx) {
   let spokenCount = 0;
   function say(text, cs) { if (spokenCount >= 3 || !window.SkyRadio) return; spokenCount++; window.SkyRadio.say(text, 'atc'); }
 
-  // ---------- panel ----------
+  // ---------- status shared by the panel pills and the 3D label chips ----------
+  const leaveAt = (a, T) => a.slot ? a.slot.t - finalLen(a, T, a.slot.rwy) / V_APP : null;
+  function status(a, T) {
+    if (a.leg.type === 'roll') return { kind: 'land', pill: `LANDED · ${a.slot.rwy}`, chip: `LANDED ${a.slot.rwy}` };
+    if (a.slot && (frozen(a) && a.leg.type === 'final' || leaveAt(a, T) - T < 60))
+      return { kind: 'land', pill: `LAND NOW · ${a.slot.rwy} · ${fmtT(a.slot.t)}`, chip: `LAND ${a.slot.rwy} ${fmtT(a.slot.t).slice(0, 5)}` };
+    const until = a.slot ? leaveAt(a, T) : a.efc;
+    const mins = until ? Math.max(1, Math.ceil((until - T) / 60)) : null;
+    return { kind: 'wait', pill: `WAIT · HOLD ${a.holdFix}${mins ? ` · +${mins} min` : ''}`, chip: `HOLD ${a.holdFix}` };
+  }
+  function reason(a, T) {
+    if (/VETO/.test(a.verdict || '')) return `Kernel veto: ${a.verdict.replace(/^kernel VETO · /, '')}. Holding ${a.holdFix}.`;
+    if (a.leg.type === 'roll') return `Landed ${a.slot.rwy}, delay ${fmtD(a.landedAt - a.eta)}.`;
+    if (a.slot) {
+      if (a.flag === 'MEDICAL') return 'Medical on board, goes first.';
+      if (a.flag === 'LOW_FUEL') return 'Low fuel, sequenced ahead of the queue.';
+      const lead = [...S.arr.values()].filter(o => o !== a && o.slot && o.slot.rwy === a.slot.rwy && o.slot.t < a.slot.t).sort((x, y) => y.slot.t - x.slot.t)[0];
+      if (lead && lead.wake === 'heavy' && a.slot.t - lead.slot.t < 135) return `Heavy ahead (${lead.cs}), 120 s wake spacing.`;
+      if (leaveAt(a, T) - T >= 60) return `${S.closure ? `Runway ${S.closure.rwy} closed; h` : 'H'}olding ${a.holdFix} until slot ${fmtT(a.slot.t).slice(0, 5)}.`;
+      return a.why ? `${a.why.replace(/\.$/, '')}.` : `Slot ${fmtT(a.slot.t)} on ${a.slot.rwy}.`;
+    }
+    if (S.closure) return `Runway ${S.closure.rwy} closed; holding${a.efc ? ` until ${fmtT(a.efc).slice(0, 5)}` : ''}.`;
+    return a.why ? `${a.why.replace(/\.$/, '')}.` : 'Waiting for the next sequence.';
+  }
+
+  // ---------- NEMOTRON DECISIONS panel (right side) ----------
   const css = document.createElement('style');
-  css.textContent = `#landp{position:absolute;right:14px;bottom:36px;width:330px;z-index:11;background:rgba(10,13,16,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:10px;font:12px/1.35 Inter,-apple-system,sans-serif;color:#eef1f3;overflow:hidden}
-#landp .h{display:flex;align-items:center;gap:6px;padding:8px 10px 4px;font:600 10.5px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8e989f}
-#landp .h .sp{flex:1}
-#landp button{white-space:nowrap;font:600 10.5px/1 Inter,sans-serif;border:0;border-radius:999px;padding:5px 9px;cursor:pointer;background:rgba(255,255,255,.08);color:#eef1f3}
-#landp button.on{background:#4fdc8a;color:#06240f}
-#landp button.off{background:#ffb547;color:#1b1408}
-#landp .st{display:flex;gap:12px;padding:2px 10px 6px;font:600 11px/1.2 ui-monospace,Menlo,monospace;color:#cfd6db}
-#landp .st b{font-size:15px;color:#fff}
-#landp .rw{padding:0 10px 6px;font:600 10.5px/1.2 ui-monospace,Menlo,monospace;color:#8e989f}
-#landp .rw .x{color:#ff5a4f}
-#landp ol{list-style:none;margin:0;padding:0 6px 6px;max-height:200px;overflow:hidden}
-#landp li{display:grid;grid-template-columns:16px 1fr auto;gap:6px;align-items:center;padding:3px 4px;border-radius:5px;font:500 11.5px/1.25 ui-monospace,Menlo,monospace;transition:background .6s}
-#landp li .n{color:#8e989f}
-#landp li .w{color:#9ff0bf}
-#landp li.hold .w{color:#ffd38a}
-#landp li.fin .w{color:#5fd4ff}
-#landp li.chg{background:rgba(255,181,71,.22)}
-#landp .tag{font:700 9px/1 Inter,sans-serif;padding:2px 4px;border-radius:3px;margin-left:4px;background:#ff5a4f;color:#1b0b09}
-#landp .tag.f{background:#ffb547;color:#1b1408}
-#landp .ag{padding:6px 10px 8px;border-top:1px solid rgba(255,255,255,.08);font:11px/1.35 Inter,sans-serif;color:#c9d0d5}
-#landp .ag i{font-style:normal;color:#5fd4ff;font:600 10px/1.3 ui-monospace,Menlo,monospace}
-#landp .ag div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#landp .ag .rej{color:#ffb3ad}
-#landp .ag .k{font:700 9px/1 ui-monospace,Menlo,monospace;margin-right:4px;color:#4fdc8a}
-#landp .ag .rej .k{color:#ff5a4f}
-#feedp{max-height:calc(100% - 470px)!important}`;
+  css.textContent = `#nemo{position:absolute;right:14px;top:14px;bottom:84px;width:360px;z-index:11;display:flex;flex-direction:column;background:rgba(10,13,16,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:12px;color:#eef1f3;font:12px/1.35 Inter,-apple-system,sans-serif;overflow:hidden}
+#nemo .hd{padding:12px 14px 8px}
+#nemo .t{display:flex;align-items:center;gap:6px;font:700 11px/1 Inter,sans-serif;letter-spacing:.14em;color:#76b900}
+#nemo .t .sp{flex:1}
+#nemo button{white-space:nowrap;font:600 10.5px/1 Inter,sans-serif;border:0;border-radius:999px;padding:6px 10px;cursor:pointer;background:rgba(255,255,255,.08);color:#eef1f3;letter-spacing:0}
+#nemo button.on{background:#4fdc8a;color:#06240f}
+#nemo button.off{background:#ffb547;color:#1b1408}
+#nemo .who{margin-top:8px;font:600 13px/1.3 Inter,sans-serif}
+#nemo .who.busy{color:#8e989f}
+#nemo .kv{margin-top:3px;font:600 11px/1.35 ui-monospace,Menlo,monospace;color:#4fdc8a}
+#nemo .kv .x{color:#ff7a6e}
+#nemo .meta{margin-top:6px;display:flex;gap:10px;font:600 10.5px/1.2 ui-monospace,Menlo,monospace;color:#8e989f}
+#nemo .meta b{color:#eef1f3}
+#nemo .meta .cl{color:#ff7a6e}
+#nemo ol{position:relative;list-style:none;margin:0;padding:4px 8px 10px;overflow:hidden;flex:1}
+#nemo li{padding:8px 8px 9px;margin-bottom:4px;border-radius:9px;background:rgba(255,255,255,.035);cursor:pointer;transition:transform .45s cubic-bezier(.2,.8,.2,1),background .3s}
+#nemo li:hover,#nemo li.sel{background:rgba(255,255,255,.1)}
+#nemo li.sel{box-shadow:inset 0 0 0 1.5px #4c7dff}
+#nemo .r1{display:flex;align-items:baseline;gap:6px;font:600 13px/1.2 Inter,sans-serif}
+#nemo .r1 .ty{font:500 11px/1 ui-monospace,Menlo,monospace;color:#8e989f}
+#nemo .tag{font:700 9px/1 Inter,sans-serif;padding:3px 5px;border-radius:4px;background:#ff5a4f;color:#1b0b09}
+#nemo .tag.f{background:#ffb547;color:#1b1408}
+#nemo .pill{display:inline-block;margin-top:6px;padding:6px 10px;border-radius:7px;font:700 12.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.02em;transition:box-shadow .3s}
+#nemo .pill.land{background:#1f9d55;color:#fff}
+#nemo .pill.wait{background:#ffb547;color:#1b1408}
+#nemo .pill.flash{box-shadow:0 0 0 3px rgba(255,255,255,.85)}
+#nemo .why{margin-top:5px;color:#c9d0d5;font-size:12px}
+#nemo .why.v{color:#ffb3ad}
+#nemo .empty{padding:14px;color:#8e989f}`;
   document.head.appendChild(css);
-  const el = document.createElement('div'); el.id = 'landp';
-  el.innerHTML = `<div class="h"><span>Landing sequence</span><span class="sp"></span><button id="lpDis" title="Disruption: close 28L for 10 minutes">Close 28L</button><button id="lpMode" class="on" title="Agent ON / first-come-first-served">Agent ON</button></div>
-<div class="st"><span>Landed <b id="lpL">0</b></span><span>Holding <b id="lpH">0</b></span><span>Avg delay <b id="lpD">0:00</b></span></div>
-<div class="rw" id="lpRw"></div><ol id="lpList"></ol><div class="ag"><i id="lpAI">agent idle</i><div id="lpLog"></div></div>`;
+  const el = document.createElement('div'); el.id = 'nemo';
+  el.innerHTML = `<div class="hd"><div class="t"><span>NEMOTRON DECISIONS</span><span class="sp"></span><button id="lpDis" title="Disruption: close 28L for 10 minutes">Close 28L</button><button id="lpMode" class="on" title="Agent ON / first-come-first-served">Agent ON</button></div>
+<div class="who busy" id="lpWho">Waiting for arrivals inside 25 NM…</div><div class="kv" id="lpKv"></div>
+<div class="meta"><span>Landed <b id="lpL">0</b></span><span>Holding <b id="lpH">0</b></span><span>Avg delay <b id="lpD">0:00</b></span><span id="lpRw"></span></div></div><ol id="lpList"></ol>`;
   document.body.appendChild(el);
   el.querySelector('#lpDis').onclick = () => { if (ctx.ready()) disrupt(); };
   el.querySelector('#lpMode').onclick = () => {
     const T = ctx.now(); S.mode = S.mode === 'agent' ? 'fcfs' : 'agent';
     const b = el.querySelector('#lpMode'); b.textContent = S.mode === 'agent' ? 'Agent ON' : 'Agent OFF · FCFS'; b.className = S.mode === 'agent' ? 'on' : 'off';
-    for (const a of S.arr.values()) if (!a.done && !frozen(a)) { a.slot = null; a.efc = null; }
-    logLine(S.mode === 'agent' ? 'Agent ON: LLM sequences, kernel verifies' : 'Agent OFF: kernel first-come-first-served', S.mode === 'agent' ? 'acc' : 'rej');
+    for (const a of S.arr.values()) if (!a.done && !frozen(a)) { a.slot = null; a.efc = null; a.why = null; a.verdict = null; }
     if (S.mode === 'fcfs') fcfs(T); else requestCycle(T, true);
   };
-  function logLine(txt, cls, k) { S.log.push({ txt: esc(txt), cls, k }); if (S.log.length > 4) S.log.shift(); }
-  function render(T, seq) {
+  function logLine(txt, cls, k) { S.log.push({ txt, cls, k }); if (S.log.length > 6) S.log.shift(); }
+  const list = el.querySelector('#lpList'), rowsEl = new Map();
+  function render(T) {
     const live = [...S.arr.values()].filter(a => !a.done);
-    const holding = live.filter(a => !a.slot && a.leg.type !== 'roll').length;
     el.querySelector('#lpL').textContent = S.landed;
-    el.querySelector('#lpH').textContent = holding;
+    el.querySelector('#lpH').textContent = live.filter(a => status(a, T).kind === 'wait').length;
     el.querySelector('#lpD').textContent = fmtD(S.landed ? S.delaySum / S.landed : 0);
-    el.querySelector('#lpRw').innerHTML = !ctx.ready() ? 'waiting for recorded arrivals…' : S.closure ? `<span class="x">28L CLOSED until ${fmtT(S.closure.t1)}</span> · 28R open · 90 s / 120 s heavy` : '28L · 28R open · 90 s spacing · 120 s behind heavy';
-    const rows = live.filter(a => a.leg.type !== 'roll').sort((x, y) => (x.slot ? x.slot.t : 1e12 + (x.efc || x.eta)) - (y.slot ? y.slot.t : 1e12 + (y.efc || y.eta)));
-    const now = performance.now();
-    el.querySelector('#lpList').innerHTML = rows.slice(0, 9).map((a, i) => {
-      const w = a.slot ? `${a.slot.rwy} ${fmtT(a.slot.t)}` : `HOLD ${a.holdFix}${a.efc ? ' · EFC ' + fmtT(a.efc).slice(0, 5) : ''}`;
-      const key = w.replace(/ · EFC.*/, '') + i;
-      const prev = S.prevRows.get(a.id); if (prev && prev.key !== key) S.prevRows.set(a.id, { key, at: now }); else if (!prev) S.prevRows.set(a.id, { key, at: 0 });
-      const chg = now - S.prevRows.get(a.id).at < 2500;
-      const tag = a.flag ? `<span class="tag${a.flag === 'LOW_FUEL' ? ' f' : ''}">${a.flag === 'MEDICAL' ? 'MED' : 'FUEL'}</span>` : '';
-      return `<li class="${a.slot ? (frozen(a) ? 'fin' : '') : 'hold'}${chg ? ' chg' : ''}"><span class="n">${i + 1}</span><span>${esc(a.cs)}${a.wake === 'heavy' ? ' H' : ''}${tag}</span><span class="w">${esc(w)}</span></li>`;
-    }).join('') || '<li><span></span><span style="color:#8e989f">no arrivals inside 25 NM yet</span><span></span></li>';
-    el.querySelector('#lpAI').textContent = `${S.mode === 'agent' ? 'AGENT' : 'KERNEL FCFS'} · ${S.mode === 'agent' ? S.agentInfo : 'no LLM'}`;
-    el.querySelector('#lpLog').innerHTML = S.log.map(l => `<div class="${l.cls || ''}">${l.k ? `<span class="k">${l.k}</span>` : ''}${l.txt}</div>`).join('');
+    el.querySelector('#lpRw').innerHTML = S.closure ? `<span class="cl">28L CLOSED → ${esc(fmtT(S.closure.t1).slice(0, 5))}</span>` : '28L · 28R open';
+    const who = el.querySelector('#lpWho'), kv = el.querySelector('#lpKv');
+    if (S.mode === 'fcfs') { who.className = 'who'; who.textContent = 'Agent OFF · kernel first-come-first-served'; kv.textContent = 'No priorities: ETA order only'; }
+    else if (S.inflight) { who.className = 'who busy'; who.textContent = `Nemotron is deciding ${S.inflightN} arrivals…`; }
+    else if (S.cycle) {
+      who.className = 'who'; who.textContent = `${S.cycle.label} · decided in ${(S.cycle.ms / 1000).toFixed(1)} s`;
+      kv.innerHTML = `✓ ${S.cycle.ok} verified by kernel${S.cycle.veto ? ` · <span class="x">✗ ${S.cycle.veto} veto: ${esc(S.cycle.vetoWhy)}</span>` : ''}`;
+    } else if (S.agentInfo && /unavailable/.test(S.agentInfo)) { who.className = 'who'; who.textContent = S.agentInfo; }
+    // order: landing slots first (by slot), then holds (by expected release)
+    const rows = live.sort((x, y) => (x.slot ? x.slot.t : 1e12 + (x.efc || x.eta)) - (y.slot ? y.slot.t : 1e12 + (y.efc || y.eta))).slice(0, 9);
+    if (!rows.length) { list.innerHTML = `<div class="empty">${ctx.ready() ? 'No arrivals inside 25 NM yet.' : 'Loading recorded arrivals…'}</div>`; rowsEl.clear(); return; }
+    list.querySelector('.empty')?.remove();
+    const first = new Map([...rowsEl].map(([id, li]) => [id, li.getBoundingClientRect().top]));
+    const sel = ctx.pickedEntity && ctx.pickedEntity();
+    rows.forEach(a => {
+      let li = rowsEl.get(a.id);
+      if (!li) {
+        li = document.createElement('li'); rowsEl.set(a.id, li);
+        li.innerHTML = '<div class="r1"><span class="cs"></span><span class="ty"></span></div><div class="pill"></div><div class="why"></div>';
+        li.onmouseenter = () => { a.hover = true; }; li.onmouseleave = () => { a.hover = false; };
+        li.onclick = () => ctx.select(a.entity);
+      }
+      const st = status(a, T), why = reason(a, T);
+      li.querySelector('.cs').innerHTML = `${esc(a.cs)}${a.flag ? ` <span class="tag${a.flag === 'LOW_FUEL' ? ' f' : ''}">${a.flag === 'MEDICAL' ? 'MEDICAL' : 'LOW FUEL'}</span>` : ''}`;
+      li.querySelector('.ty').textContent = `${a.type}${a.wake === 'heavy' ? ' · heavy' : ''}`;
+      const pill = li.querySelector('.pill');
+      if (pill.textContent !== st.pill) {
+        const changedKind = pill.dataset.kind && pill.dataset.kind !== st.kind;
+        pill.textContent = st.pill; pill.className = `pill ${st.kind}`; pill.dataset.kind = st.kind;
+        if (changedKind || pill.dataset.slot !== String(a.slot && a.slot.t)) { pill.classList.add('flash'); setTimeout(() => pill.classList.remove('flash'), 1200); }
+        pill.dataset.slot = String(a.slot && a.slot.t);
+      }
+      const w = li.querySelector('.why'); w.textContent = why; w.className = `why${/^Kernel veto/.test(why) ? ' v' : ''}`; w.title = a.why || '';
+      li.classList.toggle('sel', !!sel && sel === a.entity);
+      list.appendChild(li); // appends in sorted order
+    });
+    for (const [id, li] of rowsEl) if (!rows.some(a => a.id === id)) { li.remove(); rowsEl.delete(id); }
+    // FLIP: animate reordering
+    for (const [id, li] of rowsEl) {
+      const f = first.get(id); if (f == null) continue;
+      const dy = f - li.getBoundingClientRect().top; if (Math.abs(dy) < 2) continue;
+      li.style.transition = 'none'; li.style.transform = `translateY(${dy}px)`;
+      requestAnimationFrame(() => { li.style.transition = ''; li.style.transform = ''; });
+    }
   }
-  return { state: S, disrupt, requestCycle };
+  return { state: S, disrupt, requestCycle, status };
+
 }
