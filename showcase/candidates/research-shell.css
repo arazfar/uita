@@ -784,3 +784,54 @@ body.drawer-open #decision-overlay {
     display: none;
   }
 }
+
+/* A compact queue; map remains the primary surface. */
+#arrivals-queue {
+  position: fixed;
+  z-index: 5;
+  left: 16px;
+  top: 185px;
+  width: 290px;
+  display: grid;
+  gap: 3px;
+}
+#arrivals-queue button {
+  text-align: left;
+  background: #142027dd;
+  border: 0;
+  border-radius: 6px;
+  color: #eaf3f6;
+  padding: 6px 9px;
+  font-size: 11px;
+}
+#arrivals-queue span {
+  display: block;
+  color: #bcd0d8;
+  font-size: 10px;
+}
+body.aircraft-inspected #arrivals-queue,
+body.drawer-open #arrivals-queue {
+  display: none;
+}
+#decision-follow {
+  font-size: 11px;
+  min-height: 28px;
+}
+@media (max-width: 700px) {
+  #arrivals-queue {
+    left: 12px;
+    top: 190px;
+    width: 220px;
+  }
+  #arrivals-queue button {
+    padding: 4px 7px;
+  }
+  #decision-overlay {
+    top: auto;
+    bottom: 225px;
+    max-height: 180px;
+    right: 12px;
+    width: calc(100% - 24px);
+    box-sizing: border-box;
+  }
+}

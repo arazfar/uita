@@ -32,15 +32,18 @@
       <div class="arrival-controls">
         <span id="arrival-status">Loading traffic…</span
         ><button id="follow-landing" disabled>Follow landing</button
-        ><button id="traffic-overview">Overview</button>
+        ><button id="traffic-overview">Overview</button><button id="airport-view">Airport</button>
       </div>
     </section>
+    <div id="arrivals-queue" aria-label="Next arrivals"></div>
     <section id="decision-overlay" aria-label="Controller decision" hidden>
       <div id="decision-origin"></div>
       <button id="decision-aircraft"></button>
       <p id="decision-explanation"></p>
       <p id="decision-verdict"></p>
       <p id="decision-clearance"></p>
+      <details id="decision-batch" hidden><summary>Actions in this decision</summary><ul></ul></details>
+      <button id="decision-follow">Follow aircraft</button>
       <button id="decision-evidence">Inspect evidence</button>
     </section>
     <main>

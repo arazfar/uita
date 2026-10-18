@@ -127,3 +127,13 @@ Historical approach cues are explicitly inferred; the current packaged windows
 have insufficient evidence to qualify under the conservative heuristic.
 Run `showcase/scripts/switch-acceptance.js` and `live-switch-acceptance.js` through
 `playwright-cli run-code --filename` against a local API and fixture worker.
+
+The default **busy arrivals** recording contains 6–8 airborne aircraft across its
+20-minute presentation, with a clearly labeled deterministic controller. Decision
+cards appear over the map as clearances and pilot events occur. Use **Overview**
+for the regional arrival queue, **Airport** for airport detail, and **Follow landing**
+for an explicit aircraft follow. The three-aircraft queue opens inspection and evidence.
+Rebuild with `PYTHONPATH=backend python scripts/build_dense_demo.py`, then run the
+existing research pre-deploy/bootstrap command to install the bundled data.
+See [measured coverage and limitations](../docs/research/v2/SHOWCASE.md#busy-arrivals-demonstration-dense-demo-v1).
+Browser acceptance: `playwright-cli run-code --filename showcase/scripts/dense-acceptance.js`.

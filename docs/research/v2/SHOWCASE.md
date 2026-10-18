@@ -245,3 +245,62 @@ The final local warm mode switch measured 33.2 ms (click to painted frame) on th
 existing M1 Pro/Chromium test machine. This is a local measurement; hosted network
 latency and physical-mobile performance were not measured for this change.
 No paid inference, new datasets, migrations or production rollout were performed.
+
+### Busy arrivals demonstration (dense-demo-v1)
+
+The default is now **San Francisco · busy arrivals · synthetic**, controlled by
+`static-2`, not Nemotron. Original guided and authentic model recordings remain
+selectable. No inference or provider key is needed for this episode.
+
+Rebuild with `PYTHONPATH=backend python scripts/build_dense_demo.py`. The builder
+uses early-August development identities/types, seven staggered initial arrivals,
+a synthetic 104 NM approach corridor, 240-second replenishment and a 300-second
+pre-roll. These are presentation assumptions, not published routes or measured
+SFO operating practices. The 28R closure occurs 90 seconds after the recommended
+opening. It does not imply a forced runway reassignment: the conservative
+controller uses 28L. No verifier, separation or runway thresholds were changed.
+
+The presentation lasts 1,200 seconds, with 5-second motion checkpoints. Across
+those checkpoints, airborne traffic has **minimum 6, median 7, peak 8**, with
+**100%** of samples in the 6–10 target. These are renderable positions within
+110 NM of SFO, excluding completed/surface traffic and unknown altitude. The
+traffic overview fits that regional extent; **Airport** returns to airport detail,
+and **Follow landing** explicitly follows an aircraft. Camera changes during
+source switching remain user-controlled.
+
+For the same 110 NM extent, the packaged historical windows have visible measured-
+altitude occupancy min/median/peak **0/0/2 (v1)** and **0/1/4 (v2)**, sampled every
+five seconds using observations no older than 60 seconds. This measures available
+coverage, not total historical demand; the synthetic scene is deliberately denser.
+Unknown historical altitude remains unknown.
+
+The candidate and independently executed deterministic baseline reproduce identical
+state hashes and outcomes: **6 completions, 0 diversions, 0 recorded violations**
+over the full recording including pre-roll. The run remains running at the fixed
+horizon with backlog, rather than claiming all demand completed. No improvement
+over the baseline or human controllers is claimed. A second build produced
+identical compressed scenario and recording bytes.
+
+A compact decision card shows causal proposals, issuance, acknowledgments,
+cancellations, go-arounds, touchdown and completion. It dismisses after eight
+foreground seconds, pauses while hovered/focused, and shows an at-time label after
+seeking. Its highlight does not change manual selection or move the camera.
+The arrivals queue shows three aircraft; click one to inspect, or expand to the
+traffic/evidence table. Landing authorization requires committed lifecycle evidence.
+
+Deployment content is bundled in `dense_demo.json.gz` and
+`recordings/dense-demo-v1.json.gz`; the existing pre-deploy/bootstrap command
+installs both with checksum verification and repeat-safe artifact insertion.
+`/health/demo` rejects a release missing the dense scenario or default recording.
+An empty local database was migrated and bootstrapped without source DB access
+or provider credentials. Existing recordings were not rewritten.
+
+Local validation: 286 backend tests; 31 showcase tests; fixture browser regression
+including rejected proposals, budget/model failures, reconnect and export; frontend and
+trace builds; packaging; dense decision flow in dashboard/tower and 390px layout;
+source-switch regression; deterministic artifact rebuild and empty-DB install.
+Desktop Cesium rendering measured **30.4 FPS** on the existing M1 Pro/Chromium
+setup, consistent with its unchanged 30 FPS cap. Physical-mobile and hosted
+performance were not measured. Offline regional imagery is low resolution;
+airport imagery and configured photoreal rendering remain available. No paid
+inference or production rollout was performed.

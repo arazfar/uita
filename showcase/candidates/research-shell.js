@@ -1,6 +1,6 @@
 import { PlaybackWindows } from "./research-windows.js";
 import { arrivalLabel, landingCandidates } from "./research-arrivals.js";
-import { decisionAt } from "./research-decision.js";
+import { decisionAt, DecisionVisibility } from "./research-decision.js";
 import {
   api,
   mutation,
@@ -8,16 +8,20 @@ import {
   uniqueEvents,
   timeLabel,
   validMessage,
+  plottable,
 } from "./research-client.js";
 const $ = (id) => document.getElementById(id);
 // A failed optional panel must never stop traffic playback or tower controls.
 let renderAgentTrace;
-import("./trace-assets/agent-trace.js").then(module => {
-  renderAgentTrace = module.renderAgentTrace;
-  render();
-}).catch(() => {
-  $("agent-trace").textContent = "Agent trace unavailable. Raw decision evidence remains below.";
-});
+import("./trace-assets/agent-trace.js")
+  .then((module) => {
+    renderAgentTrace = module.renderAgentTrace;
+    render();
+  })
+  .catch(() => {
+    $("agent-trace").textContent =
+      "Agent trace unavailable. Raw decision evidence remains below.";
+  });
 
 let scene = $("scene");
 const cameras = new Map([["dashboard", scene]]);
@@ -54,6 +58,9 @@ const windows = new PlaybackWindows((kind, id, clock, signal) =>
   ),
 );
 const sessions = new Map();
+const decisionVisibility = new DecisionVisibility();
+let decisionSeeking = true;
+let highlightedAircraft = null;
 let transition = null,
   transitionId = 0,
   retryTransition = null;
@@ -217,6 +224,7 @@ async function switchMode(nextMode, source = null) {
     stream?.close();
     stream = null;
     mode = nextMode;
+    decisionSeeking = true;
     restoreSession(target);
     sourceGeneration++;
     transition = null;
@@ -342,9 +350,19 @@ function shownFrame() {
 function sendFrame() {
   const shown = shownFrame();
   if (!shown) return;
-  renderAgentTrace?.({ events, clock, sourceKey: `${sourceGeneration}:${run?.id || recording?.id}`,
-    source: recording?.title || run?.id || "Selected run", live: !!run,
-    controller: run?.state?.controller || (recording?.provenance === "fixture" ? "fixture" : frame.controller), status: frame.status, comparison: mode === "compare", hidden: mode === "historical" });
+  renderAgentTrace?.({
+    events,
+    clock,
+    sourceKey: `${sourceGeneration}:${run?.id || recording?.id}`,
+    source: recording?.title || run?.id || "Selected run",
+    live: !!run,
+    controller:
+      run?.state?.controller ||
+      (recording?.provenance === "fixture" ? "fixture" : frame.controller),
+    status: frame.status,
+    comparison: mode === "compare",
+    hidden: mode === "historical",
+  });
   const frames =
     mode === "historical"
       ? windowData?.frames
@@ -368,6 +386,7 @@ function sendFrame() {
     speech: $("speech").checked,
   });
   message("uita:playhead", {
+    highlightedAircraft,
     clock,
     rate: running
       ? run && mode !== "historical"
@@ -392,24 +411,80 @@ function render() {
     clock,
     mode === "compare" && $("render-controller").value === "baseline",
   );
-  $("decision-overlay").hidden = !decision;
+  const overlay = $("decision-overlay");
+  const decisionKey = decision ? `${shown.source_id}:${decision.key}` : null;
+  const visibleDecision = decisionVisibility.update(
+    decisionKey,
+    performance.now(),
+    document.hidden ||
+      overlay.matches(":hover") ||
+      overlay.contains(document.activeElement),
+    decisionSeeking,
+  );
+  if (decision) decisionSeeking = false;
+  overlay.hidden = !visibleDecision;
+  highlightedAircraft = visibleDecision ? decision?.aircraft_id : null;
   if (decision) {
     $("decision-origin").textContent =
-      `${decision.origin} · ${timeLabel(decision.clock)}`;
-    $("decision-aircraft").textContent = decision.callsign
-      ? `Next proposed · ${decision.callsign}${decision.runway ? " · assigned RWY " + decision.runway : ""}`
-      : "No active aircraft in latest proposal";
+      `${decision.origin} · ${decisionVisibility.seek ? "At this playback time · " : ""}${timeLabel(decision.clock)}`;
+    $("decision-aircraft").textContent =
+      `${decision.phase} · ${decision.callsign || "Airport"} · ${decision.action}`;
     $("decision-aircraft").disabled = !decision.aircraft_id;
     $("decision-aircraft").onclick = () => {
       selected = decision.aircraft_id;
       render();
     };
     $("decision-explanation").textContent = decision.explanation;
-    $("decision-verdict").textContent =
-      `Proposal verification · ${decision.verdict}`;
-    $("decision-clearance").textContent = decision.clearance
-      ? `Issued ${timeLabel(decision.clearance_clock)} · ${decision.clearance}`
-      : "No issued clearance in the loaded evidence for this aircraft";
+    $("decision-verdict").textContent = decision.has_verification
+      ? `Proposal verification · ${decision.verdict}`
+      : "Executed simulation event · inspect evidence for details";
+    $("decision-clearance").textContent = decision.clearance || "";
+    $("decision-follow").disabled = !shown.aircraft.some(
+      (a) => a.id === decision.aircraft_id,
+    );
+    $("decision-follow").onclick = () => {
+      selected = decision.aircraft_id;
+      render();
+      message("uita:camera", { action: "follow", id: selected });
+    };
+    $("decision-batch").hidden = decision.actions.length < 2;
+    if ($("decision-batch").dataset.key !== decisionKey) {
+      $("decision-batch").dataset.key = decisionKey;
+      $("decision-batch").querySelector("ul").innerHTML = decision.actions
+        .map((a) => `<li>${esc(a.text)}</li>`)
+        .join("");
+    }
+  }
+  const queue = $("arrivals-queue");
+  const queueKey = JSON.stringify(
+    arrivals.slice(0, 3).map((a) => [a.id, a.callsign, arrivalLabel(a), a.arrival_cue.runway]),
+  );
+  if (queue.dataset.key !== queueKey) {
+    queue.dataset.key = queueKey;
+    queue.innerHTML =
+      arrivals
+        .slice(0, 3)
+        .map(
+          (a) =>
+            `<button data-aircraft="${esc(a.id)}"><strong>${esc(a.callsign)}</strong> <span>${esc(arrivalLabel(a))}${a.arrival_cue.runway ? " · assigned " + esc(a.arrival_cue.runway) : ""}</span></button>`,
+        )
+        .join("") +
+      (arrivals.length
+        ? "<button data-all>All traffic & evidence →</button>"
+        : "");
+    queue.querySelectorAll("[data-aircraft]").forEach(
+      (b) =>
+        (b.onclick = () => {
+          selected = b.dataset.aircraft;
+          render();
+        }),
+    );
+    const all = queue.querySelector("[data-all]");
+    if (all)
+      all.onclick = () => {
+        drawer(true);
+        $("traffic-count").scrollIntoView({ block: "nearest" });
+      };
   }
   if (!shown.aircraft.some((a) => a.id === selected)) selected = null;
   document.body.classList.toggle(
@@ -502,7 +577,7 @@ function render() {
         ? `${recording.title} · ${recording.provenance === "fixture" ? "Scripted demo" : "Recorded Nemotron attempt"}`
         : "Live research simulation";
   $("scene-state").textContent =
-    `${timeLabel(clock)} · ${shown.aircraft.length} aircraft · ${mode === "historical" ? "Unknown heights remain unplotted" : shown.controller} ${run && mode !== "historical" ? "· buffered committed motion" : ""}`;
+    `${timeLabel(clock)} · ${shown.aircraft.filter(plottable).length} visible aircraft · ${mode === "historical" ? "Unknown heights remain unplotted" : shown.controller} ${run && mode !== "historical" ? "· buffered committed motion" : ""}`;
   const aircraft = shown.aircraft.find((a) => a.id === selected);
   $("aircraft-detail").textContent = aircraft
     ? JSON.stringify(aircraft, null, 2)
@@ -800,6 +875,7 @@ $("close").onclick = () =>
   );
 let seekTimer;
 $("seek").oninput = () => {
+  decisionSeeking = true;
   playing = false;
   clearTimeout(seekTimer);
   seekAbort?.abort();
@@ -1005,6 +1081,9 @@ addEventListener("message", (e) => {
       "Renderer unavailable · use the aircraft table and evidence";
   }
 });
+setInterval(() => {
+  if (frame && !playing) render();
+}, 250);
 let previous = performance.now();
 setInterval(() => {
   const now = performance.now(),
@@ -1066,9 +1145,9 @@ action(async () => {
     )
     .join("");
   catalog.sort((a, b) =>
-    a.id === "guided-demo-v1"
+    a.id === "dense-demo-v1"
       ? -1
-      : b.id === "guided-demo-v1"
+      : b.id === "dense-demo-v1"
         ? 1
         : a.id.localeCompare(b.id),
   );
@@ -1136,7 +1215,11 @@ async function prefetchPlayback() {
   if (end >= source.end) return;
   let data;
   try {
-    data = await windows.load(kind, source, Math.min(source.end, windowData.window_start + 120));
+    data = await windows.load(
+      kind,
+      source,
+      Math.min(source.end, windowData.window_start + 120),
+    );
   } catch (e) {
     if (gen !== sourceGeneration) return;
     throw e;
@@ -1167,3 +1250,5 @@ $("follow-landing").onclick = () => {
 };
 $("traffic-overview").onclick = () =>
   message("uita:camera", { action: "overview" });
+
+$("airport-view").onclick = () => message("uita:camera", { action: "airport" });

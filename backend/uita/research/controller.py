@@ -69,8 +69,29 @@ def propose(state, sequence=None):
                 break
         if clearances:
             break  # one shared runway clearance at a time
+    chosen = next(
+        (a for a in aircraft if clearances and a["id"] == clearances[0].aircraft_id),
+        None,
+    )
+    order_basis = (
+        "requested sequence"
+        if sequence
+        else "entry order"
+        if state["controller"] == "fcfs"
+        else "emergency priority, then distance to SFO"
+    )
+    explanation = f"Queue ordered by {order_basis}."
+    if chosen:
+        explanation += (
+            f" {chosen['callsign'] or chosen['id']} receives the next {clearances[0].kind} clearance "
+            f"for {clearances[0].target}; its estimated scheduler slot is within 15 minutes and "
+            "independent runway availability, occupancy and dependent-reservation checks passed. "
+            "Other aircraft remain unapproved for landing; pilot acknowledgment is still required."
+        )
+    else:
+        explanation += " No supported runway clearance passes current timing and authorization checks."
     return ControllerProposal(
         clearances=clearances,
         sequence=[a["id"] for a in aircraft],
-        explanation="Deterministic bounded sequence; dependent runway authority; independent checks required",
+        explanation=explanation,
     )

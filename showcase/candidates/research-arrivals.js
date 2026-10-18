@@ -1,11 +1,20 @@
 export function arrivalLabel(a) {
   const cue = a?.arrival_cue;
-  if (!cue) return a?.status || "Unknown";
+  if (!cue)
+    return (
+      {
+        go_around: "Go-around · not landing",
+        holding: "Holding · not authorized",
+        diverted: "Diverted",
+      }[a?.status] ||
+      a?.status ||
+      "Unknown"
+    );
   if (cue.basis === "inferred") return "Approaching SFO · inferred";
   return (
     {
-      approaching: "Approaching",
-      clearance_issued: "Landing clearance issued",
+      approaching: "Approaching · not authorized",
+      clearance_issued: "Clearance issued · awaiting acknowledgment",
       landing_authorized: "Landing authorized",
       on_ground: "On ground",
       arrival_completed: "Arrival completed",

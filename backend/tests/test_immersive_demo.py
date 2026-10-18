@@ -22,18 +22,19 @@ def test_fresh_demo_pack_without_source_or_provider(tmp_path, monkeypatch):
     with database.transaction() as db:
         for a in json.loads((assets / "demo_bundle.json").read_text())["artifacts"]:
             save_artifact(db, a["id"], a["kind"], a["payload"])
-        pack = json.loads(
-            gzip.decompress((assets / "showcase_data.json.gz").read_bytes())
-        )
-        assert digest(pack["artifacts"]) == pack["checksum"]
-        for a in pack["artifacts"]:
-            assert digest(a["payload"]) == a["checksum"]
-            save_artifact(db, a["id"], a["kind"], a["payload"])
-            save_artifact(db, a["id"], a["kind"], a["payload"])
+        for name in ("showcase_data.json.gz", "dense_demo.json.gz"):
+            pack = json.loads(gzip.decompress((assets / name).read_bytes()))
+            assert digest(pack["artifacts"]) == pack["checksum"]
+            for a in pack["artifacts"]:
+                assert digest(a["payload"]) == a["checksum"]
+                save_artifact(db, a["id"], a["kind"], a["payload"])
+                save_artifact(db, a["id"], a["kind"], a["payload"])
         for p in (assets / "recordings").glob("*.json.gz"):
             install_recording(db, json.loads(gzip.decompress(p.read_bytes())))
     app = create_app(database, False)
-    assert {"/api/history/catalog", "/uita/api/history/catalog"} <= {r.path for r in app.routes}
+    assert {"/api/history/catalog", "/uita/api/history/catalog"} <= {
+        r.path for r in app.routes
+    }
     with TestClient(app) as c:
         assert c.get("/health/demo").status_code == 200
         cat = c.get("/api/v2/history/catalog").json()[0]

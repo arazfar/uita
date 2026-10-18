@@ -7,6 +7,7 @@ export function connectRenderer(render, visibility = () => {}) {
     received = 0,
     rate = 0,
     selected = null,
+    highlightedAircraft = null,
     active = true;
   const ready = setInterval(
     () => parent.postMessage({ type: "uita:ready" }, location.origin),
@@ -24,6 +25,7 @@ export function connectRenderer(render, visibility = () => {}) {
       received = performance.now();
       rate = Number(e.data.rate) || 0;
       selected = e.data.selected;
+      highlightedAircraft = e.data.highlightedAircraft;
       active = e.data.active !== false;
     }
     if (validMessage(e, parent, "uita:visibility")) {
@@ -39,7 +41,12 @@ export function connectRenderer(render, visibility = () => {}) {
       );
       const frame = displayFrame(frames, clock);
       if (frame) {
-        render(frame, selected, frames, clock);
+        render(
+          { ...frame, highlighted_aircraft_id: highlightedAircraft },
+          selected,
+          frames,
+          clock,
+        );
         window.__uitaFrame = frame;
       }
     }
@@ -54,9 +61,16 @@ export function selectAircraft(id) {
 export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
   document.body.classList.add("connected");
   viewer.clock.shouldAnimate = false;
-  let paintedFrame = null;
-  viewer.scene.postRender.addEventListener(()=>{
-    if(paintedFrame)window.__uitaPaintedFrame={source_id:paintedFrame.source_id,clock:paintedFrame.clock,at:Date.now()};
+  let paintedFrame = null,
+    paintedCount = 0;
+  viewer.scene.postRender.addEventListener(() => {
+    if (paintedFrame)
+      window.__uitaPaintedFrame = {
+        source_id: paintedFrame.source_id,
+        clock: paintedFrame.clock,
+        at: Date.now(),
+        count: ++paintedCount,
+      };
   });
   const entities = new Map();
   const unknownPositions = new Map();
@@ -174,7 +188,7 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
           : a.callsign;
         entity.label.show = index < 24 || selected === a.id || !!a.arrival_cue;
         entity.label.fillColor =
-          selected === a.id
+          selected === a.id || frame.highlighted_aircraft_id === a.id
             ? C.Color.YELLOW
             : a.arrival_cue
               ? C.Color.fromCssColorString("#8fe3c0")

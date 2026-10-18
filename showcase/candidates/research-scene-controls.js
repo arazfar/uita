@@ -71,12 +71,31 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
   function overview() {
     cinematic = false;
     viewer.trackedEntity = undefined;
-    viewer.camera.flyTo({
-      destination: C.Cartesian3.fromDegrees(-122.2, 37.53, 38000),
-      orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 },
+    const points = (frame?.aircraft || [])
+      .filter(
+        (a) =>
+          a.altitude_ft != null &&
+          !["complete", "diverted", "pending"].includes(a.status),
+      )
+      .map((a) =>
+        C.Cartesian3.fromDegrees(
+          a.longitude,
+          a.latitude,
+          a.altitude_ft * 0.3048,
+        ),
+      );
+    points.push(C.Cartesian3.fromDegrees(-122.375, 37.62, 0));
+    const sphere = C.BoundingSphere.fromPoints(points);
+    viewer.camera.flyToBoundingSphere(sphere, {
       duration,
+      offset: new C.HeadingPitchRange(
+        0,
+        -Math.PI / 2,
+        Math.max(12000, sphere.radius * 3.2),
+      ),
     });
   }
+
   function follow() {
     cinematic = false;
     const e = entities.get(selected);
@@ -191,6 +210,7 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
     )
       return;
     if (e.data.action === "overview") overview();
+    if (e.data.action === "airport") airport();
     if (
       e.data.action === "follow" &&
       frame?.aircraft.some((a) => a.id === e.data.id)
@@ -200,8 +220,13 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
     }
   });
   airport();
+  let opened = false;
   return (next, id) => {
     frame = next;
+    if (!opened) {
+      opened = true;
+      if (next.source_id === "dense-demo-v1") overview();
+    }
     selected = id;
     document.querySelector('[data-preset="3"]').disabled =
       !entities.get(id)?.show;

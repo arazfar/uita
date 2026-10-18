@@ -1400,7 +1400,7 @@ if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(
 if (CONNECTED) {
   addEventListener('message',e=>{
     if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='uita:camera')return;
-    if(e.data.action==='overview'){userTook();goTo('runway');}
+    if(e.data.action==='overview'||e.data.action==='airport'){userTook();goTo('runway');}
     if(e.data.action==='follow' && connectedFrame?.aircraft.some(a=>a.id===e.data.id)) {picked=e.data.id;binoOn=false;toggleBino();}
   });
   const connectedStyle=document.createElement('style');connectedStyle.textContent='#score,#banner,#card,#bPlay,#bRestart,#bSound,#help{display:none!important} #controls{bottom:34px;max-width:calc(100vw - 28px);overflow-x:auto} #controls button{flex-shrink:0} @media(max-width:700px){#controls{bottom:72px}}';document.head.append(connectedStyle);
@@ -1438,13 +1438,13 @@ function drawConnected(){
         let x,y;if(name==='ground'){if(a.pos.y-groundY>600)continue;[x,y]=grXY(a.pos.x,a.pos.z,screen.w,screen.h);}
         else{x=screen.w/2+a.pos.x/37040*(screen.h*.44);y=screen.h/2+a.pos.z/37040*(screen.h*.44);}
         if(x<0||x>screen.w||y<60||y>screen.h)continue;
-        g.fillStyle=a.cs===picked?'#ffe5a3':'#b8e6df';g.beginPath();g.arc(x,y,5,0,Math.PI*2);g.fill();g.fillText(a.tag,x+10,y-10);
+        g.fillStyle=(a.cs===picked || a.cs===connectedFrame?.highlighted_aircraft_id)?'#ffe5a3':'#b8e6df';g.beginPath();g.arc(x,y,5,0,Math.PI*2);g.fill();g.fillText(a.tag,x+10,y-10);
         screen.hits.push({cs:a.cs,x:x-10,y:y-30,w:180,h:44});
       }
       continue;
     }
     rows.slice(0,Math.floor((screen.h-85)/38)).forEach((a,i)=>{
-      const y=80+i*38;g.fillStyle=a.id===picked?'#ffe5a3':'#b8e6df';
+      const y=80+i*38;g.fillStyle=(a.id===picked || a.id===connectedFrame?.highlighted_aircraft_id)?'#ffe5a3':'#b8e6df';
       g.fillText(`${a.callsign} ${a.altitude_ft==null?'UNKNOWN':Math.round(a.altitude_ft)+' FT'} ${a.status}`,14,y);
       screen.hits.push({cs:a.id,x:10,y:y-28,w:screen.w-20,h:38});
     });

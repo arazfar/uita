@@ -166,17 +166,22 @@ def create_app(database=None, secure_cookies=True):
                 import gzip
                 import json
 
-                pack = json.loads(
-                    gzip.decompress(
-                        (
-                            Path(__file__).parent / "assets/showcase_data.json.gz"
-                        ).read_bytes()
+                for name in ("showcase_data.json.gz", "dense_demo.json.gz"):
+                    pack = json.loads(
+                        gzip.decompress(
+                            (Path(__file__).parent / "assets" / name).read_bytes()
+                        )
                     )
-                )
-                for expected in pack["artifacts"]:
-                    installed = db.get(Artifact, expected["id"])
-                    if installed is None or installed.checksum != expected["checksum"]:
-                        raise ValueError("Current demo pack missing or mismatched")
+                    for expected in pack["artifacts"]:
+                        installed = db.get(Artifact, expected["id"])
+                        if (
+                            installed is None
+                            or installed.checksum != expected["checksum"]
+                        ):
+                            raise ValueError("Current demo pack missing or mismatched")
+                dense = db.get(Artifact, "dense-demo-v1")
+                if dense is None or dense.kind != "demo_recording":
+                    raise ValueError("Default dense recording missing")
                 recordings = list(
                     db.scalars(
                         select(Artifact).where(Artifact.kind == "demo_recording")

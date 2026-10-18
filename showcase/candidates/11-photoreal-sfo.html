@@ -273,7 +273,9 @@ try {
   // image as an overlay so its edge pixels do not smear across the Bay.
   const base = document.createElement('canvas'); base.width = base.height = 1;
   const baseContext = base.getContext('2d'); baseContext.fillStyle = '#16303f'; baseContext.fillRect(0, 0, 1, 1);
-  viewer.imageryLayers.addImageryProvider(await C.SingleTileImageryProvider.fromUrl(base.toDataURL()));
+  viewer.imageryLayers.addImageryProvider(CONNECTED
+    ? await C.TileMapServiceImageryProvider.fromUrl('/vendor/cesium/Assets/Textures/NaturalEarthII', {credit:'Natural Earth · regional context'})
+    : await C.SingleTileImageryProvider.fromUrl(base.toDataURL()));
   const pb = await (await fetch(PACK + 'bounds.json')).json();
   // SFO detail only (1.2 m NAIP), clipped to its own rectangle; no Bay overview (no-data edges smear)
   const b = pb.images.sfo.lonlat_bounds, rect = C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north);

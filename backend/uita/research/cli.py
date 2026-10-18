@@ -34,8 +34,12 @@ def main():
                 if digest(artifact["payload"]) != artifact["checksum"]:
                     raise ValueError("Bundled demo checksum mismatch")
                 save_artifact(db, artifact["id"], artifact["kind"], artifact["payload"])
-            pack_path = Path(__file__).parent / "assets/showcase_data.json.gz"
-            if pack_path.exists():
+            for pack_path in (
+                Path(__file__).parent / "assets" / name
+                for name in ("showcase_data.json.gz", "dense_demo.json.gz")
+            ):
+                if not pack_path.exists():
+                    continue
                 pack = json.loads(gzip.decompress(pack_path.read_bytes()))
                 if digest(pack["artifacts"]) != pack["checksum"]:
                     raise ValueError("Demo pack checksum mismatch")
