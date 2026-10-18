@@ -1,0 +1,791 @@
+{
+  "status": "completed",
+  "version": "historical-admission-model-sweep-v1",
+  "plan_sha256": "42c1d466f4ebefde663cad5fcd577b4f6a0a9f37fee24a4deb2e9b7d92f9b8ea",
+  "controllers": {
+    "scripted": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 429,
+      "completed": 408,
+      "backlog": 621,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1326101.593,
+      "mean_added_delay_seconds_all_demand": 1288.7284674441205,
+      "p95_added_delay_seconds_all_demand": 2350.322,
+      "mean_added_delay_seconds_completed_only": 925.4266764705883,
+      "penalized_added_delay_seconds": 3561701.593,
+      "controller_failures": 0,
+      "fallback_decisions": 0,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 566
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 408,
+          "mean_added_delay_seconds_all_demand": 1288.7284674441205
+        }
+      }
+    },
+    "deterministic": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 431,
+      "completed": 427,
+      "backlog": 602,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1314059.593,
+      "mean_added_delay_seconds_all_demand": 1277.0258435374149,
+      "p95_added_delay_seconds_all_demand": 2622.132,
+      "mean_added_delay_seconds_completed_only": 791.6828337236534,
+      "penalized_added_delay_seconds": 3481259.593,
+      "controller_failures": 0,
+      "fallback_decisions": 0,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "OPTIMAL": 138,
+        "FEASIBLE": 428
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 427,
+          "mean_added_delay_seconds_all_demand": 1277.0258435374149
+        }
+      }
+    },
+    "nemotron-3.5-super-vl-off": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 429,
+      "completed": 412,
+      "backlog": 617,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1327525.593,
+      "mean_added_delay_seconds_all_demand": 1290.112335276968,
+      "p95_added_delay_seconds_all_demand": 2416.938,
+      "mean_added_delay_seconds_completed_only": 909.5573106796116,
+      "penalized_added_delay_seconds": 3548725.593,
+      "controller_failures": 27,
+      "fallback_decisions": 27,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 539,
+        "FEASIBLE": 25,
+        "OPTIMAL": 2
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 412,
+          "mean_added_delay_seconds_all_demand": 1290.112335276968
+        }
+      }
+    },
+    "nemotron-3.5-super-vl-on": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 435,
+      "completed": 425,
+      "backlog": 604,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1312575.593,
+      "mean_added_delay_seconds_all_demand": 1275.5836666666667,
+      "p95_added_delay_seconds_all_demand": 2633.104,
+      "mean_added_delay_seconds_completed_only": 740.5215670588235,
+      "penalized_added_delay_seconds": 3486975.593,
+      "controller_failures": 343,
+      "fallback_decisions": 343,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 223,
+        "OPTIMAL": 28,
+        "FEASIBLE": 315
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 425,
+          "mean_added_delay_seconds_all_demand": 1275.5836666666667
+        }
+      }
+    },
+    "nemotron-3.5-lightning-off": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 414,
+      "completed": 395,
+      "backlog": 634,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1384283.593,
+      "mean_added_delay_seconds_all_demand": 1345.2707414965987,
+      "p95_added_delay_seconds_all_demand": 2617.963,
+      "mean_added_delay_seconds_completed_only": 918.868035443038,
+      "penalized_added_delay_seconds": 3666683.593,
+      "controller_failures": 206,
+      "fallback_decisions": 206,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 570,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 364,
+        "OPTIMAL": 7,
+        "FEASIBLE": 199
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 395,
+          "mean_added_delay_seconds_all_demand": 1345.2707414965987
+        }
+      }
+    },
+    "nemotron-3.5-lightning-on": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 431,
+      "completed": 426,
+      "backlog": 603,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1313881.593,
+      "mean_added_delay_seconds_all_demand": 1276.852860058309,
+      "p95_added_delay_seconds_all_demand": 2619.88,
+      "mean_added_delay_seconds_completed_only": 794.0112417840376,
+      "penalized_added_delay_seconds": 3484681.593,
+      "controller_failures": 510,
+      "fallback_decisions": 510,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 56,
+        "OPTIMAL": 82,
+        "FEASIBLE": 424,
+        "RECOVERED_FEASIBLE": 4
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 426,
+          "mean_added_delay_seconds_all_demand": 1276.852860058309
+        }
+      }
+    },
+    "nemotron-3-nano-off": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 413,
+      "completed": 397,
+      "backlog": 632,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1387374.593,
+      "mean_added_delay_seconds_all_demand": 1348.274628765792,
+      "p95_added_delay_seconds_all_demand": 2625.5,
+      "mean_added_delay_seconds_completed_only": 901.2486926952141,
+      "penalized_added_delay_seconds": 3662574.593,
+      "controller_failures": 235,
+      "fallback_decisions": 235,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 569,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 334,
+        "FEASIBLE": 234,
+        "OPTIMAL": 1
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 397,
+          "mean_added_delay_seconds_all_demand": 1348.274628765792
+        }
+      }
+    },
+    "nemotron-3-nano-on": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 431,
+      "completed": 426,
+      "backlog": 603,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1313372.593,
+      "mean_added_delay_seconds_all_demand": 1276.3582050534499,
+      "p95_added_delay_seconds_all_demand": 2622.132,
+      "mean_added_delay_seconds_completed_only": 795.2545563380281,
+      "penalized_added_delay_seconds": 3484172.593,
+      "controller_failures": 493,
+      "fallback_decisions": 493,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 73,
+        "OPTIMAL": 78,
+        "FEASIBLE": 415
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 426,
+          "mean_added_delay_seconds_all_demand": 1276.3582050534499
+        }
+      }
+    },
+    "qwen-3.8-27b-off": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 427,
+      "completed": 409,
+      "backlog": 620,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1337438.593,
+      "mean_added_delay_seconds_all_demand": 1299.7459601554908,
+      "p95_added_delay_seconds_all_demand": 2492.687,
+      "mean_added_delay_seconds_completed_only": 896.9043569682152,
+      "penalized_added_delay_seconds": 3569438.593,
+      "controller_failures": 24,
+      "fallback_decisions": 24,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 542,
+        "FEASIBLE": 24
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 409,
+          "mean_added_delay_seconds_all_demand": 1299.7459601554908
+        }
+      }
+    },
+    "qwen-3.8-27b-on": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 438,
+      "completed": 425,
+      "backlog": 604,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1313587.593,
+      "mean_added_delay_seconds_all_demand": 1276.5671457725948,
+      "p95_added_delay_seconds_all_demand": 2649.193,
+      "mean_added_delay_seconds_completed_only": 721.5805858823529,
+      "penalized_added_delay_seconds": 3487987.593,
+      "controller_failures": 382,
+      "fallback_decisions": 382,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 184,
+        "OPTIMAL": 38,
+        "FEASIBLE": 344
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 425,
+          "mean_added_delay_seconds_all_demand": 1276.5671457725948
+        }
+      }
+    },
+    "gemma-4-31b-off": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 429,
+      "completed": 410,
+      "backlog": 619,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1325864.593,
+      "mean_added_delay_seconds_all_demand": 1288.498146744412,
+      "p95_added_delay_seconds_all_demand": 2354.843,
+      "mean_added_delay_seconds_completed_only": 922.856331707317,
+      "penalized_added_delay_seconds": 3554264.593,
+      "controller_failures": 19,
+      "fallback_decisions": 19,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 547,
+        "FEASIBLE": 16,
+        "OPTIMAL": 3
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 410,
+          "mean_added_delay_seconds_all_demand": 1288.498146744412
+        }
+      }
+    },
+    "gemma-4-31b-on": {
+      "episodes": 42,
+      "spawned": 1029,
+      "landed": 431,
+      "completed": 425,
+      "backlog": 604,
+      "nominal_due_arrivals": 1028,
+      "not_nominally_due_arrivals": 1,
+      "executed_violations": 0,
+      "safe_episodes": 42,
+      "executed_safety_counts": {
+        "separation_violation_episodes": 0,
+        "runway_violation_episodes": 0,
+        "surface_violation_episodes": 0,
+        "wake_violations": 0,
+        "performance_violations": 0
+      },
+      "minimum_lateral_nm_when_vertical_under_1000_ft": null,
+      "safety_eligible": true,
+      "added_delay_seconds_sum": 1313816.593,
+      "mean_added_delay_seconds_all_demand": 1276.7896919339164,
+      "p95_added_delay_seconds_all_demand": 2619.842,
+      "mean_added_delay_seconds_completed_only": 782.0858070588235,
+      "penalized_added_delay_seconds": 3488216.593,
+      "controller_failures": 472,
+      "fallback_decisions": 472,
+      "rejected_proposals": 0,
+      "unresolved_decisions": 0,
+      "decisions": 566,
+      "solver_status_counts": {
+        "FIXED_ORDER_FEASIBLE": 94,
+        "OPTIMAL": 72,
+        "FEASIBLE": 400
+      },
+      "source_strata": {
+        "synthetic_training_template": {
+          "spawned": 1029,
+          "completed": 425,
+          "mean_added_delay_seconds_all_demand": 1276.7896919339164
+        }
+      }
+    }
+  },
+  "ai_usage": {
+    "nemotron-3.5-super-vl-off": {
+      "calls": 566,
+      "successful_calls": 539,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 539,
+        "invalid_response": 17,
+        "ambiguous_failure": 10
+      },
+      "failure_categories": {
+        "provider_or_action_contract": 17,
+        "transport_failure_no_retry": 9,
+        "none": 1
+      },
+      "finish_reasons": {
+        "stop": 556,
+        "None": 10
+      },
+      "reported_cost_usd": 0.10882760000000001,
+      "unknown_cost_requests": 10,
+      "reserved_usd": 2.5992424,
+      "paid_retries": 0,
+      "latency_seconds_mean": 4.100626941468581,
+      "latency_seconds_p95": 15.976490542001557
+    },
+    "nemotron-3.5-super-vl-on": {
+      "calls": 566,
+      "successful_calls": 223,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 223,
+        "ambiguous_failure": 330,
+        "invalid_response": 8,
+        "http_failure": 5
+      },
+      "failure_categories": {
+        "transport_failure_no_retry": 330,
+        "provider_or_action_contract": 7,
+        "provider_http_error_no_retry": 5,
+        "incomplete_generation": 1
+      },
+      "finish_reasons": {
+        "stop": 230,
+        "None": 335,
+        "length": 1
+      },
+      "reported_cost_usd": 0.2824951,
+      "unknown_cost_requests": 335,
+      "reserved_usd": 2.6000074000000004,
+      "paid_retries": 0,
+      "latency_seconds_mean": 47.49924060663461,
+      "latency_seconds_p95": 60.13292991698836
+    },
+    "nemotron-3.5-lightning-off": {
+      "calls": 570,
+      "successful_calls": 364,
+      "dispatched_calls": 570,
+      "statuses": {
+        "completed": 364,
+        "ambiguous_failure": 6,
+        "invalid_response": 200
+      },
+      "failure_categories": {
+        "transport_failure_no_retry": 6,
+        "provider_or_action_contract": 200
+      },
+      "finish_reasons": {
+        "stop": 564,
+        "None": 6
+      },
+      "reported_cost_usd": 0.05593825,
+      "unknown_cost_requests": 6,
+      "reserved_usd": 1.3105701,
+      "paid_retries": 0,
+      "latency_seconds_mean": 1.565289346128498,
+      "latency_seconds_p95": 4.617916334012989
+    },
+    "nemotron-3.5-lightning-on": {
+      "calls": 566,
+      "successful_calls": 56,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 56,
+        "invalid_response": 459,
+        "ambiguous_failure": 51
+      },
+      "failure_categories": {
+        "incomplete_generation": 459,
+        "transport_failure_no_retry": 50,
+        "none": 1
+      },
+      "finish_reasons": {
+        "stop": 56,
+        "length": 459,
+        "None": 51
+      },
+      "reported_cost_usd": 0.8346528500000001,
+      "unknown_cost_requests": 51,
+      "reserved_usd": 1.2989661000000001,
+      "paid_retries": 0,
+      "latency_seconds_mean": 42.22529775832956,
+      "latency_seconds_p95": 60.04909524999675
+    },
+    "nemotron-3-nano-off": {
+      "calls": 569,
+      "successful_calls": 334,
+      "dispatched_calls": 569,
+      "statuses": {
+        "completed": 334,
+        "invalid_response": 230,
+        "ambiguous_failure": 5
+      },
+      "failure_categories": {
+        "provider_or_action_contract": 230,
+        "transport_failure_no_retry": 5
+      },
+      "finish_reasons": {
+        "stop": 564,
+        "None": 5
+      },
+      "reported_cost_usd": 0.05592010000000001,
+      "unknown_cost_requests": 5,
+      "reserved_usd": 1.3086854,
+      "paid_retries": 0,
+      "latency_seconds_mean": 1.6292895835675774,
+      "latency_seconds_p95": 4.73456158398767
+    },
+    "nemotron-3-nano-on": {
+      "calls": 566,
+      "successful_calls": 73,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 73,
+        "invalid_response": 441,
+        "ambiguous_failure": 52
+      },
+      "failure_categories": {
+        "incomplete_generation": 437,
+        "transport_failure_no_retry": 52,
+        "provider_or_action_contract": 4
+      },
+      "finish_reasons": {
+        "stop": 77,
+        "length": 437,
+        "None": 52
+      },
+      "reported_cost_usd": 0.8043638000000001,
+      "unknown_cost_requests": 52,
+      "reserved_usd": 1.298925,
+      "paid_retries": 0,
+      "latency_seconds_mean": 39.77329238953219,
+      "latency_seconds_p95": 60.05006041700835
+    },
+    "qwen-3.8-27b-off": {
+      "calls": 566,
+      "successful_calls": 542,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 542,
+        "invalid_response": 22,
+        "ambiguous_failure": 2
+      },
+      "failure_categories": {
+        "provider_or_action_contract": 21,
+        "transport_failure_no_retry": 2,
+        "incomplete_generation": 1
+      },
+      "finish_reasons": {
+        "stop": 563,
+        "None": 2,
+        "length": 1
+      },
+      "reported_cost_usd": 0.36698549999999996,
+      "unknown_cost_requests": 2,
+      "reserved_usd": 11.131943,
+      "paid_retries": 0,
+      "latency_seconds_mean": 1.293530144204337,
+      "latency_seconds_p95": 4.523431958019501
+    },
+    "qwen-3.8-27b-on": {
+      "calls": 566,
+      "successful_calls": 184,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 184,
+        "invalid_response": 349,
+        "ambiguous_failure": 33
+      },
+      "failure_categories": {
+        "incomplete_generation": 349,
+        "transport_failure_no_retry": 33
+      },
+      "finish_reasons": {
+        "stop": 184,
+        "length": 349,
+        "None": 33
+      },
+      "reported_cost_usd": 7.402830499999999,
+      "unknown_cost_requests": 33,
+      "reserved_usd": 11.132909,
+      "paid_retries": 0,
+      "latency_seconds_mean": 23.355813261966087,
+      "latency_seconds_p95": 60.039539332996355
+    },
+    "gemma-4-31b-off": {
+      "calls": 566,
+      "successful_calls": 547,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 547,
+        "ambiguous_failure": 14,
+        "invalid_response": 5
+      },
+      "failure_categories": {
+        "transport_failure_no_retry": 14,
+        "provider_or_action_contract": 5
+      },
+      "finish_reasons": {
+        "stop": 552,
+        "None": 14
+      },
+      "reported_cost_usd": 0.1481181,
+      "unknown_cost_requests": 14,
+      "reserved_usd": 2.8945706,
+      "paid_retries": 0,
+      "latency_seconds_mean": 4.200735396478548,
+      "latency_seconds_p95": 8.17170645899023
+    },
+    "gemma-4-31b-on": {
+      "calls": 566,
+      "successful_calls": 94,
+      "dispatched_calls": 566,
+      "statuses": {
+        "completed": 94,
+        "ambiguous_failure": 472
+      },
+      "failure_categories": {
+        "transport_failure_no_retry": 472
+      },
+      "finish_reasons": {
+        "stop": 94,
+        "None": 472
+      },
+      "reported_cost_usd": 0.09078958000000001,
+      "unknown_cost_requests": 472,
+      "reserved_usd": 2.89235692,
+      "paid_retries": 0,
+      "latency_seconds_mean": 55.00444988635497,
+      "latency_seconds_p95": 60.136366833001375
+    }
+  },
+  "source_hashes": {
+    "benchmark/closed_loop/traffic.py": "710b255c327cada60bf9a8717ed54770ea7bf62ecd19754d218fbdb2d07ba6e7",
+    "benchmark/closed_loop/controllers.py": "71af9bd21e2ad5421a8953fe63a6caafe70e82d8fc2843915d7278981a011fcb",
+    "benchmark/closed_loop/engine.py": "1e89a176399d4c9378e9b8f54df79d80a2a6d4d84b72741d9b1d8dbf690ac71d",
+    "benchmark/closed_loop/ai.py": "da4c28855596417ba83ee2cc03037e79a4b77494b7d2630c10129026ef32c8b3",
+    "benchmark/closed_loop/run.py": "b647323360692aec780c882841390202f1ff200f401ad6489e0f233db76b658a",
+    "backend/uita/airport.py": "70aba9142b0a432938a25b61b33bff1bf586bd98810fb20f43884e5eb1fe4b21",
+    "backend/uita/simulator.py": "c88b274462cf790c1eb783cd1e2fef0fa045b8c22926a9ad001e0f1ba38d3052",
+    "backend/uita/verifier.py": "7ec7eae2a9026b939b60de4b77dee30119a62189b3a79523a55b75440bf5d439",
+    "backend/uita/objectives.py": "0d92c1f3cf0ccaa11302002a521c520e67eeb135e82dbbd80189f70c9136b9a6",
+    "benchmark/provider.py": "ea7a8267b2f0df26faad9f7d5efc6cf38ef22572a72aa056ca0f3277b395b225",
+    "benchmark/sweep/traffic.py": "ed54b28a2cda97d4d1426e0a3b7479384086a0edd417464d664de3236eef7148",
+    "benchmark/sweep/models.py": "15b7b281a885c3cba340afb747d18ec4f769db098b9129d23b6cbb2fa90d3795",
+    "benchmark/sweep/run.py": "ca6fcfaeae13510bd85ea9633857c65226f3a65bb28d1392ed903a1a7c6a390c"
+  },
+  "artifacts": {
+    "plan.json": "42c1d466f4ebefde663cad5fcd577b4f6a0a9f37fee24a4deb2e9b7d92f9b8ea",
+    "runs.json": "c9d00f3b612a62896cd144230a3defde75f2d459a11826a305181b633f142198"
+  },
+  "date_range": [
+    "2026-08-24",
+    "2026-08-30"
+  ],
+  "limits": [
+    "Historical demand; the feeder and upstream waiting queue are outside the safety model.",
+    "Added delay is modeled admission waiting, right-censored at a fixed horizon.",
+    "Common independent safety checks and explicitly counted fallbacks apply to every model.",
+    "Logical simulation time pauses during inference; API latency is separate.",
+    "No authentic human ATC commands or human-controller quality score exists.",
+    "August 8\u20139 remain held out. All ten configurations were fixed before this evaluation."
+  ]
+}

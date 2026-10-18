@@ -1,0 +1,312 @@
+{
+  "passed": true,
+  "verification_kind": "independent_complete_matrix_causal_replay",
+  "verifier_sha256": "58f53ecc44638604a714b42d305f8b172ac65262fb27a6aa1943a9e6ba1ea397",
+  "artifacts": {
+    "plan.json": "42c1d466f4ebefde663cad5fcd577b4f6a0a9f37fee24a4deb2e9b7d92f9b8ea",
+    "runs.json": "c9d00f3b612a62896cd144230a3defde75f2d459a11826a305181b633f142198",
+    "summary.json": "5b98e4745873121b5248bce06c5b18e137f6f7cca8b7ec8853d3b400a380d2be"
+  },
+  "counts": {
+    "episodes": 42,
+    "controller_episode_results": 504,
+    "source_arrival_operations_per_controller": 1029,
+    "base_models": 5,
+    "model_configurations": 10,
+    "replayed_decisions": 6799,
+    "selected_ai_decisions": 5667,
+    "raw_audit_records": 5667,
+    "unique_audit_request_ids": 5667
+  },
+  "ai_usage_independently_recomputed": {
+    "nemotron-3.5-super-vl-off": {
+      "calls": 566,
+      "statuses": {
+        "completed": 539,
+        "invalid_response": 17,
+        "ambiguous_failure": 10
+      },
+      "successful_calls": 539,
+      "reported_cost_usd": 0.10882760000000001,
+      "unknown_cost_requests": 10,
+      "reserved_usd": 2.5992424
+    },
+    "nemotron-3.5-super-vl-on": {
+      "calls": 566,
+      "statuses": {
+        "completed": 223,
+        "ambiguous_failure": 330,
+        "invalid_response": 8,
+        "http_failure": 5
+      },
+      "successful_calls": 223,
+      "reported_cost_usd": 0.2824951,
+      "unknown_cost_requests": 335,
+      "reserved_usd": 2.6000074000000004
+    },
+    "nemotron-3.5-lightning-off": {
+      "calls": 570,
+      "statuses": {
+        "completed": 364,
+        "ambiguous_failure": 6,
+        "invalid_response": 200
+      },
+      "successful_calls": 364,
+      "reported_cost_usd": 0.05593825,
+      "unknown_cost_requests": 6,
+      "reserved_usd": 1.3105701
+    },
+    "nemotron-3.5-lightning-on": {
+      "calls": 566,
+      "statuses": {
+        "completed": 56,
+        "invalid_response": 459,
+        "ambiguous_failure": 51
+      },
+      "successful_calls": 56,
+      "reported_cost_usd": 0.8346528500000001,
+      "unknown_cost_requests": 51,
+      "reserved_usd": 1.2989661000000001
+    },
+    "nemotron-3-nano-off": {
+      "calls": 569,
+      "statuses": {
+        "completed": 334,
+        "invalid_response": 230,
+        "ambiguous_failure": 5
+      },
+      "successful_calls": 334,
+      "reported_cost_usd": 0.05592010000000001,
+      "unknown_cost_requests": 5,
+      "reserved_usd": 1.3086854
+    },
+    "nemotron-3-nano-on": {
+      "calls": 566,
+      "statuses": {
+        "completed": 73,
+        "invalid_response": 441,
+        "ambiguous_failure": 52
+      },
+      "successful_calls": 73,
+      "reported_cost_usd": 0.8043638000000001,
+      "unknown_cost_requests": 52,
+      "reserved_usd": 1.298925
+    },
+    "qwen-3.8-27b-off": {
+      "calls": 566,
+      "statuses": {
+        "completed": 542,
+        "invalid_response": 22,
+        "ambiguous_failure": 2
+      },
+      "successful_calls": 542,
+      "reported_cost_usd": 0.36698549999999996,
+      "unknown_cost_requests": 2,
+      "reserved_usd": 11.131943
+    },
+    "qwen-3.8-27b-on": {
+      "calls": 566,
+      "statuses": {
+        "completed": 184,
+        "invalid_response": 349,
+        "ambiguous_failure": 33
+      },
+      "successful_calls": 184,
+      "reported_cost_usd": 7.402830499999999,
+      "unknown_cost_requests": 33,
+      "reserved_usd": 11.132909
+    },
+    "gemma-4-31b-off": {
+      "calls": 566,
+      "statuses": {
+        "completed": 547,
+        "ambiguous_failure": 14,
+        "invalid_response": 5
+      },
+      "successful_calls": 547,
+      "reported_cost_usd": 0.1481181,
+      "unknown_cost_requests": 14,
+      "reserved_usd": 2.8945706
+    },
+    "gemma-4-31b-on": {
+      "calls": 566,
+      "statuses": {
+        "completed": 94,
+        "ambiguous_failure": 472
+      },
+      "successful_calls": 94,
+      "reported_cost_usd": 0.09078958000000001,
+      "unknown_cost_requests": 472,
+      "reserved_usd": 2.89235692
+    }
+  },
+  "source_verification": {
+    "historical_roster_operations": 4076,
+    "selected_source_operations": 1029,
+    "all_initial_states_synthetic": true,
+    "template_donors_development_only": true,
+    "source_weather_receipt_seconds": 300,
+    "whole_month_path_archive_opened": false
+  },
+  "budget_verification": {
+    "budget_id": "uita-late-august-model-sweep-20261017-v1",
+    "cap_usd": 30.0,
+    "dispatched_requests": 5677,
+    "reserved_usd": 38.52894538,
+    "known_cost_usd": 10.15733646,
+    "unknown_reserved_exposure_usd": 5.11865738,
+    "settled_cost_plus_unknown_exposure_usd": 15.27599384,
+    "unscored_development_preflight_calls": 10,
+    "unknown_cost_requests": 980,
+    "unresolved_reservations": 0,
+    "paid_retries": 0
+  },
+  "unscored_development_preflight_verification": {
+    "nemotron-3.5-super-vl-off": {
+      "status": "completed",
+      "reasoning_content_characters": 0,
+      "cost_usd": 7.000000000000001e-05,
+      "scored": false
+    },
+    "nemotron-3.5-super-vl-on": {
+      "status": "completed",
+      "reasoning_content_characters": 2620,
+      "cost_usd": 0.00043920000000000005,
+      "scored": false
+    },
+    "nemotron-3.5-lightning-off": {
+      "status": "completed",
+      "reasoning_content_characters": 0,
+      "cost_usd": 3.5000000000000004e-05,
+      "scored": false
+    },
+    "nemotron-3.5-lightning-on": {
+      "status": "completed",
+      "reasoning_content_characters": 9308,
+      "cost_usd": 0.0006488,
+      "scored": false
+    },
+    "nemotron-3-nano-off": {
+      "status": "completed",
+      "reasoning_content_characters": 0,
+      "cost_usd": 3.5000000000000004e-05,
+      "scored": false
+    },
+    "nemotron-3-nano-on": {
+      "status": "completed",
+      "reasoning_content_characters": 16364,
+      "cost_usd": 0.0008986,
+      "scored": false
+    },
+    "qwen-3.8-27b-off": {
+      "status": "completed",
+      "reasoning_content_characters": 0,
+      "cost_usd": 0.00021025,
+      "scored": false
+    },
+    "qwen-3.8-27b-on": {
+      "status": "completed",
+      "reasoning_content_characters": 3711,
+      "cost_usd": 0.0032797499999999997,
+      "scored": false
+    },
+    "gemma-4-31b-off": {
+      "status": "completed",
+      "reasoning_content_characters": 0,
+      "cost_usd": 9.618e-05,
+      "scored": false
+    },
+    "gemma-4-31b-on": {
+      "status": "completed",
+      "reasoning_content_characters": 3537,
+      "cost_usd": 0.0007023,
+      "scored": false
+    }
+  },
+  "orchestration_verification": {
+    "amended": true,
+    "kind": "execution_concurrency_only",
+    "plan_sha256": "42c1d466f4ebefde663cad5fcd577b4f6a0a9f37fee24a4deb2e9b7d92f9b8ea",
+    "helper_sha256": "182b37862d2bc45376ed18dd494dabb5139b288132ccad82c6e1f77e5158a0e2",
+    "amendment_sha256": "7fda5556d59be71ec982debb5186929727ee9e2a3104e62d6ef7f4b435fb17a0",
+    "completion_sha256": "ab3d1c9bbc0992f348c5db0b3d76e6fe4053bdab15639b93e24ee663bb86d0d9",
+    "main_execution_log_sha256": "34a02355ee70ac710cff2978b3a488373a4653ff1812c15b0e933030e3ca1c8a",
+    "helper_execution_log_sha256": "2f53838e6a7d8300cacbdae5850304fe6acb1b92fddb6b6b88f666a9b3ad1a13",
+    "helper_owned_windows": 180,
+    "original_runner_reused_windows": 180,
+    "original_runner_finished_windows": 502,
+    "original_runner_recovered_failed_windows": 2,
+    "total_acknowledged_windows": 504,
+    "minimum_per_model_dispatch_seconds": 2.2,
+    "maximum_combined_workers_per_model": 24,
+    "spending_cap_usd": 30.0,
+    "semantic_settings_unchanged": true,
+    "all_helper_jobs_owned_once": true
+  },
+  "recovery_verification": {
+    "recovered_jobs": 2,
+    "reconstructed_fallback_decisions": 4,
+    "jobs": [
+      {
+        "configuration": "nemotron-3.5-lightning-on",
+        "episode_id": "2026-08-24-1200",
+        "manifest_sha256": "0dc5bfbb91817f80796141daff66a4cc9393b049062566e96f8de83f2de42679",
+        "result_sha256": "ac2050c7f4e8bd805762269bdeaf8c5740c1b590096cb9ef48d68723d16d9342",
+        "source_sha256": "9e33ef38775d398424bd71824118a4550fe646d4043acdea9d11c4f618087e1f",
+        "original_calls": 5,
+        "reconstructed_fallback_decisions": 4,
+        "original_calls_preserved": true,
+        "paid_retries": 0
+      },
+      {
+        "configuration": "nemotron-3.5-super-vl-off",
+        "episode_id": "2026-08-25-1500",
+        "manifest_sha256": "f40c91fe34fb7d532469a6875739d7abc1f908669926dbd2ec3ffcbc9b557943",
+        "result_sha256": "4cdb6ae079ec1634fa9f33f6a6c3c49347cabd07d28c5711dbcfcd23d00ef11a",
+        "source_sha256": "9e33ef38775d398424bd71824118a4550fe646d4043acdea9d11c4f618087e1f",
+        "original_calls": 2,
+        "reconstructed_fallback_decisions": 0,
+        "original_calls_preserved": true,
+        "paid_retries": 0
+      }
+    ],
+    "execution_amendment_sha256": "9d43c8fa7a8e5006411f0e28444868619d8678a62cf0e5618c682061d603beae",
+    "maximum_combined_workers_per_base_model": 25,
+    "maximum_recovery_workers_per_base_model": 1,
+    "minimum_shared_per_model_dispatch_seconds": 2.2,
+    "spending_cap_usd": 30.0,
+    "payload_and_scoring_unchanged": true,
+    "original_paid_requests_preserved": true,
+    "paid_retries": 0,
+    "unknown_original_fallback_producer_decisions": 4,
+    "original_solver_status_and_bound_recovered": false,
+    "limits": [
+      "Four original checked fallback schedules are reconstructed exactly; their original CP-SAT versus secondary-scripted producer and proposal verdict were not serialized.",
+      "RECOVERED_FEASIBLE attests current independent feasibility. Applied-controller labels describe replay policy, not a recovered original optimizer result."
+    ]
+  },
+  "checks": [
+    "frozen source/runtime/data checksums",
+    "complete matched matrix",
+    "causal traffic and weather replay",
+    "strict raw model request/response binding",
+    "ordered action decoding",
+    "optimizer feasibility and recorded objective",
+    "independent verification before every commit",
+    "immutable admitted motion",
+    "executed safety and all-demand delay replay",
+    "controller aggregates and inference accounting"
+  ],
+  "negative_qa": [
+    "unsafe commit rejected without mutation",
+    "executed separation/runway/surface/wake detection",
+    "two exact conflict intervals remain separate",
+    "future-known public aircraft rejected"
+  ],
+  "limits": [
+    "No provider requests were made during verification.",
+    "August 8\u20139 are excluded from generated datasets, model inputs and evaluation.",
+    "Anytime optimizer output is checked, not assumed optimal or reproduced identically.",
+    "Rows include counted checked fallbacks; upstream feeder/queue safety remains outside scope."
+  ]
+}

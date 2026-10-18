@@ -1,0 +1,1372 @@
+{
+  "version": "historical-admission-failure-analysis-v1",
+  "generated_at": "2026-10-18T02:33:25.870133+00:00",
+  "status": "complete_verified",
+  "date_range": [
+    "2026-08-24",
+    "2026-08-30"
+  ],
+  "completed_model_windows": 420,
+  "expected_model_windows": 420,
+  "independent_replay_bound_to_current_artifacts": true,
+  "plan_sha256": "42c1d466f4ebefde663cad5fcd577b4f6a0a9f37fee24a4deb2e9b7d92f9b8ea",
+  "warnings": [],
+  "scope": "Failure attribution for recorded calls only; scheduling quality remains measured by the closed-loop leaderboard.",
+  "denominators": "All recorded attempts include unfinished jobs. Selected decisions include completed model-window outcomes only. Preflights are separate and unscored.",
+  "failure_definitions": {
+    "model_contract_failure": "A stopped text response fails the exact JSON pending-ID permutation contract.",
+    "api_transport_failure": "No complete API response reached the client; no paid retry occurred.",
+    "api_http_failure": "An HTTP error reached the client; 429, 503, other 5xx and request/API errors remain distinct.",
+    "bounded_generation_failure": "The configured output limit or another non-stop finish prevented a complete answer.",
+    "provider_response_failure": "Missing response structure or final text prevents reliable model attribution.",
+    "orchestration_block": "A local budget, dispatch, or unresolved-reservation boundary stopped an incomplete job.",
+    "audit_inconsistency": "Response, stored action and audit classification disagree; publish no unsupported attribution."
+  },
+  "limitations": [
+    "A valid action is not evidence of an optimal schedule.",
+    "Timeouts do not establish whether the provider generated an answer or incurred a charge.",
+    "Token-limit failures measure this output budget and cannot prove unrestricted model inability.",
+    "Returned reasoning is an observation, not proof of every internal computation. Missing reasoning fields alone cannot prove OFF.",
+    "Examples contain at most 400 final-answer characters and never copy reasoning bodies or HTTP error bodies.",
+    "All compared model actions use the same checked decoder and counted fallback policy. August 8\u20139 remain held out."
+  ],
+  "configurations": [
+    {
+      "config_id": "nemotron-3.5-super-vl-off",
+      "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+      "reasoning": "off",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 539,
+          "model_contract_failure": 17,
+          "api_transport_failure": 10
+        },
+        "details": {
+          "strict_complete_permutation": 539,
+          "missing_aircraft_ids": 16,
+          "response_not_received_no_retry": 10,
+          "duplicate_aircraft_ids": 1
+        },
+        "usable_response_percent": 95.22968197879858,
+        "known_cost_usd": 0.10882760000000001,
+        "unknown_cost_calls": 10,
+        "unknown_cost_reserved_usd": 0.04712260000000001,
+        "latency_seconds": {
+          "mean": 4.100626941468581,
+          "p50": 1.489837915985845,
+          "p95": 15.976490542001557
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 556,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 556,
+          "responses_without_message": 10,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 539,
+          "model_contract_failure": 17,
+          "api_transport_failure": 10
+        },
+        "details": {
+          "strict_complete_permutation": 539,
+          "missing_aircraft_ids": 16,
+          "response_not_received_no_retry": 10,
+          "duplicate_aircraft_ids": 1
+        },
+        "usable_response_percent": 95.22968197879858,
+        "known_cost_usd": 0.10882760000000001,
+        "unknown_cost_calls": 10,
+        "unknown_cost_reserved_usd": 0.04712260000000001,
+        "latency_seconds": {
+          "mean": 4.100626941468581,
+          "p50": 1.489837915985845,
+          "p95": 15.976490542001557
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 556,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 556,
+          "responses_without_message": 10,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 7.000000000000001e-05,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 2.729642457998125,
+          "p50": 2.729642457998125,
+          "p95": 2.729642457998125
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 1,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "nemotron-3.5-super-vl-on",
+      "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+      "reasoning": "on",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 223,
+          "api_transport_failure": 330,
+          "model_contract_failure": 7,
+          "api_http_failure": 5,
+          "bounded_generation_failure": 1
+        },
+        "details": {
+          "strict_complete_permutation": 223,
+          "response_not_received_no_retry": 330,
+          "missing_aircraft_ids": 5,
+          "provider_http_5xx": 5,
+          "duplicate_aircraft_ids": 2,
+          "output_token_limit": 1
+        },
+        "usable_response_percent": 39.399293286219084,
+        "known_cost_usd": 0.2824951,
+        "unknown_cost_calls": 335,
+        "unknown_cost_reserved_usd": 1.5797816000000002,
+        "latency_seconds": {
+          "mean": 47.49924060663461,
+          "p50": 60.03970370802563,
+          "p95": 60.13292991698836
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 231,
+          "nonempty_returned_reasoning": 231,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 335,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 223,
+          "api_transport_failure": 330,
+          "model_contract_failure": 7,
+          "api_http_failure": 5,
+          "bounded_generation_failure": 1
+        },
+        "details": {
+          "strict_complete_permutation": 223,
+          "response_not_received_no_retry": 330,
+          "missing_aircraft_ids": 5,
+          "provider_http_5xx": 5,
+          "duplicate_aircraft_ids": 2,
+          "output_token_limit": 1
+        },
+        "usable_response_percent": 39.399293286219084,
+        "known_cost_usd": 0.2824951,
+        "unknown_cost_calls": 335,
+        "unknown_cost_reserved_usd": 1.5797816000000002,
+        "latency_seconds": {
+          "mean": 47.49924060663461,
+          "p50": 60.03970370802563,
+          "p95": 60.13292991698836
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 231,
+          "nonempty_returned_reasoning": 231,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 335,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 0.00043920000000000005,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 11.745212749985512,
+          "p50": 11.745212749985512,
+          "p95": 11.745212749985512
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 1,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "nemotron-3.5-lightning-off",
+      "model": "nvidia/Nemotron-3.5-Lightning-30B-A3B",
+      "reasoning": "off",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 570,
+        "dispatched": 570,
+        "groups": {
+          "usable_action": 364,
+          "api_transport_failure": 6,
+          "model_contract_failure": 200
+        },
+        "details": {
+          "strict_complete_permutation": 364,
+          "response_not_received_no_retry": 6,
+          "unknown_aircraft_ids": 123,
+          "missing_aircraft_ids": 75,
+          "duplicate_aircraft_ids": 2
+        },
+        "usable_response_percent": 63.85964912280702,
+        "known_cost_usd": 0.05593825,
+        "unknown_cost_calls": 6,
+        "unknown_cost_reserved_usd": 0.013845900000000001,
+        "latency_seconds": {
+          "mean": 1.565289346128498,
+          "p50": 0.7547313329996541,
+          "p95": 4.617916334012989
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 564,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 564,
+          "responses_without_message": 6,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 570,
+        "dispatched": 570,
+        "groups": {
+          "usable_action": 364,
+          "api_transport_failure": 6,
+          "model_contract_failure": 200
+        },
+        "details": {
+          "strict_complete_permutation": 364,
+          "response_not_received_no_retry": 6,
+          "unknown_aircraft_ids": 123,
+          "missing_aircraft_ids": 75,
+          "duplicate_aircraft_ids": 2
+        },
+        "usable_response_percent": 63.85964912280702,
+        "known_cost_usd": 0.05593825,
+        "unknown_cost_calls": 6,
+        "unknown_cost_reserved_usd": 0.013845900000000001,
+        "latency_seconds": {
+          "mean": 1.565289346128498,
+          "p50": 0.7547313329996541,
+          "p95": 4.617916334012989
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 564,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 564,
+          "responses_without_message": 6,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 3.5000000000000004e-05,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 2.8058324999874458,
+          "p50": 2.8058324999874458,
+          "p95": 2.8058324999874458
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 1,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "nemotron-3.5-lightning-on",
+      "model": "nvidia/Nemotron-3.5-Lightning-30B-A3B",
+      "reasoning": "on",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 56,
+          "bounded_generation_failure": 459,
+          "api_transport_failure": 51
+        },
+        "details": {
+          "strict_complete_permutation": 56,
+          "output_token_limit": 459,
+          "response_not_received_no_retry": 51
+        },
+        "usable_response_percent": 9.89399293286219,
+        "known_cost_usd": 0.8346528500000001,
+        "unknown_cost_calls": 51,
+        "unknown_cost_reserved_usd": 0.11642580000000001,
+        "latency_seconds": {
+          "mean": 42.22529775832956,
+          "p50": 42.321803667000495,
+          "p95": 60.04909524999675
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 515,
+          "nonempty_returned_reasoning": 515,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 51,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 56,
+          "bounded_generation_failure": 459,
+          "api_transport_failure": 51
+        },
+        "details": {
+          "strict_complete_permutation": 56,
+          "output_token_limit": 459,
+          "response_not_received_no_retry": 51
+        },
+        "usable_response_percent": 9.89399293286219,
+        "known_cost_usd": 0.8346528500000001,
+        "unknown_cost_calls": 51,
+        "unknown_cost_reserved_usd": 0.11642580000000001,
+        "latency_seconds": {
+          "mean": 42.22529775832956,
+          "p50": 42.321803667000495,
+          "p95": 60.04909524999675
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 515,
+          "nonempty_returned_reasoning": 515,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 51,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 0.0006488,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 12.332896374980919,
+          "p50": 12.332896374980919,
+          "p95": 12.332896374980919
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 1,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "nemotron-3-nano-off",
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "reasoning": "off",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 569,
+        "dispatched": 569,
+        "groups": {
+          "usable_action": 334,
+          "model_contract_failure": 230,
+          "api_transport_failure": 5
+        },
+        "details": {
+          "strict_complete_permutation": 334,
+          "missing_aircraft_ids": 88,
+          "unknown_aircraft_ids": 106,
+          "duplicate_aircraft_ids": 36,
+          "response_not_received_no_retry": 5
+        },
+        "usable_response_percent": 58.699472759226715,
+        "known_cost_usd": 0.05592010000000001,
+        "unknown_cost_calls": 5,
+        "unknown_cost_reserved_usd": 0.0123329,
+        "latency_seconds": {
+          "mean": 1.6292895835675774,
+          "p50": 0.7666211249888875,
+          "p95": 4.73456158398767
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 564,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 564,
+          "responses_without_message": 5,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 569,
+        "dispatched": 569,
+        "groups": {
+          "usable_action": 334,
+          "model_contract_failure": 230,
+          "api_transport_failure": 5
+        },
+        "details": {
+          "strict_complete_permutation": 334,
+          "missing_aircraft_ids": 88,
+          "unknown_aircraft_ids": 106,
+          "duplicate_aircraft_ids": 36,
+          "response_not_received_no_retry": 5
+        },
+        "usable_response_percent": 58.699472759226715,
+        "known_cost_usd": 0.05592010000000001,
+        "unknown_cost_calls": 5,
+        "unknown_cost_reserved_usd": 0.0123329,
+        "latency_seconds": {
+          "mean": 1.6292895835675774,
+          "p50": 0.7666211249888875,
+          "p95": 4.73456158398767
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 564,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 564,
+          "responses_without_message": 5,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 3.5000000000000004e-05,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 2.720974375028163,
+          "p50": 2.720974375028163,
+          "p95": 2.720974375028163
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 1,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "nemotron-3-nano-on",
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "reasoning": "on",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 73,
+          "bounded_generation_failure": 437,
+          "api_transport_failure": 52,
+          "model_contract_failure": 4
+        },
+        "details": {
+          "strict_complete_permutation": 73,
+          "output_token_limit": 437,
+          "response_not_received_no_retry": 52,
+          "missing_aircraft_ids": 3,
+          "extra_or_missing_action_fields": 1
+        },
+        "usable_response_percent": 12.897526501766784,
+        "known_cost_usd": 0.8043638000000001,
+        "unknown_cost_calls": 52,
+        "unknown_cost_reserved_usd": 0.1191152,
+        "latency_seconds": {
+          "mean": 39.77329238953219,
+          "p50": 40.35933662499883,
+          "p95": 60.05006041700835
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 514,
+          "nonempty_returned_reasoning": 514,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 52,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 73,
+          "bounded_generation_failure": 437,
+          "api_transport_failure": 52,
+          "model_contract_failure": 4
+        },
+        "details": {
+          "strict_complete_permutation": 73,
+          "output_token_limit": 437,
+          "response_not_received_no_retry": 52,
+          "missing_aircraft_ids": 3,
+          "extra_or_missing_action_fields": 1
+        },
+        "usable_response_percent": 12.897526501766784,
+        "known_cost_usd": 0.8043638000000001,
+        "unknown_cost_calls": 52,
+        "unknown_cost_reserved_usd": 0.1191152,
+        "latency_seconds": {
+          "mean": 39.77329238953219,
+          "p50": 40.35933662499883,
+          "p95": 60.05006041700835
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 514,
+          "nonempty_returned_reasoning": 514,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 52,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 0.0008986,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 20.896195874986006,
+          "p50": 20.896195874986006,
+          "p95": 20.896195874986006
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 1,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "qwen-3.8-27b-off",
+      "model": "Qwen/Qwen3.8-27B",
+      "reasoning": "off",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 542,
+          "model_contract_failure": 21,
+          "api_transport_failure": 2,
+          "bounded_generation_failure": 1
+        },
+        "details": {
+          "strict_complete_permutation": 542,
+          "missing_aircraft_ids": 21,
+          "response_not_received_no_retry": 2,
+          "output_token_limit": 1
+        },
+        "usable_response_percent": 95.75971731448763,
+        "known_cost_usd": 0.36698549999999996,
+        "unknown_cost_calls": 2,
+        "unknown_cost_reserved_usd": 0.041368,
+        "latency_seconds": {
+          "mean": 1.293530144204337,
+          "p50": 0.7586697909864597,
+          "p95": 4.523431958019501
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 564,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 564,
+          "responses_without_message": 2,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 542,
+          "model_contract_failure": 21,
+          "api_transport_failure": 2,
+          "bounded_generation_failure": 1
+        },
+        "details": {
+          "strict_complete_permutation": 542,
+          "missing_aircraft_ids": 21,
+          "response_not_received_no_retry": 2,
+          "output_token_limit": 1
+        },
+        "usable_response_percent": 95.75971731448763,
+        "known_cost_usd": 0.36698549999999996,
+        "unknown_cost_calls": 2,
+        "unknown_cost_reserved_usd": 0.041368,
+        "latency_seconds": {
+          "mean": 1.293530144204337,
+          "p50": 0.7586697909864597,
+          "p95": 4.523431958019501
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 564,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 564,
+          "responses_without_message": 2,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 0.00021025,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 2.7873127080092672,
+          "p50": 2.7873127080092672,
+          "p95": 2.7873127080092672
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 1,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "qwen-3.8-27b-on",
+      "model": "Qwen/Qwen3.8-27B",
+      "reasoning": "on",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 184,
+          "bounded_generation_failure": 349,
+          "api_transport_failure": 33
+        },
+        "details": {
+          "strict_complete_permutation": 184,
+          "output_token_limit": 349,
+          "response_not_received_no_retry": 33
+        },
+        "usable_response_percent": 32.50883392226148,
+        "known_cost_usd": 7.402830499999999,
+        "unknown_cost_calls": 33,
+        "unknown_cost_reserved_usd": 0.6590545,
+        "latency_seconds": {
+          "mean": 23.355813261966087,
+          "p50": 24.483043542015366,
+          "p95": 60.039539332996355
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 533,
+          "nonempty_returned_reasoning": 533,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 33,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 184,
+          "bounded_generation_failure": 349,
+          "api_transport_failure": 33
+        },
+        "details": {
+          "strict_complete_permutation": 184,
+          "output_token_limit": 349,
+          "response_not_received_no_retry": 33
+        },
+        "usable_response_percent": 32.50883392226148,
+        "known_cost_usd": 7.402830499999999,
+        "unknown_cost_calls": 33,
+        "unknown_cost_reserved_usd": 0.6590545,
+        "latency_seconds": {
+          "mean": 23.355813261966087,
+          "p50": 24.483043542015366,
+          "p95": 60.039539332996355
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 533,
+          "nonempty_returned_reasoning": 533,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 33,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 0.0032797499999999997,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 5.9053517499996815,
+          "p50": 5.9053517499996815,
+          "p95": 5.9053517499996815
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 1,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "gemma-4-31b-off",
+      "model": "google/gemma-4-31b-it",
+      "reasoning": "off",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 547,
+          "api_transport_failure": 14,
+          "model_contract_failure": 5
+        },
+        "details": {
+          "strict_complete_permutation": 547,
+          "response_not_received_no_retry": 14,
+          "unknown_aircraft_ids": 5
+        },
+        "usable_response_percent": 96.64310954063605,
+        "known_cost_usd": 0.1481181,
+        "unknown_cost_calls": 14,
+        "unknown_cost_reserved_usd": 0.07396424,
+        "latency_seconds": {
+          "mean": 4.200735396478548,
+          "p50": 2.5022089580015745,
+          "p95": 8.17170645899023
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 552,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 552,
+          "responses_without_message": 14,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 547,
+          "api_transport_failure": 14,
+          "model_contract_failure": 5
+        },
+        "details": {
+          "strict_complete_permutation": 547,
+          "response_not_received_no_retry": 14,
+          "unknown_aircraft_ids": 5
+        },
+        "usable_response_percent": 96.64310954063605,
+        "known_cost_usd": 0.1481181,
+        "unknown_cost_calls": 14,
+        "unknown_cost_reserved_usd": 0.07396424,
+        "latency_seconds": {
+          "mean": 4.200735396478548,
+          "p50": 2.5022089580015745,
+          "p95": 8.17170645899023
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 552,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 552,
+          "responses_without_message": 14,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 9.618e-05,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 4.091449625004316,
+          "p50": 4.091449625004316,
+          "p95": 4.091449625004316
+        },
+        "reasoning_observability": {
+          "requested_mode": "off",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 0,
+          "empty_or_missing_returned_reasoning": 1,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    },
+    {
+      "config_id": "gemma-4-31b-on",
+      "model": "google/gemma-4-31b-it",
+      "reasoning": "on",
+      "completed_windows": 42,
+      "expected_windows": 42,
+      "all_recorded_attempts": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 94,
+          "api_transport_failure": 472
+        },
+        "details": {
+          "strict_complete_permutation": 94,
+          "response_not_received_no_retry": 472
+        },
+        "usable_response_percent": 16.607773851590107,
+        "known_cost_usd": 0.09078958000000001,
+        "unknown_cost_calls": 472,
+        "unknown_cost_reserved_usd": 2.4556466400000003,
+        "latency_seconds": {
+          "mean": 55.00444988635497,
+          "p50": 60.0467867909756,
+          "p95": 60.136366833001375
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 94,
+          "nonempty_returned_reasoning": 94,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 472,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "selected_completed_window_decisions": {
+        "calls": 566,
+        "dispatched": 566,
+        "groups": {
+          "usable_action": 94,
+          "api_transport_failure": 472
+        },
+        "details": {
+          "strict_complete_permutation": 94,
+          "response_not_received_no_retry": 472
+        },
+        "usable_response_percent": 16.607773851590107,
+        "known_cost_usd": 0.09078958000000001,
+        "unknown_cost_calls": 472,
+        "unknown_cost_reserved_usd": 2.4556466400000003,
+        "latency_seconds": {
+          "mean": 55.00444988635497,
+          "p50": 60.0467867909756,
+          "p95": 60.136366833001375
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 94,
+          "nonempty_returned_reasoning": 94,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 472,
+          "unexpected_nonempty_when_off": 0
+        }
+      },
+      "not_yet_selected_attempts": 0,
+      "preflight": {
+        "calls": 1,
+        "dispatched": 1,
+        "groups": {
+          "usable_action": 1
+        },
+        "details": {
+          "strict_complete_permutation": 1
+        },
+        "usable_response_percent": 100.0,
+        "known_cost_usd": 0.0007023,
+        "unknown_cost_calls": 0,
+        "unknown_cost_reserved_usd": 0,
+        "latency_seconds": {
+          "mean": 19.54583404198638,
+          "p50": 19.54583404198638,
+          "p95": 19.54583404198638
+        },
+        "reasoning_observability": {
+          "requested_mode": "on",
+          "responses_with_message": 1,
+          "nonempty_returned_reasoning": 1,
+          "empty_or_missing_returned_reasoning": 0,
+          "responses_without_message": 0,
+          "unexpected_nonempty_when_off": 0
+        }
+      }
+    }
+  ],
+  "all_recorded_attempts": {
+    "calls": 5667,
+    "dispatched": 5667,
+    "groups": {
+      "usable_action": 2956,
+      "model_contract_failure": 484,
+      "api_transport_failure": 975,
+      "api_http_failure": 5,
+      "bounded_generation_failure": 1247
+    },
+    "details": {
+      "strict_complete_permutation": 2956,
+      "missing_aircraft_ids": 208,
+      "response_not_received_no_retry": 975,
+      "duplicate_aircraft_ids": 41,
+      "provider_http_5xx": 5,
+      "output_token_limit": 1247,
+      "unknown_aircraft_ids": 234,
+      "extra_or_missing_action_fields": 1
+    },
+    "usable_response_percent": 52.16163755073231,
+    "known_cost_usd": 10.15092138,
+    "unknown_cost_calls": 980,
+    "unknown_cost_reserved_usd": 5.11865738,
+    "latency_seconds": {
+      "mean": 22.039469030216267,
+      "p50": 7.298510124994209,
+      "p95": 60.0621642920014
+    },
+    "reasoning_observability": {
+      "requested_mode": "mixed",
+      "responses_with_message": 4687,
+      "nonempty_returned_reasoning": 1887,
+      "empty_or_missing_returned_reasoning": 2800,
+      "responses_without_message": 980,
+      "unexpected_nonempty_when_off": 0
+    }
+  },
+  "preflight_attempts": {
+    "calls": 10,
+    "dispatched": 10,
+    "groups": {
+      "usable_action": 10
+    },
+    "details": {
+      "strict_complete_permutation": 10
+    },
+    "usable_response_percent": 100.0,
+    "known_cost_usd": 0.00641508,
+    "unknown_cost_calls": 0,
+    "unknown_cost_reserved_usd": 0,
+    "latency_seconds": {
+      "mean": 8.556070245796581,
+      "p50": 4.091449625004316,
+      "p95": 20.896195874986006
+    },
+    "reasoning_observability": {
+      "requested_mode": "mixed",
+      "responses_with_message": 10,
+      "nonempty_returned_reasoning": 5,
+      "empty_or_missing_returned_reasoning": 5,
+      "responses_without_message": 0,
+      "unexpected_nonempty_when_off": 0
+    }
+  },
+  "example_selection": "First request by lexical ID for each observed failure group/detail/HTTP status, at most ten; no invented examples.",
+  "examples": [
+    {
+      "config_id": "gemma-4-31b-off",
+      "model": "google/gemma-4-31b-it",
+      "reasoning": "off",
+      "request_id": "gemma-4-31b-off:cl-09ccc3a6b184:2026-08-24-1200:17:3300",
+      "group": "api_transport_failure",
+      "detail": "response_not_received_no_retry",
+      "http_status": null,
+      "finish_reason": null,
+      "latency_seconds": 26.30677612501313,
+      "known_cost_usd": null,
+      "clock_seconds": 3300.0,
+      "episode_id": "ep-1aa12853d134",
+      "source_episode_id": "2026-08-24-1200",
+      "pending_count": 22,
+      "pending_ids_first_twenty": [
+        "A009",
+        "A011",
+        "A012",
+        "A013",
+        "A014",
+        "A015",
+        "A016",
+        "A017",
+        "A018",
+        "A019",
+        "A020",
+        "A021",
+        "A022",
+        "A023",
+        "A024",
+        "A025",
+        "A026",
+        "A027",
+        "A028",
+        "A029"
+      ],
+      "final_answer_excerpt": null,
+      "completion_tokens": null,
+      "contract_details": {},
+      "interpretation": "The client did not receive a complete response. This does not establish a scheduling or reasoning mistake."
+    },
+    {
+      "config_id": "gemma-4-31b-off",
+      "model": "google/gemma-4-31b-it",
+      "reasoning": "off",
+      "request_id": "gemma-4-31b-off:cl-09ccc3a6b184:2026-08-26-0900:17:2700",
+      "group": "model_contract_failure",
+      "detail": "unknown_aircraft_ids",
+      "http_status": 200,
+      "finish_reason": "stop",
+      "latency_seconds": 1.261919249984203,
+      "known_cost_usd": 0.00038258000000000004,
+      "clock_seconds": 2700.0,
+      "episode_id": "ep-873695e32e13",
+      "source_episode_id": "2026-08-26-0900",
+      "pending_count": 21,
+      "pending_ids_first_twenty": [
+        "A001",
+        "A006",
+        "A009",
+        "A010",
+        "A011",
+        "A012",
+        "A013",
+        "A014",
+        "A015",
+        "A016",
+        "A017",
+        "A018",
+        "A019",
+        "A020",
+        "A021",
+        "A022",
+        "A023",
+        "A024",
+        "A025",
+        "A026"
+      ],
+      "final_answer_excerpt": "{\"order\":[\"A001\",\"A006\",\"A009\",\"A010\",\"A017\",\"A011\",\"A019\",\"A015\",\"A014\",\"A012\",\"A013\",\"A021\",\"A023\",\"A007\",\"A016\",\"A018\",\"A020\",\"A025\",\"A024\",\"A027\",\"A022\",\"A026\"]}",
+      "completion_tokens": 114,
+      "contract_details": {
+        "returned_count": 22,
+        "expected_count": 21,
+        "unknown_ids": [
+          "A007"
+        ],
+        "missing_ids": []
+      },
+      "interpretation": "A complete final response violated the exact pending-ID action contract. This is a model response mistake."
+    },
+    {
+      "config_id": "nemotron-3-nano-off",
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "reasoning": "off",
+      "request_id": "nemotron-3-nano-off:cl-09ccc3a6b184:2026-08-24-0900:17:3300",
+      "group": "model_contract_failure",
+      "detail": "missing_aircraft_ids",
+      "http_status": 200,
+      "finish_reason": "stop",
+      "latency_seconds": 4.966755125002237,
+      "known_cost_usd": 0.00013500000000000003,
+      "clock_seconds": 3300.0,
+      "episode_id": "ep-bb39cef93549",
+      "source_episode_id": "2026-08-24-0900",
+      "pending_count": 20,
+      "pending_ids_first_twenty": [
+        "A004",
+        "A005",
+        "A006",
+        "A011",
+        "A012",
+        "A013",
+        "A014",
+        "A015",
+        "A016",
+        "A017",
+        "A018",
+        "A019",
+        "A020",
+        "A021",
+        "A022",
+        "A023",
+        "A024",
+        "A025",
+        "A026",
+        "A027"
+      ],
+      "final_answer_excerpt": "{\"order\":[\"A004\",\"A005\",\"A011\",\"A012\",\"A013\",\"A014\",\"A015\",\"A016\",\"A017\",\"A018\",\"A019\",\"A020\",\"A021\",\"A022\",\"A023\",\"A024\",\"A025\",\"A026\",\"A027\"]}",
+      "completion_tokens": 101,
+      "contract_details": {
+        "returned_count": 19,
+        "expected_count": 20,
+        "unknown_ids": [],
+        "missing_ids": [
+          "A006"
+        ]
+      },
+      "interpretation": "A complete final response violated the exact pending-ID action contract. This is a model response mistake."
+    },
+    {
+      "config_id": "nemotron-3-nano-off",
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "reasoning": "off",
+      "request_id": "nemotron-3-nano-off:cl-09ccc3a6b184:2026-08-24-1200:17:4200",
+      "group": "model_contract_failure",
+      "detail": "duplicate_aircraft_ids",
+      "http_status": 200,
+      "finish_reason": "stop",
+      "latency_seconds": 4.442209500004537,
+      "known_cost_usd": 0.00014275,
+      "clock_seconds": 4200.0,
+      "episode_id": "ep-1aa12853d134",
+      "source_episode_id": "2026-08-24-1200",
+      "pending_count": 19,
+      "pending_ids_first_twenty": [
+        "A011",
+        "A012",
+        "A014",
+        "A015",
+        "A016",
+        "A017",
+        "A018",
+        "A019",
+        "A020",
+        "A021",
+        "A022",
+        "A023",
+        "A024",
+        "A025",
+        "A026",
+        "A027",
+        "A028",
+        "A030",
+        "A031"
+      ],
+      "final_answer_excerpt": "{\"order\":[\"A011\",\"A014\",\"A017\",\"A021\",\"A027\",\"A023\",\"A025\",\"A026\",\"A030\",\"A031\",\"A015\",\"A016\",\"A020\",\"A024\",\"A018\",\"A019\",\"A012\",\"A013\",\"A028\",\"A022\",\"A019\",\"A029\"]}",
+      "completion_tokens": 116,
+      "contract_details": {
+        "returned_count": 22,
+        "expected_count": 19,
+        "unknown_ids": [
+          "A013",
+          "A029"
+        ],
+        "missing_ids": []
+      },
+      "interpretation": "A complete final response violated the exact pending-ID action contract. This is a model response mistake."
+    },
+    {
+      "config_id": "nemotron-3-nano-on",
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "reasoning": "on",
+      "request_id": "nemotron-3-nano-on:cl-09ccc3a6b184:2026-08-24-0600:17:2400",
+      "group": "bounded_generation_failure",
+      "detail": "output_token_limit",
+      "http_status": 200,
+      "finish_reason": "length",
+      "latency_seconds": 35.87314658399555,
+      "known_cost_usd": 0.0016838,
+      "clock_seconds": 2400.0,
+      "episode_id": "ep-b769b3b6edba",
+      "source_episode_id": "2026-08-24-0600",
+      "pending_count": 5,
+      "pending_ids_first_twenty": [
+        "A002",
+        "A003",
+        "A004",
+        "A005",
+        "A006"
+      ],
+      "final_answer_excerpt": null,
+      "completion_tokens": 8192,
+      "contract_details": {},
+      "interpretation": "The configured generation boundary prevented a completed action. This measures reliability under the frozen budget, not unrestricted reasoning ability."
+    },
+    {
+      "config_id": "nemotron-3-nano-on",
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "reasoning": "on",
+      "request_id": "nemotron-3-nano-on:cl-09ccc3a6b184:2026-08-28-0600:17:3600",
+      "group": "model_contract_failure",
+      "detail": "extra_or_missing_action_fields",
+      "http_status": 200,
+      "finish_reason": "stop",
+      "latency_seconds": 4.423047082993435,
+      "known_cost_usd": 0.00021405,
+      "clock_seconds": 3600.0,
+      "episode_id": "ep-2d570bf011ad",
+      "source_episode_id": "2026-08-28-0600",
+      "pending_count": 1,
+      "pending_ids_first_twenty": [
+        "A006"
+      ],
+      "final_answer_excerpt": "{ \"order \": [ \"A006\" ] }",
+      "completion_tokens": 887,
+      "contract_details": {},
+      "interpretation": "A complete final response violated the exact pending-ID action contract. This is a model response mistake."
+    },
+    {
+      "config_id": "nemotron-3.5-super-vl-on",
+      "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+      "reasoning": "on",
+      "request_id": "nemotron-3.5-super-vl-on:cl-09ccc3a6b184:2026-08-24-1800:17:2100",
+      "group": "api_http_failure",
+      "detail": "provider_http_5xx",
+      "http_status": 500,
+      "finish_reason": null,
+      "latency_seconds": 6.291170959011652,
+      "known_cost_usd": null,
+      "clock_seconds": 2100.0,
+      "episode_id": "ep-6448d5dc745b",
+      "source_episode_id": "2026-08-24-1800",
+      "pending_count": 12,
+      "pending_ids_first_twenty": [
+        "A002",
+        "A003",
+        "A007",
+        "A008",
+        "A009",
+        "A010",
+        "A012",
+        "A013",
+        "A014",
+        "A015",
+        "A016",
+        "A017"
+      ],
+      "final_answer_excerpt": null,
+      "completion_tokens": null,
+      "contract_details": {},
+      "interpretation": "The API returned an HTTP error. Provider or request handling failed before a usable model action; HTTP status alone cannot establish model quality."
+    }
+  ]
+}
