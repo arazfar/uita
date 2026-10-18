@@ -341,10 +341,10 @@ function shownFrame() {
 }
 function sendFrame() {
   const shown = shownFrame();
+  if (!shown) return;
   renderAgentTrace?.({ events, clock, sourceKey: `${sourceGeneration}:${run?.id || recording?.id}`,
     source: recording?.title || run?.id || "Selected run", live: !!run,
     controller: run?.state?.controller || (recording?.provenance === "fixture" ? "fixture" : frame.controller), status: frame.status, comparison: mode === "compare", hidden: mode === "historical" });
-  if (!shown) return;
   const frames =
     mode === "historical"
       ? windowData?.frames
