@@ -122,7 +122,7 @@ class Worker:
             except Exception as exc:
                 proposal, metadata, failure = (
                     None,
-                    {},
+                    getattr(exc, "metadata", {}),
                     getattr(exc, "reason", "inference_internal_error"),
                 )
             with self.database.transaction() as db:
@@ -142,6 +142,7 @@ class Worker:
                         current,
                         "controller_fallback",
                         reason=failure,
+                        metadata=metadata,
                         policy_version=current["policy_version"],
                     )
                 elif (

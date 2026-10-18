@@ -30,3 +30,6 @@ supabase/.temp/
 
 # SkyFlow showcase: baked TTS clips are generated on demand
 showcase/candidates/audio/
+
+# React trace island, built from frontend/ for the static showcase
+showcase/candidates/trace-assets/

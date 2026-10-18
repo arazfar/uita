@@ -1,0 +1,12 @@
+/* Scope the Tempelhof instrument palette to the island; preserve shell/tower controls. */
+#agent-trace {
+  --atc-screen: #0b100e; --atc-screen-raised: #151c18; --atc-screen-hover: #202a24;
+  --atc-text: #ece7d9; --atc-text-secondary: #b6bcae;
+  --atc-rule: #3c4840; --atc-rule-strong: #69776a;
+  --atc-cyan: #99d6d1; --atc-amber: #f5c35c; --atc-focus-dark: #f5c35c;
+  --atc-font-data: ui-monospace, monospace;
+  min-width: 0;
+}
+#agent-trace .agent-trace { margin: 12px 0; }
+#agent-trace .chain-of-thought-content { max-height: 60vh; }
+#agent-trace .reasoning-detail pre { white-space: pre-wrap; overflow-wrap: anywhere; }

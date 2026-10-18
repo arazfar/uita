@@ -11,7 +11,7 @@ COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
 ENV VITE_RESEARCH_V2=true
-RUN npm run build
+RUN npm run build && npm run build:trace
 
 FROM python:3.11-slim
 WORKDIR /app
@@ -23,6 +23,7 @@ COPY alembic.ini ./
 COPY benchmark/closed_loop/reports/2026-10-17/comparison.md ./benchmark/closed_loop/reports/2026-10-17/comparison.md
 COPY --from=workbench /app/frontend/dist ./frontend/dist
 COPY --from=showcase /app/showcase/candidates ./showcase/candidates
+COPY --from=workbench /app/showcase/candidates/trace-assets ./showcase/candidates/trace-assets
 COPY --from=showcase /app/showcase/node_modules/three186 ./showcase/node_modules/three186
 COPY --from=showcase /app/showcase/node_modules/cesium/Build/Cesium ./showcase/node_modules/cesium/Build/Cesium
 RUN useradd --create-home uita

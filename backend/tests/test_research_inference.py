@@ -1,5 +1,6 @@
 import httpx
 import pytest
+from pydantic_ai.models import override_allow_model_requests
 from sqlalchemy import select
 from uita.provider import MODEL
 from uita.research.data import frozen_fixture
@@ -47,13 +48,14 @@ def test_paid_failures_are_bounded_and_explained(tmp_path, monkeypatch, case, re
     monkeypatch.setattr(
         "uita.research.inference._pricing", lambda _: (0.000001, 0.000001)
     )
-    monkeypatch.setattr(
-        "uita.research.inference.httpx.Client",
-        lambda **kwargs: client_type(**kwargs, transport=httpx.MockTransport(handler)),
-    )
+    class FixtureClient(client_type):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs, transport=httpx.MockTransport(handler))
+
+    monkeypatch.setattr("uita.research.inference.httpx.Client", FixtureClient)
     state = initial_state(frozen_fixture(), 42, "crusoe")
     state["spend_cap_usd"] = 0.5
-    with pytest.raises(InferenceFailure) as error:
+    with override_allow_model_requests(True), pytest.raises(InferenceFailure) as error:
         generate(database, "test-run", "test-team", state)
     assert error.value.reason == reason
     assert calls.count("POST") == (0 if case == "budget" else 1)

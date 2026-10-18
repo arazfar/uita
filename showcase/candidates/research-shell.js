@@ -7,6 +7,15 @@ import {
   validMessage,
 } from "./research-client.js";
 const $ = (id) => document.getElementById(id);
+// A failed optional panel must never stop traffic playback or tower controls.
+let renderAgentTrace;
+import("./trace-assets/agent-trace.js").then(module => {
+  renderAgentTrace = module.renderAgentTrace;
+  render();
+}).catch(() => {
+  $("agent-trace").textContent = "Agent trace unavailable. Raw decision evidence remains below.";
+});
+
 let scene = $("scene");
 const cameras = new Map([["dashboard", scene]]);
 let historyCatalog = [],
@@ -115,6 +124,9 @@ function shownFrame() {
 }
 function sendFrame() {
   const shown = shownFrame();
+  renderAgentTrace?.({ events, clock, sourceKey: `${sourceGeneration}:${run?.id || recording?.id}`,
+    source: recording?.title || run?.id || "Selected run", live: !!run,
+    controller: run?.state?.controller || (recording?.provenance === "fixture" ? "fixture" : frame.controller), status: frame.status, comparison: mode === "compare", hidden: mode === "historical" });
   if (!shown) return;
   const frames =
     mode === "historical"
