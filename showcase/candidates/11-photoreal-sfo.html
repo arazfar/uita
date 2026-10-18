@@ -869,6 +869,9 @@ const ZMIN = 30, ZMAX = 85000;
 let camMode = 'cine', shot = null, blend = null, towerTgt = null, letterbox = false;
 // Tower eye ~100 m above the local ground (photoreal ground is ellipsoidal, the pack's is 0), clear of the cab roof mesh
 const towerEye = () => C.Cartesian3.fromDegrees(-122.3838, 37.6159, GROUND + 100);
+// Tower preset: pulled back and up behind the terminal ring, so the control tower,
+// terminals and both runway pairs read in one frame (instead of eye level on the cab).
+const towerView = () => ({ eye: C.Cartesian3.fromDegrees(-122.3918, 37.6126, GROUND + 250), hdg: 57, pitch: -16 });
 const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; // cubic in-out
 function enu(from, to) {
   const tr = C.Transforms.eastNorthUpToFixedFrame(from); const inv = C.Matrix4.inverseTransformation(tr, new C.Matrix4());
@@ -891,7 +894,7 @@ const at3 = (lonlat, h) => C.Cartesian3.fromDegrees(lonlat[0], lonlat[1], h);
 const STORM_C = at3(mid, cAlt), OAK_PAD = at3(NODES.OAK, GROUND + 10), BAY_C = at3([-122.34, 37.735], 0);
 const PRESETS = {
   1: { name: 'OVERVIEW · BAY', pose: () => packMix() > 0.5 ? orbitPose(SFO_C, 330, -42, 3200) : orbitPose(at3([-122.16, 37.60], 0), 345, -55, 76000) }, // SFO, OAK, SJC and all recorded routes
-  2: { name: 'TOWER CAB · SFO', pose: () => ({ eye: towerEye(), hdg: 94, pitch: -4.5 }) }, // down 28L/R toward the thresholds
+  2: { name: 'TOWER · SFO', pose: towerView }, // down 28L/R toward the thresholds
   3: { name: 'CHASE', chase: true },
   4: { name: 'STORM · C–E', pose: () => orbitPose(STORM_C, 25, -24, 9000) },
   5: { name: 'VERTIPORT · OAK', pose: () => orbitPose(OAK_PAD, 300, -28, 1700) },
@@ -908,7 +911,7 @@ const UTA108 = flightBy('UTA108'), skf108Pos = evtPos(UTA108);
 // Cinematic shot list, synced to the scenario beats (wall seconds within the 90 s loop)
 const SHOTS = !MOCK ? [
   { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => { const k = packMix(); return orbitPose(SFO_C, 300 + t * 1.2, -30 - 10 * k, (4200 + t * 60) * (1 - k) + 2600 * k); } },
-  { t0: 30, name: 'TOWER CAB · SFO', fov: 55, pose: () => ({ eye: towerEye(), hdg: 94, pitch: -4.5 }) },
+  { t0: 30, name: 'TOWER · SFO', fov: 55, pose: towerView },
   { t0: 55, name: 'BAY · RECORDED TRAFFIC', fov: 60, pose: (t) => orbitPose(at3([-122.2, 37.62], 0), 330 + (t - 55) * 1.5, -50, 60000) },
 ] : [
   { t0: 0, name: 'ESTABLISHING · SFO', fov: 55, pose: (t) => { const k = packMix(); return orbitPose(SFO_C, 300 + t * 2.4, (-30 + t * 0.3) * (1 - k) - 40 * k, (4200 + t * 250) * (1 - k) + 2600 * k); } },
