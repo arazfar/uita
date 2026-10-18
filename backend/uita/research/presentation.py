@@ -24,12 +24,15 @@ from .geometry import geographic
 
 
 def frame(state, source_id, revision, cursor=0, mode="simulation"):
+    from .arrival_routes import presentation as route_presentation
+
     aircraft = []
     for a in state["aircraft"]:
         lon, lat = geographic(a["x_nm"], a["y_nm"])
         aircraft.append(
             PresentationAircraft(
                 arrival_cue=simulation_cue(a, state),
+                route=route_presentation(a, state),
                 id=a["id"],
                 callsign=a["callsign"],
                 longitude=lon,

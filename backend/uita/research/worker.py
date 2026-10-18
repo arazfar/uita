@@ -67,9 +67,8 @@ class Worker:
             state = copy.deepcopy(run.state)
             scenario = scenario_for(db, state["scenario_id"])
             compatible = (
-                state["simulator_version"] in (SIMULATOR_VERSION, sandbox.VERSION)
-                and state["rule_version"] == VERSION
-            )
+                state["simulator_version"] == SIMULATOR_VERSION or sandbox.active(state)
+            ) and state["rule_version"] == VERSION
             if not compatible:
                 state["status"] = "paused"
                 event(
@@ -237,6 +236,18 @@ class Worker:
     def execute_job(self, job_id, fence, payload, scenario):
         results = []
         for controller in payload["controllers"]:
+            from .arrival_routes import VERSION as ROUTED_VERSION
+
+            if scenario.get(
+                "simulator_version"
+            ) == ROUTED_VERSION and controller not in (
+                "static",
+                "with_intervention",
+                "without_intervention",
+            ):
+                raise ValueError(
+                    "Controller is not implemented for the routed simulator"
+                )
             state = (
                 copy.deepcopy(payload["initial_state"])
                 if payload.get("initial_state")

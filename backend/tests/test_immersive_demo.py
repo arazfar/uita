@@ -33,6 +33,11 @@ def test_fresh_demo_pack_without_source_or_provider(tmp_path, monkeypatch):
 
         sandbox_scenario = scenario_from(pack["artifacts"][0]["payload"])
         save_artifact(db, sandbox_scenario["id"], "scenario", sandbox_scenario)
+        routed_pack = json.loads(
+            gzip.decompress((assets / "arrival_flows.json.gz").read_bytes())
+        )
+        for artifact in routed_pack["artifacts"]:
+            save_artifact(db, artifact["id"], artifact["kind"], artifact["payload"])
         for p in (assets / "recordings").glob("*.json.gz"):
             install_recording(db, json.loads(gzip.decompress(p.read_bytes())))
     app = create_app(database, False)

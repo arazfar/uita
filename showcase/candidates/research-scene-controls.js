@@ -225,7 +225,11 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
     frame = next;
     if (!opened) {
       opened = true;
-      if (next.source_id === "dense-demo-v1") overview();
+      if (
+        next.source_id === "dense-demo-v1" ||
+        next.aircraft.some((a) => a.route)
+      )
+        overview();
     }
     selected = id;
     document.querySelector('[data-preset="3"]').disabled =
@@ -265,11 +269,26 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
       $("fcRoute").textContent =
         frame.mode === "historical"
           ? "Historical observation"
-          : "Research simulation";
+          : a.route
+            ? `${a.route.name} · synthetic route`
+            : "Research simulation";
       $("fcStatus").textContent = arrivalLabel(a);
       $("fcGrid").replaceChildren();
+      $("fcGrid").style.gridTemplateColumns = a.route
+        ? "repeat(2, minmax(0, 1fr))"
+        : "";
       for (const [label, value] of [
         ["Assigned runway", a.runway || "Unavailable"],
+        ...(a.route
+          ? [
+              ["Route phase", a.route.phase.replaceAll("_", " ")],
+              ["Route remaining", `${a.route.remaining_nm} NM`],
+              [
+                "Intended merge position",
+                a.route.intended_merge_position ?? "Unassigned",
+              ],
+            ]
+          : []),
         [
           "Altitude",
           Number.isFinite(a.altitude_ft)
@@ -290,7 +309,11 @@ export function mountSceneControls({ C, viewer, entities, setPhotoreal }) {
         ],
       ]) {
         const el = document.createElement("div");
-        el.textContent = `${label} · ${value}`;
+        const title = document.createElement("i"),
+          detail = document.createElement("b");
+        title.textContent = label;
+        detail.textContent = value;
+        el.append(title, detail);
         $("fcGrid").append(el);
       }
       $("fcClr").textContent =

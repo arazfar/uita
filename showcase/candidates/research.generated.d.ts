@@ -910,6 +910,7 @@ export interface components {
         };
         /** PresentationAircraft */
         PresentationAircraft: {
+            route?: components["schemas"]["RoutePresentation"] | null;
             arrival_cue?: components["schemas"]["ArrivalCue"] | null;
             /** Id */
             id: string;
@@ -1082,6 +1083,41 @@ export interface components {
             baseline_frames: components["schemas"]["PresentationFrame"][];
             /** Events */
             events: components["schemas"]["RunEvent"][];
+        };
+        /** RoutePresentation */
+        RoutePresentation: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: string;
+            /** Name */
+            name: string;
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "entry" | "descent" | "merge" | "final_intercept" | "final_approach" | "runway_transition";
+            /** Remaining Nm */
+            remaining_nm: number;
+            /** Progress Nm */
+            progress_nm: number;
+            /**
+             * Basis
+             * @constant
+             */
+            basis: "synthetic";
+            /** Intended Merge Position */
+            intended_merge_position?: number | null;
+            /** Preview */
+            preview: [
+                number,
+                number
+            ][];
+            /** Merge */
+            merge: [
+                number,
+                number
+            ];
         };
         /** RunCreate */
         RunCreate: {

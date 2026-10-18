@@ -96,7 +96,7 @@ def create_run(db, team, command):
     from . import sandbox
 
     if command.sandbox:
-        if command.scenario_id != sandbox.SCENARIO or command.controller != "static":
+        if not sandbox.active(state) or command.controller != "static":
             raise ValueError(
                 "Sandbox requires the versioned scenario and free static controller"
             )
@@ -163,6 +163,12 @@ def apply_proposal(state, proposal, execute=True):
                     future_traffic_included=False,
                 )
             )
+    from .arrival_routes import active as routed
+
+    if routed(state) and proposal.clearances and result(checks)["status"] == "pass":
+        from .route_verification import predict_merge
+
+        checks.extend(predict_merge(trial)["checks"])
     verdict = result(checks)
     if verdict["status"] == "pass" and execute:
         state.clear()

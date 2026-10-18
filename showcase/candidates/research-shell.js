@@ -1,5 +1,10 @@
 import { PlaybackWindows } from "./research-windows.js";
-import { arrivalLabel, arrivalTone, TONE_CSS, landingCandidates } from "./research-arrivals.js";
+import {
+  arrivalLabel,
+  arrivalTone,
+  TONE_CSS,
+  landingCandidates,
+} from "./research-arrivals.js";
 import { decisionAt, DecisionVisibility } from "./research-decision.js";
 import {
   api,
@@ -504,12 +509,24 @@ function render() {
   $("clock").textContent = timeLabel(clock || frame.clock);
   $("seek").value = String(clock);
   // Status strip: readable summary; the raw status and revision stay in the tooltip for researchers.
-  const what = mode === "historical" ? "observed traffic" : String(recording?.title || run?.state?.scenario || "simulation").replace(/^San Francisco · /, "").replace(/ · synthetic$/, "");
-  const hhmm = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date((clock || frame.clock) * 1000));
+  const what =
+    mode === "historical"
+      ? "observed traffic"
+      : String(recording?.title || run?.state?.scenario || "simulation")
+          .replace(/^San Francisco · /, "")
+          .replace(/ · synthetic$/, "");
+  const hhmm = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date((clock || frame.clock) * 1000));
   $("connection").textContent =
     `${run && mode !== "historical" ? "Live backend" : "Recorded playback"} · SFO · ${what} · ${hhmm} PDT`;
-  $("connection").title = `${recording?.title || run?.state?.scenario || ""} · ${timeLabel(clock || frame.clock)} · ${frame.status} · revision ${frame.revision}`;
-  const moving = run && mode !== "historical" ? frame.status === "running" : playing;
+  $("connection").title =
+    `${recording?.title || run?.state?.scenario || ""} · ${timeLabel(clock || frame.clock)} · ${frame.status} · revision ${frame.revision}`;
+  const moving =
+    run && mode !== "historical" ? frame.status === "running" : playing;
   $("ds-dot").classList.toggle("on", !!moving);
   $("ds-play").textContent = moving ? "⏸" : "▶";
   if (
@@ -578,7 +595,11 @@ function render() {
     button.setAttribute("aria-pressed", String(selected === a.id));
     row.cells[1].textContent =
       a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft);
-    row.cells[2].textContent = arrivalLabel(a);
+    row.cells[2].textContent =
+      arrivalLabel(a) +
+      (a.route
+        ? ` · ${a.route.name} · ${a.route.phase.replaceAll("_", " ")} · ${a.route.remaining_nm} NM along route`
+        : "");
     row.cells[2].style.color = TONE_CSS[arrivalTone(a)];
     if (table.children[index] !== row)
       table.insertBefore(row, table.children[index] || null);
@@ -1219,9 +1240,9 @@ action(async () => {
     )
     .join("");
   catalog.sort((a, b) =>
-    a.id === "dense-demo-v1"
+    a.id === "arrival-flows-v1"
       ? -1
-      : b.id === "dense-demo-v1"
+      : b.id === "arrival-flows-v1"
         ? 1
         : a.id.localeCompare(b.id),
   );
@@ -1274,7 +1295,8 @@ function renderPanel(shown, metricRows, m, arrivals) {
     .map(([k, v]) => {
       const [label, cls] = KPI[k] || [k, "kpi"];
       const bad = cls.includes("safety") && Number(v) > 0;
-      const shownV = cls.includes("safety") && v !== "—" ? (bad ? v : `${v} ✓`) : v;
+      const shownV =
+        cls.includes("safety") && v !== "—" ? (bad ? v : `${v} ✓`) : v;
       return `<div class="${cls}${cls.includes("safety") ? (bad ? " bad" : " ok") : ""}" title="${esc(k)}"><dt>${esc(label)}</dt><dd>${esc(shownV)}</dd></div>`;
     })
     .join("");
@@ -1285,16 +1307,24 @@ function renderPanel(shown, metricRows, m, arrivals) {
   // runway chips
   const closed = new Set(shown.closed_runways || []);
   const chips = RUNWAYS.map(
-    (r) => `<span class="ds-rwy${closed.has(r) ? " off" : ""}" title="${closed.has(r) ? "Unavailable" : "Available"}">${r}</span>`,
+    (r) =>
+      `<span class="ds-rwy${closed.has(r) ? " off" : ""}" title="${closed.has(r) ? "Unavailable" : "Available"}">${r}</span>`,
   ).join("");
   if ($("ds-runways").innerHTML !== chips) $("ds-runways").innerHTML = chips;
   // controller badge
   const fixture = recording?.provenance === "fixture";
   const ctrl = String(shown.controller || "—");
-  const model = !fixture && /nemotron|crusoe|model|llm/i.test(ctrl + " " + (recording?.model || ""));
+  const model =
+    !fixture &&
+    /nemotron|crusoe|model|llm/i.test(ctrl + " " + (recording?.model || ""));
   const lat = events
     .filter((e) => e.clock <= clock)
-    .map((e) => e.payload?.latency_ms ?? e.payload?.elapsed_ms ?? e.payload?.model_latency_ms)
+    .map(
+      (e) =>
+        e.payload?.latency_ms ??
+        e.payload?.elapsed_ms ??
+        e.payload?.model_latency_ms,
+    )
     .filter((x) => Number.isFinite(x))
     .pop();
   $("ds-controller").textContent =
@@ -1304,7 +1334,17 @@ function renderPanel(shown, metricRows, m, arrivals) {
         ? `Nemotron${lat != null ? ` · decided in ${(lat / 1000).toFixed(1)} s` : ` · ${recording?.model || ctrl}`}`
         : `Controller: ${ctrl}${fixture ? " · scripted" : ""}`;
   // landing queue (same data-aircraft selection as the floating queue)
-  const qKey = JSON.stringify(arrivals.slice(0, 6).map((a) => [a.id, arrivalLabel(a), a.arrival_cue.runway, a.arrival_cue.distance_nm, selected === a.id]));
+  const qKey = JSON.stringify(
+    arrivals
+      .slice(0, 6)
+      .map((a) => [
+        a.id,
+        arrivalLabel(a),
+        a.arrival_cue.runway,
+        a.arrival_cue.distance_nm,
+        selected === a.id,
+      ]),
+  );
   const q = $("ds-queue");
   if (q.dataset.key !== qKey) {
     q.dataset.key = qKey;
@@ -1420,7 +1460,7 @@ async function startSandbox(reset = false) {
   try {
     if (reset) sandboxPending = null;
     sandboxPending ||= await api("/runs", {
-      scenario_id: "early-august-sandbox-v1",
+      scenario_id: "early-august-arrival-flows-v1",
       sandbox: true,
       controller: "static",
       seed: 42,
@@ -1496,7 +1536,9 @@ function renderSandbox() {
   const live =
     !!run &&
     mode !== "historical" &&
-    frame?.simulator_version === "kinematic-sandbox-3";
+    ["kinematic-sandbox-3", "kinematic-arrival-flows-4"].includes(
+      frame?.simulator_version,
+    );
   const ready =
     live &&
     !frame.initialization_until &&

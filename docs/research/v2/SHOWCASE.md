@@ -368,3 +368,107 @@ No production acceptance or operational FAA compliance is claimed. The versioned
 `SANDBOX_REFERENCES` register in `standards.py` links FAA priority/weather/runway
 context; current pages are not asserted to be archived August authority. Separation,
 verification and inference budgets remain unchanged.
+
+## Converging arrival flows (arrival-flows-v1)
+
+The opening recording and **Try a disruption** sandbox now use
+`early-august-arrival-flows-v1` / `kinematic-arrival-flows-4` /
+`static-arrival-flows-1`. All older recordings and the sandbox-3 simulator remain
+available with their original behavior. This is a new synthetic demonstration,
+not a reconstruction of a historical controller session or expert validation.
+
+Two lateral families are supported by the existing frozen development tracks:
+three eastern tracks and four southern tracks. Representative IDs and every
+source checksum are in `sfo-arrival-context-v1`. The builder rejects discontinuities,
+intervals over 120 seconds, jumps over 600 knots, insufficient observations and
+unsupported families. It requires a terminal endpoint within 3 NM of SFO.
+These are data-quality screening thresholds, not ATC standards. The evidence is
+operation-linked SFO replay; other traffic is not manufactured into SFO demand.
+
+The route templates retain representative observed shape, round corners, and
+connect to a common final. They include a clearly synthetic 35-NM upstream
+extension to maintain regional traffic density. **All altitude profiles, speed
+profiles, admission times and initial states are synthetic.** Runway thresholds
+and true bearings come from FAA AIP KSFO AD 2.12; this contextual snapshot does
+not establish date-matched procedure or terrain authority. Generic heading,
+altitude, direct-to and published-approach commands remain unresolved.
+
+Measured packaged episode (300-second pre-roll, 1,200-second presentation):
+
+| Measure | Result |
+|---|---:|
+| Airborne targets inside 125 NM: minimum / median / peak | 7 / 7 / 8 |
+| Presentation samples with 6–10 airborne targets | 100% |
+| Maximum heading change | 2.673° per second |
+| Maximum descent | 1,500 ft/min |
+| Airborne indicated speed range | 145–190 kt |
+| Maximum ground-track error inside 3 NM remaining | 0.225° |
+| Executed completed arrivals by end, including pre-roll | 5 |
+| Executed violations / diversions in default episode | 0 / 0 |
+| Synthetic altitude fraction | 100% |
+
+Lateral template-to-representative-track deviation over the supported 20–70 NM
+radial region: east mean **0.330 NM**, maximum **0.852 NM**; south mean **0.379 NM**,
+maximum **1.308 NM**. These describe template geometry, not accuracy of simulated
+control or observed descent. Final connections and upstream extensions are excluded.
+
+Select an aircraft to see its route family, phase, distance along route and intended
+merge position. Dashed lines show **intended synthetic routes**; executed trails
+remain separate. The tower traffic display uses the same route and aircraft state.
+An overview includes the regional streams; Airport and Follow remain explicit
+camera actions. The tower cab naturally cannot show distant aircraft visually;
+its traffic screen and shared table retain inspection access.
+
+The controller schedules by remaining route travel time, protects current landing
+commitments, and uses verified speed adjustments when a merge or restriction
+requires spacing. Emergency priority cannot override physical order or create
+unsupported vectors. Weather recovery restores profile speed through another
+verified instruction. Final changes between runways are unavailable once within
+15 NM along route. Go-arounds are explicitly synthetic runway-heading climbs;
+intended arrival-path previews disappear during a contingency.
+
+Independent verification retains all original separation, wake and runway checks,
+adds continuity/turn/corridor/final/touchdown checks, and projects current traffic
+at one-second resolution through the merge for 900 seconds. This prediction ends
+at 10 NM remaining; executed-motion and runway checks continue through landing.
+It does not assert feasibility beyond its horizon. Extra arrivals try both routes
+in earliest route-travel-time order, with route ID as tie-breaker, using a longer
+1,800-second admission forecast. If neither passes, the request stays deferred.
+No future private demand is passed to the controller.
+
+Rebuild reproducibly without source database access or provider credentials:
+
+```sh
+PYTHONPATH=backend python scripts/build_arrival_flows.py
+python -m uita.research.cli bootstrap
+```
+
+The builder checks full-episode verification, replay hashes, density and recording
+integrity before writing the new pack. Diagnostics are retained under
+`output/arrival-flow-attempts/`. Bootstrap verifies checksums and preserves earlier
+artifacts. Rebuilding an already installed immutable version with different content
+requires a new version; do not overwrite installed artifacts. For ordinary startup,
+use the packaged assets and the API/worker commands above. `/health/demo` now requires
+the route catalog, scenario and recording. Roll back by deploying the previous
+matched API/worker/frontend release; the additive artifacts may remain in PostgreSQL.
+
+Validation includes full-horizon baseline, restriction, priority, pilot-delay,
+extra-arrival and combined presets; JSON checkpoint round-trip during route flight;
+unsafe future merge detection; wind correction; teleport/turn/touchdown rejection;
+and unsupported-heading checks. Browser acceptance covers recorded and live playback,
+both camera views, disruption/recovery, admitted extra demand, comparison/export,
+shared route inspection, desktop and 390px layouts, and short reconnect testing.
+No inference was purchased. Production rollout, deployed-container/PostgreSQL smoke,
+extended rendering soak and professional review remain separate checks. Local
+imagery availability does not establish hosted photoreal tile availability.
+
+Final local checks: the 304-test backend suite passed, followed by a targeted
+unsupported-controller guard test; all 32 showcase tests, both frontend builds,
+asset packaging and empty-database readiness passed. Routed comparisons currently
+support the implemented static policy; unsupported controllers fail explicitly
+rather than being labeled as a different algorithm. Browser disruption feedback
+measured **166 ms** in the final fresh-database run. The dashboard rendered
+**29.98 FPS** over a three-second playback sample on an Apple M1 Pro in Chromium,
+matching the existing renderer's 30-FPS cap. This is a short local measurement,
+not a mobile hardware benchmark or extended soak result. Bundle-size warnings
+and the existing test-client deprecation warning remain.

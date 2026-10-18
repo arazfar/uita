@@ -1939,6 +1939,16 @@
       },
       "PresentationAircraft": {
         "properties": {
+          "route": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoutePresentation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "arrival_cue": {
             "anyOf": [
               {
@@ -2376,6 +2386,107 @@
           "events"
         ],
         "title": "RecordingWindow"
+      },
+      "RoutePresentation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "entry",
+              "descent",
+              "merge",
+              "final_intercept",
+              "final_approach",
+              "runway_transition"
+            ],
+            "title": "Phase"
+          },
+          "remaining_nm": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Remaining Nm"
+          },
+          "progress_nm": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Progress Nm"
+          },
+          "basis": {
+            "type": "string",
+            "const": "synthetic",
+            "title": "Basis"
+          },
+          "intended_merge_position": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intended Merge Position"
+          },
+          "preview": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "maxItems": 256,
+            "title": "Preview"
+          },
+          "merge": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Merge"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "name",
+          "phase",
+          "remaining_nm",
+          "progress_nm",
+          "basis",
+          "preview",
+          "merge"
+        ],
+        "title": "RoutePresentation"
       },
       "RunCreate": {
         "properties": {

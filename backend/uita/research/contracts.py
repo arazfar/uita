@@ -203,7 +203,28 @@ class ArrivalCue(Contract):
     distance_nm: float | None = None
 
 
+class RoutePresentation(Contract):
+    id: str
+    version: str
+    name: str
+    phase: Literal[
+        "entry",
+        "descent",
+        "merge",
+        "final_intercept",
+        "final_approach",
+        "runway_transition",
+    ]
+    remaining_nm: float = Field(ge=0, allow_inf_nan=False)
+    progress_nm: float = Field(ge=0, allow_inf_nan=False)
+    basis: Literal["synthetic"]
+    intended_merge_position: int | None = Field(default=None, ge=1)
+    preview: list[tuple[float, float]] = Field(max_length=256)
+    merge: tuple[float, float]
+
+
 class PresentationAircraft(Contract):
+    route: RoutePresentation | None = None
     arrival_cue: ArrivalCue | None = None
     id: str
     callsign: str

@@ -36,7 +36,11 @@ def main():
                 save_artifact(db, artifact["id"], artifact["kind"], artifact["payload"])
             for pack_path in (
                 Path(__file__).parent / "assets" / name
-                for name in ("showcase_data.json.gz", "dense_demo.json.gz")
+                for name in (
+                    "showcase_data.json.gz",
+                    "dense_demo.json.gz",
+                    "arrival_flows.json.gz",
+                )
             ):
                 if not pack_path.exists():
                     continue

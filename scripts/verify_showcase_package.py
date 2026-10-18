@@ -31,6 +31,11 @@ for name in ["11-photoreal-sfo.html", "19-tower-cab-interior.html"]:
             raise SystemExit("Missing local page asset: " + ref)
 print("Shipped showcase pages, local dependencies and vendor entrypoints are present")
 
-for name in ("dense_demo.json.gz", "recordings/dense-demo-v1.json.gz"):
+for name in (
+    "dense_demo.json.gz",
+    "recordings/dense-demo-v1.json.gz",
+    "arrival_flows.json.gz",
+    "recordings/arrival-flows-v1.json.gz",
+):
     if not (root.parent / "backend/uita/research/assets" / name).is_file():
         raise SystemExit("Missing dense demo asset: " + name)

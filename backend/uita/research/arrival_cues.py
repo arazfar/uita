@@ -30,7 +30,8 @@ def historical_cue(points, index, clock):
     ):
         return None
     candidates = [
-        point for point in points[:index]
+        point
+        for point in points[:index]
         if 10 <= latest["t"] - point["t"] <= 60
         and point.get("segment_id") == latest["segment_id"]
         and point.get("altitude_ft") is not None
@@ -62,7 +63,8 @@ def _distance(x, y, runway):
 
 def _latest_landing(clearances, aircraft_id):
     landings = [
-        clearance for clearance in clearances
+        clearance
+        for clearance in clearances
         if clearance["aircraft_id"] == aircraft_id and clearance["kind"] == "landing"
     ]
     return landings[-1] if landings else None
@@ -80,6 +82,11 @@ def simulation_cue(aircraft, state):
     clock, status = state["clock"], aircraft["status"]
     runway = aircraft.get("runway")
     distance = _distance(aircraft["x_nm"], aircraft["y_nm"], runway)
+    if "route" in aircraft:
+        from .arrival_routes import threshold
+
+        tx, ty = threshold(runway)
+        distance = math.hypot(aircraft["x_nm"] - tx, aircraft["y_nm"] - ty)
     if status == "taxi":
         return cue("on_ground", clock, runway)
     if status == "complete" and aircraft.get("surface_seconds", 0) >= 75:

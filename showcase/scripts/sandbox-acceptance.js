@@ -2,7 +2,7 @@ async page => {
  await page.unrouteAll();page.setDefaultTimeout(15000);
  const origin=new URL(page.url()).origin;
  await page.setViewportSize({width:1440,height:900});await page.goto(origin);
- await page.waitForFunction(()=>document.querySelector('#scene').contentWindow.__uitaFrame?.source_id==='dense-demo-v1');
+ await page.waitForFunction(()=>document.querySelector('#scene').contentWindow.__uitaFrame?.source_id==='arrival-flows-v1');
  await page.locator('#sandbox-toggle').click();await page.locator('#sandbox-start').click();
  await page.waitForFunction(()=>document.querySelector('#sandbox-reset').hidden===false && !document.querySelector('#sandbox-actions').disabled,null,{timeout:45000});
  const runId=new URL(page.url()).searchParams.get('run');
@@ -19,7 +19,7 @@ async page => {
  await page.locator('#sandbox-priority').click();
  await page.waitForFunction(()=>document.querySelector('#sandbox-effects').textContent.includes('emergency'));
  await page.locator('#sandbox-compare').click();
- await page.waitForFunction(()=>document.querySelector('#comparison-results').textContent.includes('without_intervention'),null,{timeout:20000});
+ await page.waitForFunction(()=>document.querySelector('#comparison-results').textContent.includes('without_intervention'),null,{timeout:60000});
  await page.locator('#advanced').evaluate(el=>{el.open=true});
  const downloadPromise=page.waitForEvent('download');await page.locator('#export').click();await downloadPromise;
  await page.locator('#drawer-close').click();

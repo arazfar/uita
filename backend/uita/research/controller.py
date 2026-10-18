@@ -9,6 +9,10 @@ from .verification import verify_clearance
 
 
 def propose(state, sequence=None):
+    from . import arrival_routes
+
+    if arrival_routes.active(state):
+        return arrival_routes.proposal(state)
     if (
         state.get("sandbox")
         and state.get("speed_restore")

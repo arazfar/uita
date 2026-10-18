@@ -39,6 +39,19 @@ def verify_clearance(state, command):
     if aircraft is None or aircraft["status"] in ("complete", "diverted"):
         return result([check("runway", "fail", "Aircraft is not active")])
     a = aircraft
+    from .arrival_routes import active as routed
+
+    if routed(state) and "route" not in a:
+        return result(
+            [
+                check(
+                    "vectoring",
+                    "unresolved",
+                    "Synthetic route evidence missing",
+                    aircraft=a["id"],
+                )
+            ]
+        )
     checks = []
     if state["weather"].get("stale", True):
         checks.append(
@@ -138,6 +151,12 @@ def verify_clearance(state, command):
 
 def verify_motion(before, after):
     checks = []
+    from .arrival_routes import active
+
+    if active(after):
+        from .route_verification import motion
+
+        checks.extend(motion(before, after))
     old = {a["id"]: a for a in before["aircraft"]}
     airborne = lambda a: a["status"] not in ("pending", "complete", "diverted", "taxi")
     # Include the complete landing/departure interval, including transitions to

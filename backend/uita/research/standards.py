@@ -127,3 +127,41 @@ SANDBOX_REFERENCES = {
         "Published missed approaches and emergency procedures remain unsupported",
     ],
 }
+
+ARRIVAL_FLOW_REFERENCES = {
+    "id": "arrival-flow-context-1",
+    "simulator": "kinematic-arrival-flows-4",
+    "reviewed_at": "2026-10-18",
+    "effective_dates": "Contextual snapshots; not established as date-matched procedure authority",
+    "classification": "synthetic_research_assumptions",
+    "references": [
+        {
+            "paragraph": "KSFO AD 2.12, runway physical characteristics",
+            "source": "https://www.faa.gov/air_traffic/publications/atpubs/aip_html/part3_ad_2.0_california.html",
+            "implementation": "arrival_routes.RUNWAYS; route_verification.motion",
+            "test": "test_arrival_flows.py",
+            "applicability": "Threshold coordinates and true bearings only",
+        },
+        {
+            "paragraph": "West Plan flight patterns",
+            "source": "https://noise.flysfo.com/about/flight-patterns-operations/",
+            "implementation": "scripts/build_arrival_flows.py",
+            "test": "test_arrival_flows.py",
+            "applicability": "Lateral arrival context, not an aircraft clearance or local parallel-runway authority",
+        },
+        {
+            "paragraph": "5-9-1; 5-9-2",
+            "source": ATC + "chap5_section_9.html",
+            "implementation": "route_verification.motion",
+            "test": "test_arrival_flows.py",
+            "applicability": "Context for stable final interception; operational vectoring remains unresolved",
+        },
+    ],
+    "assumptions": [
+        "All altitude/speed profiles, initial spacing, route smoothing and upstream extensions are synthetic",
+        "25-degree bank, 3-degree/second turn cap, 1,500-ft/min vertical cap and 240-second merge target are research envelopes",
+        "2-NM synthetic corridor, 10-degree final alignment tolerance and touchdown geometry checks are implementation checks, not FAA minima",
+        "900-second current-traffic merge forecast ends at 10 NM remaining; independent executed-motion and runway checks continue",
+        "Extra admission uses a 1,800-second current-traffic merge forecast; unobserved demand is excluded from controller inputs",
+    ],
+}

@@ -3,6 +3,8 @@ async (page) => {
   const origin = new URL(page.url()).origin;
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(origin);
+  await page.waitForFunction(()=>document.querySelector("#recordings option[value=\"dense-demo-v1\"]"));
+  await page.locator("#recordings").selectOption("dense-demo-v1", {force:true});
   await page.waitForFunction(
     () =>
       document.querySelector("#scene").contentWindow.__uitaFrame?.source_id ===

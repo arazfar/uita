@@ -163,3 +163,9 @@ Browser acceptance: `playwright-cli run-code --filename showcase/scripts/dense-a
 Recorded playback stays immutable. Controls, recovery, causal decision cards and
 “Compare without this disruption” use the research API; no paid model calls occur.
 See [startup, preset scripts and measured limitations](../docs/research/v2/SHOWCASE.md#interactive-disruption-sandbox-sandbox-3).
+
+The default `arrival-flows-v1` recording and disruption sandbox share eastern and
+southern synthetic arrival routes. Aircraft inspection shows route phase, remaining
+distance and intended merge position; dashed previews are planned lateral paths.
+Older recordings retain their original versions. See
+[measurements and reproducible build](../docs/research/v2/SHOWCASE.md#converging-arrival-flows-arrival-flows-v1).

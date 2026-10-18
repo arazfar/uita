@@ -245,3 +245,7 @@ The showcase now includes a free **Try a disruption** sandbox: temporary runway
 restrictions, priority arrivals, delayed pilot responses and bounded extra demand,
 with causal decision cards and checkpoint comparisons. See the
 [interactive sandbox scripts and validation](docs/research/v2/SHOWCASE.md#interactive-disruption-sandbox-sandbox-3).
+
+The default demo now uses two evidence-grounded **synthetic arrival streams** with
+bounded turns, staged descent, merge timing and sourced runway geometry. See
+[route evidence, measured density and limitations](docs/research/v2/SHOWCASE.md#converging-arrival-flows-arrival-flows-v1).

@@ -35,8 +35,12 @@ def initial_state(scenario, seed, controller):
         "scenario_hash": digest(scenario),
         "simulator_version": scenario.get("simulator_version", SIMULATOR_VERSION),
         "rule_version": VERSION,
-        "policy_version": controller
-        + ("-sandbox-1" if scenario.get("simulator_version") else "-2"),
+        "policy_version": (
+            "static-arrival-flows-1"
+            if scenario.get("simulator_version") == "kinematic-arrival-flows-4"
+            else controller
+            + ("-sandbox-1" if scenario.get("simulator_version") else "-2")
+        ),
         "clock": scenario["start"],
         "start": scenario["start"],
         "end": scenario["end"],
@@ -146,7 +150,13 @@ def issue(state, clearance):
             i["kind"] == "weather_restriction" and i["status"] == "active"
             for i in state["interventions"]
         )
-        if restrictions and clearance.get("value") == 130:
+        if restrictions and (
+            clearance.get("value") == 130
+            or (
+                state["simulator_version"] == "kinematic-arrival-flows-4"
+                and clearance.get("value") == 170
+            )
+        ):
             state.setdefault("speed_restore", {}).setdefault(
                 a["id"], round(a["target_ias_kt"] / 5) * 5
             )
@@ -292,6 +302,10 @@ def move(a, state):
                 ),
             )
         return
+    from . import arrival_routes
+
+    if arrival_routes.active(state) and "route" in a and arrival_routes.move(a, state):
+        return
     target = THRESHOLDS[a["runway"]]
     distance = math.hypot(target[0] - a["x_nm"], target[1] - a["y_nm"])
     desired = heading(target[0] - a["x_nm"], target[1] - a["y_nm"])
@@ -434,6 +448,10 @@ def step(state, scenario):
             * 3600
             + 75,
         )
+        from . import arrival_routes
+
+        if arrival_routes.active(state):
+            arrival_routes.initialize_aircraft(aircraft, entry)
         state["aircraft"].append(aircraft)
         event(
             state,

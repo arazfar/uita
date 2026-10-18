@@ -73,6 +73,10 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
       };
   });
   const entities = new Map();
+  let routeKey = null,
+    routePreview = null,
+    mergeMarker = null;
+
   const unknownPositions = new Map();
   let sourceId = null;
   const updateControls = mountSceneControls({
@@ -87,6 +91,40 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
     (frame, selected, frames, clock) => {
       paintedFrame = frame;
       updateControls(frame, selected);
+      const routeAircraft = frame.aircraft.find((a) => a.id === selected);
+      const route = routeAircraft?.route;
+      const nextRouteKey = route
+        ? `${frame.source_id}:${selected}:${route.id}:${route.version}:${routeAircraft.runway}`
+        : null;
+      if (nextRouteKey !== routeKey) {
+        if (routePreview) viewer.entities.remove(routePreview);
+        if (mergeMarker) viewer.entities.remove(mergeMarker);
+        routePreview = mergeMarker = null;
+        routeKey = nextRouteKey;
+        if (route?.preview?.length > 1) {
+          routePreview = viewer.entities.add({
+            polyline: {
+              positions: C.Cartesian3.fromDegreesArray(route.preview.flat()),
+              width: 2,
+              clampToGround: true,
+              material: new C.PolylineDashMaterialProperty({
+                color: C.Color.fromCssColorString("#b4d9ed").withAlpha(0.65),
+              }),
+            },
+          });
+          mergeMarker = viewer.entities.add({
+            position: C.Cartesian3.fromDegrees(...route.merge),
+            label: {
+              text: "Intended merge · synthetic route",
+              font: "11px monospace",
+              showBackground: true,
+              heightReference: C.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Infinity,
+            },
+          });
+        }
+      }
+
       if (sourceId !== frame.source_id) {
         if (viewer.trackedEntity) {
           const destination = viewer.camera.positionWC.clone(),

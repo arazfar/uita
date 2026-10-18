@@ -167,7 +167,11 @@ def create_app(database=None, secure_cookies=True):
                 import gzip
                 import json
 
-                for name in ("showcase_data.json.gz", "dense_demo.json.gz"):
+                for name in (
+                    "showcase_data.json.gz",
+                    "dense_demo.json.gz",
+                    "arrival_flows.json.gz",
+                ):
                     pack = json.loads(
                         gzip.decompress(
                             (Path(__file__).parent / "assets" / name).read_bytes()
@@ -192,7 +196,7 @@ def create_app(database=None, secure_cookies=True):
                     != digest(scenario_from(source.payload))
                 ):
                     raise ValueError("Sandbox scenario missing or mismatched")
-                dense = db.get(Artifact, "dense-demo-v1")
+                dense = db.get(Artifact, "arrival-flows-v1")
                 if dense is None or dense.kind != "demo_recording":
                     raise ValueError("Default dense recording missing")
                 recordings = list(

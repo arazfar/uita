@@ -36,7 +36,9 @@ def initialize(state):
 
 
 def active(state):
-    return state.get("simulator_version") == VERSION
+    from .arrival_routes import VERSION as ROUTED_VERSION
+
+    return state.get("simulator_version") in (VERSION, ROUTED_VERSION)
 
 
 def _revoke(state, runway, cause):
@@ -184,6 +186,16 @@ def intervene(state, command, scenario=None):
                 "assumptions": "Supported corridor; subsequent unobserved demand delayed 240 seconds",
             },
         )
+        from . import arrival_routes
+
+        if arrival_routes.active(state):
+            arrival_routes.configure_entry(
+                donor,
+                sorted(
+                    scenario["route_catalog"]["routes"],
+                    key=lambda r: (r["length_nm"], r["id"]),
+                )[0],
+            )
         for original in schedule[cursor:]:
             original["spawn_time"] += 240
         schedule.insert(cursor, donor)
@@ -270,9 +282,28 @@ def before_step(state, scenario):
             None,
         )
         if req:
-            trial = copy.deepcopy(state)
-            step(trial, effective)
-            verdict = verify_motion(state, trial)
+            from . import arrival_routes
+
+            candidates = (
+                sorted(
+                    scenario["route_catalog"]["routes"],
+                    key=lambda r: (r["length_nm"], r["id"]),
+                )
+                if arrival_routes.active(state)
+                else [None]
+            )
+            for route in candidates:
+                if route is not None:
+                    arrival_routes.configure_entry(schedule[cursor], route)
+                trial = copy.deepcopy(state)
+                step(trial, effective)
+                verdict = verify_motion(state, trial)
+                if route is not None and verdict["status"] == "pass":
+                    from .route_verification import predict_merge
+
+                    verdict = predict_merge(trial, 1800)
+                if verdict["status"] == "pass":
+                    break
             if verdict["status"] != "pass":
                 for e in schedule[cursor:]:
                     e["spawn_time"] += 30
