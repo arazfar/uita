@@ -82,6 +82,80 @@ Read the pilot transmission, identify the flight by callsign (UITA 112 = SF-112)
 Only act on flights listed in the sector state. Prefer grant_priority for medical, battery or emergency calls,
 reroute for weather or "unable" reports, delay_departure for pilots asking to wait, otherwise say_again.`;
 
+// Arrival sequencing agent: proposes landing slots and holds; the page's deterministic kernel validates.
+const SEQ_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "clear_to_land",
+      description: "Give one arrival a landing slot on an open runway. slot_time is seconds from now.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          runway: { type: "string", enum: ["28L", "28R"] },
+          slot_time: { type: "integer", description: "Seconds from now; must be >= the aircraft's min_slot_s" },
+          reason: { type: "string", description: "At most 12 words" },
+        },
+        required: ["id", "runway", "slot_time", "reason"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "hold",
+      description: "Hold one arrival at a published fix until a later slot.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          fix: { type: "string", enum: ["MENLO", "DUMBA", "ARCHI", "BDEGA"] },
+          minutes: { type: "integer", minimum: 1, maximum: 20 },
+          reason: { type: "string", description: "At most 12 words" },
+        },
+        required: ["id", "fix", "minutes", "reason"],
+      },
+    },
+  },
+];
+const SEQ_SYSTEM = `You are the SFO arrival sequencing agent. Decide which arrivals land now and which hold.
+Rules (a deterministic kernel will VETO violations): same-runway spacing at least 90 s, 120 s behind a heavy;
+never use a closed runway; slot_time >= min_slot_s; one aircraft per slot. Frozen aircraft keep their slot.
+Priorities: MEDICAL first, then LOW_FUEL, then minimise total delay. Use both runways when open.
+Call clear_to_land for every aircraft you can slot within about 10 minutes and hold (at its suggested fix) for the rest.
+Call one tool per aircraft, in landing order, with increasing slot_time per runway. Keep each reason under 12 words.`;
+
+// One tool-calling chat. Some models (Nemotron with thinking off) return one call per turn, so keep
+// the conversation going with tool results until every queued id is decided, the model stops, or time runs out.
+async function chatTools(cfg, messages, tools, ids, feedback = () => "Noted.") {
+  const deadline = Date.now() + cfg.timeoutMs, calls = [], seen = new Set(), msgs = [...messages];
+  let note = "";
+  for (let round = 0; round < 12 && Date.now() < deadline - 300; round++) {
+    const r = await fetch(cfg.url, {
+      method: "POST",
+      signal: AbortSignal.timeout(Math.max(500, deadline - Date.now())),
+      headers: { authorization: `Bearer ${cfg.key}`, "content-type": "application/json" },
+      body: JSON.stringify({ model: cfg.model, messages: msgs, tools, tool_choice: "auto", temperature: 0, max_tokens: cfg.maxTokens, ...(cfg.extra || {}) }),
+    });
+    if (!r.ok) throw new Error(`${cfg.provider} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const msg = (await r.json()).choices?.[0]?.message || {};
+    if (!note) note = String(msg.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim().slice(0, 240);
+    const tc = msg.tool_calls || [];
+    if (!tc.length) break;
+    msgs.push({ role: "assistant", content: msg.content || "", tool_calls: tc });
+    for (const c of tc) {
+      let args = null;
+      try { args = JSON.parse(c.function.arguments || "{}"); } catch {}
+      if (args && (c.function.name === "clear_to_land" || c.function.name === "hold") && !seen.has(args.id)) { seen.add(args.id); calls.push({ name: c.function.name, args }); }
+      const left = ids.filter((id) => !seen.has(id));
+      msgs.push({ role: "tool", tool_call_id: c.id, content: `${args ? feedback(c.function.name, args) : "Unreadable arguments."} ${left.length ? `Still undecided: ${left.join(", ")}. Decide the next one.` : "All aircraft decided."}` });
+    }
+    if (ids.every((id) => seen.has(id))) break;
+  }
+  return { calls, note };
+}
+
 async function readJson(req) {
   let body = "";
   for await (const chunk of req) body += chunk;
@@ -235,6 +309,7 @@ function voiceApi(env) {
           "/api/tts": 200,
           "/api/stt": 10,
           "/api/agent": 20,
+          "/api/sequence": 40,
           "/uita/": 30,
         };
         server.middlewares.use((req, res, next) => {
@@ -399,6 +474,45 @@ function voiceApi(env) {
             );
             if (!r.ok) return send(res, r.status, { error: await r.text() });
             return send(res, 200, { text: (await r.json()).text });
+          }
+          if (req.url === "/api/sequence" && req.method === "POST") {
+            // Crusoe (Nemotron) first; if it gives no usable tool calls within ~8 s, OpenAI gpt-4.1-mini.
+            const { queue, runways, now } = await readJson(req);
+            const messages = [
+              { role: "system", content: SEQ_SYSTEM },
+              { role: "user", content: `Time now: ${now}.\nRunways: ${JSON.stringify(runways)}\nArrival queue: ${JSON.stringify(queue)}` },
+            ];
+            const tries = [];
+            if (crusoeKey && env.CRUSOE_BASE_URL)
+              // Nemotron reasons for the whole token budget before any tool call; with thinking off it answers in ~1 s per turn.
+              tries.push({ provider: "crusoe", url: env.CRUSOE_BASE_URL.replace(/\/$/, "") + "/chat/completions", key: crusoeKey, model: env.CRUSOE_MODEL || "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B", timeoutMs: 8000, maxTokens: 1500, extra: { chat_template_kwargs: { enable_thinking: false } } });
+            if (openaiKey)
+              tries.push({ provider: "openai", url: "https://api.openai.com/v1/chat/completions", key: openaiKey, model: env.OPENAI_SEQUENCE_MODEL || "gpt-4.1-mini", timeoutMs: 12000, maxTokens: 900 });
+            if (!tries.length) return send(res, 503, { error: "no agent key" });
+            // Tool results tell the model where the next legal slot is, like a real scheduling tool would.
+            const occupied = { "28L": [], "28R": [] };
+            for (const q of queue || []) if (q.frozen && occupied[q.runway]) occupied[q.runway].push({ t: q.slot_s, heavy: q.wake === "heavy" });
+            const closed = Object.fromEntries((runways || []).map((r) => [r.id, !r.open]));
+            const nextLegal = (rwy) => occupied[rwy].reduce((m, o) => Math.max(m, o.t + (o.heavy ? 120 : 90)), 0);
+            const feedback = (name, a) => {
+              if (name !== "clear_to_land") return `Noted: ${a.id} holds at ${a.fix} for ${a.minutes} min.`;
+              const q = (queue || []).find((x) => x.id === a.id);
+              if (occupied[a.runway]) occupied[a.runway].push({ t: Number(a.slot_time), heavy: q?.wake === "heavy" });
+              return `Noted: ${a.id} ${a.runway} at ${a.slot_time} s. Next legal slot: 28R >= ${nextLegal("28R")} s${closed["28L"] ? ", 28L closed" : `, 28L >= ${nextLegal("28L")} s`}.`;
+            };
+            const fallbacks = [];
+            for (const cfg of tries) {
+              const started = Date.now();
+              try {
+                const out = await chatTools(cfg, messages, SEQ_TOOLS, (queue || []).filter((q) => !q.frozen).map((q) => q.id), feedback);
+                if (out.calls.length)
+                  return send(res, 200, { decisions: out.calls, note: out.note, provider: cfg.provider, model: cfg.model, ms: Date.now() - started, fallbacks, partial: out.calls.length < (queue || []).filter((q) => !q.frozen).length });
+                fallbacks.push(`${cfg.provider}: no tool calls (${Date.now() - started} ms)`);
+              } catch (e) {
+                fallbacks.push(`${cfg.provider}: ${String(e?.message || e).slice(0, 120)}`);
+              }
+            }
+            return send(res, 502, { error: "no usable decisions", fallbacks });
           }
           if (req.url === "/api/agent" && req.method === "POST") {
             if (!agent) return send(res, 503, { error: "no agent key" });
