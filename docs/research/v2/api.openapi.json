@@ -37,6 +37,22 @@
         }
       }
     },
+    "/health/demo": {
+      "get": {
+        "summary": "Demo Ready",
+        "operationId": "demo_ready_health_demo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/login": {
       "post": {
         "summary": "Login",
@@ -889,6 +905,121 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/history/catalog": {
+      "get": {
+        "summary": "History Catalog",
+        "operationId": "history_catalog_api_v2_history_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/history/{dataset_id}/window": {
+      "get": {
+        "summary": "History Window",
+        "operationId": "history_window_api_v2_history__dataset_id__window_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "clock",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "Clock"
+            }
+          },
+          {
+            "name": "seconds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 120,
+              "minimum": 1,
+              "default": 120,
+              "title": "Seconds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingWindow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/runs/{run_id}/motion": {
+      "get": {
+        "summary": "Motion",
+        "operationId": "motion_api_v2_runs__run_id__motion_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingWindow"
+                }
               }
             }
           },
@@ -1951,6 +2082,32 @@
             },
             "type": "array",
             "title": "Limitations"
+          },
+          "recommended_start": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Start"
+          },
+          "sample_seconds": {
+            "type": "number",
+            "title": "Sample Seconds",
+            "default": 5
+          },
+          "provenance": {
+            "type": "string",
+            "title": "Provenance",
+            "default": "model_recording"
+          },
+          "coverage": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Coverage"
           }
         },
         "additionalProperties": false,

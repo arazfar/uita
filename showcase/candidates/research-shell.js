@@ -6,8 +6,16 @@ import {
   timeLabel,
   validMessage,
 } from "./research-client.js";
-const $ = (id) => document.getElementById(id),
-  scene = $("scene");
+const $ = (id) => document.getElementById(id);
+let scene = $("scene");
+const cameras = new Map([["dashboard", scene]]);
+let historyCatalog = [],
+  historyDataset = null,
+  simulationClock = 0,
+  liveFrames = [],
+  loadingWindow = false,
+  seekAbort = null;
+const sentBuffers = new WeakMap();
 let mode = "simulation",
   camera = "dashboard",
   frame = null,
@@ -72,14 +80,15 @@ function action(fn) {
 }
 
 function controls() {
-  const live = !!run;
+  const live = !!run && mode !== "historical";
   const terminal = frame && ["failed", "complete"].includes(frame.status);
   $("close").disabled = !live || terminal || mode === "historical" || busy;
   $("compare").disabled = !live || busy;
-  $("seek").disabled = busy || live || !recording;
+  $("seek").disabled = busy || live || (!recording && !historyDataset);
   $("create").disabled = busy;
   $("recorded").disabled = busy || !recordings.length;
-  $("play").disabled = busy || (!live && !recording) || (terminal && live);
+  $("play").disabled =
+    busy || (!live && !recording && !historyDataset) || (terminal && live);
   $("play").textContent = live
     ? frame?.status === "running"
       ? "Pause run"
@@ -92,23 +101,54 @@ function controls() {
   $("export").disabled = busy || (!recording && !run);
   document.querySelectorAll("[data-mode]").forEach((b) => (b.disabled = busy));
   $("speed").disabled = busy;
-  if (live && mode === "historical") {
-    for (const id of ["play", "step", "speed", "close"]) $(id).disabled = true;
+  if (mode === "historical") {
+    for (const id of ["close", "compare"]) $(id).disabled = true;
   }
   $("render-controller").disabled = !baseline;
 }
+function shownFrame() {
+  return mode === "compare" &&
+    $("render-controller").value === "baseline" &&
+    baseline
+    ? baseline
+    : frame;
+}
 function sendFrame() {
-  const shown =
-    mode === "compare" && $("render-controller").value === "baseline"
-      ? baseline
-      : frame;
-  if (shown) message("uita:frame", { frame: shown, selected });
+  const shown = shownFrame();
+  if (!shown) return;
+  const frames =
+    mode === "historical"
+      ? windowData?.frames
+      : run
+        ? liveFrames
+        : mode === "compare" && $("render-controller").value === "baseline"
+          ? windowData?.baseline_frames
+          : windowData?.frames;
+  const buffer = frames?.length ? frames : [shown];
+  if (sentBuffers.get(scene) !== buffer) {
+    message("uita:buffer", { frames: buffer });
+    sentBuffers.set(scene, buffer);
+  }
+  const running =
+    mode === "historical" || !run ? playing : frame.status === "running";
+  message("uita:playhead", {
+    clock,
+    rate: running
+      ? run && mode !== "historical"
+        ? run.state.speed || 1
+        : Number($("speed").value)
+      : 0,
+    selected,
+    active: true,
+  });
 }
 function render() {
   if (!frame) return;
+  const shown = shownFrame();
+  if (!shown.aircraft.some((a) => a.id === selected)) selected = null;
   if (recording && mode !== "historical")
     $("source").textContent =
-      `${recording.title} · ${recording.model} · ${recording.model_responses} response, ${recording.fallback_count} fallback. No model-issued flight clearance or efficiency improvement in this capture.`;
+      `${recording.title} · ${recording.model} · ${recording.model_responses} model responses · ${recording.fallback_count} fallbacks. ${recording.limitations.join(". ")}`;
   $("clock").textContent = timeLabel(clock || frame.clock);
   $("seek").value = String(clock);
   $("connection").textContent =
@@ -122,11 +162,11 @@ function render() {
     $("connection").textContent =
       "Worker delayed · waiting for recovery · last committed state retained";
   }
-  const m = frame.metrics || {};
+  const m = shown.metrics || {};
   const metricRows =
     mode === "historical"
       ? [
-          ["Observed targets", frame.aircraft.length],
+          ["Observed targets", shown.aircraft.length],
           ["Source", "Historical context"],
         ]
       : [
@@ -144,31 +184,42 @@ function render() {
           ["Diversions", m.diverted ?? 0],
           [
             "Controller at this time",
+            shown === frame &&
             events.some(
               (e) => e.kind === "controller_fallback" && e.clock <= clock,
             )
               ? "Deterministic fallback"
-              : frame.controller,
+              : shown.controller,
           ],
-          ["Unavailable runways", frame.closed_runways.join(", ") || "None"],
+          ["Unavailable runways", shown.closed_runways.join(", ") || "None"],
           [
             "Reserved / run cap · USD",
-            frame.spend?.cap_usd != null
-              ? `${frame.spend.reserved_usd.toFixed(4)} / ${frame.spend.cap_usd.toFixed(2)}`
+            shown.spend?.cap_usd != null
+              ? `${shown.spend.reserved_usd.toFixed(4)} / ${shown.spend.cap_usd.toFixed(2)}`
               : "Recorded; see export",
           ],
         ];
   $("metrics").innerHTML = metricRows
     .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
     .join("");
-  $("traffic-count").textContent = `(${frame.aircraft.length})`;
-  $("traffic").innerHTML = frame.aircraft
+  $("traffic-count").textContent = `(${shown.aircraft.length})`;
+  const trafficMarkup = shown.aircraft
     .map(
       (a) =>
         `<tr><td><button data-id="${esc(a.id)}" aria-pressed="${selected === a.id}">${esc(a.callsign)}</button></td><td>${a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft)}</td><td>${esc(a.status)}</td></tr>`,
     )
     .join("");
-  const aircraft = frame.aircraft.find((a) => a.id === selected);
+  if ($("traffic").innerHTML !== trafficMarkup)
+    $("traffic").innerHTML = trafficMarkup;
+  $("scene-source").textContent =
+    mode === "historical"
+      ? "Recorded SFO traffic · observed positions"
+      : recording
+        ? `${recording.title} · ${recording.provenance === "fixture" ? "Scripted demo" : "Recorded Nemotron attempt"}`
+        : "Live research simulation";
+  $("scene-state").textContent =
+    `${timeLabel(clock)} · ${shown.aircraft.length} aircraft · ${mode === "historical" ? "Unknown heights remain unplotted" : shown.controller} ${run && mode !== "historical" ? "· buffered committed motion" : ""}`;
+  const aircraft = shown.aircraft.find((a) => a.id === selected);
   $("aircraft-detail").textContent = aircraft
     ? JSON.stringify(aircraft, null, 2)
     : "Select an aircraft on the map or in this table.";
@@ -179,7 +230,11 @@ function render() {
       (x) => x.dataset.seq,
     ),
   );
-  const sig = visible.map((e) => e.sequence).join(",");
+  const sig = `${run?.id || recording?.id}:${visible.map((e) => e.sequence).join(",")}`;
+  $("evidence-source").textContent =
+    mode === "compare"
+      ? "Candidate decision evidence · independent of the displayed controller"
+      : "Selected run decision evidence";
   if ($("events").dataset.signature !== sig && !focused) {
     $("events").dataset.signature = sig;
     $("events").innerHTML =
@@ -214,30 +269,68 @@ function disconnect() {
   events = [];
   lastWindow = -Infinity;
 }
-async function loadRecording() {
+function resetSource() {
   disconnect();
+  selected = null;
+  job = null;
+  baseline = null;
+  $("render-controller").value = "candidate";
+  $("comparison-results").textContent = "No comparison for this run yet.";
+  $("events").replaceChildren();
+  delete $("events").dataset.signature;
+  globalThis.speechSynthesis?.cancel();
+}
+async function loadRecording() {
+  const nextRecording = recordings.find((r) => r.id === $("recordings").value);
+  if (!nextRecording)
+    throw Error("No authentic Nemotron recording is installed.");
+  const [data, comparison, historyData] = await Promise.all([
+    api(
+      `/recordings/${nextRecording.id}/window?clock=${nextRecording.recommended_start || nextRecording.start}&seconds=120`,
+    ),
+    api(`/recordings/${nextRecording.id}/comparison`),
+    null,
+  ]);
+  const nextFrame = displayFrame(
+    data.frames,
+    nextRecording.recommended_start || nextRecording.start,
+  );
+  if (!nextFrame) throw Error("Recording has no initial frame.");
+  resetSource();
   history.replaceState(null, "", location.pathname);
   run = null;
   job = null;
-  recording = recordings.find((r) => r.id === $("recordings").value);
-  if (!recording)
-    throw Error(
-      "No authentic Nemotron recording is installed. Use the explicitly labeled fixture to test the interface.",
-    );
-  clock = recording.start;
+  recording = nextRecording;
+  clock = recording.recommended_start || recording.start;
   $("seek").min = recording.start;
   $("seek").max = recording.end;
   $("source").textContent =
-    `${recording.title} · ${recording.model} · ${recording.model_responses} model responses · ${recording.fallback_count} fallbacks. Synthetic metered variant; model returned no clearance before fallback. No efficiency improvement demonstrated.`;
+    `${recording.title} · ${recording.model} · ${recording.model_responses} model responses · ${recording.fallback_count} fallbacks. Synthetic metered demand; inspect comparison before drawing conclusions.`;
   $("timeline-label").textContent =
-    "Saved model decisions · read-only · closure at +90 seconds · historical observations are contextual";
-  await replay();
-  await loadComparison();
+    "Recorded simulation · read-only · closure at +90 seconds from demo opening · inspect source label";
+  windowData = data;
+  lastWindow = clock;
+  frame = nextFrame;
+  baseline = displayFrame(data.baseline_frames, clock);
+  events = uniqueEvents(data.events);
+  if (mode === "historical") {
+    mode = "simulation";
+    setModeButtons();
+  }
+  renderComparison(comparison);
+  render();
 }
 async function replay() {
+  if (mode === "historical") {
+    await historical();
+    render();
+    return;
+  }
   const gen = sourceGeneration;
   const data = await api(
     `/recordings/${recording.id}/window?clock=${clock}&seconds=120`,
+    undefined,
+    seekAbort?.signal,
   );
   if (gen !== sourceGeneration) return;
   windowData = data;
@@ -250,46 +343,40 @@ async function replay() {
   render();
 }
 async function historical() {
-  const scenario = recording?.scenario_id || run?.state.scenario_id;
-  if (!scenario) return;
+  if (!historyDataset) throw Error("Historical demo data is not installed");
   const gen = sourceGeneration;
+  const target = clock;
   const data = await api(
-    `/replay?scenario_id=${encodeURIComponent(scenario)}&clock=${clock}&window_seconds=120`,
+    `/history/${historyDataset.id}/window?clock=${clock}&seconds=120`,
+    undefined,
+    seekAbort?.signal,
   );
   if (gen !== sourceGeneration) return;
-  frame = {
-    ...frame,
-    mode: "historical",
-    clock,
-    aircraft: data.aircraft.map((a) => ({
-      id: a.id,
-      callsign: a.callsign,
-      longitude: a.longitude,
-      latitude: a.latitude,
-      altitude_ft: a.altitude_ft,
-      track_deg_true: a.track_deg_true,
-      status: a.status,
-      source_time: clock - a.age_seconds,
-      age_seconds: a.age_seconds,
-      provenance: a.provenance,
-    })),
-    metrics: {},
-    closed_runways: [],
-    provenance: data.provenance,
-  };
+  windowData = data;
+  lastWindow = target;
+  frame = displayFrame(data.frames, clock);
+  baseline = null;
   $("source").textContent =
-    "Historical observations · gaps and unknown altitude retained. The metered simulation changes demand timing; paths are contextual, not matched human-controller outcomes.";
+    `Historical observations · ${historyDataset.coverage.tracks} tracks, ${historyDataset.coverage.measured_altitude_points} measured altitude samples. Unknown heights are not drawn in 3D.`;
 }
 async function refreshLive() {
-  if (!run) return;
+  if (!run || mode === "historical") return;
   const gen = sourceGeneration;
-  const [next, journal] = await Promise.all([
+  const [next, journal, motion] = await Promise.all([
     api(`/runs/${run.id}/presentation`),
     api(`/runs/${run.id}/events?after=${events.at(-1)?.sequence || 0}`),
+    api(`/runs/${run.id}/motion`),
   ]);
   if (gen !== sourceGeneration) return;
   frame = next;
-  clock = next.clock;
+  liveFrames = motion.frames;
+  clock =
+    next.status === "running"
+      ? Math.max(
+          liveFrames[0]?.clock || next.clock,
+          next.clock - 2 * (run.state.speed || 1),
+        )
+      : next.clock;
   events = uniqueEvents([...events, ...journal]);
   if (mode === "historical") await historical();
   render();
@@ -307,6 +394,7 @@ function connect() {
   });
   stream.onerror = () => {
     $("connection").textContent = "Reconnecting · last state retained";
+    $("retry").hidden = false;
   };
   stream.onopen = () => action(refreshLive);
 }
@@ -329,6 +417,9 @@ async function loadComparison() {
     }
     data = j.result;
   } else return;
+  renderComparison(data);
+}
+function renderComparison(data) {
   const rows = data.results || [];
   $("comparison-results").innerHTML =
     "<table><thead><tr><th>Controller</th><th>Completed</th><th>Backlog</th><th>Mean delay · s</th></tr></thead><tbody>" +
@@ -352,12 +443,7 @@ $("traffic").onclick = (e) => {
 $("recorded").onclick = () => action(loadRecording);
 $("create").onclick = () =>
   action(async () => {
-    disconnect();
-    recording = null;
-    baseline = null;
-    mode = "simulation";
-    setModeButtons();
-    run = await api("/runs", {
+    const nextRun = await api("/runs", {
       scenario_id: $("scenarios").value,
       controller: $("controller").value,
       fixture_fault:
@@ -365,16 +451,29 @@ $("create").onclick = () =>
       spend_cap_usd: 0.5,
       idempotency_key: crypto.randomUUID(),
     });
+    const [nextFrame, journal] = await Promise.all([
+      api(`/runs/${nextRun.id}/presentation`),
+      api(`/runs/${nextRun.id}/events?after=0`),
+    ]);
+    resetSource();
+    run = nextRun;
+    recording = null;
+    mode = "simulation";
+    frame = nextFrame;
+    clock = frame.clock;
+    events = uniqueEvents(journal);
+    setModeButtons();
+    $("timeline-label").textContent = "Live research run · worker-owned clock";
     history.replaceState(null, "", `/?run=${encodeURIComponent(run.id)}`);
     $("source").textContent =
       $("controller").selectedOptions[0].textContent +
       " · isolated research run";
-    await refreshLive();
+    render();
     connect();
   });
 $("play").onclick = () =>
   action(async () => {
-    if (run)
+    if (run && mode !== "historical")
       await command("control", {
         action: frame.status === "running" ? "pause" : "play",
       });
@@ -382,14 +481,18 @@ $("play").onclick = () =>
   });
 $("step").onclick = () =>
   action(async () => {
-    if (run) await command("control", { action: "step", seconds: 10 });
+    if (run && mode !== "historical")
+      await command("control", { action: "step", seconds: 10 });
     else {
-      clock = Math.min(recording.end, clock + 10);
+      clock = Math.min(
+        mode === "historical" ? historyDataset.end : recording.end,
+        clock + 10,
+      );
       await replay();
     }
   });
 $("speed").onchange = () => {
-  if (run)
+  if (run && mode !== "historical")
     action(() =>
       command("control", { action: "speed", speed: Number($("speed").value) }),
     );
@@ -398,13 +501,22 @@ $("close").onclick = () =>
   action(() =>
     command("disruptions", { kind: "runway_closure", runway: "28R" }),
   );
-$("seek").oninput = () =>
-  action(async () => {
-    playing = false;
-    clock = Number($("seek").value);
-    events = [];
-    await replay();
-  });
+let seekTimer;
+$("seek").oninput = () => {
+  playing = false;
+  clearTimeout(seekTimer);
+  seekAbort?.abort();
+  sourceGeneration++;
+  clock = Number($("seek").value);
+  sendFrame();
+  seekTimer = setTimeout(() => {
+    seekAbort = new AbortController();
+    action(async () => {
+      events = [];
+      await replay();
+    });
+  }, 80);
+};
 $("compare").onclick = () =>
   action(async () => {
     if (frame.status === "running")
@@ -448,15 +560,34 @@ function setModeButtons() {
     .querySelectorAll("[data-mode]")
     .forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === mode));
   $("comparison").hidden = mode !== "compare";
+  document.body.classList.toggle("historical", mode === "historical");
 }
 document.querySelectorAll("[data-mode]").forEach(
   (b) =>
     (b.onclick = () =>
       action(async () => {
+        if (mode !== "historical") simulationClock = clock;
+        const previousMode = mode;
         mode = b.dataset.mode;
+        sourceGeneration++;
+        windowData = null;
+        lastWindow = -Infinity;
+        if (mode === "historical") {
+          clock = historyDataset.recommended_start || historyDataset.start;
+          $("seek").min = historyDataset.start;
+          $("seek").max = historyDataset.end;
+          await historical();
+          render();
+        } else {
+          if (previousMode === "historical") clock = simulationClock;
+          if (recording) {
+            $("seek").min = recording.start;
+            $("seek").max = recording.end;
+          }
+          if (run) await refreshLive();
+          else if (recording) await replay();
+        }
         setModeButtons();
-        if (run) await refreshLive();
-        else if (recording) await replay();
         if (mode === "compare") await loadComparison();
       })),
 );
@@ -470,22 +601,42 @@ document.querySelectorAll("[data-camera]").forEach(
       $("render-status").hidden = false;
       $("render-status").textContent =
         "Loading renderer · shared clock continues";
-      scene.src =
-        camera === "tower"
-          ? "19-tower-cab-interior.html?mode=connected"
-          : "11-photoreal-sfo.html?mode=connected";
-      scene.title = camera === "tower" ? "SFO tower cab" : "SFO dashboard";
+      scene.contentWindow?.postMessage(
+        { type: "uita:visibility", active: false },
+        location.origin,
+      );
+      scene.contentWindow?.postMessage({ uita: "pause" }, location.origin);
+      scene.hidden = true;
+      if (!cameras.has(camera)) {
+        const next = document.createElement("iframe");
+        next.title = camera === "tower" ? "SFO tower cab" : "SFO dashboard";
+        next.src =
+          camera === "tower"
+            ? "19-tower-cab-interior.html?mode=connected"
+            : "11-photoreal-sfo.html?mode=connected";
+        scene.parentElement.prepend(next);
+        cameras.set(camera, next);
+      }
+      scene = cameras.get(camera);
+      scene.hidden = false;
+      scene.contentWindow?.postMessage({ uita: "resume" }, location.origin);
+      if (sentBuffers.has(scene)) {
+        $("render-status").hidden = true;
+        sendFrame();
+      }
     }),
 );
-$("render-controller").onchange = sendFrame;
+$("render-controller").onchange = render;
 addEventListener("message", (e) => {
   if (validMessage(e, scene.contentWindow, "uita:ready")) {
     $("render-status").hidden = true;
+    sentBuffers.delete(scene);
     sendFrame();
   }
   if (
     validMessage(e, scene.contentWindow, "uita:select") &&
-    (e.data.id === null || frame?.aircraft.some((a) => a.id === e.data.id))
+    (e.data.id === null ||
+      shownFrame()?.aircraft.some((a) => a.id === e.data.id))
   ) {
     selected = e.data.id;
     render();
@@ -501,11 +652,19 @@ setInterval(() => {
   const now = performance.now(),
     dt = Math.min(1, (now - previous) / 1000);
   previous = now;
-  if (playing && recording && !busy) {
-    clock = Math.min(recording.end, clock + dt * Number($("speed").value));
-    if (clock === recording.end) playing = false;
-    if (clock - lastWindow > 20 || mode === "historical") action(replay);
-    else {
+  if (playing && (recording || mode === "historical") && !busy) {
+    const end = mode === "historical" ? historyDataset.end : recording.end;
+    const bufferedEnd = windowData?.frames.at(-1)?.clock || clock;
+    clock = Math.min(end, bufferedEnd, clock + dt * Number($("speed").value));
+    if (clock === end) playing = false;
+    if (clock - lastWindow > 30 && !loadingWindow) {
+      loadingWindow = true;
+      replay()
+        .catch((e) => {
+          if (e.name !== "AbortError") fail(e);
+        })
+        .finally(() => (loadingWindow = false));
+    } else {
       frame = displayFrame(windowData?.frames || [], clock) || frame;
       baseline =
         displayFrame(windowData?.baseline_frames || [], clock) || baseline;
@@ -521,14 +680,32 @@ setInterval(() => {
     });
 }, 2000);
 await action(async () => {
-  const [catalog, scenarios, benchmark, identity] = await Promise.all([
-    api("/recordings"),
-    api("/scenarios"),
-    api("/published-benchmark"),
-    api("/me"),
-  ]);
+  const [catalog, scenarios, benchmark, identity, histories] =
+    await Promise.all([
+      api("/recordings"),
+      api("/scenarios"),
+      api("/published-benchmark"),
+      api("/me"),
+      api("/history/catalog"),
+    ]);
   $("logout").hidden = identity.access_mode === "public_demo";
-  $("access-mode").textContent = identity.access_mode === "public_demo" ? "Public demo" : identity.username;
+  $("access-mode").textContent =
+    identity.access_mode === "public_demo" ? "Public demo" : identity.username;
+  historyCatalog = histories;
+  historyDataset = histories[0];
+  $("history-datasets").innerHTML = histories
+    .map(
+      (h) =>
+        `<option value="${esc(h.id)}">${esc(timeLabel(h.start))} · ${h.coverage.tracks} tracks</option>`,
+    )
+    .join("");
+  catalog.sort((a, b) =>
+    a.id === "guided-demo-v1"
+      ? -1
+      : b.id === "guided-demo-v1"
+        ? 1
+        : a.id.localeCompare(b.id),
+  );
   recordings = catalog;
   $("recordings").innerHTML = catalog
     .map((r) => `<option value="${esc(r.id)}">${esc(r.title)}</option>`)
@@ -550,3 +727,29 @@ await action(async () => {
       "No verified Nemotron recording installed. Free fixtures remain available under Run a new simulation.",
     );
 });
+
+function drawer(open) {
+  document.body.classList.toggle("drawer-open", open);
+  $("evidence-drawer").inert = !open;
+  $("drawer-toggle").setAttribute("aria-expanded", String(open));
+  if (!open) $("drawer-toggle").focus();
+}
+$("drawer-toggle").onclick = () =>
+  drawer(!document.body.classList.contains("drawer-open"));
+$("drawer-close").onclick = () => drawer(false);
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape") drawer(false);
+});
+$("history-datasets").onchange = () =>
+  action(async () => {
+    historyDataset = historyCatalog.find(
+      (h) => h.id === $("history-datasets").value,
+    );
+    clock = historyDataset.recommended_start;
+    await historical();
+    render();
+  });
+
+addEventListener("offline", () =>
+  fail(new Error("Offline · last committed state retained")),
+);

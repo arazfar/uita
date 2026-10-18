@@ -1,16 +1,46 @@
-import { plottable, validMessage } from "./research-client.js";
-export function connectRenderer(render) {
+import { plottable, validMessage, displayFrame } from "./research-client.js";
+export function connectRenderer(render, visibility = () => {}) {
+  let frames = [],
+    anchor = 0,
+    received = 0,
+    rate = 0,
+    selected = null,
+    active = true;
+  const ready = setInterval(
+    () => parent.postMessage({ type: "uita:ready" }, location.origin),
+    500,
+  );
   addEventListener("message", (e) => {
+    if (validMessage(e, parent, "uita:buffer") && Array.isArray(e.data.frames))
+      frames = e.data.frames;
     if (
-      validMessage(e, parent, "uita:frame") &&
-      e.data.frame &&
-      Array.isArray(e.data.frame.aircraft) &&
-      Number.isFinite(e.data.frame.clock)
+      validMessage(e, parent, "uita:playhead") &&
+      Number.isFinite(e.data.clock)
     ) {
-      render(e.data.frame, e.data.selected);
-      window.__uitaFrame = e.data.frame;
+      clearInterval(ready);
+      anchor = e.data.clock;
+      received = performance.now();
+      rate = Number(e.data.rate) || 0;
+      selected = e.data.selected;
+      active = e.data.active !== false;
     }
+    if (validMessage(e, parent, "uita:visibility")) { active = !!e.data.active; visibility(active); }
   });
+  function animate() {
+    if (active && frames.length) {
+      const clock = Math.min(
+        frames.at(-1).clock,
+        anchor + ((performance.now() - received) / 1000) * rate,
+      );
+      const frame = displayFrame(frames, clock);
+      if (frame) {
+        render(frame, selected, frames, clock);
+        window.__uitaFrame = frame;
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
   parent.postMessage({ type: "uita:ready" }, location.origin);
 }
 export function selectAircraft(id) {
@@ -24,9 +54,11 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
     ".connected #topbar,.connected #score,.connected #feed,.connected .details,.connected #cambar,.connected #card{display:none!important}";
   document.head.append(style);
   const entities = new Map();
+  const unknownPositions = new Map();
+  let sourceId = null;
   const toolbar = document.createElement("div");
   toolbar.style.cssText =
-    "position:fixed;left:14px;bottom:20px;display:flex;gap:6px;z-index:3";
+    "position:fixed;left:14px;bottom:156px;display:flex;gap:6px;z-index:3";
   const button = (text, fn) => {
     const b = document.createElement("button");
     b.textContent = text;
@@ -38,23 +70,84 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
   const overview = () => {
     viewer.trackedEntity = undefined;
     viewer.camera.flyTo({
-      destination: C.Cartesian3.fromDegrees(-122.375, 37.59, 6500),
-      orientation: { heading: 0, pitch: -1.05, roll: 0 },
-      duration: 0,
+      destination: C.Cartesian3.fromDegrees(-122.2, 37.53, 38000),
+      orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 },
+      duration: 0.7,
     });
   };
   let selectedId = null;
   button("Overview", overview);
+  button("Airport", () => {
+    viewer.trackedEntity = undefined;
+    viewer.camera.flyToBoundingSphere(
+      new C.BoundingSphere(C.Cartesian3.fromDegrees(-122.375, 37.62, 0), 2000),
+      {
+        duration: 1,
+        offset: new C.HeadingPitchRange(
+          (300 * Math.PI) / 180,
+          (-30 * Math.PI) / 180,
+          6000,
+        ),
+      },
+    );
+  });
   button("Follow selected", () => {
     const e = entities.get(selectedId);
     if (e && e.show) viewer.trackedEntity = e;
   });
   button("Photoreal", () => setPhotoreal(true));
   document.body.append(toolbar);
-  connectRenderer((frame, selected) => {
+  let trailClock = -Infinity,
+    trailSource = null;
+  connectRenderer((frame, selected, frames, clock) => {
     selectedId = selected;
+    if (sourceId !== frame.source_id) {
+      for (const entity of [...entities.values(), ...unknownPositions.values()])
+        viewer.entities.remove(entity);
+      entities.clear();
+      unknownPositions.clear();
+      sourceId = frame.source_id;
+    }
+    const unknownIds = new Set();
+    for (const a of frame.aircraft) {
+      if (
+        a.status !== "observed" ||
+        Number.isFinite(a.altitude_ft) ||
+        !Number.isFinite(a.longitude) ||
+        !Number.isFinite(a.latitude)
+      )
+        continue;
+      unknownIds.add(a.id);
+      let marker = unknownPositions.get(a.id);
+      if (!marker) {
+        marker = viewer.entities.add({
+          id: "research-position-" + a.id,
+          point: {
+            pixelSize: 7,
+            color: C.Color.fromCssColorString("#adc9ce"),
+            heightReference: C.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Infinity,
+          },
+          label: {
+            text: a.callsign + " · altitude unknown",
+            font: "11px monospace",
+            pixelOffset: new C.Cartesian2(0, -16),
+            heightReference: C.HeightReference.CLAMP_TO_GROUND,
+            showBackground: true,
+            backgroundColor: C.Color.BLACK.withAlpha(0.7),
+            disableDepthTestDistance: Infinity,
+          },
+        });
+        unknownPositions.set(a.id, marker);
+      }
+      marker.position = C.Cartesian3.fromDegrees(a.longitude, a.latitude);
+      marker.show = true;
+      marker.label.show = selected === a.id || unknownIds.size <= 8;
+    }
+    for (const [id, marker] of unknownPositions)
+      if (!unknownIds.has(id)) marker.show = false;
     const ids = new Set();
-    for (const a of frame.aircraft.filter(plottable)) {
+    for (const [index, a] of frame.aircraft.filter(plottable).entries()) {
       ids.add(a.id);
       let entity = entities.get(a.id);
       if (!entity) {
@@ -91,19 +184,58 @@ export function mountDashboard({ C, viewer, altitudeOffset, setPhotoreal }) {
           0,
         ),
       );
+      entity.label.show = index < 24 || selected === a.id;
       entity.label.fillColor =
         selected === a.id ? C.Color.YELLOW : C.Color.WHITE;
       entity.show = true;
+      if (
+        clock - trailClock >= 2 ||
+        clock < trailClock ||
+        trailSource !== frame.source_id
+      ) {
+        const positions = frames
+          .filter((f) => f.clock <= clock && f.clock >= clock - 90)
+          .map((f) => f.aircraft.find((x) => x.id === a.id))
+          .filter((x) => x && plottable(x))
+          .map((x) =>
+            C.Cartesian3.fromDegrees(
+              x.longitude,
+              x.latitude,
+              x.altitude_ft * 0.3048 + altitudeOffset(),
+            ),
+          );
+        if (positions.length > 1)
+          entity.polyline = {
+            positions,
+            width: 1.5,
+            material: C.Color.fromCssColorString(
+              selected === a.id ? "#ffdf8a" : "#8fcce0",
+            ).withAlpha(0.6),
+          };
+        else entity.polyline = undefined;
+      }
     }
     for (const [id, e] of entities) if (!ids.has(id)) e.show = false;
+    if (
+      clock - trailClock >= 2 ||
+      clock < trailClock ||
+      trailSource !== frame.source_id
+    ) {
+      trailClock = clock;
+      trailSource = frame.source_id;
+    }
     viewer.scene.requestRender();
-  });
+  }, active => { viewer.useDefaultRenderLoop = active; });
+  viewer.scene.renderError.addEventListener(() => parent.postMessage({type:"uita:renderer-error"},location.origin));
+  viewer.scene.canvas.addEventListener("webglcontextlost", () => parent.postMessage({type:"uita:renderer-error"},location.origin));
   const handler = new C.ScreenSpaceEventHandler(viewer.scene.canvas);
   handler.setInputAction((e) => {
     const hit = viewer.scene.pick(e.position);
     const id = hit?.id?.id;
     if (typeof id === "string" && id.startsWith("research-"))
-      selectAircraft(id.slice(9));
+      selectAircraft(
+        id.startsWith("research-position-") ? id.slice(18) : id.slice(9),
+      );
   }, C.ScreenSpaceEventType.LEFT_CLICK);
   overview();
   addEventListener("keydown", (e) => {

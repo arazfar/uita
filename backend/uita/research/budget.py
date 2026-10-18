@@ -58,3 +58,28 @@ def settle(db, identifier, actual, metadata):
     row.actual = actual
     row.metadata_json = metadata
     # Reservations are intentionally never refunded, including ambiguous requests.
+
+
+def reserve_capture(db, run_id, amount, campaign):
+    """Administrative capture only; never selected from a public RunCreate field."""
+    if campaign != "immersive-capture-v1" or not math.isfinite(amount) or amount <= 0:
+        raise ValueError("Invalid capture campaign")
+    campaign_id = "capture:" + campaign
+    global_row = db.scalar(
+        select(Budget).where(Budget.id == campaign_id).with_for_update()
+    )
+    if global_row is None:
+        raise ValueError("Capture campaign must be explicitly initialized")
+    row = db.get(Budget, "capture-run:" + run_id)
+    if row is None:
+        row = Budget(id="capture-run:" + run_id, cap=2.0, reserved=0)
+        db.add(row)
+    if global_row.reserved + amount > min(
+        10.0, global_row.cap
+    ) or row.reserved + amount > min(2.0, row.cap):
+        raise BudgetExhausted("Capture budget exhausted")
+    global_row.reserved += amount
+    row.reserved += amount
+    reservation = Reservation(id=identifier(), run_id=run_id, amount=amount)
+    db.add(reservation)
+    return reservation.id

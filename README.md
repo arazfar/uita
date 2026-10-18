@@ -1,5 +1,14 @@
 # Up in the Air · Uita
 
+> **Current connected demo:** the production entry is the immersive research shell,
+> with an explicitly scripted guided episode, authentic saved Nemotron attempts,
+> historical context, synchronized comparison and export. Use the
+> [current startup, data, deployment and rollback instructions](docs/research/v2/SHOWCASE.md).
+> The standalone voice/gallery descriptions below describe separate experiments;
+> they do not control connected research runs. Production uses `showcase/server.mjs`,
+> not the Vite development server. Public demo access needs no login.
+
+
 ![Concept illustration of arriving aircraft over San Francisco Bay, with radar paths and an airport control display](docs/images/up-in-the-air-hero.png)
 
 **Air traffic control research prototypes: historical SFO replay, synthetic scheduling experiments, a voice-enabled showcase, and arrival-order model comparisons.**

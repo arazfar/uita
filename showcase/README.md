@@ -1,5 +1,14 @@
 # UITA showcase
 
+> **Current connected demo:** the production entry is the immersive research shell,
+> with an explicitly scripted guided episode, authentic saved Nemotron attempts,
+> historical context, synchronized comparison and export. Use the
+> [current startup, data, deployment and rollback instructions](../docs/research/v2/SHOWCASE.md).
+> The standalone voice/gallery descriptions below describe separate experiments;
+> they do not control connected research runs. Production uses `showcase/server.mjs`,
+> not the Vite development server. Public demo access needs no login.
+
+
 **Connected research demo:** the existing dashboard and tower cab now support
 shared historical/recorded/live research state, evidence inspection, matched
 comparison and export. Follow the [connected startup and staging guide](../docs/research/v2/SHOWCASE.md).

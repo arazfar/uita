@@ -7,11 +7,12 @@ import time
 import httpx
 
 from ..provider import BASE, MODEL, _pricing
-from .budget import BudgetExhausted, reserve, settle
+from .budget import BudgetExhausted, reserve, reserve_capture, settle
 from .contracts import Clearance, ControllerProposal
 from .dynamics import observation
 
-PROMPT = "bounded-clearances-2"
+PROMPT = "bounded-clearances-4"
+MAX_OUTPUT_TOKENS = 4096
 
 
 class InferenceFailure(ValueError):
@@ -50,9 +51,9 @@ def fixture_proposal(state):
     )
 
 
-def generate(database, run_id, team, state):
+def generate(database, run_id, team, state, campaign=None):
     try:
-        return _generate(database, run_id, team, state)
+        return _generate(database, run_id, team, state, campaign)
     except BudgetExhausted as exc:
         raise InferenceFailure("budget_exhausted") from exc
     except httpx.TimeoutException as exc:
@@ -65,14 +66,14 @@ def generate(database, run_id, team, state):
         raise InferenceFailure("invalid_model_response") from exc
 
 
-def _generate(database, run_id, team, state):
+def _generate(database, run_id, team, state, campaign=None):
     started = time.monotonic()
     key = os.environ.get("CRUSOE_API_KEY")
     if not key:
         raise InferenceFailure("provider_not_configured")
     headers = {"Authorization": "Bearer " + key}
     with httpx.Client(
-        base_url=BASE, headers=headers, timeout=12, follow_redirects=False
+        base_url=BASE, headers=headers, timeout=30, follow_redirects=False
     ) as client:
         discovery = client.get("/models")
         discovery.raise_for_status()
@@ -92,7 +93,7 @@ def _generate(database, run_id, team, state):
             "version": PROMPT,
             "observation": observation(state),
             "schema": ControllerProposal.model_json_schema(),
-            "instructions": "Propose at most one clearance. Only landing, takeoff, speed and handoff are currently supported. Do not invent aircraft or procedures. Use the sequence to suggest ordering. Return only JSON. The independent checker decides applicability.",
+            "instructions": "Propose at most one clearance. Only landing, takeoff, speed and handoff are currently supported. Do not invent aircraft or procedures. Use the sequence to suggest ordering. Return only JSON matching the schema, with a brief explanation. If no action is needed return empty clearances. Landing target must be an open runway and aircraft must be tower-owned. Handoff target must be tower or approach. Never invent a route. The independent checker decides applicability.",
         }
         body = {
             "model": MODEL,
@@ -103,16 +104,21 @@ def _generate(database, run_id, team, state):
                 },
                 {"role": "user", "content": json.dumps(prompt, separators=(",", ":"))},
             ],
-            "max_tokens": 1000,
+            "max_tokens": MAX_OUTPUT_TOKENS,
             "temperature": 0,
+            "chat_template_kwargs": {"enable_thinking": False},
         }
         encoded = json.dumps(body).encode()
         bound = len(encoded) * 2 + 1024
         if bound > 30000:
             raise InferenceFailure("input_limit_exceeded")
-        amount = bound * rates[0] + 1000 * rates[1]
+        amount = bound * rates[0] + MAX_OUTPUT_TOKENS * rates[1]
         with database.transaction() as db:
-            reservation = reserve(db, team, run_id, amount, state["spend_cap_usd"])
+            reservation = (
+                reserve_capture(db, run_id, amount, campaign)
+                if campaign
+                else reserve(db, team, run_id, amount, state["spend_cap_usd"])
+            )
         response = client.post("/chat/completions", json=body)
         response.raise_for_status()
         payload = response.json()
@@ -120,7 +126,10 @@ def _generate(database, run_id, team, state):
         choice = payload["choices"][0]
         if any(
             type(usage.get(k)) is not int or usage[k] < 0 or usage[k] > maximum
-            for k, maximum in [("prompt_tokens", bound), ("completion_tokens", 1000)]
+            for k, maximum in [
+                ("prompt_tokens", bound),
+                ("completion_tokens", MAX_OUTPUT_TOKENS),
+            ]
         ):
             raise ValueError("Invalid provider usage; reservation retained")
         with database.transaction() as db:
@@ -134,7 +143,10 @@ def _generate(database, run_id, team, state):
                     "prompt_version": PROMPT,
                     "usage": usage,
                     # Persist even rejected responses; replay never calls the model.
-                    "response": choice,
+                    "response": {
+                        "finish_reason": choice.get("finish_reason"),
+                        "message": {"content": choice["message"].get("content")},
+                    },
                     "latency_seconds": time.monotonic() - started,
                 },
             )
