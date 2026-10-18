@@ -157,14 +157,9 @@ existing research pre-deploy/bootstrap command to install the bundled data.
 See [measured coverage and limitations](../docs/research/v2/SHOWCASE.md#busy-arrivals-demonstration-dense-demo-v1).
 Browser acceptance: `playwright-cli run-code --filename showcase/scripts/dense-acceptance.js`.
 
-### Interactive sandbox
+### Arrival playback
 
-**Try a disruption** starts a new deterministic run after worker-owned pre-roll.
-Recorded playback stays immutable. Controls, recovery, causal decision cards and
-“Compare without this disruption” use the research API; no paid model calls occur.
-See [startup, preset scripts and measured limitations](../docs/research/v2/SHOWCASE.md#interactive-disruption-sandbox-sandbox-3).
-
-The default `arrival-flows-v1` recording and disruption sandbox share eastern and
+The default `arrival-flows-v1` recording uses eastern and
 southern synthetic arrival routes. Aircraft inspection shows route phase, remaining
 distance and intended merge position; dashed previews are planned lateral paths.
 Older recordings retain their original versions. See

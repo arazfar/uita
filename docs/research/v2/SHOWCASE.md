@@ -66,7 +66,7 @@ from the packaged early-August demo and is not needed for startup.
    remain visible. Historical traffic is context, not a measured human counterfactual.
 5. In the drawer, select Nemotron episode 2 for authentic model proposals,
    explanations, rejected actions and fallback. Episode 1 retains a provider timeout.
-6. For interactive controls, create a free fixture run, play/pause, close 28R and
+6. For interactive controls, create a free fixture run, play/pause, and
    freeze a comparison. A live Nemotron run requires explicit selection/action and
    a server-side worker key. Refreshing a live run URL reconnects to the same run.
 
@@ -305,25 +305,25 @@ performance were not measured. Offline regional imagery is low resolution;
 airport imagery and configured photoreal rendering remain available. No paid
 inference or production rollout was performed.
 
-## Interactive disruption sandbox (sandbox-3)
+## Research API sandbox (sandbox-3)
 
-Choose **Try a disruption → Start sandbox**. The worker prepares the new
-`early-august-sandbox-v1` scenario through 300 simulated seconds of pre-roll.
-The recording stays visible until preparation succeeds. This opens seven airborne
-synthetic aircraft; it does not resume the recording's arbitrary playback position.
-Start/reset creates a separate run; old evidence remains available. No model or
-provider key is used. Bootstrap installs this derived scenario idempotently from
-the packaged dense scenario; `/health/demo` checks its checksum. Use the startup
-commands above, including migrations, bootstrap, API and worker. Existing recordings
-and their simulator versions are unchanged. Deploy API and worker together;
-production rollout has not been performed for this change.
+The public demo no longer exposes disruption injection or sandbox creation controls.
+The research API and workbench retain disruption support; saved recordings and
+existing run evidence remain available. This section documents the retained API
+capability and historical validation, not a public-demo interaction flow.
 
-Preset scripts:
+API clients can create a deterministic run with `sandbox: true`. The worker owns
+pre-roll; start/reset requires a separate run, preserving earlier evidence. No model
+or provider key is required for the static controller. Bootstrap installs derived
+scenarios idempotently; use the startup commands above, including migrations,
+bootstrap, API and worker.
+
+Supported research interventions:
 
 1. **Runway restriction and recovery:** restrict 28L, observe causal controller cards
    and pending clearances; watch automatic recovery after 120 simulated seconds.
    Any temporary speed reduction is restored through a separately verified command.
-   “Recover now” requests early recovery; a separate permanent closure stays closed.
+   The `recover` disruption requests early recovery; a separate permanent closure stays closed.
 2. **Priority under traffic:** choose an approaching aircraft, request priority.
    The queue considers emergency status but existing commitments and the single
    corridor may require waiting. This is not a model of professional emergency handling.
@@ -335,15 +335,16 @@ Preset scripts:
 
 The map card links explicit disruption identifiers to controller decisions,
 acknowledgments and executed outcomes. The drawer retains complete evidence.
-**Compare without this disruption** simulates both branches from the persisted
+The `compare-intervention` API simulates both branches from the persisted
 checkpoint immediately before that intervention, preserving other recorded
-interventions and seed. The comparison has a bounded horizon (UI: 300 seconds,
+interventions and seed. The comparison has a bounded horizon (default request: 300 seconds,
 expanded to cover already elapsed time, API maximum: 1,200). Both branches are
 simulated; they are not measured real-world counterfactuals. Export includes the
 selected comparison and its admission differences. Late comparisons beyond the
 bound are rejected explicitly.
 
-Validation on local macOS, Python 3.11, SQLite, headless Chromium:
+Historical validation before removal of the public sandbox controls (local macOS,
+Python 3.11, SQLite, headless Chromium):
 
 - 294 backend tests and 32 showcase tests passed; both frontend builds and packaging
   checks passed. Fresh database migration/bootstrap succeeds without source DB or
@@ -371,7 +372,7 @@ verification and inference budgets remain unchanged.
 
 ## Converging arrival flows (arrival-flows-v1)
 
-The opening recording and **Try a disruption** sandbox now use
+The opening recording and API-created arrival-flow sandbox runs use
 `early-august-arrival-flows-v1` / `kinematic-arrival-flows-4` /
 `static-arrival-flows-1`. All older recordings and the sandbox-3 simulator remain
 available with their original behavior. This is a new synthetic demonstration,
@@ -472,3 +473,11 @@ measured **166 ms** in the final fresh-database run. The dashboard rendered
 matching the existing renderer's 30-FPS cap. This is a short local measurement,
 not a mobile hardware benchmark or extended soak result. Bundle-size warnings
 and the existing test-client deprecation warning remain.
+
+### Public demo disruption-control removal
+
+The demo has no disruption injection controls, including the former advanced
+runway-closure button. Playback, recorded disruption evidence, live-run creation,
+comparison and export remain available. Run the UI removal smoke check with
+`playwright-cli run-code --filename showcase/scripts/sandbox-acceptance.js`;
+`browser-acceptance.js` retains the broader live-run and recording checks.

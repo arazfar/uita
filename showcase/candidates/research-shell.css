@@ -731,7 +731,6 @@ body.drawer-open #decision-overlay {
 body.runway-demo
   :is(
     #source-controls,
-    #sandbox-panel,
     #arrivals-queue,
     #decision-overlay,
     #scene-caption,
@@ -901,9 +900,6 @@ body.drawer-open #arrivals-queue {
 .ds-runways { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 8px; }
 .ds-rwy { font: 600 11.5px/1 ui-monospace, Menlo, monospace; padding: 6px 8px; border-radius: 6px; background: rgba(255,255,255,.07); }
 .ds-rwy.off { color: #6b7a82; background: rgba(255,255,255,.03); text-decoration: line-through; }
-.ds-scenario { width: 100%; margin: 0 0 12px; padding: 8px 10px; border-radius: 8px; color: #fbbf24; border-color: rgba(251,191,36,.35); background: rgba(251,191,36,.08); text-align: left; }
-.ds-scenario:hover:not(:disabled) { background: rgba(251,191,36,.16); }
-.ds-scenario:disabled { color: var(--muted); border-color: var(--line); background: transparent; }
 .ds-fold { border-top: 1px solid rgba(255,255,255,.07); padding: 6px 0; }
 .ds-fold[open] { padding-bottom: 10px; }
 #advanced label { display: block; margin: 6px 0; }
@@ -914,62 +910,6 @@ body.drawer-open #arrivals-queue {
   .ds-q-meta { grid-column: 1 / -1; }
 }
 
-#sandbox-panel {
-  position: fixed;
-  z-index: 9;
-  left: 16px;
-  top: 195px;
-  width: 330px;
-  max-height: calc(100dvh - 370px);
-  overflow: auto;
-  padding: 14px;
-  background: #142027f2;
-  border: 1px solid #46616b;
-  border-radius: 12px;
-  color: #eaf3f6;
-  font: 12px/1.4 system-ui;
-  box-sizing: border-box;
-}
-#sandbox-panel[hidden] {
-  display: none;
-}
-#sandbox-panel fieldset {
-  border: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-#sandbox-panel label {
-  display: grid;
-  gap: 3px;
-}
-#sandbox-panel button {
-  min-height: 32px;
-}
-#sandbox-panel p {
-  font-size: 11px;
-  color: #c3d5dc;
-}
-.sandbox-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-body.sandbox-open #arrivals-queue {
-  display: none;
-}
 #decision-cause {
   color: #9ee8dc;
-}
-@media (max-width: 700px) {
-  #sandbox-panel {
-    top: auto;
-    bottom: 195px;
-    left: 12px;
-    width: calc(100% - 24px);
-    max-height: 48dvh;
-  }
-  body.sandbox-open #decision-overlay {
-    display: none;
-  }
 }

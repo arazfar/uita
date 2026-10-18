@@ -159,7 +159,6 @@ async (page) => {
   await page.waitForFunction(() =>
     document.querySelector("#events").textContent.includes("5000"),
   );
-  await clickMutation("Close 28R", "/disruptions");
   await page.getByRole("button", { name: "Compare", exact: true }).click();
   await clickMutation("Freeze and compare live run", "/compare");
   await page.waitForFunction(() =>
