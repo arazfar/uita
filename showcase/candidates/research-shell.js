@@ -203,14 +203,24 @@ function render() {
     .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
     .join("");
   $("traffic-count").textContent = `(${shown.aircraft.length})`;
-  const trafficMarkup = shown.aircraft
-    .map(
-      (a) =>
-        `<tr><td><button data-id="${esc(a.id)}" aria-pressed="${selected === a.id}">${esc(a.callsign)}</button></td><td>${a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft)}</td><td>${esc(a.status)}</td></tr>`,
-    )
-    .join("");
-  if ($("traffic").innerHTML !== trafficMarkup)
-    $("traffic").innerHTML = trafficMarkup;
+  const table = $("traffic");
+  const rows = new Map([...table.rows].map(row => [row.querySelector("button").dataset.id, row]));
+  const keep = new Set(shown.aircraft.map(a => a.id));
+  for (const [id, row] of rows) if (!keep.has(id)) row.remove();
+  shown.aircraft.forEach((a, index) => {
+    let row = rows.get(a.id);
+    if (!row) {
+      row = document.createElement("tr");
+      row.innerHTML = "<td><button></button></td><td></td><td></td>";
+      row.querySelector("button").dataset.id = a.id;
+    }
+    const button = row.querySelector("button");
+    if (button.textContent !== a.callsign) button.textContent = a.callsign;
+    button.setAttribute("aria-pressed", String(selected === a.id));
+    row.cells[1].textContent = a.altitude_ft == null ? "Unknown" : Math.round(a.altitude_ft);
+    row.cells[2].textContent = a.status;
+    if (table.children[index] !== row) table.insertBefore(row, table.children[index] || null);
+  });
   $("scene-source").textContent =
     mode === "historical"
       ? "Recorded SFO traffic · observed positions"
