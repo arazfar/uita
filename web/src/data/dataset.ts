@@ -15,8 +15,6 @@ export interface Dataset {
   trackList: CompiledTrack[]
   trackT0: Float64Array
   maxTrackDur: number
-  /** arrPrefix[i] = number of arrivals among flights[0..i) */
-  arrPrefix: Int32Array
 }
 
 export function buildDataset(ff: FlightsFile, tf: TracksFile): Dataset {
@@ -31,8 +29,6 @@ export function buildDataset(ff: FlightsFile, tf: TracksFile): Dataset {
   const flights = ff.flights.slice().sort((a, b) => a.t - b.t)
   const times = Float64Array.from(flights, (f) => f.t)
   const byId = new Map(flights.map((f) => [f.id, f]))
-  const arrPrefix = new Int32Array(flights.length + 1)
-  flights.forEach((f, i) => (arrPrefix[i + 1] = arrPrefix[i] + (f.kind === 'arr' ? 1 : 0)))
 
   const tracks = new Map<string, CompiledTrack>()
   for (const [id, pts] of Object.entries(tf)) {
@@ -51,28 +47,21 @@ export function buildDataset(ff: FlightsFile, tf: TracksFile): Dataset {
     trackList,
     trackT0,
     maxTrackDur,
-    arrPrefix,
   }
 }
 
 /** Number of flights with op time <= t. */
 export const eventCount = (ds: Dataset, t: number) => upperBound(ds.times, t)
 
-/** Last `limit` events with op time <= t, newest first. */
-export function recentEvents(ds: Dataset, t: number, limit: number): Flight[] {
-  const end = eventCount(ds, t)
+/** Last `limit` flights with a map path and op time <= t, newest first. */
+export function recentTracked(ds: Dataset, t: number, limit: number): Flight[] {
   const out: Flight[] = []
-  for (let i = end - 1; i >= 0 && out.length < limit; i--) out.push(ds.flights[i])
+  for (let i = eventCount(ds, t) - 1; i >= 0 && out.length < limit; i--) {
+    if (ds.tracks.has(ds.flights[i].id)) out.push(ds.flights[i])
+  }
   return out
 }
 
-/** Arrivals/departures with op time in (from, to]. */
-export function countKinds(ds: Dataset, from: number, to: number) {
-  const a = upperBound(ds.times, from)
-  const b = upperBound(ds.times, to)
-  const arr = ds.arrPrefix[b] - ds.arrPrefix[a]
-  return { arr, dep: b - a - arr }
-}
 
 /** Tracks whose time span contains t. */
 export function activeTracks(ds: Dataset, t: number): CompiledTrack[] {

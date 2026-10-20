@@ -1,5 +1,5 @@
 // Fetch + validate static data. URLs are parameters so other apps can reuse.
-import type { FlightsFile, KpisFile, TracksFile } from './types'
+import type { FlightsFile, TracksFile } from './types'
 
 export interface Polygon { type: 'Polygon'; coordinates: number[][][] }
 export interface RunwayFeature { type: 'Feature'; properties: { runway_pair?: string }; geometry: Polygon }
@@ -43,11 +43,3 @@ export async function loadTracks(url: string): Promise<TracksFile> {
   return data
 }
 export const loadRunways = (url: string) => getJson<RunwayCollection>(url)
-export async function loadKpis(url: string): Promise<KpisFile> {
-  const data = await getJson<KpisFile>(url)
-  if (!data || !Array.isArray(data.sep_events) || !Array.isArray(data.go_arounds) || !data.coverage ||
-    Object.values(data.coverage).some((value) => !Number.isInteger(value) || value < 0)) {
-    throw new Error(`${url}: invalid KPI data; regenerate the replay`)
-  }
-  return data
-}

@@ -2,7 +2,7 @@ import type { SimClock } from '../data/clock'
 import type { TimeFormat } from '../data/time'
 import type { Week } from '../data/types'
 
-export const SPEEDS = [1, 10, 60, 300, 1800]
+export const SPEEDS = [10, 60, 300]
 
 interface Props {
   week: Week

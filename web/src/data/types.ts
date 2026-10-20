@@ -68,37 +68,3 @@ export interface Week {
   tz: string
 }
 
-export interface SepEvent {
-  t_start: number
-  t_end: number
-  a: string
-  b: string
-  min_nm: number
-  min_ft: number
-}
-
-export interface KpiCoverage {
-  roster_arrivals: number
-  roster_departures: number
-  tracked_arrivals: number
-  tracked_departures: number
-  separation_evaluable_tracks: number
-  separation_evaluable_arrivals: number
-  go_around_evaluable_arrivals: number
-  measured_altitude_points?: number
-  /** Legacy Museum-only bundles use beacon_points. */
-  beacon_points?: number
-  adsb_paths?: number
-  museum_fallback_paths?: number
-  total_points: number
-}
-
-export interface KpisFile {
-  /** Full-week observation coverage; zero evaluable tracks means unavailable. */
-  coverage: KpiCoverage
-  /** sorted by t_start */
-  sep_events: SepEvent[]
-  /** sorted by t */
-  /** t is the time the sustained climb is confirmed, not the earlier low point. */
-  go_arounds: { t: number; low_t: number; low_ft: number; confirmed_ft: number; id: string }[]
-}

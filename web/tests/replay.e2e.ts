@@ -1,24 +1,22 @@
 import { test } from '@e2e-dev/web'
 import { expect } from 'e2e'
 
-test('loads the real week, renders the map, and preserves the full roster in KPIs', async ({ app, screen, browser }) => {
+test('loads the real week, renders the map, and shows hourly traffic for the full roster', async ({ app, screen, browser }) => {
   const response = await fetch(new URL('/data/flights.json', app.baseUrl))
   const data = await response.json()
   expect(data.flights.length).toBe(8439)
   expect(data.flights.filter((flight: { has_track: boolean }) => flight.has_track).length).toBe(4128)
   await app.open('/')
-  await expect.poll(() => browser.evaluate(() => document.querySelector('.kpis') !== null)).toBe(true)
   await expect(screen.getByRole('heading', 'Up in the Air · SFO')).toBeVisible()
   await expect(screen.getByRole('region', 'SFO tracked flight map')).toBeVisible()
   await expect(browser.locator('canvas').first()).toBeVisible()
-  const throughput = browser.locator('.kpi-card').filter({ hasText: 'Throughput' })
-  await expect(throughput).toContainText('15')
-  await expect(throughput).toContainText('25 departures')
-  await expect(throughput).toContainText('All roster operations')
-  const coverage = browser.locator('.kpi-card').filter({ hasText: 'Path coverage' })
-  await expect(coverage).toContainText('4,128 / 8,439')
-  await expect(coverage).toContainText('30 of 146')
-  await expect(browser.locator('.kpi-card').filter({ hasText: 'Arrival spacing' })).toContainText('3.0 min')
+  const stats = browser.locator('.stats')
+  await expect(stats).toContainText('on map now')
+  await expect(stats).toContainText('arrivals, last hr')
+  await expect(stats).toContainText('departures, last hr')
+  await expect(stats).toContainText('28L / 28R, last hr')
+  await expect(stats).not.toContainText('NaN')
+  await expect(browser.locator('.feed-caption')).toContainText('8,439 roster operations')
   // Capture the settled basemap state, whether tiles loaded or the fallback appears.
   await expect.poll(() => browser.evaluate(() => document.querySelector('.map-status')?.textContent !== 'Loading basemap…')).toBe(true)
   await app.screenshot('sfo-replay-desktop')
@@ -47,58 +45,51 @@ test('plays, pauses, changes speed, and jumps across all seven days', async ({ a
   await expect(screen.getByRole('button', 'Play replay')).toBeVisible()
 })
 
-test('opens tracked and untracked roster operations without inventing map paths', async ({ app, screen, browser }) => {
+test('lists only tracked flights and opens their details', async ({ app, screen, browser }) => {
   await app.open('/')
-  const feed = screen.getByRole('list', 'Recent roster operations, newest first')
+  const feed = screen.getByRole('list', 'Recent tracked flights, newest first')
   await expect(feed).toBeVisible()
-  await feed.getByRole('button', /SKW4763, arrival.*no map path/).tap()
-  await expect(screen.getByRole('region', 'Flight details for SKW4763')).toContainText('This roster operation has no map path.')
-  await expect(screen.getByRole('button', 'Play replay')).toBeVisible()
-  await screen.getByRole('button', 'Close flight details').tap()
-  await expect(screen.getByRole('region', 'Flight details for SKW4763')).toBeHidden()
-  await feed.getByRole('button', /UAL689, departure.*path available/).tap()
+  await expect(feed.getByRole('button', /SKW4763, arrival/)).toBeHidden()
+  await feed.getByRole('button', /UAL689, departure/).tap()
   await expect(screen.getByRole('region', 'Flight details for UAL689')).toContainText('Track points')
   await expect(browser.locator('.inspector')).not.toContainText('This roster operation has no map path.')
+  await screen.getByRole('button', 'Close flight details').tap()
+  await expect(screen.getByRole('region', 'Flight details for UAL689')).toBeHidden()
   await app.screenshot('sfo-replay-flight-details')
 })
 
-test('handles week boundaries and states missing safety evidence clearly', async ({ app, screen, browser }) => {
+test('handles week boundaries without empty or broken counts', async ({ app, screen, browser }) => {
   await app.open('/')
   const timeline = screen.getByRole('slider', 'Replay timeline')
   await expect(timeline).toBeVisible()
   await timeline.press('Home')
   await expect(browser.locator('.clock')).toContainText('Aug 3 00:00:00 PDT')
-  await expect(screen.getByText('No operations yet. Select a day to jump to 07:00.')).toBeVisible()
-  await expect(browser.locator('.kpi-card').filter({ hasText: 'Path coverage' })).not.toContainText('NaN')
+  await expect(screen.getByText('No tracked flights yet. Select a day to jump to 07:00.')).toBeVisible()
+  await expect(browser.locator('.stats')).not.toContainText('NaN')
   await timeline.press('End')
   await expect(browser.locator('.clock')).toContainText('Aug 9 23:59:59 PDT')
-  await expect(browser.locator('.kpi-card').filter({ hasText: 'Safety candidates' })).toContainText('Unavailable')
-  await screen.getByText('How to read these metrics', { exact: true }).tap()
-  await expect(screen.getByText(/Safety counts are track-derived candidates/)).toBeVisible()
+  await expect(browser.locator('.stats')).not.toContainText('NaN')
 })
 
-test('keeps map, KPIs, controls, and feed usable on a phone width', async ({ app, screen, browser }) => {
+test('keeps map, controls, and feed usable on a phone width', async ({ app, screen, browser }) => {
   await browser.setViewport({ width: 390, height: 844 })
   await app.open('/')
   await expect(screen.getByRole('region', 'SFO tracked flight map')).toBeVisible()
   await expect(screen.getByRole('button', 'Sun', { exact: true })).toBeVisible()
   expect(await browser.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-  await screen.getByRole('heading', /Path coverage/).scrollIntoView()
-  await expect(screen.getByRole('heading', /Path coverage/)).toBeVisible()
-  await screen.getByRole('heading', 'Operations feed', { exact: false }).scrollIntoView()
-  await expect(screen.getByRole('list', 'Recent roster operations, newest first')).toBeVisible()
+  await screen.getByRole('heading', 'Tracked flights').scrollIntoView()
+  await expect(screen.getByRole('list', 'Recent tracked flights, newest first')).toBeVisible()
   await app.screenshot('sfo-replay-mobile')
 })
 
 test('shows a recovery action if a required data file is missing', async ({ app, screen, browser }) => {
-  await browser.route('**/data/kpis.json', (route) => route.fulfill({ status: 404, body: 'missing' }))
+  await browser.route('**/data/tracks.json', (route) => route.fulfill({ status: 404, body: 'missing' }))
   await app.open('/')
   await expect(screen.getByRole('alert')).toContainText('Failed to load replay data')
   await expect(screen.getByRole('alert')).toContainText('bun run data')
 })
 
-
-test('keeps aircraft and roster KPIs available when the basemap request fails', async ({ app, screen, browser }) => {
+test('keeps aircraft and traffic counts available when the basemap request fails', async ({ app, screen, browser }) => {
   await browser.route('**/gl/dark-matter-gl-style/style.json', (route) => route.abort())
   await app.open('/')
   await expect(screen.getByRole('status')).toContainText('Basemap is slow or unavailable. Aircraft paths remain available.')
@@ -106,44 +97,5 @@ test('keeps aircraft and roster KPIs available when the basemap request fails', 
   await expect(browser.locator('canvas#deckgl-overlay')).toBeVisible()
   await expect(browser.locator('.stats')).toContainText('11')
   await expect(browser.locator('.stats')).toContainText('on map now')
-  const throughput = browser.locator('.kpi-card').filter({ hasText: 'Throughput' })
-  await expect(throughput).toContainText('15')
-  await expect(throughput).toContainText('25 departures')
-  await expect(throughput).toContainText('All roster operations')
   await app.screenshot('sfo-replay-basemap-unavailable')
-})
-
-test('replays a recovered SkyWest arrival and counts its go-around only after confirmation', async ({ app, screen, browser }) => {
-  const kpis = await (await fetch(new URL('/data/kpis.json', app.baseUrl))).json()
-  const flightData = await (await fetch(new URL('/data/flights.json', app.baseUrl))).json()
-  const flight = flightData.flights.find((f: { id: string }) => f.id === '45881479')
-  const event = kpis.go_arounds.find((e: { id: string }) => e.id === flight.id)
-  expect(flight.track_source).toBe('adsb.lol')
-  expect(flight.icao24).toBe('ada6b9')
-  expect(event.low_ft).toBe(400)
-  expect(event.t).toBeGreaterThan(event.low_t)
-  await app.open('/')
-  await expect(screen.getByRole('slider', 'Replay timeline')).toBeVisible()
-  // Drive the native range input at exact timestamps, without changing app data.
-  const seek = async (timestamp: number) => browser.evaluate((value) => {
-    const input = document.querySelector<HTMLInputElement>('input[aria-label="Replay timeline"]')!
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, String(value))
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-    input.dispatchEvent(new Event('change', { bubbles: true }))
-    return true
-  }, timestamp)
-  const count = browser.locator('.safety .metric-pair > div').nth(1).locator('b')
-  await seek(Math.floor(event.t))
-  await expect(count).toHaveText(String(kpis.go_arounds.filter((e: { t: number }) => e.t <= Math.floor(event.t)).length))
-  await seek(Math.ceil(event.t))
-  await expect(count).toHaveText(String(kpis.go_arounds.filter((e: { t: number }) => e.t <= Math.ceil(event.t)).length))
-  await seek(flight.t)
-  await screen.getByRole('list', 'Recent roster operations, newest first').getByRole('button', /SKW5737, arrival.*path available/).tap()
-  const inspector = screen.getByRole('region', 'Flight details for SKW5737')
-  await expect(inspector).toContainText('adsb.lol')
-  await expect(inspector).toContainText('ada6b9')
-  await seek(Math.ceil(event.t))
-  await expect(inspector).toContainText('Observed path at the replay time.')
-  await expect(browser.locator('canvas#deckgl-overlay')).toBeVisible()
-  await app.screenshot('sfo-recovered-skywest-go-around')
 })
