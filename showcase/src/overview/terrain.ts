@@ -148,7 +148,14 @@ function addImageCoordinates(
   }
 }
 
-export async function createTerrain(): Promise<{
+export async function createTerrain(
+  options: {
+    /** Optional measured elevation sampler, in local scene metres. */
+    elevationAt?: (x: number, z: number) => number;
+    surfaceHeight?: number;
+    provenance?: string;
+  } = {},
+): Promise<{
   group: THREE.Group;
   heightAt: (x: number, z: number) => number;
   dispose: () => void;
@@ -211,9 +218,11 @@ export async function createTerrain(): Promise<{
             shoreCells.set(key, segments);
           }
       }
+  const surfaceHeight = options.surfaceHeight ?? 2;
   const terrainElevation = (x: number, z: number) => {
-    const elevation = illustrativeElevation(x, z);
-    if (elevation <= 2.01) return 2;
+    const elevation =
+      options.elevationAt?.(x, z) ?? illustrativeElevation(x, z);
+    if (elevation <= surfaceHeight + 0.01) return surfaceHeight;
     let distance = 600;
     for (const { a, b } of shoreCells.get(
       `${Math.floor(x / 1000)},${Math.floor(z / 1000)}`,
@@ -228,7 +237,9 @@ export async function createTerrain(): Promise<{
         Math.hypot(x - a[0] - t * dx, z - a[1] - t * dz),
       );
     }
-    return 2 + (elevation - 2) * smooth(55, 600, distance);
+    return (
+      surfaceHeight + (elevation - surfaceHeight) * smooth(55, 600, distance)
+    );
   };
   const heightAt = (x: number, z: number) =>
     isLand(x, z) ? terrainElevation(x, z) : 0;
@@ -243,8 +254,11 @@ export async function createTerrain(): Promise<{
     texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
   }
   const group = new THREE.Group();
-  group.name = "SFO geographic shoreline · schematic elevation";
+  group.name = options.elevationAt
+    ? "SFO geographic shoreline · terrain elevation"
+    : "SFO geographic shoreline · schematic elevation";
   group.userData.provenance =
+    options.provenance ??
     "US Census coastline; USGS NAIP imagery. Elevation and vegetation are procedural illustration, not measured terrain.";
 
   const terrainMaterial = new THREE.MeshStandardMaterial({
@@ -342,7 +356,7 @@ export async function createTerrain(): Promise<{
       );
     const geometry = new THREE.ShapeGeometry(shape);
     geometry.rotateX(-Math.PI / 2);
-    geometry.translate(0, 2, 0);
+    geometry.translate(0, surfaceHeight, 0);
     const mesh = finishGeometry(geometry, true);
     mesh.name = "Exact shoreline with NAIP ground imagery";
     group.add(mesh);
@@ -375,7 +389,10 @@ export async function createTerrain(): Promise<{
             c = a + chunkCells + 1,
             d = c + 1;
           if (![a, b, c, d].every((v) => lands[v])) continue;
-          if (Math.max(...[a, b, c, d].map((v) => positions[v * 3 + 1])) < 3.5)
+          if (
+            Math.max(...[a, b, c, d].map((v) => positions[v * 3 + 1])) <
+            surfaceHeight + 1.5
+          )
             continue;
           indices.push(a, c, b, b, c, d);
         }
@@ -387,7 +404,9 @@ export async function createTerrain(): Promise<{
       );
       geometry.setIndex(indices);
       const mesh = finishGeometry(geometry);
-      mesh.name = "Procedural ridge · illustrative elevation";
+      mesh.name = options.elevationAt
+        ? "Terrain ridge · sampled elevation"
+        : "Procedural ridge · illustrative elevation";
       group.add(mesh);
     }
 
@@ -432,7 +451,8 @@ export async function createTerrain(): Promise<{
         terrainElevation(x, z + 40) - h,
       ) / 40;
     if (slope > 0.48) continue;
-    const size = 7 + hash(candidate, 33) * 10;
+    const size =
+      (7 + hash(candidate, 33) * 10) * (options.elevationAt ? 0.55 : 1);
     position.set(x, h - 1, z);
     scale.set(
       size,

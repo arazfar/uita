@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "start": "vite --host 0.0.0.0 --port ${PORT:-5190} --strictPort",
-    "build": "vite build && npm run build:overview",
+    "build": "npm run build:tower && vite build && npm run build:overview",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test test/*.test.mjs",
     "build:overview": "npm run typecheck && vite build --config vite.overview.config.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:tower": "node scripts/build-tower-terrain.mjs"
   },
   "dependencies": {
     "cesium": "1.146.0",

@@ -16,8 +16,8 @@ export function createTowerAtmosphere(
     screens = {},
     sunElevation = 28,
     sunAzimuth = 245,
-    hazeDensity = 0.000024,
-    exposure = 0.85,
+    hazeDensity = 0.000018,
+    exposure = 0.98,
     shadows = true,
   },
 ) {
@@ -32,7 +32,7 @@ export function createTowerAtmosphere(
   const group = new THREE.Group();
   group.name = "tower-daylight";
   scene.add(group);
-  const fog = new THREE.FogExp2(0xbacbd3, hazeDensity);
+  const fog = new THREE.FogExp2(0xaebec7, hazeDensity);
   scene.fog = fog;
   const sunDirection = new THREE.Vector3();
   const skyMaterial = new THREE.ShaderMaterial({
@@ -48,6 +48,14 @@ export function createTowerAtmosphere(
     vertexShader: `varying vec3 skyDirection;
       void main() { skyDirection = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `varying vec3 skyDirection; uniform vec3 sunDirection; uniform vec3 horizon; uniform float warmth;
+      float cloudHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float cloudNoise(vec2 p) {
+        vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+        return mix(mix(cloudHash(i),cloudHash(i+vec2(1,0)),f.x),mix(cloudHash(i+vec2(0,1)),cloudHash(i+1.0),f.x),f.y);
+      }
+      float cloudFbm(vec2 p) {
+        return cloudNoise(p)*.52 + cloudNoise(p*2.03+17.0)*.27 + cloudNoise(p*4.13-11.0)*.14 + cloudNoise(p*8.29+3.0)*.07;
+      }
       void main() {
         vec3 ray = normalize(skyDirection);
         float altitude = max(ray.y, 0.0);
@@ -58,6 +66,13 @@ export function createTowerAtmosphere(
         // The solar disk subtends about half a degree; the wider halo is atmospheric scattering.
         float disk = smoothstep(cos(0.0052), cos(0.0042), towardSun);
         color += vec3(4.0, 3.5, 2.7) * disk;
+        // A fixed illustrative coastal cloud layer, independent of replay weather.
+        vec2 cloudUv = ray.xz / max(ray.y, .055) * 1.7 + vec2(8.0, 3.0);
+        float cloud = cloudFbm(cloudUv);
+        float coverage = smoothstep(.58, .76, cloud) * smoothstep(.025, .15, ray.y);
+        float lightEdge = clamp((cloud - cloudFbm(cloudUv + sunDirection.xz*.18))*6.0 + .65, 0.0, 1.0);
+        vec3 cloudColor = mix(vec3(.42,.48,.53),vec3(.96,.95,.90),lightEdge);
+        color = mix(color, cloudColor, coverage*.87);
         color = mix(color, horizon * 0.72, smoothstep(0.0, 0.12, -ray.y));
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>

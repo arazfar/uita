@@ -11,10 +11,12 @@ export function makeAirliner(THREE, profile) {
     belly = heavy ? 3.5 : 2.3;
   const center = belly + radius,
     span = profile.span;
-  const paint = new THREE.MeshStandardMaterial({
+  const paint = new THREE.MeshPhysicalMaterial({
     color: 0xe3e6e3,
-    roughness: 0.38,
-    metalness: 0.25,
+    roughness: 0.29,
+    metalness: 0.12,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.24,
   });
   const blue = new THREE.MeshStandardMaterial({
     color: 0x234a71,
@@ -52,13 +54,42 @@ export function makeAirliner(THREE, profile) {
     [0.25, 0.495],
     [0, 0.5],
   ];
-  const fuselage = mesh(
-    new THREE.LatheGeometry(
-      points.map(([r, z]) => new THREE.Vector2(r * radius, z * length)),
-      32,
-    ),
-    paint,
-  );
+  // Bound the smooth profile to its cross-sections so windows stay on the skin.
+  const hullRadiusAt = (z) => {
+    const f = z / length;
+    for (let i = 1; i < points.length; i++)
+      if (f <= points[i][1]) {
+        const [a, za] = points[i - 1],
+          [b, zb] = points[i];
+        const t = THREE.MathUtils.clamp((f - za) / (zb - za), 0, 1);
+        return radius * (a + (b - a) * t * t * (3 - 2 * t));
+      }
+    return 0;
+  };
+  const hullProfile = Array.from({ length: 129 }, (_, i) => {
+    const z = (i / 128 - 0.5) * length;
+    return new THREE.Vector2(hullRadiusAt(z), z);
+  });
+  const hullPaint = paint.clone();
+  hullPaint.onBeforeCompile = (shader) => {
+    shader.vertexShader = "varying vec3 hullPosition;\n" + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <begin_vertex>",
+      "#include <begin_vertex>\nhullPosition = position;",
+    );
+    shader.fragmentShader =
+      "varying vec3 hullPosition;\n" + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <color_fragment>",
+      `#include <color_fragment>
+      float belly = smoothstep(${(radius * 0.13).toFixed(4)}, ${(radius * 0.23).toFixed(4)}, hullPosition.z);
+      float stripe = smoothstep(${(radius * 0.12).toFixed(4)}, ${(radius * 0.16).toFixed(4)}, hullPosition.z) * (1.0-smoothstep(${(radius * 0.19).toFixed(4)}, ${(radius * 0.22).toFixed(4)}, hullPosition.z));
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.38,.44,.48), belly*.65);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.035,.12,.20), stripe*.85);`,
+    );
+  };
+  hullPaint.customProgramCacheKey = () => `tower-hull-${radius}`;
+  const fuselage = mesh(new THREE.LatheGeometry(hullProfile, 48), hullPaint);
   fuselage.rotation.x = Math.PI / 2;
   fuselage.position.y = center;
   // The 747's upper-deck shape remains recognizable at tower distances.
@@ -172,7 +203,26 @@ export function makeAirliner(THREE, profile) {
       inlet.position.set(x, belly * 0.75, z + (heavy ? 2.36 : 1.71));
       const fan = mesh(new THREE.CircleGeometry(er * 0.87, 24), dark);
       fan.position.set(x, belly * 0.75, z + (heavy ? 2.2 : 1.5));
-      const spinner = mesh(new THREE.ConeGeometry(er * 0.24, 0.7, 12), metal);
+      const bladeGeometry = new THREE.PlaneGeometry(er * 0.13, er * 0.62);
+      bladeGeometry.translate(0, er * 0.48, 0);
+      const fanBlades = new THREE.InstancedMesh(bladeGeometry, metal, 24);
+      const bladePose = new THREE.Object3D();
+      for (let blade = 0; blade < 24; blade++) {
+        bladePose.position.copy(fan.position);
+        bladePose.position.z += 0.02;
+        bladePose.rotation.set(0.24, 0, (blade * Math.PI) / 12);
+        bladePose.updateMatrix();
+        fanBlades.setMatrixAt(blade, bladePose.matrix);
+      }
+      fanBlades.name = "Turbofan blades";
+      g.add(fanBlades);
+      const exhaust = mesh(
+        new THREE.CylinderGeometry(er * 0.7, er * 0.51, 0.9, 24, 1, true),
+        metal,
+      );
+      exhaust.rotation.x = Math.PI / 2;
+      exhaust.position.set(x, belly * 0.75, z - (heavy ? 2.3 : 1.7));
+      const spinner = mesh(new THREE.ConeGeometry(er * 0.24, 0.7, 20), metal);
       spinner.rotation.x = Math.PI / 2;
       spinner.position.copy(fan.position);
       spinner.position.z += 0.3;
@@ -191,7 +241,12 @@ export function makeAirliner(THREE, profile) {
     const windowPose = new THREE.Object3D();
     windowPose.rotation.y = (side * Math.PI) / 2;
     windowPositions.forEach((z, i) => {
-      windowPose.position.set(side * radius * 0.98, center + 0.4, z);
+      windowPose.position.set(
+        side *
+          (Math.sqrt(Math.max(0, hullRadiusAt(z) ** 2 - 0.4 ** 2)) + 0.025),
+        center + 0.4,
+        z,
+      );
       windowPose.updateMatrix();
       windows.setMatrixAt(i, windowPose.matrix);
     });
@@ -212,6 +267,12 @@ export function makeAirliner(THREE, profile) {
     for (const z of [-0.29, 0.31]) {
       const door = mesh(new THREE.BoxGeometry(0.04, 1.6, 0.85), metal);
       door.position.set(side * radius * 0.995, center - 0.3, z * length);
+      const doorPanel = mesh(new THREE.BoxGeometry(0.045, 1.48, 0.73), paint);
+      doorPanel.position.set(
+        side * (radius * 0.995 + 0.025),
+        center - 0.3,
+        z * length,
+      );
     }
     const nav = mesh(
       new THREE.SphereGeometry(0.13, 8, 6),

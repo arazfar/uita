@@ -137,7 +137,7 @@
   <button id="bPlay" title="Pause (space)">❚❚</button><button id="bRestart" title="Restart (R)">↺</button><button id="bSound" title="Sound (M)">🔈</button>
   <span class="sep"></span>
   <button data-p="desk" title="Desk">1</button><button data-p="runway" title="Runway 28L/R">2</button><button data-p="ground" title="Ground radar">3</button>
-  <button data-p="air" title="Air radar">4</button><button data-p="tablet" title="Strip tablet">5</button><button data-p="side" title="Agents / METAR">6</button>
+  <button data-p="air" title="Air radar">4</button><button data-p="tablet" title="Strip tablet">5</button><button data-p="side" title="Agents / METAR">6</button><button data-p="apron" title="Terminal apron">Apron</button>
   <span class="sep"></span>
   <button id="bBino" title="Binoculars (B)">B</button><button id="bZin" title="Zoom in">＋</button><button id="bZout" title="Zoom out">－</button>
   <button id="bPhoto" title="Photoreal (online) — G">G</button><button id="bCine" class="on" title="Cinematic (C)">CINE</button><button id="bHelp" title="Help (?)">?</button>
@@ -191,6 +191,7 @@ const { TOWER_DESK_POSE, createTowerCameraControls, isTowerShortcutTarget } = aw
 const DESK_PITCH = -0.22; // Include console equipment while keeping the runway horizon above the monitors.
 const { createTowerAtmosphere } = await import('./tower-atmosphere.js');
 const { createTowerAirfield } = await import('./tower-airfield.js');
+const { createTowerScenery } = await import('./tower-scenery.js');
 const { createTowerSpatialAudio } = await import('./tower-spatial-audio.js');
 const { buildArrivalTaxiRoute } = await import('./tower-taxi-route.js');
 const spatialAudio = createTowerSpatialAudio();
@@ -391,11 +392,35 @@ const airfield = createTowerAirfield(THREE, { runways: RWY, parent: world });
 let tiles = null, tilesHolder = null, tilesOK = false, tilesStarting = false, photoreal = false, packOK = false, fallbackOn = false;
 const fallback = new THREE.Group(); fallback.visible = false; world.add(fallback);
 const pack = new THREE.Group(); pack.visible = false; scene.add(pack);
+let outdoorScenery = null;
+const reducedSceneryMotion = matchMedia('(prefers-reduced-motion: reduce)');
+pack.userData.quality = 'loading';
 const errBox = (t) => console.warn('[outside]', t);
 
 // USGS NAIP ortho draped on ENU + OSM buildings GLB (candidates/sfo-pack). Images are EPSG:3857, so
 // rows are resampled per latitude to land exactly on the local frame.
 async function loadPack() {
+  const buf = await early.glb.pack;
+  if (!buf) throw new Error('sfo-buildings.glb missing');
+  const loader = new GLTFLoader().setDRACOLoader(draco);
+  const original = await loader.parseAsync(buf, 'sfo-pack/');
+  try {
+    const az = 245 * D2R, el = 28 * D2R;
+    outdoorScenery = await createTowerScenery(THREE, { airports: sfo, loader,
+      originalBuildings: original.scene,
+      sunDirection: new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)) });
+    pack.add(outdoorScenery.group);
+    pack.userData.quality = 'detailed';
+    packOK = true; applyOutside();
+  } catch (error) {
+    pack.userData.quality = 'fallback'; pack.userData.error = error.message;
+    errBox('Detailed scenery unavailable; using base imagery: ' + error.message);
+    await loadFlatPack();
+  } finally {
+    original.scene.traverse(o => { if (o.isMesh) { o.geometry.dispose(); for (const m of [o.material].flat()) m.dispose(); } });
+  }
+}
+async function loadFlatPack() {
   const b = await early.bounds;
   if (!b) throw new Error('sfo-pack/bounds.json missing');
   const mercY = (lat) => 6378137 * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
@@ -493,7 +518,7 @@ function updateAttrib() {
     let g = 'Google';
     try { const a = tiles?.getAttributions?.() || []; const s = a.filter((x) => x.type === 'string').map((x) => x.value).join('; '); if (s) g = s; } catch (e) {}
     attrib.innerHTML = `<b>Google</b> · ${g} · ` + credits;
-  } else attrib.innerHTML = (packOK ? 'Imagery USGS NAIP · ' : '') + credits;
+  } else attrib.innerHTML = (packOK ? 'Imagery USGS NAIP · ' : '') + (pack.userData.quality === 'detailed' ? 'Terrain Mapzen / USGS / NOAA · US Census shoreline · authored airport detail · ' : pack.userData.quality === 'fallback' ? 'Base scenery (detail unavailable) · ' : '') + credits;
 }
 attrib.innerHTML = credits;
 
@@ -1193,6 +1218,7 @@ function presets() {
   return {
     desk: { eye: EYE.clone(), yaw: -0.08, pitch: DESK_PITCH, fov: 58 },
     runway: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(rwMid), 34),
+    apron: aimFrom(new THREE.Vector3(-1.5, 1.85, 1.5), worldToCab(new THREE.Vector3(-430, groundY + 12, 400)), 48),
     binoc: aimFrom(new THREE.Vector3(0, 1.78, -0.72), worldToCab(pad.clone().lerp(rwMid, 0.25)), 9),
     ground: aimFrom(new THREE.Vector3(-0.3, 1.14, -0.2), screenTarget('ground'), 36),
     air: aimFrom(new THREE.Vector3(0.3, 1.14, -0.2), screenTarget('air'), 36),
@@ -1391,6 +1417,7 @@ function loop() {
   if (!CONNECTED && !S.paused) { visT += elapsed * demoRate; S.t += dt * (S.busy ? 0.6 : 1); }
   updateActors(visT);
   airfield.update(actors, groundY);
+  outdoorScenery?.update(reducedSceneryMotion.matches ? 0 : visT);
   if (RUNWAY_DEMO) updateRunwayDemo();
   // storm visuals
   const sl = CONNECTED || RUNWAY_DEMO ? 0 : stormLevel(); stormGroup.children.forEach((s, i) => { s.material.opacity = 0.85 * sl; s.material.color.setHex(Math.random() < 0.004 * sl ? 0xd8e4ff : 0x353a44); });
@@ -1430,7 +1457,7 @@ addEventListener('message', (e) => {
   else if (e.data?.uita === 'resume') { extPause = false; setHalted(); }
 });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
-window.__sky = { renderer, scene, cab, cabDetails, airfield, arrivalTaxiRoute, atmosphere, spatialAudio, cameraControls, S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
+window.__sky = { renderer, scene, cab, cabDetails, airfield, scenery: pack, arrivalTaxiRoute, atmosphere, spatialAudio, cameraControls, S, presets, goTo, camera, screens, pickAt, get picked() { return picked; }, get tilesOK() { return tilesOK; }, get groundY() { return groundY; }, actors, flights, get flightTime() { return visT + flightStart - flightEpoch; } };
 if (new URLSearchParams(location.search).get('photoreal') === '1') setPhotoreal(true);
 if (CONNECTED) {
   addEventListener('message',e=>{
