@@ -40,6 +40,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/") file = resolve(root, "candidates/app.html");
     else if (["/sfo-overview", "/sfo-overview/"].includes(url.pathname))
       file = resolve(root, "candidates/sfo-overview.html");
+    else if (["/arena", "/arena/"].includes(url.pathname))
+      file = resolve(root, "candidates/arena.html");
     else
       for (const [prefix, dir] of [
         ["/candidates/", "candidates"],

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFOArrivalEnv Arena</title>
+<link rel="stylesheet" href="/candidates/arena.css">
+</head>
+<body>
+<header class="cabinet">
+  <div class="title-row">
+    <h1>SFOArrivalEnv Arena</h1>
+    <dl class="meta" id="meta" aria-label="Run metadata"></dl>
+  </div>
+  <p class="task">Sequence real SFO arrivals through a shared runway resource; graded against a CP-SAT closed-loop reference.</p>
+  <p class="formula"><span class="label">Reward</span> <code id="formula">loading</code></p>
+  <p class="caveat">Caveats: the reference is a per-decision CP-SAT solve, not a proven global optimum. Some initial aircraft positions are synthetic; they are flagged <span class="tag-syn">SYN</span> in the viewer.</p>
+</header>
+
+<main>
+  <div class="boards">
+    <section class="screen" aria-labelledby="lb-h">
+      <h2 id="lb-h" class="panel-label">Leaderboard</h2>
+      <div class="scroll"><table id="leaderboard">
+        <thead><tr>
+          <th class="num" scope="col">#</th><th scope="col">Agent</th><th scope="col">Kind</th>
+          <th scope="col">Mean reward (0-1)</th><th class="num" scope="col">Safe tasks</th>
+          <th class="num" scope="col">Mean gap</th><th class="num" scope="col">Rejected plans</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+    <section class="screen" aria-labelledby="mx-h">
+      <h2 id="mx-h" class="panel-label">Task matrix <span class="sub">reward per task; <span class="warn-mark">!</span> = not safety-eligible</span></h2>
+      <div class="scroll"><table id="matrix"><thead></thead><tbody></tbody></table></div>
+    </section>
+  </div>
+
+  <section class="viewer" aria-labelledby="rv-h">
+    <div class="band">
+      <h2 id="rv-h" class="panel-label ink">Rollout viewer</h2>
+      <span id="rv-id" class="band-id">no rollout selected</span>
+      <div class="transport" role="group" aria-label="Decision step">
+        <button type="button" id="prev" aria-label="Previous decision">&#9664;</button>
+        <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Decision step" aria-describedby="step-readout">
+        <button type="button" id="next" aria-label="Next decision">&#9654;</button>
+        <output id="step-readout" class="readout">-</output>
+      </div>
+    </div>
+    <div id="stats" class="stats" aria-label="Rollout summary"></div>
+    <div id="msg" class="msg" role="status" hidden></div>
+    <div class="viewer-body">
+      <div class="timeline" id="timeline-wrap">
+        <div class="legend" aria-label="Legend">
+          <span><i class="k nominal"></i>nominal landing</span>
+          <span><i class="k bar"></i>agent landing (delay bar)</span>
+          <span><i class="k ghost"></i>reference landing</span>
+          <span><i class="k unf"></i>unfinished at horizon</span>
+          <span><i class="k dec"></i>decision time</span>
+          <span><b class="hv">H</b> heavy wake</span>
+          <span class="tz">Local time, America/Los_Angeles</span>
+        </div>
+        <div class="axis-wrap" id="axis"></div>
+        <div class="rows-wrap" id="rows" tabindex="0" aria-label="Aircraft timeline, scrollable"></div>
+      </div>
+      <aside class="inspector" id="inspector" aria-live="polite" aria-label="Decision inspector"></aside>
+    </div>
+  </section>
+</main>
+
+<footer class="cabinet foot">
+  <a href="/">Live replay</a>
+  <a href="/sfo-overview">SFO overview</a>
+  <span>Source: <code>/candidates/data/arena/</code></span>
+</footer>
+<script src="/candidates/arena.js"></script>
+</body>
+</html>
