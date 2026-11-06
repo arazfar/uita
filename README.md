@@ -21,6 +21,53 @@ Uita replays recorded traffic for **August 3–9, 2026, in SFO local time**, wit
 
 [Historical replay](web/README.md) · [Control workbench](docs/DEMO.md) · [Voice showcase](showcase/README.md) · [Model comparison](benchmark/reports/2026-10-17/comparison.md) · [Data pipeline](pipeline/README.md)
 
+## The experiment: can AI agents sequence real SFO arrivals?
+
+Everything below feeds one PortSim-style environment, `SFOArrivalEnv-v1` ([atc_env/](atc_env/README.md)). An agent acts as the arrival controller for a shared SFO runway resource over a frozen 75-minute window of real August 2026 traffic. Every 300 s it orders the announced aircraft, a trusted decoder turns that order into landing slots, and an independent verifier approves or rejects the plan before anything commits. A rejected or malformed plan is replaced by scripted first-come-first-served (FCFS) and costs reward, so the agent can never put an unsafe plan into the simulation.
+
+```
+pipeline/ (recorded ADS-B, Aug 3-9)  ->  benchmark/closed_loop frozen windows (train Aug 3-6, validation Aug 7, test Aug 8-9 sealed)
+        ->  SFOArrivalEnv: get_situation / check_plan / submit_plan  (engine + verifier + scripted fallback)
+        ->  agents: built-in policies, or any LLM through the MCP server
+        ->  grader: deterministic 0-1 reward against a CP-SAT closed-loop reference
+        ->  leaderboard.json + per-decision rollouts  ->  /arena viewer
+```
+
+The reward is deterministic. Any executed safety violation scores 0. Any rejected or invalid submission caps the episode at 0.2 times the accepted fraction. A clean episode scores `0.2 + 0.8 * exp(-gap / 0.5)`, where `gap` is the relative excess of penalized added delay (delay plus 3600 s per unfinished aircraft) over the reference. The reference is the CP-SAT controller rerun closed-loop on the same window. It optimizes each decision under a 0.25 s limit, so it is a strong baseline, not a proven global optimum, and an agent can beat it.
+
+Current validation results (Aug 7, 6 windows, `python -m atc_env.rollout --split validation`):
+
+| Agent | Kind | Mean reward | Safety-eligible |
+|---|---|---|---|
+| CP-SAT order | oracle (reads the privileged reference proposal) | 1.000 | 6/6 |
+| Heavy-last heuristic | heuristic | 0.962 | 6/6 |
+| Scripted FCFS | baseline | 0.962 | 6/6 |
+| Random order | baseline | 0.592 | 6/6 |
+
+On these windows FCFS is already close to the reference, so the reward separates bad orderings well but good ones only slightly. Treat a score near 0.96 as "competent", and look at the gap column and the per-decision rollouts to compare strong agents. No LLM agent has been scored yet. The OpenAI-compatible agent in `atc_env/agents.py` needs `--allow-paid` and a key, and it is never run by tests.
+
+Run it with the closed-loop venv from the repo root:
+
+```bash
+benchmark/results/closed-loop-venv/bin/python -m atc_env.rollout --smoke
+```
+
+```bash
+benchmark/results/closed-loop-venv/bin/python -m atc_env.rollout --split validation
+```
+
+```bash
+benchmark/results/closed-loop-venv/bin/python -m atc_env.mcp_server --split validation
+```
+
+```bash
+UITA_ACCESS_MODE=public_demo node showcase/server.mjs
+```
+
+The smoke rollout scores scripted FCFS on one task in about a second and needs no keys. The full validation rollout takes about 25 s and rewrites `showcase/candidates/data/arena/`. The MCP server exposes `list_tasks`, `reset`, `get_situation`, `check_plan` and `submit_plan` over stdio, so any MCP client can play an episode. The showcase server then serves the leaderboard and a per-decision timeline at `http://localhost:5190/arena`, deep-linkable as `/arena#<agent>/<task_id>`. Tests: `benchmark/results/closed-loop-venv/bin/python -m pytest tests/test_atc_env.py -q`.
+
+Traffic positions are a mix of observed and synthetic training-template entries, and each aircraft keeps that provenance label. Runway occupancy, feeder paths and the approach model are synthetic. This is a research environment and controls no real aircraft.
+
 ## Connected hackathon showcase
 
 The SFO dashboard and tower cab can now run against the durable research API.
@@ -37,7 +84,7 @@ The prototype descriptions below retain their separate boundaries.
 
 ## What exists today
 
-The repository contains separate prototypes, with these implemented capabilities and boundaries:
+The components below are the inputs and research surfaces around `SFOArrivalEnv`. Each keeps its own evidence boundary:
 
 | Part | What it does | Important boundary |
 | --- | --- | --- |
