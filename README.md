@@ -39,7 +39,7 @@ Current validation results (Aug 7, 6 windows, `python -m atc_env.rollout --split
 
 | Agent | Kind | Mean reward | Safety-eligible |
 |---|---|---|---|
-| CP-SAT order | oracle (reads the privileged reference proposal) | 1.000 | 6/6 |
+| CP-SAT order | oracle (reads the privileged CP-SAT proposal; varies slightly per run because of the solver's wall-clock limit) | 1.000 | 6/6 |
 | Heavy-last heuristic | heuristic | 0.962 | 6/6 |
 | Scripted FCFS | baseline | 0.962 | 6/6 |
 | Random order | baseline | 0.592 | 6/6 |
